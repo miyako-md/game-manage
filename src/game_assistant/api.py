@@ -1,9 +1,12 @@
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Request
 
 from game_assistant.config import Settings
+from game_assistant.notify.base import build_notifier
 from game_assistant.registry import build_default_registry
+from game_assistant.scheduler import PollingScheduler
 from game_assistant.snapshots import SnapshotStore
 
 
@@ -14,7 +17,8 @@ def _stale(fetched_at: str, interval_seconds: int) -> bool:
 
 
 def create_app(registry=None, store=None, scheduler=None, notifier=None,
-               settings: Settings | None = None) -> FastAPI:
+               settings: Settings | None = None,
+               start_scheduler: bool = True) -> FastAPI:
     settings = settings or Settings.load()
     app = FastAPI(title="Game Assistant")
     app.state.settings = settings
@@ -69,5 +73,35 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         enabled = bool(notifier and getattr(notifier, "send_key", "") )
         provider = getattr(notifier, "provider", None)
         return {"notify": {"enabled": enabled, "provider": provider}}
+
+    if scheduler is None and start_scheduler:
+        scheduler = PollingScheduler(app.state.registry, app.state.store,
+                                     settings, notifier or build_notifier(settings))
+    app.state.scheduler = scheduler
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        if app.state.scheduler:
+            app.state.scheduler.start()
+        yield
+        if app.state.scheduler:
+            await app.state.scheduler.shutdown()
+
+    @app.post("/api/games/{game_id}/refresh")
+    async def refresh(game_id: str) -> dict:
+        try:
+            adapter = app.state.registry.get(game_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="未注册的游戏")
+        results = {}
+        for cap in adapter.capabilities:
+            if app.state.scheduler:
+                r = await app.state.scheduler.poll_once(game_id, cap)
+            else:
+                r = await adapter.fetch(cap)
+            results[cap.value] = {"ok": r.ok, "error": r.error}
+        return {"results": results}
+
+    app.router.lifespan_context = lifespan
 
     return app
