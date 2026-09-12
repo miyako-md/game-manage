@@ -1,8 +1,3 @@
-from fastapi import FastAPI
+from game_assistant.api import create_app
 
-app = FastAPI(title="Game Assistant")
-
-
-@app.get("/api/health")
-async def health() -> dict:
-    return {"status": "ok"}
+app = create_app()
