@@ -1,1 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+config.toml
+data/
+node_modules/
+dist/
+.pytest_cache/
 .superpowers/
+*.egg-info/
