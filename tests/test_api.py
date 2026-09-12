@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from game_assistant.api import create_app
+from game_assistant.config import Settings
 from game_assistant.models import StaminaInfo
 from game_assistant.snapshots import SnapshotStore
 from tests.test_registry import DummyAdapter
@@ -57,3 +58,14 @@ def test_snapshot_missing_and_unknown_game(tmp_path):
 def test_status_notify_disabled(tmp_path):
     client, _ = _app_with(tmp_path)
     assert client.get("/api/status").json()["notify"]["enabled"] is False
+
+
+def test_status_notify_enabled_with_configured_settings(tmp_path):
+    # main.py 走默认路径（不注入 notifier）时，create_app 应自行解析出真实
+    # notifier 并同时挂到 state 与 scheduler，/api/status 不得恒报"未配置"。
+    settings = Settings(notify_send_key="SK", db_path=str(tmp_path / "s.db"))
+    client = TestClient(create_app(registry=FakeRegistry(DummyAdapter()),
+                                   settings=settings, start_scheduler=False))
+    notify = client.get("/api/status").json()["notify"]
+    assert notify["enabled"] is True
+    assert notify["provider"] == "serverchan"

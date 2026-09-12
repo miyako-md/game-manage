@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from game_assistant.adapters.base import BaseGameAdapter
@@ -5,6 +6,8 @@ from game_assistant.adapters.wuthering_waves import announcements, events, role
 from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient, KuroError
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
+
+logger = logging.getLogger(__name__)
 
 
 class WutheringWavesAdapter(BaseGameAdapter):
@@ -30,6 +33,10 @@ class WutheringWavesAdapter(BaseGameAdapter):
             return await run()
         except KuroError as e:
             return FetchResult(ok=False, error=f"库街区接口错误: {e.message}")
+        except Exception as e:
+            # 解析器异常不得穿透 fetch 破坏失效隔离（spec §6）
+            logger.exception("鸣潮数据处理异常")
+            return FetchResult(ok=False, error=f"数据解析异常: {e}")
 
     async def fetch_account(self) -> FetchResult:
         async def run():

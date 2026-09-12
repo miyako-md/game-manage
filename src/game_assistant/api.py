@@ -29,6 +29,9 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         store = SnapshotStore(settings.db_path)
     app.state.store = store
     app.state.scheduler = scheduler
+    # main.py 走默认路径时不传 notifier：在此统一解析，保证 state 与 scheduler
+    # 持同一 notifier 实例，/api/status 不会恒报"未配置"
+    notifier = notifier or build_notifier(settings)
     app.state.notifier = notifier
 
     @app.get("/api/health")
@@ -76,7 +79,7 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
 
     if scheduler is None and start_scheduler:
         scheduler = PollingScheduler(app.state.registry, app.state.store,
-                                     settings, notifier or build_notifier(settings))
+                                     settings, notifier)
     app.state.scheduler = scheduler
 
     @asynccontextmanager

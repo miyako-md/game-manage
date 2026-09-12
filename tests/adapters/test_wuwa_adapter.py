@@ -47,3 +47,15 @@ async def test_kuro_error_wrapped():
     a = WutheringWavesAdapter(Settings(wuwa_token="bad", wuwa_user_id="1"))
     r = await a.fetch(Capability.STAMINA)
     assert r.ok is False and "登录失效" in r.error
+
+
+@respx.mock
+async def test_malformed_payload_returns_fetch_error():
+    # 200 但 data 结构畸形：power 为字符串使 int("x") 抛 ValueError（非 KuroError），
+    # 解析异常必须被 _guarded_run 拦下转为失败结果，而不是穿透 fetch 破坏失效隔离
+    respx.post("https://api.kurobbs.com/gamer/aki/api/getRoleData").mock(
+        return_value=httpx.Response(
+            200, json={"code": 200, "data": {"energy": {"power": "x", "max": 240}}}))
+    a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="1"))
+    r = await a.fetch(Capability.STAMINA)
+    assert r.ok is False and "数据解析异常" in r.error

@@ -40,6 +40,9 @@ class KuroClient:
             data = resp.json()
         except ValueError as e:
             raise KuroError(-2, "响应非 JSON") from e
+        if not isinstance(data, dict):
+            # 归一化 200 但顶层非 dict（如网关返回数组/字符串）的情况
+            raise KuroError(-2, "响应结构异常")
         if data.get("code") != 200:
             raise KuroError(data.get("code", -2), data.get("msg", "未知错误"))
         return data

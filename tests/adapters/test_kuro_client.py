@@ -51,3 +51,15 @@ async def test_non_json_response_raises_kuro_error():
     with pytest.raises(KuroError) as ei:
         await client.get_role_data()
     assert ei.value.code == -2
+
+
+@respx.mock
+async def test_non_dict_json_raises_kuro_error():
+    # 200 但顶层 JSON 非 dict（如网关返回数组/字符串），应归一化为 KuroError
+    respx.post("https://api.kurobbs.com/gamer/aki/api/getRoleData").mock(
+        return_value=httpx.Response(200, json=["unexpected"]))
+    client = KuroClient(token="tok", user_id="1")
+    with pytest.raises(KuroError) as ei:
+        await client.get_role_data()
+    assert ei.value.code == -2
+    assert ei.value.message == "响应结构异常"
