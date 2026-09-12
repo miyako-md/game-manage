@@ -1,0 +1,92 @@
+:root {
+  --bg: #f3f5f7;
+  --card-bg: #ffffff;
+  --text: #1f2329;
+  --text-muted: #646a73;
+  --border: #e2e6ea;
+  --danger: #d93026;
+  --danger-bg: #fdecea;
+  --stale-text: #9a6700;
+  --stale-bg: #fff3c4;
+  --accent: #2f6fed;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, 'Segoe UI', 'Microsoft YaHei', Roboto, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+h1,
+h2,
+h3,
+p,
+ul {
+  margin: 0;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  font: inherit;
+}
+
+/* ---- shared card shell ---- */
+.cap-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.cap-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.empty {
+  color: var(--text-muted);
+  padding: 12px 0;
+  text-align: center;
+}
+
+.fetched-at {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---- shared badges ---- */
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.badge-danger {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.badge-stale {
+  color: var(--stale-text);
+  background: var(--stale-bg);
+}
