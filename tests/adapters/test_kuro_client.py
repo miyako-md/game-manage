@@ -20,6 +20,7 @@ async def test_get_role_data_ok():
     req = route.calls.last.request
     assert req.headers["token"] == "tok"
     assert b"123456" in req.content
+    assert b"gameId=3" in req.content  # form-urlencoded（userId=123456&gameId=3&serverId=）
 
 
 @respx.mock
@@ -30,3 +31,23 @@ async def test_error_raises_kuro_error():
     with pytest.raises(KuroError) as ei:
         await client.get_role_data()
     assert ei.value.code == 220
+
+
+@respx.mock
+async def test_http_500_raises_kuro_error():
+    respx.post("https://api.kurobbs.com/gamer/aki/api/getRoleData").mock(
+        return_value=httpx.Response(500, text="Internal Server Error"))
+    client = KuroClient(token="tok", user_id="1")
+    with pytest.raises(KuroError) as ei:
+        await client.get_role_data()
+    assert ei.value.code == 500
+
+
+@respx.mock
+async def test_non_json_response_raises_kuro_error():
+    respx.post("https://api.kurobbs.com/gamer/aki/api/getRoleData").mock(
+        return_value=httpx.Response(200, text="<html>gateway error</html>"))
+    client = KuroClient(token="tok", user_id="1")
+    with pytest.raises(KuroError) as ei:
+        await client.get_role_data()
+    assert ei.value.code == -2

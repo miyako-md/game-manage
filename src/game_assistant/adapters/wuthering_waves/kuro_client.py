@@ -1,13 +1,8 @@
-import json
-import logging
-
 import httpx
 
 from game_assistant.adapters.wuthering_waves.endpoints import (
     ACTIVITY_LIST, ANNOUNCEMENT_LIST, ROLE_DATA,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class KuroError(Exception):
@@ -29,17 +24,22 @@ class KuroClient:
             "version": "3.0.0",
             "countryCode": "CN",
             "source": "h5",
-            "Content-Type": "application/json",
         }
 
     async def _post(self, url: str, body: dict) -> dict:
         try:
             async with httpx.AsyncClient(timeout=15) as client:
-                resp = await client.post(url, headers=self._headers(),
-                                         content=json.dumps(body))
+                # 库街区 APP 端为 form-urlencoded（来源：Kuro-API-Collection/waves-plugin），
+                # 若上游改回 JSON 在此切换
+                resp = await client.post(url, headers=self._headers(), data=body)
         except httpx.HTTPError as e:
             raise KuroError(-1, f"网络错误: {e}") from e
-        data = resp.json()
+        if resp.status_code != 200:
+            raise KuroError(resp.status_code, f"HTTP {resp.status_code}")
+        try:
+            data = resp.json()
+        except ValueError as e:
+            raise KuroError(-2, "响应非 JSON") from e
         if data.get("code") != 200:
             raise KuroError(data.get("code", -2), data.get("msg", "未知错误"))
         return data
