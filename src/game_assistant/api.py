@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 
 from game_assistant.config import Settings
 from game_assistant.notify.base import build_notifier

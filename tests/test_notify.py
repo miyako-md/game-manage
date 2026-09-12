@@ -2,11 +2,12 @@ import httpx
 import respx
 
 
-def test_send_skipped_when_key_empty():
+@respx.mock
+async def test_send_skipped_when_key_empty():
     from game_assistant.notify.wechat_push import WeChatPushNotifier
     n = WeChatPushNotifier(provider="serverchan", send_key="")
-    import asyncio
-    assert asyncio.run(n.send("t", "b")) is False
+    assert await n.send("t", "b") is False
+    assert respx.calls.call_count == 0  # 未配置密钥时不得发起任何 HTTP 请求
 
 
 @respx.mock

@@ -7,6 +7,7 @@ def test_save_and_get(tmp_path):
     snap = store.get("wuwa", "stamina")
     assert snap["payload"] == '{"current": 180}'
     assert "fetched_at" in snap
+    assert snap["fetched_at"].endswith("+00:00")  # UTC 时间戳契约
 
 
 def test_upsert_overwrites(tmp_path):

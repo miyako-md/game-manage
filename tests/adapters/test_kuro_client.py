@@ -20,7 +20,7 @@ async def test_get_role_data_ok():
     req = route.calls.last.request
     assert req.headers["token"] == "tok"
     assert b"123456" in req.content
-    assert b"gameId=3" in req.content  # form-urlencoded（userId=123456&gameId=3&serverId=）
+    assert b"gameId=3" in req.content  # form-urlencoded（gameId=3&userId=123456&serverId=）
 
 
 @respx.mock

@@ -67,7 +67,9 @@ class PollingScheduler:
                 f"当前体力 {s.current}/{s.maximum}，快去消耗吧。")
 
     def start(self) -> None:
-        self._scheduler = AsyncIOScheduler()
+        # misfire_grace_time：错过触发点的任务在 1 小时内仍补跑一次，避免
+        # 休眠/挂起恢复后整轮轮询被静默跳过
+        self._scheduler = AsyncIOScheduler(job_defaults={"misfire_grace_time": 3600})
         for game_id, cap, secs in self.build_jobs():
             self._scheduler.add_job(
                 self.poll_once, IntervalTrigger(seconds=secs),

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from game_assistant.models import AccountInfo, StaminaInfo
 
