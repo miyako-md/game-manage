@@ -40,7 +40,7 @@ onMounted(async () => {
     )
     activeSection.value = preferred || SECTIONS[0]
   } else {
-    loadError.value = '后端连接失败，请确认服务已启动（127.0.0.1:8000）'
+    loadError.value = '无法连接后端服务，请确认其已启动'
   }
   if (statusRes.status === 'fulfilled' && statusRes.value?.notify) {
     notify.value = statusRes.value.notify
