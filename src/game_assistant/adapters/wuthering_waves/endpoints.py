@@ -18,7 +18,18 @@
 #    postTitle/publishTime（毫秒时间戳）/postId/coverUrl/firstPublishTime/eventType/id。
 # ⑥ forum/list 的鸣潮板块 forumId 9/10/11（推荐/天诚茶馆/同人）为社区板块而非官方
 #    公告（实测核对），公告统一走 findEventList eventType=3，forum/list 不再使用。
+# ⑦ roleBox 系列（/aki/roleBox/akiBox/*，探索度与数据坞）不走 token 鉴权，而是
+#    b-at 头（APP 内 WebView 会话票据，32 位十六进制）+ devCode/did 头三件套，
+#    与 ③④⑤ 的 token 鉴权完全不同（头逐字实测见 rolebox_client.py）；
+#    响应 data 是 JSON 字符串，需二次解析（解析见 rolebox.py）。
+#    实测端点（POST form）：baseData（体力/等级/活跃天数等）、
+#    exploreIndex（body 另加 channelId=19&countryCode=1，探索度/残象探寻）、
+#    calabashData（数据坞等级/捕获率/声骸收集）。
 BASE = "https://api.kurobbs.com"
 ROLE_LIST = f"{BASE}/gamer/role/list"
 WIDGET_DATA = f"{BASE}/gamer/widget/game3/getData"
 EVENT_LIST = f"{BASE}/forum/companyEvent/findEventList"
+ROLEBOX_BASE = f"{BASE}/aki/roleBox/akiBox"
+ROLEBOX_BASE_DATA = f"{ROLEBOX_BASE}/baseData"
+ROLEBOX_EXPLORE_INDEX = f"{ROLEBOX_BASE}/exploreIndex"
+ROLEBOX_CALABASH_DATA = f"{ROLEBOX_BASE}/calabashData"

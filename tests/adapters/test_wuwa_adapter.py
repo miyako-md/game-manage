@@ -1,10 +1,14 @@
+import json
+
 import httpx
 import respx
 
 from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
 from game_assistant.config import Settings
 from game_assistant.models import Capability
-from game_assistant.models import ProgressItem, VersionActivity
+from game_assistant.models import (
+    CalabashData, ExplorationData, ProgressItem, VersionActivity,
+)
 
 # 实测响应形状（2026-09-13），见 endpoints.py 注释
 ROLE_LIST_RAW = {"code": 200, "msg": "success", "data": [{
@@ -36,10 +40,33 @@ EVENT_RAW = {"code": 200, "msg": "success", "data": {"list": [{
 ROLE_LIST_URL = "https://api.kurobbs.com/gamer/role/list"
 WIDGET_URL = "https://api.kurobbs.com/gamer/widget/game3/getData"
 EVENT_URL = "https://api.kurobbs.com/forum/companyEvent/findEventList"
+ROLEBOX_BASE_URL = "https://api.kurobbs.com/aki/roleBox/akiBox"
+
+# roleBox 响应 data 是 JSON 字符串（实测形状，2026-09-13），需二次解析
+EXPLORE_RAW = {"code": 200, "msg": "success", "data": json.dumps({
+    "countryProgress": "85%",
+    "areaInfoList": [{"areaName": "今州城", "areaProgress": "100%",
+                      "itemList": [{"type": 1, "name": "信标", "progress": "50%"}]}],
+    "detectionInfoList": [{"detectionName": "嗷呜", "levelName": "轻波级", "level": 1},
+                          {"detectionName": "咔咔", "levelName": "巨浪级", "level": 2}],
+}, ensure_ascii=False)}
+CALABASH_RAW = {"code": 200, "msg": "success", "data": json.dumps({
+    "level": 30, "baseCatch": "20%", "catchQuality": 5,
+    "curExp": 1375, "maxCount": 724,
+})}
 
 
 def _unconfigured():
     return WutheringWavesAdapter(Settings(wuwa_enabled=True))
+
+
+def _rolebox_configured():
+    # roleBox 三件套（b-at/devCode/did）全非空才启用探索度/数据坞
+    return WutheringWavesAdapter(Settings(
+        wuwa_token="tok", wuwa_user_id="123",
+        wuwa_b_at="ticket0123456789abcdef0123456789",
+        wuwa_dev_code="192.0.2.10, ua KuroGameBox/3.3.1",
+        wuwa_did="00000000-0000-4000-8000-000000000001"))
 
 
 async def test_unconfigured_reports_error():
@@ -168,3 +195,64 @@ async def test_malformed_payload_returns_fetch_error():
     a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="1"))
     r = await a.fetch(Capability.STAMINA)
     assert r.ok is False and "数据解析异常" in r.error
+
+
+@respx.mock
+async def test_fetch_exploration_ok():
+    # dispatch → fetch_exploration：role_list 取角色 → roleBox exploreIndex
+    respx.post(ROLE_LIST_URL).mock(
+        return_value=httpx.Response(200, json=ROLE_LIST_RAW))
+    route = respx.post(f"{ROLEBOX_BASE_URL}/exploreIndex").mock(
+        return_value=httpx.Response(200, json=EXPLORE_RAW))
+    a = _rolebox_configured()
+    r = await a.fetch(Capability.EXPLORATION)
+    assert r.ok is True
+    assert isinstance(r.payload, ExplorationData)
+    assert r.payload.country_progress == "85%"
+    assert r.payload.areas[0].items == ["信标 50%"]
+    assert r.payload.detection_count == 2
+    assert r.payload.detection_by_level == {"轻波级": 1, "巨浪级": 1}
+    body = route.calls.last.request.content.decode()
+    assert "roleId=100000001" in body and "channelId=19" in body
+    # b-at 票据随请求头转发
+    assert route.calls.last.request.headers["b-at"] == \
+        "ticket0123456789abcdef0123456789"
+
+
+@respx.mock
+async def test_fetch_calabash_ok():
+    respx.post(ROLE_LIST_URL).mock(
+        return_value=httpx.Response(200, json=ROLE_LIST_RAW))
+    respx.post(f"{ROLEBOX_BASE_URL}/calabashData").mock(
+        return_value=httpx.Response(200, json=CALABASH_RAW))
+    a = _rolebox_configured()
+    r = await a.fetch(Capability.CALABASH)
+    assert r.ok is True
+    assert isinstance(r.payload, CalabashData)
+    assert (r.payload.level, r.payload.base_catch) == (30, "20%")
+    assert r.payload.max_count == 724
+
+
+@respx.mock
+async def test_rolebox_invalid_ticket_reports_recapture_hint():
+    # b-at 过期（10901 禁止访问）→ 适配器透出明确的重新抓包提示
+    respx.post(ROLE_LIST_URL).mock(
+        return_value=httpx.Response(200, json=ROLE_LIST_RAW))
+    respx.post(f"{ROLEBOX_BASE_URL}/exploreIndex").mock(
+        return_value=httpx.Response(200, json={"code": 10901, "msg": "禁止访问"}))
+    a = _rolebox_configured()
+    r = await a.fetch(Capability.EXPLORATION)
+    assert r.ok is False
+    assert "b-at 已失效或角色不可见，请按 README 重新抓包" in r.error
+
+
+@respx.mock
+async def test_rolebox_unconfigured_reports_hint():
+    # 网页 token 已配置但 roleBox 三件套缺失：role_list 成功后，
+    # 探索度/数据坞给出明确指引（不触发 roleBox 请求）
+    respx.post(ROLE_LIST_URL).mock(
+        return_value=httpx.Response(200, json=ROLE_LIST_RAW))
+    a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))
+    for cap in (Capability.EXPLORATION, Capability.CALABASH):
+        r = await a.fetch(cap)
+        assert r.ok is False and "未配置 b-at" in r.error

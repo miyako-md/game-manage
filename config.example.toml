@@ -24,9 +24,13 @@ fail_notify_threshold = 3
 wuwa_enabled = true
 wuwa_token = ""
 wuwa_user_id = ""
-# 库街区 APP 端 token（可选）：用于探索度/数据坞等高级数据，抓包教程见 README；
-# 留空不影响现有功能
+# 库街区 APP 端 token（可选）：预留字段，当前功能未消费（保留）
 wuwa_app_token = ""
+# roleBox 三件套（可选）：探索度/数据坞功能，抓包教程见 README；
+# 三项全部填写才启用，留空不影响其它功能
+wuwa_b_at = ""
+wuwa_dev_code = ""
+wuwa_did = ""
 
 # 以上配置均可用带 GA_ 前缀的环境变量覆盖（如 GA_NOTIFY_SEND_KEY）
 # lol_enabled 控制英雄联盟适配器开关（默认 true）

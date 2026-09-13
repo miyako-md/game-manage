@@ -3,6 +3,8 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSnapshot, refreshGame } from '../api.js'
 import AccountCard from './AccountCard.vue'
 import AnnouncementList from './AnnouncementList.vue'
+import CalabashCard from './CalabashCard.vue'
+import ExplorationCard from './ExplorationCard.vue'
 import MatchList from './MatchList.vue'
 import ProgressCard from './ProgressCard.vue'
 import StaminaCard from './StaminaCard.vue'
@@ -19,6 +21,8 @@ const CAP_COMPONENTS = {
   progress: ProgressCard,
   announcement: AnnouncementList,
   match: MatchList,
+  exploration: ExplorationCard,
+  calabash: CalabashCard,
 }
 
 // capability -> 快照对象（{payload, fetched_at, stale}），拉取失败时为 null

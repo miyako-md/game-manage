@@ -1,14 +1,34 @@
 from datetime import datetime, timezone
 
 from game_assistant.models import (
-    AccountInfo, AnnouncementItem, Capability, CoreReward, FetchResult, MatchSummary,
-    ProgressItem, StaminaInfo, VersionActivity,
+    AccountInfo, AnnouncementItem, CalabashData, Capability, CoreReward,
+    ExplorationData, ExploreArea, FetchResult, MatchSummary, ProgressItem,
+    StaminaInfo, VersionActivity,
 )
 
 
 def test_capability_values():
     assert Capability.STAMINA == "stamina"
     assert Capability("account") is Capability.ACCOUNT
+
+
+def test_capability_exploration_calabash_values():
+    assert Capability.EXPLORATION == "exploration"
+    assert Capability.CALABASH == "calabash"
+
+
+def test_exploration_roundtrip():
+    e = ExplorationData(
+        country_progress="85%",
+        areas=[ExploreArea(name="今州城", progress=100.0, items=["信标 50%"])],
+        detection_count=4, detection_by_level={"轻波级": 2, "巨浪级": 1})
+    assert ExplorationData.model_validate(e.model_dump()) == e
+
+
+def test_calabash_roundtrip():
+    c = CalabashData(level=30, base_catch="20%", catch_quality=5,
+                     cur_exp=1375, max_count=724)
+    assert CalabashData.model_validate(c.model_dump()) == c
 
 
 def test_capability_progress_value():

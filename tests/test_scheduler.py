@@ -89,3 +89,10 @@ def test_progress_interval_reuses_activity_seconds():
     from game_assistant.scheduler import interval_for
     assert interval_for(Capability.PROGRESS, Settings()) == 3600
     assert interval_for(Capability.PROGRESS, Settings(activity_seconds=60)) == 60
+
+
+def test_exploration_calabash_interval_reuses_news_seconds():
+    # 探索度/数据坞（roleBox）为慢变化数据，复用 news_seconds（4 小时）
+    from game_assistant.scheduler import interval_for
+    assert interval_for(Capability.EXPLORATION, Settings()) == 14400
+    assert interval_for(Capability.CALABASH, Settings()) == 14400

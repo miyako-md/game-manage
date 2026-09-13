@@ -21,6 +21,8 @@ class BaseGameAdapter(ABC):
             Capability.ANNOUNCEMENT: self.fetch_announcement,
             Capability.NEWS: self.fetch_news,
             Capability.MATCH: self.fetch_match,
+            Capability.EXPLORATION: self.fetch_exploration,
+            Capability.CALABASH: self.fetch_calabash,
         }[capability]
         return await method()
 
@@ -43,4 +45,10 @@ class BaseGameAdapter(ABC):
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_match(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_exploration(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_calabash(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")

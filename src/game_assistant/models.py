@@ -13,6 +13,8 @@ class Capability(str, Enum):
     ANNOUNCEMENT = "announcement"
     NEWS = "news"
     MATCH = "match"
+    EXPLORATION = "exploration"
+    CALABASH = "calabash"
 
 
 class StaminaInfo(BaseModel):
@@ -57,6 +59,32 @@ class AnnouncementItem(BaseModel):
     published_at: datetime | None = None
     url: str | None = None
     summary: str = ""
+
+
+class ExploreArea(BaseModel):
+    # roleBox exploreIndex areaInfoList 单条：地区名 + 探索度百分比（数字或
+    # 百分比字符串，统一转 float）；items 压缩为 "信标 50%" 这类展示字符串
+    name: str
+    progress: float | None = None
+    items: list[str] = []
+
+
+class ExplorationData(BaseModel):
+    # roleBox exploreIndex（探索度）：countryProgress 可能缺失；
+    # detectionInfoList 为残象探寻分级（level 0-3），按 levelName 计数
+    country_progress: str | None = None
+    areas: list[ExploreArea] = []
+    detection_count: int = 0
+    detection_by_level: dict = {}
+
+
+class CalabashData(BaseModel):
+    # roleBox calabashData（数据坞）
+    level: int | None = None
+    base_catch: str | None = None  # 如 "20%"
+    catch_quality: int | None = None
+    cur_exp: int | None = None
+    max_count: int | None = None
 
 
 class MatchSummary(BaseModel):

@@ -22,9 +22,13 @@ class Settings(BaseSettings):
     wuwa_enabled: bool = True
     wuwa_token: str = ""
     wuwa_user_id: str = ""
-    # 库街区 APP 端 token：用于探索度/数据坞等高级数据（抓包教程见 README），
-    # 留空不影响现有功能
+    # 库街区 APP 端 token：预留字段，当前功能未消费（保留）
     wuwa_app_token: str = ""
+    # roleBox 三件套（库街区 APP 内 WebView 会话抓包，教程见 README）：
+    # 用于探索度/数据坞；留空 = 该功能未启用，不影响其它功能
+    wuwa_b_at: str = ""
+    wuwa_dev_code: str = ""
+    wuwa_did: str = ""
     lol_enabled: bool = True
 
     model_config = {"env_prefix": "GA_"}

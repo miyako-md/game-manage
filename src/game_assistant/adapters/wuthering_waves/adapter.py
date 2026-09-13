@@ -2,8 +2,11 @@ import logging
 from datetime import datetime, timezone
 
 from game_assistant.adapters.base import BaseGameAdapter
-from game_assistant.adapters.wuthering_waves import announcements, role, widget
+from game_assistant.adapters.wuthering_waves import announcements, role, rolebox, widget
 from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient, KuroError
+from game_assistant.adapters.wuthering_waves.rolebox_client import (
+    RoleBoxClient, RoleBoxError,
+)
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
 
@@ -16,22 +19,33 @@ class WutheringWavesAdapter(BaseGameAdapter):
     section = "mobile"
     capabilities = [Capability.ACCOUNT, Capability.STAMINA,
                     Capability.ACTIVITY, Capability.PROGRESS,
-                    Capability.ANNOUNCEMENT]
+                    Capability.ANNOUNCEMENT, Capability.EXPLORATION,
+                    Capability.CALABASH]
 
     def __init__(self, settings: Settings):
         self._client: KuroClient | None = None
+        self._settings = settings
         if settings.wuwa_token and settings.wuwa_user_id:
             self.credentials_configured = True
             self._client = KuroClient(settings.wuwa_token, settings.wuwa_user_id)
         else:
             self.credentials_configured = False
 
+    def _get_rolebox(self) -> RoleBoxClient:
+        """roleBox 三件套全非空才启用（每次拉取新建，参考 LcuClient 生命周期）。"""
+        s = self._settings
+        if s.wuwa_b_at and s.wuwa_dev_code and s.wuwa_did:
+            return RoleBoxClient(s.wuwa_b_at, s.wuwa_dev_code, s.wuwa_did)
+        raise RoleBoxError("未配置 b-at（见 README APP 抓包教程）")
+
     async def _guarded_run(self, run) -> FetchResult:
-        """run 是零参协程工厂；统一处理未配置凭据与 KuroError。"""
+        """run 是零参协程工厂；统一处理未配置凭据与客户端错误。"""
         if self._client is None:
             return FetchResult(ok=False, error="未配置凭据")
         try:
             return await run()
+        except RoleBoxError as e:
+            return FetchResult(ok=False, error=e.message)
         except KuroError as e:
             return FetchResult(ok=False, error=f"库街区接口错误: {e.message}")
         except Exception as e:
@@ -39,15 +53,20 @@ class WutheringWavesAdapter(BaseGameAdapter):
             logger.exception("鸣潮数据处理异常")
             return FetchResult(ok=False, error=f"数据解析异常: {e}")
 
-    async def _fetch_widget(self):
-        """role_list 取 roleId/serverId → widget_data。返回 (widget_raw, now)。"""
+    async def _get_role_ids(self) -> tuple[str, str]:
+        """role_list 取默认角色 roleId/serverId（roleBox 与 widget 共用）。"""
         raw_role = await self._client.role_list()
         role_row = ((raw_role.get("data") or [{}])[0]) or {}
         role_id = role_row.get("roleId")
         server_id = role_row.get("serverId")
         if not role_id or not server_id:
             raise KuroError(-3, "未找到绑定的鸣潮角色")
-        raw_widget = await self._client.widget_data(str(role_id), str(server_id))
+        return str(role_id), str(server_id)
+
+    async def _fetch_widget(self):
+        """role_list 取 roleId/serverId → widget_data。返回 (widget_raw, now)。"""
+        role_id, server_id = await self._get_role_ids()
+        raw_widget = await self._client.widget_data(role_id, server_id)
         return raw_widget, datetime.now(timezone.utc)
 
     async def fetch_account(self) -> FetchResult:
@@ -82,4 +101,20 @@ class WutheringWavesAdapter(BaseGameAdapter):
         async def run():
             raw = await self._client.find_event_list(3)  # eventType 3=公告
             return FetchResult(ok=True, payload=announcements.parse_announcement_list(raw))
+        return await self._guarded_run(run)
+
+    async def fetch_exploration(self) -> FetchResult:
+        async def run():
+            role_id, server_id = await self._get_role_ids()
+            async with self._get_rolebox() as rb:
+                raw = await rb.explore_index(role_id, server_id)
+            return FetchResult(ok=True, payload=rolebox.parse_explore_index(raw))
+        return await self._guarded_run(run)
+
+    async def fetch_calabash(self) -> FetchResult:
+        async def run():
+            role_id, server_id = await self._get_role_ids()
+            async with self._get_rolebox() as rb:
+                raw = await rb.calabash_data(role_id, server_id)
+            return FetchResult(ok=True, payload=rolebox.parse_calabash_data(raw))
         return await self._guarded_run(run)
