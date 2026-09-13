@@ -25,6 +25,13 @@ EXPLORE_RAW = {"code": 200, "msg": "success",
 CALABASH_RAW = {"code": 200, "msg": "success",
                 "data": "{\"level\":30,\"baseCatch\":\"20%\",\"catchQuality\":5,"
                         "\"curExp\":1375,\"maxCount\":724}"}
+ROLE_DATA_RAW = {"code": 200, "msg": "success",
+                 "data": "{\"roleList\":[{\"roleId\":1402,\"roleName\":\"散华\","
+                         "\"level\":90,\"attributeName\":\"衍射\",\"breach\":6,"
+                         "\"chainUnlockNum\":6,\"starLevel\":5,"
+                         "\"weaponTypeName\":\"迅刀\",\"isMainRole\":false,"
+                         "\"roleIconUrl\":\"https://web-static.kurobbs.com/a.png\"}],"
+                         "\"showToGuest\":true}"}
 
 
 def _client() -> RoleBoxClient:
@@ -79,6 +86,21 @@ async def test_calabash_data_ok():
         data = await client.calabash_data(ROLE_ID, SERVER_ID)
     assert data["level"] == 30 and data["maxCount"] == 724
     _assert_common_headers(route.calls.last.request)
+
+
+@respx.mock
+async def test_role_data_ok():
+    # body 与 baseData 完全一致（无 exploreIndex 的附加参数）
+    route = respx.post(f"{BASE_URL}/roleData").mock(
+        return_value=httpx.Response(200, json=ROLE_DATA_RAW))
+    async with _client() as client:
+        data = await client.role_data(ROLE_ID, SERVER_ID)
+    assert data["roleList"][0]["roleName"] == "散华"
+    assert data["showToGuest"] is True
+    _assert_common_headers(route.calls.last.request)
+    body = route.calls.last.request.content.decode()
+    assert "gameId=3" in body and "roleId=100000001" in body
+    assert "channelId" not in body and "countryCode" not in body
 
 
 @respx.mock

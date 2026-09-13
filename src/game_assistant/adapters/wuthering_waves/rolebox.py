@@ -12,12 +12,17 @@ exploreIndex data 实测结构（2026-09-13 完整响应校准）：
   itemList 明细不进模型）。
 calabashData data 实测形状：
   level/baseCatch("20%")/catchQuality/curExp/maxCount/phantomList[]。
+roleData data 实测形状：
+  roleList[]（约 46 项：roleId/roleName/level/attributeName/breach/
+  chainUnlockNum/starLevel/weaponTypeName/roleIconUrl/isMainRole/roleSkin 等）
+  + showToGuest。
 """
 import json as _json
 from collections import Counter
 
 from game_assistant.models import (
     CalabashData, CountryGroup, DetectionSummary, ExplorationData, AreaSummary,
+    RoleEntry,
 )
 
 
@@ -101,3 +106,26 @@ def parse_calabash_data(raw) -> CalabashData:
         catch_quality=_int_or_none(data.get("catchQuality")),
         cur_exp=_int_or_none(data.get("curExp")),
         max_count=_int_or_none(data.get("maxCount")))
+
+
+def parse_role_data(raw) -> list[RoleEntry]:
+    """roleData 响应 → 角色练度墙列表。
+
+    roleList 遍历（非 dict 项跳过），按 level 降序 + chain 降序排序
+    （sorted 稳定，同级同链保持接口原序）；roleSkin 等未消费字段忽略。
+    """
+    data = _data(raw)
+    roles = [RoleEntry(
+        role_id=_int_or_none(r.get("roleId")),
+        name=str(r.get("roleName") or ""),
+        level=_int_or_none(r.get("level")),
+        attribute=_str_or_none(r.get("attributeName")),
+        breach=_int_or_none(r.get("breach")),
+        chain=_int_or_none(r.get("chainUnlockNum")),
+        star_level=_int_or_none(r.get("starLevel")),
+        weapon=_str_or_none(r.get("weaponTypeName")),
+        icon_url=_str_or_none(r.get("roleIconUrl")),
+        is_main=bool(r.get("isMainRole", False)),
+    ) for r in data.get("roleList") or [] if isinstance(r, dict)]
+    roles.sort(key=lambda e: (-(e.level or 0), -(e.chain or 0)))
+    return roles

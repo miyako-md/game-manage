@@ -15,6 +15,7 @@ class Capability(str, Enum):
     MATCH = "match"
     EXPLORATION = "exploration"
     CALABASH = "calabash"
+    ROLES = "roles"
 
 
 class StaminaInfo(BaseModel):
@@ -88,6 +89,20 @@ class ExplorationData(BaseModel):
     # + data.exploreList（4 组：瑝珑/黑海岸/黎那汐塔/罗伊冰原）+ data.open
     detections: DetectionSummary = DetectionSummary()
     country_groups: list[CountryGroup] = []
+
+
+class RoleEntry(BaseModel):
+    # roleBox roleData roleList 单项（角色练度墙）：等级/命链/突破/属性/武器等
+    role_id: int | None = None
+    name: str = ""
+    level: int | None = None
+    attribute: str | None = None
+    breach: int | None = None
+    chain: int | None = None
+    star_level: int | None = None
+    weapon: str | None = None
+    icon_url: str | None = None
+    is_main: bool = False
 
 
 class CalabashData(BaseModel):

@@ -24,7 +24,8 @@
 #    响应 data 是 JSON 字符串，需二次解析（解析见 rolebox.py）。
 #    实测端点（POST form）：baseData（体力/等级/活跃天数等）、
 #    exploreIndex（body 另加 channelId=19&countryCode=1，探索度/残象探寻）、
-#    calabashData（数据坞等级/捕获率/声骸收集）。
+#    calabashData（数据坞等级/捕获率/声骸收集）、
+#    roleData（角色练度墙：data.roleList 46 项，含等级/命链/突破/属性/武器）。
 BASE = "https://api.kurobbs.com"
 ROLE_LIST = f"{BASE}/gamer/role/list"
 WIDGET_DATA = f"{BASE}/gamer/widget/game3/getData"
@@ -33,3 +34,4 @@ ROLEBOX_BASE = f"{BASE}/aki/roleBox/akiBox"
 ROLEBOX_BASE_DATA = f"{ROLEBOX_BASE}/baseData"
 ROLEBOX_EXPLORE_INDEX = f"{ROLEBOX_BASE}/exploreIndex"
 ROLEBOX_CALABASH_DATA = f"{ROLEBOX_BASE}/calabashData"
+ROLEBOX_ROLE_DATA = f"{ROLEBOX_BASE}/roleData"

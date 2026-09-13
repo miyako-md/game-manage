@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from game_assistant.models import (
     AccountInfo, AnnouncementItem, CalabashData, Capability, CountryGroup,
     CoreReward, DetectionSummary, ExplorationData, AreaSummary, FetchResult,
-    MatchSummary, ProgressItem, StaminaInfo, VersionActivity,
+    MatchSummary, ProgressItem, RoleEntry, StaminaInfo, VersionActivity,
 )
 
 
@@ -12,9 +12,17 @@ def test_capability_values():
     assert Capability("account") is Capability.ACCOUNT
 
 
-def test_capability_exploration_calabash_values():
+def test_capability_exploration_calabash_roles_values():
     assert Capability.EXPLORATION == "exploration"
     assert Capability.CALABASH == "calabash"
+    assert Capability.ROLES == "roles"
+
+
+def test_role_entry_roundtrip():
+    e = RoleEntry(role_id=1402, name="散华", level=90, attribute="衍射",
+                  breach=6, chain=6, star_level=5, weapon="迅刀",
+                  icon_url="https://web-static.kurobbs.com/a.png", is_main=True)
+    assert RoleEntry.model_validate(e.model_dump()) == e
 
 
 def test_exploration_roundtrip():

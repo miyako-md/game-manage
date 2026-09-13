@@ -20,6 +20,8 @@ INTERVAL_ATTRS = {
     # 探索度/数据坞（roleBox）：慢变化数据，与资讯同为 4 小时
     Capability.EXPLORATION: "news_seconds",
     Capability.CALABASH: "news_seconds",
+    # 角色练度墙（roleBox）：抽到新角色能较快反映，与活动同为 1 小时
+    Capability.ROLES: "activity_seconds",
 }
 
 

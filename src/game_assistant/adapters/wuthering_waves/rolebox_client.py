@@ -18,6 +18,7 @@ import httpx
 
 from game_assistant.adapters.wuthering_waves.endpoints import (
     ROLEBOX_BASE_DATA, ROLEBOX_CALABASH_DATA, ROLEBOX_EXPLORE_INDEX,
+    ROLEBOX_ROLE_DATA,
 )
 
 # 与 devCode 内 UA 逐字一致（注意 KuroGameBox 前是两个空格，保留）
@@ -97,6 +98,13 @@ class RoleBoxClient:
     async def calabash_data(self, role_id: str, server_id: str) -> dict:
         # calabashData：数据坞（等级/基础捕获率/捕获品质/声骸收集）
         return await self.post(ROLEBOX_CALABASH_DATA,
+                               {"gameId": 3, "roleId": role_id,
+                                "serverId": server_id})
+
+    async def role_data(self, role_id: str, server_id: str) -> dict:
+        # roleData：角色练度墙（data.roleList 46 项，等级/命链/突破/属性/武器等；
+        # body 与 baseData 完全一致）
+        return await self.post(ROLEBOX_ROLE_DATA,
                                {"gameId": 3, "roleId": role_id,
                                 "serverId": server_id})
 

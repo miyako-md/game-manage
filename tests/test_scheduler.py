@@ -96,3 +96,9 @@ def test_exploration_calabash_interval_reuses_news_seconds():
     from game_assistant.scheduler import interval_for
     assert interval_for(Capability.EXPLORATION, Settings()) == 14400
     assert interval_for(Capability.CALABASH, Settings()) == 14400
+
+
+def test_roles_interval_reuses_activity_seconds():
+    # 角色练度墙（roleBox）：抽到新角色能较快反映，复用 activity_seconds（1 小时）
+    from game_assistant.scheduler import interval_for
+    assert interval_for(Capability.ROLES, Settings()) == 3600

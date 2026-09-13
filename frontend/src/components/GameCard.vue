@@ -7,6 +7,7 @@ import CalabashCard from './CalabashCard.vue'
 import ExplorationCard from './ExplorationCard.vue'
 import MatchList from './MatchList.vue'
 import ProgressCard from './ProgressCard.vue'
+import RoleWallCard from './RoleWallCard.vue'
 import StaminaCard from './StaminaCard.vue'
 import VersionActivityCard from './VersionActivityCard.vue'
 
@@ -23,6 +24,7 @@ const CAP_COMPONENTS = {
   match: MatchList,
   exploration: ExplorationCard,
   calabash: CalabashCard,
+  roles: RoleWallCard,
 }
 
 // capability -> 快照对象（{payload, fetched_at, stale}），拉取失败时为 null

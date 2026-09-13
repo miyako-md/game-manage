@@ -64,6 +64,17 @@ CALABASH_RAW = {"code": 200, "msg": "success", "data": json.dumps({
     "level": 30, "baseCatch": "20%", "catchQuality": 5,
     "curExp": 1375, "maxCount": 724,
 })}
+ROLE_DATA_RAW = {"code": 200, "msg": "success", "data": json.dumps({
+    "roleList": [
+        {"roleId": 1501, "roleName": "长离", "level": 90, "attributeName": "热熔",
+         "breach": 6, "chainUnlockNum": 0, "starLevel": 5,
+         "weaponTypeName": "迅刀", "isMainRole": False},
+        {"roleId": 1402, "roleName": "散华", "level": 90, "attributeName": "衍射",
+         "breach": 6, "chainUnlockNum": 6, "starLevel": 5,
+         "weaponTypeName": "迅刀", "isMainRole": True,
+         "roleIconUrl": "https://web-static.kurobbs.com/a.png"},
+    ], "showToGuest": True,
+}, ensure_ascii=False)}
 
 
 def _unconfigured():
@@ -245,6 +256,23 @@ async def test_fetch_calabash_ok():
 
 
 @respx.mock
+async def test_fetch_roles_ok():
+    # 角色练度墙：role_list 取角色 → roleBox roleData，按 level/chain 降序
+    respx.post(ROLE_LIST_URL).mock(
+        return_value=httpx.Response(200, json=ROLE_LIST_RAW))
+    route = respx.post(f"{ROLEBOX_BASE_URL}/roleData").mock(
+        return_value=httpx.Response(200, json=ROLE_DATA_RAW))
+    a = _rolebox_configured()
+    r = await a.fetch(Capability.ROLES)
+    assert r.ok is True
+    assert isinstance(r.payload, list)
+    assert [e.name for e in r.payload] == ["散华", "长离"]  # 同级按 chain 降序
+    assert r.payload[0].chain == 6 and r.payload[0].is_main is True
+    body = route.calls.last.request.content.decode()
+    assert "roleId=100000001" in body and "channelId" not in body
+
+
+@respx.mock
 async def test_rolebox_invalid_ticket_reports_recapture_hint():
     # b-at 过期（10901 禁止访问）→ 适配器透出明确的重新抓包提示
     respx.post(ROLE_LIST_URL).mock(
@@ -264,6 +292,6 @@ async def test_rolebox_unconfigured_reports_hint():
     respx.post(ROLE_LIST_URL).mock(
         return_value=httpx.Response(200, json=ROLE_LIST_RAW))
     a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))
-    for cap in (Capability.EXPLORATION, Capability.CALABASH):
+    for cap in (Capability.EXPLORATION, Capability.CALABASH, Capability.ROLES):
         r = await a.fetch(cap)
         assert r.ok is False and "未配置 b-at" in r.error

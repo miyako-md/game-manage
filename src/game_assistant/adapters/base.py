@@ -23,6 +23,7 @@ class BaseGameAdapter(ABC):
             Capability.MATCH: self.fetch_match,
             Capability.EXPLORATION: self.fetch_exploration,
             Capability.CALABASH: self.fetch_calabash,
+            Capability.ROLES: self.fetch_roles,
         }[capability]
         return await method()
 
@@ -51,4 +52,7 @@ class BaseGameAdapter(ABC):
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_calabash(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_roles(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")

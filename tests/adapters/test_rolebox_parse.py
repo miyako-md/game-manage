@@ -1,7 +1,7 @@
 import json
 
 from game_assistant.adapters.wuthering_waves.rolebox import (
-    parse_calabash_data, parse_explore_index,
+    parse_calabash_data, parse_explore_index, parse_role_data,
 )
 from game_assistant.models import ExplorationData
 
@@ -47,6 +47,27 @@ CALABASH_INNER = {"level": 30, "baseCatch": "20%", "catchQuality": 5,
                   "phantomList": [{"star": 5, "maxStar": 5}]}
 CALABASH_ENVELOPE = {"code": 200, "msg": "success",
                      "data": json.dumps(CALABASH_INNER, ensure_ascii=False)}
+
+# roleData 实测形状：roleList 单项含 roleId/roleName/level/attributeName/
+# breach/chainUnlockNum/starLevel/weaponTypeName/roleIconUrl/isMainRole；
+# fixture 打乱 level/chain 顺序以验证排序（level 降序 + chain 降序）
+ROLE_INNER = {"roleList": [
+    {"roleId": 1501, "roleName": "长离", "level": 90, "attributeName": "热熔",
+     "breach": 6, "chainUnlockNum": 0, "starLevel": 5,
+     "weaponTypeName": "迅刀", "isMainRole": False,
+     "roleIconUrl": "https://web-static.kurobbs.com/c.png",
+     "roleSkin": {"skinName": "裁羽行歌"}},  # roleSkin 等未消费字段忽略
+    {"roleId": 1102, "roleName": "秧秧", "level": 40, "attributeName": "气动",
+     "breach": 2, "chainUnlockNum": 3, "starLevel": 4,
+     "weaponTypeName": "佩枪"},  # 无 roleIconUrl → icon_url None
+    {"roleId": 1402, "roleName": "散华", "level": 90, "attributeName": "衍射",
+     "breach": 6, "chainUnlockNum": 6, "starLevel": 5,
+     "weaponTypeName": "迅刀", "isMainRole": True,
+     "roleIconUrl": "https://web-static.kurobbs.com/a.png"},
+    "bad", 123,  # 非 dict 项应被跳过
+], "showToGuest": True}
+ROLE_ENVELOPE = {"code": 200, "msg": "success",
+                 "data": json.dumps(ROLE_INNER, ensure_ascii=False)}
 
 
 def test_explore_index_from_envelope_with_string_data():
@@ -101,3 +122,26 @@ def test_calabash_data_missing_fields_are_none():
     d = parse_calabash_data({"level": "abc"})  # 非法数值安全转 None
     assert d.level is None and d.base_catch is None
     assert d.catch_quality is None and d.cur_exp is None and d.max_count is None
+
+
+def test_role_data_sorted_by_level_then_chain():
+    d = parse_role_data(ROLE_ENVELOPE)
+    # level 降序 + chain 降序：散华(90/6链) > 长离(90/0链) > 秧秧(40/3链)
+    assert [e.name for e in d] == ["散华", "长离", "秧秧"]
+    sanhua = d[0]
+    assert (sanhua.role_id, sanhua.level, sanhua.chain) == (1402, 90, 6)
+    assert sanhua.attribute == "衍射" and sanhua.breach == 6
+    assert sanhua.star_level == 5 and sanhua.weapon == "迅刀"
+    assert sanhua.is_main is True
+    assert sanhua.icon_url == "https://web-static.kurobbs.com/a.png"
+    assert d[2].icon_url is None          # 缺 roleIconUrl → None
+    assert d[2].star_level == 4
+
+
+def test_role_data_accepts_inner_dict_and_defaults():
+    d = parse_role_data(ROLE_INNER)       # 客户端 post 返回的内层 dict
+    assert [e.name for e in d] == ["散华", "长离", "秧秧"]
+
+    assert parse_role_data({}) == []      # 空数据 → 空列表
+    assert parse_role_data("{not-json}") == []
+    assert parse_role_data({"roleList": []}) == []

@@ -20,7 +20,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
     capabilities = [Capability.ACCOUNT, Capability.STAMINA,
                     Capability.ACTIVITY, Capability.PROGRESS,
                     Capability.ANNOUNCEMENT, Capability.EXPLORATION,
-                    Capability.CALABASH]
+                    Capability.CALABASH, Capability.ROLES]
 
     def __init__(self, settings: Settings):
         self._client: KuroClient | None = None
@@ -117,4 +117,12 @@ class WutheringWavesAdapter(BaseGameAdapter):
             async with self._get_rolebox() as rb:
                 raw = await rb.calabash_data(role_id, server_id)
             return FetchResult(ok=True, payload=rolebox.parse_calabash_data(raw))
+        return await self._guarded_run(run)
+
+    async def fetch_roles(self) -> FetchResult:
+        async def run():
+            role_id, server_id = await self._get_role_ids()
+            async with self._get_rolebox() as rb:
+                raw = await rb.role_data(role_id, server_id)
+            return FetchResult(ok=True, payload=rolebox.parse_role_data(raw))
         return await self._guarded_run(run)
