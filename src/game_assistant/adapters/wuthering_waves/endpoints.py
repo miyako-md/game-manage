@@ -1,29 +1,22 @@
-# 库街区 APP 端接口。来源与校准基准：
-#   https://github.com/TomyJan/Kuro-API-Collection （README 与 PARAMS.md）
-# 若上游调整路径/参数，只改本文件。
-#
-# Task 11 Step 5 校准结论（2026-09-12 在线核对）：
-# ① BASE=https://api.kurobbs.com 已确认（collection 的 API/forum/list.md、
-#    API/gamer/role/list.md 均为此域名）。
-# ② ROLE_DATA（/gamer/aki/api/getRoleData）：Kuro-API-Collection 未收录该路径，未能核实。
-#    该库收录的鸣潮角色数据端点为 /aki/roleBox/akiBox/baseData（[新]，2025.05.25，
-#    body 为 gameId=3 + roleId + serverId，必填请求头 source/token/devCode，其中 devCode
-#    "必须但不校验"、可随机生成，version 非必填）；参考实现 waves-plugin 取角色数据用
-#    /aki/roleBox/akiBox/roleData（body 同为 roleId/serverId，接口契约不同）。
-#    gameId=3 指鸣潮已在 collection 多份文档确认（"固定 鸣潮 = 3"）。
-#    本端点按简报保留 userId 形式；若实测失效，应先 POST /gamer/role/list
-#    （gameId=3，返回 userId/roleId/serverId 绑定关系）再改走 akiBox 系列。
-# ③ ACTIVITY_LIST：初值 /gamer/aki/api/getActivityList 在 collection 中不存在，未核实；
-#    已按 waves-plugin（erzaozi/waves-plugin components/Code.js，活跃维护）校准为
-#    /forum/companyEvent/findEventList，body 为 gameId=3 + eventType
-#    （0=全部，1=活动，2=资讯，3=公告），响应 data.list 含 postId/postTitle/publishTime/coverUrl。
-# ④ ANNOUNCEMENT_LIST（/forum/list）：路径已确认（collection API/forum/list.md，
-#    POST，token 认证）。文档参数为 forumId/gameId/pageIndex/pageSize/searchType/
-#    timeType/topicId（鸣潮 gameId=3；鸣潮已知板块 forumId：推荐=9、天诚茶馆=10、同人=11），
-#    故客户端 body 用 pageIndex/pageSize（初稿的 page/limit 系误记）。
-#    公告分区 forumId 未被 collection 收录：初值 1602 未核实；waves-plugin 实际以
-#    findEventList eventType=3 获取公告。若 1602 实测无效，可改用该方案。
+# 库街区接口端点。原初值依据 Kuro-API-Collection（TomyJan）文档，2026-09-13 起以
+# 真实账号在线实测为准（首次真实连接校准），以下结论全部实测验证：
+# ① BASE=https://api.kurobbs.com 已实测确认。
+# ② ROLE_DATA（/gamer/aki/api/getRoleData）实测返回 HTTP 404，接口已死，
+#    相关常量与客户端方法已删除，账号信息改走 ROLE_LIST。
+# ③ ROLE_LIST（POST /gamer/role/list，form body gameId=3；token 即身份，无需 userId）
+#    实测 200：data 为数组，首元素（默认角色 isDefault=true）含 roleId/serverId/
+#    roleName/gameLevel（字符串，如 "80"）/activeDay/achievementCount/roleNum/serverName。
+# ④ WIDGET_DATA（POST /gamer/widget/game3/getData，form body gameId=3 + roleId +
+#    serverId + type=2 + sizeType=1）实测 200：data.energyData =
+#    {name/cur/total/refreshTimeStamp/expireTimeStamp/status}，另有 hasSignIn/roleName。
+#    注意 /aki/roleBox/akiBox/baseData 需 APP 端 token（网页 token 恒 code=10901
+#    禁止访问，已实测），不可用，故体力走 widget 端点。
+# ⑤ EVENT_LIST（POST /forum/companyEvent/findEventList，form body gameId=3 +
+#    eventType，eventType：1=活动 2=资讯 3=公告）实测 200：data.list 含
+#    postTitle/publishTime（毫秒时间戳）/postId/coverUrl/firstPublishTime/eventType/id。
+# ⑥ forum/list 的鸣潮板块 forumId 9/10/11（推荐/天诚茶馆/同人）为社区板块而非官方
+#    公告（实测核对），公告统一走 findEventList eventType=3，forum/list 不再使用。
 BASE = "https://api.kurobbs.com"
-ROLE_DATA = f"{BASE}/gamer/aki/api/getRoleData"
-ACTIVITY_LIST = f"{BASE}/forum/companyEvent/findEventList"
-ANNOUNCEMENT_LIST = f"{BASE}/forum/list"
+ROLE_LIST = f"{BASE}/gamer/role/list"
+WIDGET_DATA = f"{BASE}/gamer/widget/game3/getData"
+EVENT_LIST = f"{BASE}/forum/companyEvent/findEventList"

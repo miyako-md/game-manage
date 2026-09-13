@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from game_assistant.adapters.wuthering_waves.events import parse_activity_list
 
@@ -34,3 +34,16 @@ def test_parse_forum_post_schema():
     assert items[0].url == "https://img.kurobbs.com/upload/9001.jpg"
     assert items[1].title == "调频共鸣玩法说明"
     assert items[1].url == "https://www.kurobbs.com/forum/post/9002"
+
+
+def test_parse_publish_time_milliseconds():
+    # 2026-09-13 实测：findEventList 的 publishTime 为毫秒整数时间戳，
+    # 1789182000000 → datetime.fromtimestamp(1789182000, tz=timezone.utc)
+    raw = {"code": 200, "data": {"list": [
+        {"postId": "9003", "postTitle": "毫秒时间戳条目",
+         "publishTime": 1789182000000},
+    ]}}
+    items = parse_activity_list(raw)
+    assert len(items) == 1
+    assert items[0].start_at == datetime.fromtimestamp(1789182000, tz=timezone.utc)
+    assert items[0].url == "https://www.kurobbs.com/forum/post/9003"

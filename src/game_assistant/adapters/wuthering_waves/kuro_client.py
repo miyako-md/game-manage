@@ -1,7 +1,7 @@
 import httpx
 
 from game_assistant.adapters.wuthering_waves.endpoints import (
-    ACTIVITY_LIST, ANNOUNCEMENT_LIST, ROLE_DATA,
+    EVENT_LIST, ROLE_LIST, WIDGET_DATA,
 )
 
 
@@ -47,16 +47,16 @@ class KuroClient:
             raise KuroError(data.get("code", -2), data.get("msg", "未知错误"))
         return data
 
-    async def get_role_data(self) -> dict:
-        return await self._post(ROLE_DATA,
-                                {"gameId": 3, "userId": self.user_id, "serverId": ""})
+    async def role_list(self) -> dict:
+        # /gamer/role/list：token 即身份，无需 userId；data 为数组（首元素默认角色）
+        return await self._post(ROLE_LIST, {"gameId": 3})
 
-    async def get_activity_list(self) -> dict:
-        # findEventList：eventType 1=活动（0=全部/2=资讯/3=公告），见 endpoints.py 校准注释
-        return await self._post(ACTIVITY_LIST, {"gameId": 3, "eventType": 1})
+    async def widget_data(self, role_id: str, server_id: str) -> dict:
+        # /gamer/widget/game3/getData：体力等组件数据（baseData 需 APP 端 token，不可用）
+        return await self._post(WIDGET_DATA, {"gameId": 3, "roleId": role_id,
+                                              "serverId": server_id, "type": 2,
+                                              "sizeType": 1})
 
-    async def get_announcement_list(self) -> dict:
-        # /forum/list 参数为 pageIndex/pageSize（Step 5 校准）；forumId=1602 未核实
-        return await self._post(ANNOUNCEMENT_LIST,
-                                {"forumId": 1602, "gameId": 3, "pageIndex": 1,
-                                 "pageSize": 20})
+    async def find_event_list(self, event_type: int) -> dict:
+        # findEventList：eventType 1=活动 2=资讯 3=公告（公告不走 forum/list 社区板块）
+        return await self._post(EVENT_LIST, {"gameId": 3, "eventType": event_type})

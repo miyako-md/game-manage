@@ -40,26 +40,31 @@ class WutheringWavesAdapter(BaseGameAdapter):
 
     async def fetch_account(self) -> FetchResult:
         async def run():
-            raw = await self._client.get_role_data()
-            acc, _ = role.parse_role_data(raw, datetime.now(timezone.utc))
-            return FetchResult(ok=True, payload=acc)
+            raw = await self._client.role_list()
+            return FetchResult(ok=True, payload=role.parse_role_list(raw))
         return await self._guarded_run(run)
 
     async def fetch_stamina(self) -> FetchResult:
         async def run():
-            raw = await self._client.get_role_data()
-            _, st = role.parse_role_data(raw, datetime.now(timezone.utc))
+            # 两段调用（都在 _guarded_run 内）：先 role/list 取默认角色
+            # roleId/serverId（从 raw dict 直取，不经 AccountInfo），再查 widget 体力
+            roles_raw = await self._client.role_list()
+            rows = (roles_raw or {}).get("data") or []
+            first = rows[0] if rows else {}
+            raw = await self._client.widget_data(
+                first.get("roleId") or "", first.get("serverId") or "")
+            st = role.parse_widget_energy(raw, datetime.now(timezone.utc))
             return FetchResult(ok=True, payload=st)
         return await self._guarded_run(run)
 
     async def fetch_activity(self) -> FetchResult:
         async def run():
-            raw = await self._client.get_activity_list()
+            raw = await self._client.find_event_list(1)  # eventType 1=活动
             return FetchResult(ok=True, payload=events.parse_activity_list(raw))
         return await self._guarded_run(run)
 
     async def fetch_announcement(self) -> FetchResult:
         async def run():
-            raw = await self._client.get_announcement_list()
+            raw = await self._client.find_event_list(3)  # eventType 3=公告
             return FetchResult(ok=True, payload=announcements.parse_announcement_list(raw))
         return await self._guarded_run(run)
