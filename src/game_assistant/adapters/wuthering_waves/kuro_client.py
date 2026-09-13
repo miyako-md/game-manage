@@ -1,7 +1,7 @@
 import httpx
 
 from game_assistant.adapters.wuthering_waves.endpoints import (
-    EVENT_LIST, ROLE_LIST, WIDGET_DATA,
+    EVENT_LIST, ROLE_LIST, WIDGET_DATA, WIDGET_REFRESH,
 )
 
 
@@ -51,11 +51,15 @@ class KuroClient:
         # /gamer/role/list：token 即身份，无需 userId；data 为数组（首元素默认角色）
         return await self._post(ROLE_LIST, {"gameId": 3})
 
-    async def widget_data(self, role_id: str, server_id: str) -> dict:
+    async def widget_data(self, role_id: str, server_id: str,
+                          refresh: bool = False) -> dict:
         # /gamer/widget/game3/getData：体力等组件数据（baseData 需 APP 端 token，不可用）
-        return await self._post(WIDGET_DATA, {"gameId": 3, "roleId": role_id,
-                                              "serverId": server_id, "type": 2,
-                                              "sizeType": 1})
+        # refresh=True 改走同族 refresh 端点（参数相同，实测数据更新鲜，体力用，
+        # 见 endpoints.py ⑧）；默认 False 保持兼容
+        return await self._post(WIDGET_REFRESH if refresh else WIDGET_DATA,
+                                {"gameId": 3, "roleId": role_id,
+                                 "serverId": server_id, "type": 2,
+                                 "sizeType": 1})
 
     async def find_event_list(self, event_type: int) -> dict:
         # findEventList：eventType 1=活动 2=资讯 3=公告（公告不走 forum/list 社区板块）

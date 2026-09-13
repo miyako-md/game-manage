@@ -12,8 +12,7 @@
 #    data 还含 activityData（版本活动 title/endTime/coreRewards）与 towerData/
 #    slashTowerData/weeklyData 等同构进度对象（解析见 widget.py）。
 #    注意 /aki/roleBox/akiBox/baseData 需 APP 端 token（网页 token 恒 code=10901
-#    禁止访问，已实测），不可用，故体力走 widget 端点。
-# ⑤ EVENT_LIST（POST /forum/companyEvent/findEventList，form body gameId=3 +
+#    禁止访问，已实测），不可用，故体力走 widget 端点。# ⑤ EVENT_LIST（POST /forum/companyEvent/findEventList，form body gameId=3 +
 #    eventType，eventType：1=活动 2=资讯 3=公告）实测 200：data.list 含
 #    postTitle/publishTime（毫秒时间戳）/postId/coverUrl/firstPublishTime/eventType/id。
 # ⑥ forum/list 的鸣潮板块 forumId 9/10/11（推荐/天诚茶馆/同人）为社区板块而非官方
@@ -26,9 +25,16 @@
 #    exploreIndex（body 另加 channelId=19&countryCode=1，探索度/残象探寻）、
 #    calabashData（数据坞等级/捕获率/声骸收集）、
 #    roleData（角色练度墙：data.roleList 46 项，含等级/命链/突破/属性/武器）。
+# ⑧ WIDGET_REFRESH（POST /gamer/widget/game3/refresh）实测 200：参数与 getData
+#    相同，响应形状一致。2026-09-13 实测对比：getData 返回缓存体力 26/240，
+#    refresh 返回 33/240（更新鲜，Kuro-API-Collection 亦注明"refresh 返回的
+#    数据更准确点"）；baseData 与 getData 同为缓存且需 b-at，不采用。
+#    仅体力（stamina）走 refresh；activity/progress 保持 getData，
+#    避免 5 分钟一次的 refresh 压力并保持各能力数据来源语义清晰。
 BASE = "https://api.kurobbs.com"
 ROLE_LIST = f"{BASE}/gamer/role/list"
 WIDGET_DATA = f"{BASE}/gamer/widget/game3/getData"
+WIDGET_REFRESH = f"{BASE}/gamer/widget/game3/refresh"
 EVENT_LIST = f"{BASE}/forum/companyEvent/findEventList"
 ROLEBOX_BASE = f"{BASE}/aki/roleBox/akiBox"
 ROLEBOX_BASE_DATA = f"{ROLEBOX_BASE}/baseData"

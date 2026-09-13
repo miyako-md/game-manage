@@ -112,7 +112,8 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
 ## 鸣潮活动与周期进度
 
 鸣潮卡片的"版本活动"与"周期进度"来自库街区小组件接口
-（`/gamer/widget/game3/getData`，与体力同源，无需额外配置）：
+（`/gamer/widget/game3/getData`，无需额外配置；体力走同族 `refresh` 端点——
+参数相同，实测比 getData 的缓存值更实时）：
 
 - **版本活动卡片**：当前主推活动的名称、截止时间（含剩余天数徽标，≤3 天红色告急、
   已过期显示"已结束"）与核心奖励进度（有数值目标的显示 `cur/total`，

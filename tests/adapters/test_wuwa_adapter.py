@@ -39,6 +39,7 @@ EVENT_RAW = {"code": 200, "msg": "success", "data": {"list": [{
 
 ROLE_LIST_URL = "https://api.kurobbs.com/gamer/role/list"
 WIDGET_URL = "https://api.kurobbs.com/gamer/widget/game3/getData"
+WIDGET_REFRESH_URL = "https://api.kurobbs.com/gamer/widget/game3/refresh"
 EVENT_URL = "https://api.kurobbs.com/forum/companyEvent/findEventList"
 ROLEBOX_BASE_URL = "https://api.kurobbs.com/aki/roleBox/akiBox"
 
@@ -113,26 +114,33 @@ async def test_fetch_account_ok():
 @respx.mock
 async def test_fetch_stamina_ok():
     # fetch_stamina 两段调用：先 role/list 取默认角色 roleId/serverId，再查 widget；
-    # respx 按路径区分路由，widget 请求体必须携带 role/list 返回的标识
+    # 体力走 refresh 端点（getData 为缓存值，实测 26/240 vs refresh 33/240），
+    # respx 按路径区分路由，请求体必须携带 role/list 返回的标识
     respx.post(ROLE_LIST_URL).mock(
         return_value=httpx.Response(200, json=ROLE_LIST_RAW))
-    widget_route = respx.post(WIDGET_URL).mock(
+    refresh_route = respx.post(WIDGET_REFRESH_URL).mock(
+        return_value=httpx.Response(200, json=WIDGET_RAW))
+    get_route = respx.post(WIDGET_URL).mock(
         return_value=httpx.Response(200, json=WIDGET_RAW))
     a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))
     r = await a.fetch(Capability.STAMINA)
     assert r.ok is True
     assert r.payload.current == 180 and r.payload.maximum == 240
-    body = widget_route.calls.last.request.content.decode()
+    body = refresh_route.calls.last.request.content.decode()
     assert "roleId=100000001" in body
     assert "serverId=76402e5b20be2c39f095a152090afddc" in body
+    assert "type=2" in body and "sizeType=1" in body
+    assert get_route.calls.call_count == 0  # 体力不走 getData
 
 
 @respx.mock
 async def test_fetch_activity_ok():
-    # 版本活动改走 widget getData（activityData），不再是 findEventList 活动列表
+    # 版本活动走 widget getData（activityData），不走 refresh（避免 5 分钟压力）
     respx.post(ROLE_LIST_URL).mock(
         return_value=httpx.Response(200, json=ROLE_LIST_RAW))
     respx.post(WIDGET_URL).mock(
+        return_value=httpx.Response(200, json=WIDGET_RAW))
+    refresh_route = respx.post(WIDGET_REFRESH_URL).mock(
         return_value=httpx.Response(200, json=WIDGET_RAW))
     a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))
     r = await a.fetch(Capability.ACTIVITY)
@@ -141,6 +149,7 @@ async def test_fetch_activity_ok():
     assert r.payload.title == "身赴三途"
     assert r.payload.end_at is not None
     assert r.payload.core_rewards[0].name == "若梦仍有回声"
+    assert refresh_route.calls.call_count == 0  # activity 走 getData，不走 refresh
 
 
 @respx.mock

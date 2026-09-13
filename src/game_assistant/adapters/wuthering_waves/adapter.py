@@ -63,10 +63,16 @@ class WutheringWavesAdapter(BaseGameAdapter):
             raise KuroError(-3, "未找到绑定的鸣潮角色")
         return str(role_id), str(server_id)
 
-    async def _fetch_widget(self):
-        """role_list 取 roleId/serverId → widget_data。返回 (widget_raw, now)。"""
+    async def _fetch_widget(self, refresh: bool = False):
+        """role_list 取 roleId/serverId → widget_data。返回 (widget_raw, now)。
+
+        refresh=True 走 widget refresh 端点（体力专用，实测比 getData 缓存更
+        实时，见 endpoints.py ⑧）；activity/progress 保持 getData（缓存足够，
+        避免 5 分钟一次的 refresh 压力）。
+        """
         role_id, server_id = await self._get_role_ids()
-        raw_widget = await self._client.widget_data(role_id, server_id)
+        raw_widget = await self._client.widget_data(role_id, server_id,
+                                                    refresh=refresh)
         return raw_widget, datetime.now(timezone.utc)
 
     async def fetch_account(self) -> FetchResult:
@@ -77,7 +83,8 @@ class WutheringWavesAdapter(BaseGameAdapter):
 
     async def fetch_stamina(self) -> FetchResult:
         async def run():
-            raw, now = await self._fetch_widget()
+            # 体力走 refresh 端点：getData 为缓存值（实测 26/240 vs refresh 33/240）
+            raw, now = await self._fetch_widget(refresh=True)
             st = role.parse_widget_energy(raw, now)
             return FetchResult(ok=True, payload=st)
         return await self._guarded_run(run)

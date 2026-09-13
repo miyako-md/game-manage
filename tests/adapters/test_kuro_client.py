@@ -50,6 +50,21 @@ async def test_widget_data_ok():
 
 
 @respx.mock
+async def test_widget_data_refresh_uses_refresh_endpoint():
+    # refresh=True 走同族 refresh 端点（参数与 getData 相同，实测数据更新鲜，
+    # 体力专用，见 endpoints.py ⑧）；默认 False 保持 getData
+    route = respx.post("https://api.kurobbs.com/gamer/widget/game3/refresh").mock(
+        return_value=httpx.Response(200, json=WIDGET_RAW))
+    client = KuroClient(token="tok", user_id="1")
+    data = await client.widget_data("100000001",
+                                    "76402e5b20be2c39f095a152090afddc",
+                                    refresh=True)
+    assert data["data"]["energyData"]["cur"] == 240
+    body = route.calls.last.request.content.decode()
+    assert "gameId=3" in body and "type=2" in body and "sizeType=1" in body
+
+
+@respx.mock
 async def test_find_event_list_ok():
     route = respx.post(
         "https://api.kurobbs.com/forum/companyEvent/findEventList").mock(
