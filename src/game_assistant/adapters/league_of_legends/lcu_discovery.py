@@ -47,6 +47,8 @@ def find_lockfile_credentials(
             if p.exists() and p.stat().st_size > 0:
                 parts = p.read_text(encoding="utf-8", errors="replace").strip().split(":")
                 if len(parts) >= 4:
+                    if not parts[1] or not parts[2]:
+                        continue  # port/password 为空串：残缺 lockfile，跳过
                     return parts[1], parts[2]
         except OSError:
             continue

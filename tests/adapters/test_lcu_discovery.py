@@ -1,7 +1,8 @@
+import sys
 from pathlib import Path
 
 from game_assistant.adapters.league_of_legends.lcu_discovery import (
-    find_credentials_from, find_lockfile_credentials,
+    discover_lcu_credentials, find_credentials_from, find_lockfile_credentials,
 )
 
 
@@ -32,3 +33,42 @@ def test_lockfile_empty_and_missing(tmp_path):
     empty = tmp_path / "empty.lock"
     empty.write_text("", encoding="utf-8")
     assert find_lockfile_credentials([empty, tmp_path / "nope"]) is None
+
+
+def test_lockfile_empty_fields_skipped(tmp_path):
+    # lockfile 格式 PID:Port:Password:Protocol，port/password 为空串时须跳过，
+    # 不得返回残缺凭据（如 ("", "pass")）
+    lf = tmp_path / "lockfile"
+    lf.write_text("1234::pass:https", encoding="utf-8")
+    assert find_lockfile_credentials([lf]) is None
+
+
+class _FakeProc:
+    def __init__(self, info):
+        self.info = info
+
+
+class _FakePsutil:
+    """monkeypatch sys.modules["psutil"] 用的假模块：discover 内部 import psutil
+    会被拦截，从而验证真实的进程扫描路径。"""
+
+    class NoSuchProcess(Exception):
+        pass
+
+    class AccessDenied(Exception):
+        pass
+
+    @staticmethod
+    def process_iter(attrs):
+        return [
+            _FakeProc({"name": "chrome.exe", "cmdline": ["--x"]}),
+            _FakeProc({"name": "LeagueClientUx.exe", "cmdline": [
+                "--app-port=54321", "--remoting-auth-token=abcTOKEN",
+                "--install-path=D:/x"]}),
+        ]
+
+
+def test_discover_uses_psutil_process_scan(monkeypatch):
+    # 主路径：进程扫描发现凭据（lockfile 常为 0 字节的国服 WeGame 场景）
+    monkeypatch.setitem(sys.modules, "psutil", _FakePsutil())
+    assert discover_lcu_credentials() == ("54321", "abcTOKEN")

@@ -62,3 +62,12 @@ class LcuClient:
 
     async def game_detail(self, game_id: str) -> dict:
         return await self.get(GAME_DETAIL.format(game_id=game_id))
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
+
+    async def __aenter__(self) -> "LcuClient":
+        return self
+
+    async def __aexit__(self, *exc) -> None:
+        await self.aclose()

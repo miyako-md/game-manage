@@ -10,7 +10,7 @@
 """
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -121,9 +121,13 @@ def _dt(*vals):
     for v in vals:
         if v:
             try:
-                return datetime.fromisoformat(str(v))
+                dt = datetime.fromisoformat(str(v))
             except ValueError:
                 continue
+            # sIdxTime 为北京时间（UTC+8），来源解析可能产出 naive datetime：
+            # 补 tzinfo → aware（与 reminder.py 对 naive end_at 的归一化口径一致）
+            return dt if dt.tzinfo else dt.replace(
+                tzinfo=timezone(timedelta(hours=8)))
     return None
 
 
@@ -143,7 +147,7 @@ def _detail_url(item: dict) -> str | None:
     return None
 
 
-def parse_news_json(data: dict, category: str = "公告") -> list[AnnouncementItem]:
+def parse_news_json(data: dict | list, category: str = "公告") -> list[AnnouncementItem]:
     """解析官网新闻列表响应为 AnnouncementItem。
 
     category（"公告"/"综合"等，映射见 NEWS_CATEGORY_IDS）：校准确认分类过滤由端点

@@ -38,13 +38,12 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
         # 凭据来自本机 LCU 进程发现（非存储凭据），credentials_configured 恒 True
         self.credentials_configured = True
 
-    def _get_lcu(self) -> LcuClient:
+    def _discover(self) -> tuple[str, str]:
         # 每次拉取重新发现：客户端重启后端口/token 都会变，psutil 扫描很轻
         creds = discover_lcu_credentials()
         if creds is None:
             raise LcuUnavailableError("LOL 客户端未运行")
-        port, token = creds
-        return LcuClient(port=port, token=token)
+        return creds
 
     async def _guarded_run(self, run) -> FetchResult:
         """run 是零参协程工厂；统一处理客户端错误与解析兜底。"""
@@ -61,23 +60,25 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
 
     async def fetch_account(self) -> FetchResult:
         async def run():
-            lcu = self._get_lcu()
-            raw = await lcu.current_summoner()
-            try:
-                ranked_raw = await lcu.ranked_stats(raw.get("puuid") or "")
-            except LcuError:
-                ranked_raw = None  # 排位信息失败不致命，账号信息仍可用
-            return FetchResult(ok=True, payload=parse_summoner(raw, ranked_raw))
+            port, token = self._discover()
+            async with LcuClient(port=port, token=token) as lcu:
+                raw = await lcu.current_summoner()
+                try:
+                    ranked_raw = await lcu.ranked_stats(raw.get("puuid") or "")
+                except LcuError:
+                    ranked_raw = None  # 排位信息失败不致命，账号信息仍可用
+                return FetchResult(ok=True, payload=parse_summoner(raw, ranked_raw))
         return await self._guarded_run(run)
 
     async def fetch_match(self) -> FetchResult:
         async def run():
-            lcu = self._get_lcu()
-            raw = await lcu.current_summoner()
-            puuid = raw.get("puuid") or ""
-            history = await lcu.match_history(puuid)
-            return FetchResult(ok=True,
-                               payload=parse_match_history(history, puuid))
+            port, token = self._discover()
+            async with LcuClient(port=port, token=token) as lcu:
+                raw = await lcu.current_summoner()
+                puuid = raw.get("puuid") or ""
+                history = await lcu.match_history(puuid)
+                return FetchResult(ok=True,
+                                   payload=parse_match_history(history, puuid))
         return await self._guarded_run(run)
 
     async def _fetch_category(self, category: str) -> FetchResult:

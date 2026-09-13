@@ -4,7 +4,7 @@ fixture 为 Task 7 Step 5 在线校准真实样本（2026-09-13 实测
 apps.game.qq.com/cmc/zmMcnTargetContentList?target=24，即"公告"tab），见 endpoints.py 注释。
 """
 import ssl
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import httpx
 import pytest
@@ -37,15 +37,29 @@ RAW = {"status": 1, "msg": "OK", "data": {
 # respx 路由按无 query 的基础 URL 匹配（NEWS_LIST_URL 带 {page} 占位模板）
 NEWS_LIST_BASE = "https://apps.game.qq.com/cmc/zmMcnTargetContentList"
 
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+
+def test_parse_news_json_naive_dates_become_beijing_aware():
+    # sIdxTime 为北京时间（UTC+8）：解析出的 naive datetime 须补 tzinfo → aware
+    # （与 reminder.py 对 naive end_at 的归一化口径一致）
+    items = parse_news_json(RAW, "公告")
+    for it in items:
+        assert it.published_at is not None
+        assert it.published_at.tzinfo is not None
+        assert it.published_at.utcoffset() == timedelta(hours=8)
+    assert items[0].published_at == datetime(2026, 9, 9, 19, 40, 48,
+                                             tzinfo=BEIJING_TZ)
+
 
 def test_parse_news_json_calibrated():
     items = parse_news_json(RAW, "公告")
     assert len(items) == 3
     assert items[0].title == "26.18版本更新公告"
-    assert items[0].published_at == datetime(2026, 9, 9, 19, 40, 48)
+    assert items[0].published_at == datetime(2026, 9, 9, 19, 40, 48, tzinfo=BEIJING_TZ)
     assert items[0].url == "https://lol.qq.com/gicp/news/410/37096116.html"
     assert items[2].title == "峡谷之巅2026第二赛段奖励公告"
-    assert items[2].published_at == datetime(2026, 9, 11, 10, 58, 7)
+    assert items[2].published_at == datetime(2026, 9, 11, 10, 58, 7, tzinfo=BEIJING_TZ)
 
 
 def test_parse_news_json_fallback_url_from_docid():
@@ -74,7 +88,7 @@ def test_parse_news_json_cross_items_shape():
     items = parse_news_json(raw, "综合")
     assert len(items) == 1
     assert items[0].title == "秒杀能力直线提升 Faker岚切克烈全解析"
-    assert items[0].published_at == datetime(2018, 7, 15, 11, 30, 2)
+    assert items[0].published_at == datetime(2018, 7, 15, 11, 30, 2, tzinfo=BEIJING_TZ)
     assert items[0].url == "https://lol.qq.com/news/detail.shtml?docid=14813918159521679375"
     assert items[0].summary == "攻略解析"
 
@@ -88,7 +102,7 @@ def test_parse_news_json_legacy_assumed_shape():
     items = parse_news_json(raw, "公告")
     assert len(items) == 1
     assert items[0].title == "26.18版本更新公告"
-    assert items[0].published_at == datetime(2026, 9, 11)
+    assert items[0].published_at == datetime(2026, 9, 11, tzinfo=BEIJING_TZ)
     assert items[0].url == "https://lol.qq.com/news/detail.shtml?nid=1"
 
 

@@ -71,7 +71,7 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
 | `app_port` | `8010` | 后端监听端口（8000 被 Windows HTTP.sys 系统服务占用，故默认 8010） |
 | `db_path` | `"data/assistant.db"` | SQLite 快照库路径 |
 | `stamina_seconds` | `300` | 体力轮询间隔（秒），5 分钟 |
-| `activity_seconds` | `3600` | 活动轮询间隔（秒），1 小时 |
+| `activity_seconds` | `3600` | 活动轮询间隔（秒），1 小时；英雄联盟 account/match 轮询复用该间隔 |
 | `announcement_seconds` | `3600` | 公告轮询间隔（秒），1 小时 |
 | `news_seconds` | `14400` | 资讯轮询间隔（秒），4 小时 |
 | `notify_provider` | `"serverchan"` | 微信推送渠道：`serverchan` 或 `pushplus` |
