@@ -4,6 +4,7 @@ import { getSnapshot, refreshGame } from '../api.js'
 import AccountCard from './AccountCard.vue'
 import ActivityList from './ActivityList.vue'
 import AnnouncementList from './AnnouncementList.vue'
+import MatchList from './MatchList.vue'
 import StaminaCard from './StaminaCard.vue'
 
 const props = defineProps({
@@ -15,6 +16,7 @@ const CAP_COMPONENTS = {
   account: AccountCard,
   activity: ActivityList,
   announcement: AnnouncementList,
+  match: MatchList,
 }
 
 // capability -> 快照对象（{payload, fetched_at, stale}），拉取失败时为 null

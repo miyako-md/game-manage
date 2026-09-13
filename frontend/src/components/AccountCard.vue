@@ -6,6 +6,8 @@ const props = defineProps({
 })
 
 const payload = computed(() => props.snap?.payload ?? null)
+
+const rankedSolo = computed(() => payload.value?.extra?.ranked_solo ?? null)
 </script>
 
 <template>
@@ -21,6 +23,10 @@ const payload = computed(() => props.snap?.payload ?? null)
       <li>
         <span class="label">等级</span>
         <span>{{ payload.level ?? '未知' }}</span>
+      </li>
+      <li v-if="rankedSolo">
+        <span class="label">段位</span>
+        <span>{{ rankedSolo.tier }} {{ rankedSolo.division }} · {{ rankedSolo.league_points }}LP</span>
       </li>
     </ul>
   </div>
