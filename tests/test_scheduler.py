@@ -3,6 +3,8 @@ import json
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult, StaminaInfo
+from game_assistant.reminder import ReminderEngine
+from game_assistant.reminder_store import ReminderDedup
 from game_assistant.scheduler import PollingScheduler
 from game_assistant.snapshots import SnapshotStore
 
@@ -34,22 +36,39 @@ class WuwaLike(BaseGameAdapter):
         return FetchResult(ok=False, error="接口挂了")
 
 
-def _sched(tmp_path, settings=None):
+def _sched(tmp_path, settings=None, reminder=None):
     reg = type("R", (), {"all": lambda self: [WuwaLike()],
                          "get": lambda self, gid: WuwaLike()})()
     store = SnapshotStore(str(tmp_path / "t.db"))
     s = settings or Settings()
-    return PollingScheduler(reg, store, s, FakeNotify()), store
+    sched = PollingScheduler(reg, store, s, FakeNotify(), reminder=reminder)
+    return sched, store
 
 
 async def test_poll_once_saves_snapshot_and_notifies_full(tmp_path):
-    sched, store = _sched(tmp_path)
+    eng = ReminderEngine(ReminderDedup(str(tmp_path / "r.db")),
+                         FakeNotify(), Settings(notify_send_key=""))
+    sched, store = _sched(tmp_path, reminder=eng)
+    r = await sched.poll_once("wuwa", Capability.STAMINA)
+    assert r.ok is True
+    payload = json.loads(store.get("wuwa", "stamina")["payload"])
+    assert payload["current"] == 240
+    assert any("体力已满" in t for t, _ in eng.notifier.sent)  # 经引擎触发
+    await sched.poll_once("wuwa", Capability.STAMINA)          # 同日去重
+    assert len(eng.notifier.sent) == 1
+
+
+async def test_poll_once_survives_reminder_engine_error(tmp_path):
+    class RaisingEngine:
+        async def handle_poll(self, *args, **kwargs):
+            raise RuntimeError("提醒引擎炸了")
+
+    sched, store = _sched(tmp_path, reminder=RaisingEngine())
     r = await sched.poll_once("wuwa", Capability.STAMINA)
     assert r.ok is True
     snap = store.get("wuwa", "stamina")
-    payload = json.loads(snap["payload"])
-    assert payload["current"] == 240
-    assert any("体力已满" in t for t, _ in FakeNotify.sent)
+    assert snap is not None
+    assert json.loads(snap["payload"])["current"] == 240
 
 
 async def test_poll_failure_keeps_old_snapshot(tmp_path):

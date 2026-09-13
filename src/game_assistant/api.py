@@ -7,6 +7,8 @@ from game_assistant.config import Settings
 from game_assistant.models import Capability
 from game_assistant.notify.base import build_notifier
 from game_assistant.registry import build_default_registry
+from game_assistant.reminder import ReminderEngine
+from game_assistant.reminder_store import ReminderDedup
 from game_assistant.scheduler import PollingScheduler, interval_for
 from game_assistant.snapshots import SnapshotStore
 
@@ -76,8 +78,11 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         return {"notify": {"enabled": enabled, "provider": provider}}
 
     if scheduler is None and start_scheduler:
+        # 默认路径：notifier → 提醒引擎 → 调度器（引擎随每轮轮询评估提醒规则）
+        engine = ReminderEngine(ReminderDedup(settings.db_path), notifier,
+                                settings)
         scheduler = PollingScheduler(app.state.registry, app.state.store,
-                                     settings, notifier)
+                                     settings, notifier, reminder=engine)
     app.state.scheduler = scheduler
 
     @asynccontextmanager
