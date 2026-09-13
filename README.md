@@ -5,9 +5,10 @@
 
 需求与设计细节见 [docs/需求文档.md](docs/需求文档.md)。
 
-当前进度（M3）：已接入 **鸣潮（官服）** 与 **英雄联盟（国服）**；
+当前进度（M3）：已接入 **鸣潮（官服）**、**英雄联盟（国服）** 与 **异环（塔吉多社区）**；
 鸣潮支持账号 / 体力 / 版本活动 / 周期进度 / 公告 / 探索度 / 数据坞 / 角色练度
-（探索度/数据坞/角色练度需可选的 roleBox 三件套配置），英雄联盟支持账号 / 战绩 / 公告 / 资讯；
+（探索度/数据坞/角色练度需可选的 roleBox 三件套配置），英雄联盟支持账号 / 战绩 / 公告 / 资讯，
+异环支持公告（匿名可用）/ 角色 / 进度 / 抽卡 / 战绩（后四项需可选的塔吉多凭据）；
 新增提醒引擎（体力 / 版本活动临期 / 拉取失败告警，微信推送带去重）；
 后端为 FastAPI + APScheduler + SQLite，前端为 Vue 3 + Vite。
 
@@ -36,7 +37,7 @@ python -m venv .venv
 
 启动后 `http://127.0.0.1:8010/api/games` 应返回已注册的游戏列表；
 日志中 APScheduler 会按各游戏的注册能力逐项注册轮询 job
-（鸣潮 8 个：account / stamina / activity / progress / announcement / exploration / calabash / roles；英雄联盟 4 个：account / match / announcement / news）。
+（鸣潮 8 个：account / stamina / activity / progress / announcement / exploration / calabash / roles；英雄联盟 4 个：account / match / announcement / news；异环 5 个：announcement / roles / progress / gacha / record）。
 
 ### 2. 前端（开发模式）
 
@@ -90,6 +91,9 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
 | `wuwa_dev_code` | `""` | roleBox `devCode` 请求头整串（格式 = "客户端公网IP, 空格+完整UA"） |
 | `wuwa_did` | `""` | roleBox `did` 请求头（设备 UUID） |
 | `lol_enabled` | `true` | 英雄联盟适配器开关 |
+| `nte_enabled` | `true` | 异环适配器开关 |
+| `nte_access_token` | `""` | 塔吉多社区访问令牌（JWT），抓取方式见下文"异环凭据配置" |
+| `nte_refresh_token` | `""` | 塔吉多刷新令牌（可选），用于会话过期后换新令牌对 |
 
 ## 鸣潮凭据配置（token 抓取）
 
@@ -209,6 +213,58 @@ LCU 采集依赖客户端运行，自动化测试只覆盖凭据发现与解析�
 - 计划期候选接口 news_list.json 已实测 404 废弃，现行数据源为 CMC 聚合端点
   （见 endpoints.py 校准注释）。
 - **掌盟 Cookie 渠道**为未来备选（计划 M3 评估），用于战绩查询任意玩家等 LCU 覆盖不到的场景。
+
+## 异环（NTE / 塔吉多社区）
+
+异环卡片的五项能力（announcement / roles / progress / gacha / record）数据来自
+塔吉多社区接口（`bbs-api.tajiduo.com`，与官方 BBS 同源）：
+
+| 能力 | 前端区块 | 凭据 |
+| --- | --- | --- |
+| 公告（announcement） | 公告列表 | **无需凭据**，始终可用 |
+| 角色（roles） | 角色练度墙 | 需塔吉多凭据 |
+| 进度（progress） | 周期进度 | 需塔吉多凭据 |
+| 抽卡（gacha） | 敬请期待（Phase 2） | 需塔吉多凭据 |
+| 战绩（record） | 敬请期待（Phase 2） | 需塔吉多凭据 |
+
+公告已在线校准可用（社区"官方资讯"栏目，2026-09-13 实测拉到真实帖子）；
+角色 / 进度 / 抽卡 / 战绩的接口客户端已实现，**解析器待配置凭据联调后激活**
+（Phase 2）——配置凭据前这四项显示"未配置塔吉多凭据"，属预期。
+
+### 异环凭据配置（token 抓取）
+
+塔吉多凭据即社区登录态（JWT），抓取步骤：
+
+1. 浏览器打开 [bbs.tajiduo.com](https://bbs.tajiduo.com) 并登录异环社区账号；
+2. 按 `F12` 打开开发者工具，切到 **Network（网络）** 面板；
+3. 刷新页面，任选一个发往 `bbs-api.tajiduo.com` 的请求，在请求头中复制
+   `authorization` 的值（JWT，即访问令牌）；若能在请求/响应中找到
+   `refreshToken`（刷新令牌），一并复制；
+4. 填入 `config.toml`：
+
+   ```toml
+   nte_access_token = "<复制的 authorization>"
+   nte_refresh_token = "<刷新令牌，如可获取>"
+   ```
+
+5. 重启后端，在页面点击刷新（或等待轮询），角色 / 进度应显示真实数据
+   （抽卡 / 战绩待 Phase 2 解析器上线）。
+
+**只拿到 access_token 也先填**：查询能力立即可用；access_token 过期后相关
+能力会报"塔吉多会话已失效，请重新抓取 token"，重新抓一次即可。同时填了
+`nte_refresh_token` 时，后端可在会话失效后用刷新令牌换取新令牌对（自动续期，
+Phase 2 联调激活）。
+
+`authorization` 等同账号登录凭据，**不要分享给任何人**（含截图脱敏）。
+
+### 已知边界
+
+- **无体力接口**：塔吉多社区未提供体力查询端点（参考项目
+  [NTEUID](https://github.com/tyql688/NTEUID) 同样如此），故异环无体力能力；
+- **无结构化活动日历**：官方活动为帖子形式，无结构化活动列表接口，
+  版本活动信息以公告流呈现；
+- 需凭据端点的响应解析器为 Phase 2 范围：当前配置凭据后角色 / 进度 /
+  抽卡 / 战绩返回原始数据（联调校准后接入对应卡片展示）。
 
 ## 微信推送启用
 
