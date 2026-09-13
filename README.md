@@ -78,7 +78,7 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
 | `notify_provider` | `"serverchan"` | 微信推送渠道：`serverchan` 或 `pushplus` |
 | `notify_send_key` | `""` | 推送密钥，留空 = 功能可用但未启用 |
 | `notify_stamina_full` | `true` | 体力已满时推送微信提醒 |
-| `stamina_threshold_percent` | `90` | 体力达到该百分比即视为已满 |
+| `stamina_threshold_percent` | `90` | 体力达到该百分比且未满时提醒即将回满 |
 | `activity_remind_days` | `3` | 活动结束前 N 天开始临期提醒 |
 | `fail_notify_threshold` | `3` | 轮询连续失败 N 次后推送告警 |
 | `wuwa_enabled` | `true` | 是否启用鸣潮适配器 |

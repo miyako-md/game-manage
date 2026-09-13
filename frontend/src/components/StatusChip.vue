@@ -28,7 +28,7 @@ defineProps({
 }
 
 .chip-ok {
-  color: #1a7f37;
-  background: #dafbe1;
+  color: var(--success);
+  background: var(--success-bg);
 }
 </style>

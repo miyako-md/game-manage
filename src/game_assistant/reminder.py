@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import hashlib
-import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.config import Settings
 from game_assistant.models import ActivityItem, Capability, FetchResult, StaminaInfo
 from game_assistant.reminder_store import ReminderDedup
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
