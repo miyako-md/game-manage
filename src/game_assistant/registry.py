@@ -1,5 +1,9 @@
+import logging
+
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.config import Settings
+
+logger = logging.getLogger(__name__)
 
 
 class GameRegistry:
@@ -26,8 +30,7 @@ def build_default_registry(settings: Settings) -> GameRegistry:
         try:
             from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
         except ImportError:
-            import logging
-            logging.getLogger(__name__).warning(
+            logger.warning(
                 "鸣潮适配器导入失败，跳过注册（检查依赖完整性）", exc_info=True)
         else:
             registry.register(WutheringWavesAdapter(settings))
@@ -35,9 +38,8 @@ def build_default_registry(settings: Settings) -> GameRegistry:
         try:
             from game_assistant.adapters.league_of_legends.adapter import LeagueOfLegendsAdapter
         except ImportError:
-            import logging
-            logging.getLogger(__name__).warning(
-                "英雄联盟适配器导入失败，跳过注册（Task 8 完成前属预期）", exc_info=True)
+            logger.warning(
+                "英雄联盟适配器导入失败，跳过注册（排查适配器模块导入错误）", exc_info=True)
         else:
             registry.register(LeagueOfLegendsAdapter(settings))
     return registry

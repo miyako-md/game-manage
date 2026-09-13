@@ -79,6 +79,7 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
 | `wuwa_enabled` | `true` | 是否启用鸣潮适配器 |
 | `wuwa_token` | `""` | 库街区 token，抓取方式见下文 |
 | `wuwa_user_id` | `""` | 库街区数字 userId |
+| `lol_enabled` | `true` | 英雄联盟适配器开关 |
 
 ## 鸣潮凭据配置（token 抓取）
 
@@ -143,6 +144,8 @@ LCU 采集依赖客户端运行，自动化测试只覆盖凭据发现与解析�
   （见 [endpoints.py](src/game_assistant/adapters/league_of_legends/endpoints.py) 标注）。
   首次真实运行时请留意段位字段；若缺失/异常，按该文件头校准注释核对真实响应并修正解析
   （排位失败不影响账号卡其余信息）。
+- 计划期候选接口 news_list.json 已实测 404 废弃，现行数据源为 CMC 聚合端点
+  （见 endpoints.py 校准注释）。
 - **掌盟 Cookie 渠道**为未来备选（计划 M3 评估），用于战绩查询任意玩家等 LCU 覆盖不到的场景。
 
 ## 微信推送启用
