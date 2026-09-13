@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     wuwa_enabled: bool = True
     wuwa_token: str = ""
     wuwa_user_id: str = ""
+    # 库街区 APP 端 token：用于探索度/数据坞等高级数据（抓包教程见 README），
+    # 留空不影响现有功能
+    wuwa_app_token: str = ""
     lol_enabled: bool = True
 
     model_config = {"env_prefix": "GA_"}

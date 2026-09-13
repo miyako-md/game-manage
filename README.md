@@ -84,6 +84,7 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
 | `wuwa_enabled` | `true` | 是否启用鸣潮适配器 |
 | `wuwa_token` | `""` | 库街区 token，抓取方式见下文 |
 | `wuwa_user_id` | `""` | 库街区数字 userId |
+| `wuwa_app_token` | `""` | 库街区 APP 端 token（可选，用于探索度/数据坞等高级数据），见下文"APP 端 token 抓取教程" |
 | `lol_enabled` | `true` | 英雄联盟适配器开关 |
 
 ## 鸣潮凭据配置（token 抓取）
@@ -117,6 +118,25 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
   当前进度条与百分比；带重置时间的条目显示"X 天后重置 / 今日重置"。
 - 旧的社区活动列表（findEventList）已退役：社区帖子流并非官方活动，
   版本活动以小组件 `activityData` 为准。
+
+## 鸣潮 APP 端 token 抓取教程（可选）
+
+`wuwa_app_token` 用于库街区 APP 端独有的高级数据（探索度、数据坞等，
+对应 `/aki/roleBox` 系列接口——网页 token 无权访问，需 APP 端 token）。
+**当前为预留配置项**：留空不影响任何现有功能，相关功能将在 token 配置后开发。
+
+1. **安卓**：安装 [Reqable](https://reqable.com/) 或 HttpCanary → 按应用指引安装并
+   信任其 CA 证书 → 打开库街区 APP 任意页面 → 在抓包记录中找任意发往
+   `api.kurobbs.com` 的请求 → 复制请求头 `token`（`eyJ` 开头的 JWT）；
+2. **iOS**：使用 Stream（需在应用设置里生成并安装描述文件证书），
+   同样抓 `api.kurobbs.com` 请求头中的 `token`；
+3. 填入 `config.toml` 的 `wuwa_app_token` 后重启后端。
+
+风险与边界：
+
+- 抓包证书仅本机自用，请勿长期开启抓包或安装来源不明的证书；
+- APP token 权限比网页 token 更大，**不要分享给任何人**（含截图脱敏）；
+- 库街区接口属非官方，路径/鉴权随时可能变化，抓包结果仅供个人使用。
 
 ## 英雄联盟（国服）
 
