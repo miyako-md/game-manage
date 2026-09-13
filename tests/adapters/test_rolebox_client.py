@@ -20,8 +20,8 @@ SERVER_ID = "76402e5b20be2c39f095a152090afddc"
 BASE_DATA_RAW = {"code": 200, "msg": "success",
                  "data": "{\"energy\":240,\"level\":80,\"activeDay\":534}"}
 EXPLORE_RAW = {"code": 200, "msg": "success",
-               "data": "{\"countryProgress\":\"85%\",\"areaInfoList\":[],"
-                       "\"detectionInfoList\":[]}"}
+               "data": "{\"detectionInfoList\":[],\"exploreList\":[],"
+                       "\"open\":true}"}
 CALABASH_RAW = {"code": 200, "msg": "success",
                 "data": "{\"level\":30,\"baseCatch\":\"20%\",\"catchQuality\":5,"
                         "\"curExp\":1375,\"maxCount\":724}"}
@@ -64,7 +64,7 @@ async def test_explore_index_ok_and_body_has_channel():
         return_value=httpx.Response(200, json=EXPLORE_RAW))
     async with _client() as client:
         data = await client.explore_index(ROLE_ID, SERVER_ID)
-    assert data["countryProgress"] == "85%"
+    assert data["open"] is True
     _assert_common_headers(route.calls.last.request)
     body = route.calls.last.request.content.decode()
     # exploreIndex body 比 baseData 多 channelId=19 & countryCode=1（实测必需）

@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 
 from game_assistant.models import (
-    AccountInfo, AnnouncementItem, CalabashData, Capability, CoreReward,
-    ExplorationData, ExploreArea, FetchResult, MatchSummary, ProgressItem,
-    StaminaInfo, VersionActivity,
+    AccountInfo, AnnouncementItem, CalabashData, Capability, CountryGroup,
+    CoreReward, DetectionSummary, ExplorationData, AreaSummary, FetchResult,
+    MatchSummary, ProgressItem, StaminaInfo, VersionActivity,
 )
 
 
@@ -19,9 +19,11 @@ def test_capability_exploration_calabash_values():
 
 def test_exploration_roundtrip():
     e = ExplorationData(
-        country_progress="85%",
-        areas=[ExploreArea(name="今州城", progress=100.0, items=["信标 50%"])],
-        detection_count=4, detection_by_level={"轻波级": 2, "巨浪级": 1})
+        detections=DetectionSummary(total=199,
+                                    by_level={"轻波级": 120, "海啸级": 9}),
+        country_groups=[CountryGroup(name="瑝珑", progress=67.06,
+                                     areas=[AreaSummary(name="云陵谷",
+                                                        progress=100.0)])])
     assert ExplorationData.model_validate(e.model_dump()) == e
 
 

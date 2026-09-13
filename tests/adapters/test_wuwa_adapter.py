@@ -42,13 +42,23 @@ WIDGET_URL = "https://api.kurobbs.com/gamer/widget/game3/getData"
 EVENT_URL = "https://api.kurobbs.com/forum/companyEvent/findEventList"
 ROLEBOX_BASE_URL = "https://api.kurobbs.com/aki/roleBox/akiBox"
 
-# roleBox 响应 data 是 JSON 字符串（实测形状，2026-09-13），需二次解析
+# roleBox 响应 data 是 JSON 字符串（实测形状，2026-09-13 完整响应校准），
+# 需二次解析；exploreIndex 为 exploreList 国家分组 + detectionInfoList 结构
 EXPLORE_RAW = {"code": 200, "msg": "success", "data": json.dumps({
-    "countryProgress": "85%",
-    "areaInfoList": [{"areaName": "今州城", "areaProgress": "100%",
-                      "itemList": [{"type": 1, "name": "信标", "progress": "50%"}]}],
-    "detectionInfoList": [{"detectionName": "嗷呜", "levelName": "轻波级", "level": 1},
-                          {"detectionName": "咔咔", "levelName": "巨浪级", "level": 2}],
+    "detectionInfoList": [
+        {"detectionName": "嗷呜", "levelName": "轻波级", "level": 1},
+        {"detectionName": "咔咔", "levelName": "巨浪级", "level": 2},
+    ],
+    "exploreList": [
+        {"country": {"countryId": 1, "countryName": "瑝珑"},
+         "countryProgress": 67.06,
+         "areaInfoList": [{"areaId": 1, "areaName": "云陵谷", "areaProgress": 100,
+                           "itemList": [{"icon": "", "name": "信标",
+                                         "progress": 100, "type": 2}]}]},
+        {"country": {"countryId": 2, "countryName": "黑海岸"},
+         "countryProgress": "60.00", "areaInfoList": []},
+    ],
+    "open": True,
 }, ensure_ascii=False)}
 CALABASH_RAW = {"code": 200, "msg": "success", "data": json.dumps({
     "level": 30, "baseCatch": "20%", "catchQuality": 5,
@@ -208,10 +218,11 @@ async def test_fetch_exploration_ok():
     r = await a.fetch(Capability.EXPLORATION)
     assert r.ok is True
     assert isinstance(r.payload, ExplorationData)
-    assert r.payload.country_progress == "85%"
-    assert r.payload.areas[0].items == ["信标 50%"]
-    assert r.payload.detection_count == 2
-    assert r.payload.detection_by_level == {"轻波级": 1, "巨浪级": 1}
+    assert r.payload.detections.total == 2
+    assert r.payload.detections.by_level == {"轻波级": 1, "巨浪级": 1}
+    assert [g.name for g in r.payload.country_groups] == ["瑝珑", "黑海岸"]
+    assert r.payload.country_groups[0].progress == 67.06
+    assert r.payload.country_groups[0].areas[0].name == "云陵谷"
     body = route.calls.last.request.content.decode()
     assert "roleId=100000001" in body and "channelId=19" in body
     # b-at 票据随请求头转发

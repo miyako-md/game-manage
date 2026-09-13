@@ -5,24 +5,39 @@ from game_assistant.adapters.wuthering_waves.rolebox import (
 )
 from game_assistant.models import ExplorationData
 
-# 实测形状 fixture（2026-09-13）：exploreIndex data 为 JSON 字符串（信封）；
-# areaProgress 覆盖百分比字符串与数字两种；detectionInfoList 覆盖分级计数
+# 实测形状 fixture（2026-09-13 完整响应校准）：exploreIndex data 为 JSON 字符串
+# （信封）；exploreList 4 组国家（瑝珑/黑海岸/黎那汐塔/罗伊冰原），每组
+# country.countryName + countryProgress（数字/字符串两种）+ areaInfoList；
+# detectionInfoList 约 199 项（fixture 缩样），按 levelName 分级计数
 EXPLORE_INNER = {
-    "countryProgress": "85%",
-    "areaInfoList": [
-        {"areaName": "今州城", "areaProgress": "100%",
-         "itemList": [{"type": 1, "name": "信标", "progress": "50%"},
-                      {"type": 2, "name": "宝箱", "progress": "8/10"},
-                      {"type": 3}]},  # 无 name 的条目应被跳过
-        {"areaName": "无光之森", "areaProgress": 72.5, "itemList": []},
-        {"areaName": "怨毒之地", "areaProgress": None},  # 进度缺失
-    ],
     "detectionInfoList": [
         {"detectionName": "嗷呜", "levelName": "轻波级", "level": 1},
         {"detectionName": "咔咔", "levelName": "轻波级", "level": 2},
         {"detectionName": "咕咕", "levelName": "巨浪级", "level": 3},
         {"detectionName": "呜呜", "levelName": "怒涛级", "level": 3},
+        {"detectionName": "啦啦", "levelName": "海啸级", "level": 4},
     ],
+    "exploreList": [
+        {"country": {"countryId": 1, "countryName": "瑝珑"},
+         "countryProgress": 67.06,
+         "areaInfoList": [
+             {"areaId": 1, "areaName": "云陵谷", "areaProgress": 100,
+              "itemList": [{"icon": "", "name": "信标", "progress": 100,
+                            "type": 2}]},  # itemList 明细不进模型
+             {"areaId": 2, "areaName": "怨毒之地", "areaProgress": None},
+         ]},
+        {"country": {"countryId": 2, "countryName": "黑海岸"},
+         "countryProgress": "60.00",  # 字符串形状
+         "areaInfoList": []},
+        {"country": {"countryId": 3, "countryName": "黎那汐塔"},
+         "countryProgress": 49.86,
+         "areaInfoList": [{"areaId": 3, "areaName": "黎那汐塔城",
+                           "areaProgress": "88.8%"}]},  # 带百分号的字符串
+        {"country": {"countryId": 4, "countryName": "罗伊冰原"},
+         "countryProgress": 57.66,
+         "areaInfoList": [{"areaId": 4, "areaName": "雪原哨站"}]},  # 进度缺失
+    ],
+    "open": True,
 }
 EXPLORE_ENVELOPE = {"code": 200, "msg": "success",
                     "data": json.dumps(EXPLORE_INNER, ensure_ascii=False)}
@@ -37,35 +52,43 @@ CALABASH_ENVELOPE = {"code": 200, "msg": "success",
 def test_explore_index_from_envelope_with_string_data():
     d = parse_explore_index(EXPLORE_ENVELOPE)
     assert isinstance(d, ExplorationData)
-    assert d.country_progress == "85%"
-    assert [a.name for a in d.areas] == ["今州城", "无光之森", "怨毒之地"]
-    assert d.areas[0].progress == 100.0                      # "100%" → 100.0
-    assert d.areas[0].items == ["信标 50%", "宝箱 8/10"]       # 压缩字符串
-    assert d.areas[1].progress == 72.5                       # 数字形状
-    assert d.areas[2].progress is None                       # 缺失 → None
-    assert d.detection_count == 4
-    assert d.detection_by_level == {"轻波级": 2, "巨浪级": 1, "怒涛级": 1}
+    # 残象探寻：total = 列表长度，按级计数保持出现顺序
+    assert d.detections.total == 5
+    assert d.detections.by_level == {"轻波级": 2, "巨浪级": 1, "怒涛级": 1,
+                                     "海啸级": 1}
+    # 国家分组：4 组，countryProgress 数字/"60.00"字符串统一转 float
+    assert [g.name for g in d.country_groups] == \
+        ["瑝珑", "黑海岸", "黎那汐塔", "罗伊冰原"]
+    assert [g.progress for g in d.country_groups] == \
+        [67.06, 60.0, 49.86, 57.66]
+    # 地区：areaProgress 数字/None/带%字符串三种形状；itemList 不进模型
+    linggu = d.country_groups[0]
+    assert [(a.name, a.progress) for a in linggu.areas] == \
+        [("云陵谷", 100.0), ("怨毒之地", None)]
+    assert d.country_groups[1].areas == []
+    assert (d.country_groups[2].areas[0].name,
+            d.country_groups[2].areas[0].progress) == ("黎那汐塔城", 88.8)
+    assert d.country_groups[3].areas[0].progress is None
 
 
 def test_explore_index_accepts_inner_dict_from_client():
     # rolebox_client.post 已把 data 字符串二次解析为 dict（直接返回内层）
     d = parse_explore_index(EXPLORE_INNER)
-    assert d.country_progress == "85%"
-    assert d.detection_by_level["轻波级"] == 2
+    assert d.detections.by_level["轻波级"] == 2
+    assert d.country_groups[0].name == "瑝珑"
 
 
 def test_explore_index_missing_fields_fall_back_to_defaults():
     d = parse_explore_index({})            # 空数据
-    assert d.country_progress is None
-    assert d.areas == [] and d.detection_count == 0
-    assert d.detection_by_level == {}
+    assert d.detections.total == 0 and d.detections.by_level == {}
+    assert d.country_groups == []
 
     d2 = parse_explore_index("{not-json}")  # 非法字符串 → 防御式空数据
     assert d2 == ExplorationData()
 
     # levelName 缺失 → 回退 "等级{level}" 计数
     d3 = parse_explore_index({"detectionInfoList": [{"detectionName": "x", "level": 2}]})
-    assert d3.detection_by_level == {"等级2": 1} and d3.detection_count == 1
+    assert d3.detections.by_level == {"等级2": 1} and d3.detections.total == 1
 
 
 def test_calabash_data_from_envelope_with_string_data():

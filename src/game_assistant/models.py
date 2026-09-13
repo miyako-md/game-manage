@@ -61,21 +61,33 @@ class AnnouncementItem(BaseModel):
     summary: str = ""
 
 
-class ExploreArea(BaseModel):
-    # roleBox exploreIndex areaInfoList 单条：地区名 + 探索度百分比（数字或
-    # 百分比字符串，统一转 float）；items 压缩为 "信标 50%" 这类展示字符串
+class DetectionSummary(BaseModel):
+    # roleBox exploreIndex detectionInfoList 汇总：残象探寻已收录条目按级计数
+    # （by_level 如 {"轻波级": n, "巨浪级": n, "怒涛级": n, "海啸级": n}）
+    total: int = 0
+    by_level: dict = {}
+
+
+class AreaSummary(BaseModel):
+    # 国家分组下的地区（areaInfoList 单条）：名称 + 探索度百分比；
+    # itemList 明细不进模型（M4 再说）
     name: str
     progress: float | None = None
-    items: list[str] = []
+
+
+class CountryGroup(BaseModel):
+    # roleBox exploreIndex exploreList 单组：country.countryName + countryProgress
+    # （数字或百分比字符串，统一转 float）+ 组内地区列表
+    name: str
+    progress: float | None = None
+    areas: list[AreaSummary] = []
 
 
 class ExplorationData(BaseModel):
-    # roleBox exploreIndex（探索度）：countryProgress 可能缺失；
-    # detectionInfoList 为残象探寻分级（level 0-3），按 levelName 计数
-    country_progress: str | None = None
-    areas: list[ExploreArea] = []
-    detection_count: int = 0
-    detection_by_level: dict = {}
+    # roleBox exploreIndex（2026-09-13 实测结构）：data.detectionInfoList（199 项）
+    # + data.exploreList（4 组：瑝珑/黑海岸/黎那汐塔/罗伊冰原）+ data.open
+    detections: DetectionSummary = DetectionSummary()
+    country_groups: list[CountryGroup] = []
 
 
 class CalabashData(BaseModel):

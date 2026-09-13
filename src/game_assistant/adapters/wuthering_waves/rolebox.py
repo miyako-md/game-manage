@@ -4,17 +4,21 @@ roleBox 响应的 data 字段是 JSON 字符串（实测形状，2026-09-13）�
 rolebox_client.post 已二次解析为 dict；本模块再兜底兼容信封/字符串形状
 （role.parse_widget_energy / widget._data 同款防御式写法）。
 
-exploreIndex data 实测形状：
-  countryProgress（百分比，可能缺失）、areaInfoList[]（areaName/areaProgress/
-  itemList[]{type,name,progress}）、detectionInfoList[]（detectionName/
-  levelName/level 0-3）。
+exploreIndex data 实测结构（2026-09-13 完整响应校准）：
+  detectionInfoList[]（约 199 项：detectionName/levelName/level 等，残象探寻）；
+  exploreList[]（4 组：瑝珑/黑海岸/黎那汐塔/罗伊冰原）——每组含
+  country{countryName,...}、countryProgress（数字，如 67.06）、
+  areaInfoList[]（areaName/areaProgress/itemList[]{name,progress,type}，
+  itemList 明细不进模型）。
 calabashData data 实测形状：
   level/baseCatch("20%")/catchQuality/curExp/maxCount/phantomList[]。
 """
 import json as _json
 from collections import Counter
 
-from game_assistant.models import CalabashData, ExploreArea, ExplorationData
+from game_assistant.models import (
+    CalabashData, CountryGroup, DetectionSummary, ExplorationData, AreaSummary,
+)
 
 
 def _data(raw) -> dict:
@@ -57,38 +61,35 @@ def _str_or_none(v):
 
 
 def parse_explore_index(raw) -> ExplorationData:
-    """exploreIndex 响应 → ExplorationData。
+    """exploreIndex 响应 → ExplorationData（实测结构见模块 docstring）。
 
-    detectionInfoList 按级计数：detection_by_level = {"轻波级": n, "巨浪级": n,
-    ...}（levelName 缺失时回退 "等级{level}"）；detection_count 为残象已收录数
-    （列表长度）。
+    detectionInfoList 按级计数：by_level = {"轻波级": n, "巨浪级": n, ...}
+    （levelName 缺失时回退 "等级{level}"），total 为残象已收录数（列表长度）。
+    countryProgress / areaProgress 可能是数字或百分比字符串，统一转 float|None。
     """
     data = _data(raw)
-    areas = []
-    for a in data.get("areaInfoList") or []:
-        if not isinstance(a, dict):
-            continue
-        items = []
-        for it in a.get("itemList") or []:
-            if not isinstance(it, dict) or not it.get("name"):
-                continue
-            progress = it.get("progress")
-            items.append(f"{it['name']} {progress}" if progress is not None
-                         else str(it["name"]))
-        areas.append(ExploreArea(name=str(a.get("areaName") or ""),
-                                 progress=_float_or_none(a.get("areaProgress")),
-                                 items=items))
     by_level = Counter()
     for d in data.get("detectionInfoList") or []:
         if not isinstance(d, dict):
             continue
         key = d.get("levelName") or f"等级{d.get('level')}"
         by_level[str(key)] += 1
+    groups = []
+    for g in data.get("exploreList") or []:
+        if not isinstance(g, dict):
+            continue
+        country = g.get("country") or {}
+        areas = [AreaSummary(name=str(a.get("areaName") or ""),
+                             progress=_float_or_none(a.get("areaProgress")))
+                 for a in g.get("areaInfoList") or [] if isinstance(a, dict)]
+        groups.append(CountryGroup(
+            name=str(country.get("countryName") or ""),
+            progress=_float_or_none(g.get("countryProgress")),
+            areas=areas))
     return ExplorationData(
-        country_progress=_str_or_none(data.get("countryProgress")),
-        areas=areas,
-        detection_count=sum(by_level.values()),
-        detection_by_level=dict(by_level))
+        detections=DetectionSummary(total=sum(by_level.values()),
+                                    by_level=dict(by_level)),
+        country_groups=groups)
 
 
 def parse_calabash_data(raw) -> CalabashData:

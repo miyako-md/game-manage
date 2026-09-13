@@ -13,24 +13,36 @@ function toLocal(value) {
 
 const payload = computed(() => props.snap?.payload ?? null)
 
-const areas = computed(() => {
-  const list = payload.value?.areas
-  return Array.isArray(list) ? list : []
+// 残象探寻汇总：已收录总数 + 按级计数（{"轻波级": n, ...}，按实测顺序渲染）
+const detections = computed(() => payload.value?.detections ?? null)
+const detectionText = computed(() => {
+  const d = detections.value
+  if (!d || !d.total) return null
+  const parts = Object.entries(d.by_level || {}).map(([k, v]) => `${k} ${v}`)
+  return parts.length > 0 ? `（${parts.join(' / ')}）` : null
 })
 
-// countryProgress 可能是 "85" 或 "85%"，统一带 % 展示
-const countryText = computed(() => {
-  const v = payload.value?.country_progress
-  if (v == null || v === '') return null
-  const s = String(v)
-  return s.endsWith('%') ? s : `${s}%`
+// 国家分组（实测 4 组）：组名 + countryProgress% 进度条 + 组内地区小字
+const groups = computed(() => {
+  const list = payload.value?.country_groups
+  return (Array.isArray(list) ? list : []).map((g) => {
+    const progress = g.progress ?? null
+    const areas = Array.isArray(g.areas) ? g.areas : []
+    const areaText = areas
+      .map((a) => `${a.name || '-'} ${a.progress == null ? '-' : `${a.progress}%`}`)
+      .join(' · ')
+    return {
+      name: g.name || '-',
+      progress,
+      pctText: progress == null ? '-' : `${progress}%`,
+      barWidth: progress == null ? 0 : Math.min(100, progress),
+      areaText,
+    }
+  })
 })
 
-const detectionCount = computed(() => payload.value?.detection_count ?? 0)
-
-function pctText(v) {
-  return v == null ? null : `${v}%`
-}
+const hasData = computed(() =>
+  groups.value.length > 0 || (detections.value && detections.value.total > 0))
 
 const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
 </script>
@@ -44,29 +56,24 @@ const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
       </span>
     </div>
 
-    <p v-if="payload == null" class="empty">暂无数据</p>
+    <p v-if="!hasData" class="empty">暂无数据</p>
     <template v-else>
-      <div v-if="countryText" class="country-row">
-        <span class="country-label">全地区探索</span>
-        <span class="country-value">{{ countryText }}</span>
-      </div>
+      <p v-if="detectionText" class="detection">
+        残象已收录 {{ detections.total }} 只 {{ detectionText }}
+      </p>
 
-      <ul v-if="areas.length > 0" class="area-list">
-        <li v-for="(a, i) in areas" :key="i" class="area-item">
-          <div class="area-head">
-            <span class="area-name">{{ a.name || '-' }}</span>
-            <span class="area-progress">{{ pctText(a.progress) ?? '-' }}</span>
+      <ul v-if="groups.length > 0" class="group-list">
+        <li v-for="(g, i) in groups" :key="i" class="group-item">
+          <div class="group-head">
+            <span class="group-name">{{ g.name }}</span>
+            <span class="group-progress">{{ g.pctText }}</span>
           </div>
-          <p v-if="a.items && a.items.length > 0" class="area-items">
-            {{ a.items.join(' · ') }}
-          </p>
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: g.barWidth + '%' }"></div>
+          </div>
+          <p v-if="g.areaText" class="area-items">{{ g.areaText }}</p>
         </li>
       </ul>
-      <p v-else-if="!countryText" class="empty">暂无数据</p>
-
-      <p v-if="detectionCount > 0" class="detection">
-        残象已收录 {{ detectionCount }} 只
-      </p>
     </template>
 
     <p v-if="fetchedAt" class="fetched-at">更新于 {{ fetchedAt }}</p>
@@ -74,67 +81,54 @@ const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
 </template>
 
 <style scoped>
-.country-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  justify-content: space-between;
-}
-
-.country-label {
+.detection {
   font-size: 13px;
   color: var(--text-muted);
 }
 
-.country-value {
-  font-size: 22px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--accent);
-}
-
-.area-list {
+.group-list {
   margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
-.area-item {
-  padding: 4px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.area-item:last-child {
-  border-bottom: none;
-}
-
-.area-head {
+.group-head {
   display: flex;
   align-items: baseline;
   gap: 8px;
   justify-content: space-between;
+  margin-bottom: 4px;
   font-size: 13px;
 }
 
-.area-name {
+.group-name {
   font-weight: 500;
 }
 
-.area-progress {
+.group-progress {
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
 }
 
-.area-items {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--text-muted);
+.progress-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
 }
 
-.detection {
-  margin-top: 8px;
-  font-size: 13px;
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.area-items {
+  margin-top: 4px;
+  font-size: 12px;
   color: var(--text-muted);
+  line-height: 1.6;
 }
 </style>
