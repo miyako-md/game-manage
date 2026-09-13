@@ -7,7 +7,11 @@ const props = defineProps({
 
 const payload = computed(() => props.snap?.payload ?? null)
 
-const rankedSolo = computed(() => payload.value?.extra?.ranked_solo ?? null)
+const rankedSolo = computed(() => {
+  const rs = payload.value?.extra?.ranked_solo ?? null
+  // 空赛季/未打排位时后端会给出 tier 为空串的数据，视同无段位
+  return rs && rs.tier ? rs : null
+})
 </script>
 
 <template>
