@@ -2,14 +2,19 @@ from datetime import datetime, timezone
 
 from game_assistant.models import (
     AccountInfo, AnnouncementItem, CalabashData, Capability, CountryGroup,
-    CoreReward, DetectionSummary, ExplorationData, AreaSummary, FetchResult,
-    MatchSummary, ProgressItem, RoleEntry, StaminaInfo, VersionActivity,
+    DetectionSummary, ExplorationData, AreaSummary, FetchResult,
+    MatchSummary, ProgressItem, RoleEntry, StaminaInfo,
 )
 
 
 def test_capability_values():
     assert Capability.STAMINA == "stamina"
     assert Capability("account") is Capability.ACCOUNT
+
+
+def test_capability_activity_removed():
+    # 版本活动卡（ACTIVITY）已删除，活动日历（EVENTS）承担游戏内活动展示与临期提醒
+    assert not hasattr(Capability, "ACTIVITY")
 
 
 def test_capability_exploration_calabash_roles_values():
@@ -49,15 +54,6 @@ def test_calabash_roundtrip():
 
 def test_capability_progress_value():
     assert Capability.PROGRESS == "progress"
-
-
-def test_version_activity_roundtrip():
-    a = VersionActivity(
-        title="身赴三途",
-        end_at=datetime(2026, 9, 30, 23, 59, 59, tzinfo=timezone.utc),
-        enabled=True,
-        core_rewards=[CoreReward(name="若梦仍有回声", cur=3, total=5, status=0)])
-    assert VersionActivity.model_validate(a.model_dump()) == a
 
 
 def test_progress_item_roundtrip():

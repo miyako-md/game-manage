@@ -11,7 +11,6 @@ import ProgressCard from './ProgressCard.vue'
 import RoleWallCard from './RoleWallCard.vue'
 import StaminaCard from './StaminaCard.vue'
 import StatsCard from './StatsCard.vue'
-import VersionActivityCard from './VersionActivityCard.vue'
 
 const props = defineProps({
   game: { type: Object, required: true },
@@ -20,7 +19,6 @@ const props = defineProps({
 const CAP_COMPONENTS = {
   stamina: StaminaCard,
   account: AccountCard,
-  activity: VersionActivityCard,
   progress: ProgressCard,
   announcement: AnnouncementList,
   events: EventsCalendarCard,

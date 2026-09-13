@@ -1,9 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.config import Settings
-from game_assistant.models import (
-    Capability, FetchResult, GameEvent, StaminaInfo, VersionActivity,
-)
+from game_assistant.models import Capability, FetchResult, GameEvent, StaminaInfo
 from game_assistant.reminder import ReminderEngine
 from game_assistant.reminder_store import ReminderDedup
 
@@ -73,44 +71,17 @@ async def test_success_resets_fail_counter(tmp_path):
     assert eng.notifier.sent == []
 
 
-async def test_activity_expiry_within_days(tmp_path):
+async def test_event_naive_end_at_treated_as_beijing_time(tmp_path):
     eng, s = _engine(tmp_path)
-    # +12h 余量：(end_at - now).days 向下取整，时钟推进不能让 remaining 掉到 1
-    end = datetime.now(timezone.utc) + timedelta(days=2, hours=12)
-    r = FetchResult(ok=True, payload=VersionActivity(
-        title="版本限时活动", end_at=end, enabled=True))
-    await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)
-    await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)  # 去重
-    assert len(eng.notifier.sent) == 1
-    assert "版本限时活动" in eng.notifier.sent[0][1] and "还剩 2 天" in eng.notifier.sent[0][1]
-
-
-async def test_activity_naive_end_at_treated_as_beijing_time(tmp_path):
-    eng, s = _engine(tmp_path)
-    # 解析层产出 aware UTC，naive 理论上不出现；防御归一化后不抛 TypeError。
+    # 解析层产出 aware UTC+8，naive 理论上不出现；防御归一化后不抛 TypeError。
     # naive_end 被当作北京时间，绝对时间比 UTC now 多 2 天 4 小时 → remaining = 2。
     naive_end = (datetime.now(timezone.utc)
                  + timedelta(days=2, hours=12)).replace(tzinfo=None)
-    r = FetchResult(ok=True, payload=VersionActivity(
-        title="naive 活动计时", end_at=naive_end))
-    await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)
+    r = FetchResult(ok=True, payload=[GameEvent(
+        name="naive 活动计时", end_at=naive_end)])
+    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, r)
     assert len(eng.notifier.sent) == 1
     assert "naive 活动计时" in eng.notifier.sent[0][1] and "还剩 2 天" in eng.notifier.sent[0][1]
-
-
-async def test_activity_skipped_when_disabled_expired_or_far(tmp_path):
-    eng, s = _engine(tmp_path)
-    past = FetchResult(ok=True, payload=VersionActivity(
-        title="已结束活动", end_at=datetime.now(timezone.utc) - timedelta(days=1)))
-    far = FetchResult(ok=True, payload=VersionActivity(
-        title="远期活动", end_at=datetime.now(timezone.utc) + timedelta(days=30)))
-    disabled = FetchResult(ok=True, payload=VersionActivity(
-        title="停用活动", end_at=datetime.now(timezone.utc) + timedelta(days=1),
-        enabled=False))
-    no_end = FetchResult(ok=True, payload=VersionActivity(title="无截止", end_at=None))
-    for r in (past, far, disabled, no_end):
-        await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)
-    assert eng.notifier.sent == []
 
 
 async def test_event_expiry_within_days_notifies_once(tmp_path):
@@ -128,21 +99,17 @@ async def test_event_expiry_within_days_notifies_once(tmp_path):
     assert "群声共振模拟域" in body and "还剩 2 天" in body
 
 
-async def test_event_dedup_key_prefix_differs_from_version_activity(tmp_path):
+async def test_event_dedup_key_is_per_event(tmp_path):
+    # 同批多个活动各自独立 key：一次轮询各推一条，去重互不吞并
     eng, s = _engine(tmp_path)
     end = datetime.now(timezone.utc) + timedelta(days=1, hours=12)
-    # 活动日历与版本活动同天同名到期：event_exp 与 activity_exp 互不吞并
-    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, FetchResult(
-        ok=True, payload=[GameEvent(name="同名活动", end_at=end)]))
-    await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, FetchResult(
-        ok=True, payload=VersionActivity(title="同名活动", end_at=end,
-                                         enabled=True)))
+    r = FetchResult(ok=True, payload=[
+        GameEvent(name="活动甲", end_at=end),
+        GameEvent(name="活动乙", end_at=end),
+    ])
+    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, r)
     assert len(eng.notifier.sent) == 2
-    # 各自 key 去重生效：再次轮询不再加发
-    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, FetchResult(
-        ok=True, payload=[GameEvent(name="同名活动", end_at=end)]))
-    await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, FetchResult(
-        ok=True, payload=VersionActivity(title="同名活动", end_at=end)))
+    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, r)  # 各自去重
     assert len(eng.notifier.sent) == 2
 
 

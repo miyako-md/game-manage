@@ -4,7 +4,7 @@ app_host = "127.0.0.1"
 app_port = 8010
 db_path = "data/assistant.db"
 
-# 轮询间隔（秒）：体力 5 分钟 / 活动·公告 1 小时 / 资讯 4 小时
+# 轮询间隔（秒）：体力 5 分钟 / 进度·公告等 1 小时 / 资讯 4 小时（activity_seconds 为沿用键名，供进度/账号/角色等默认间隔使用）
 stamina_seconds = 300
 activity_seconds = 3600
 announcement_seconds = 3600

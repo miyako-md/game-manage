@@ -1,13 +1,14 @@
-"""库街区小组件数据解析（版本活动 + 周期进度）。数据实测来源：gamer/widget/game3/getData。
+"""库街区小组件数据解析（周期进度）。数据实测来源：gamer/widget/game3/getData。
 
-widget getData 的 data 字段（2026-09-13 实测）含 activityData 与一批同构的
-progress 对象（name/cur/total/status/refreshTimeStamp，10 位秒级时间戳，0=无）；
-data 可能为 dict 或 JSON 字符串（role.parse_widget_energy 同款兜底）。
+widget getData 的 data 字段（2026-09-13 实测）含一批同构的 progress 对象
+（name/cur/total/status/refreshTimeStamp，10 位秒级时间戳，0=无）；data 可能为
+dict 或 JSON 字符串（role.parse_widget_energy 同款兜底）。原 activityData
+版本活动解析已随 ACTIVITY 能力删除（活动日历 events 承担游戏内活动展示）。
 """
 import json as _json
 from datetime import datetime, timezone
 
-from game_assistant.models import CoreReward, ProgressItem, VersionActivity
+from game_assistant.models import ProgressItem
 
 # 周期进度固定 key（energyData 除外：体力单独走 stamina 能力，不重复展示）
 PROGRESS_KEYS = ["towerData", "slashTowerData", "weeklyData", "weeklyRougeData",
@@ -29,20 +30,6 @@ def _seconds_ts(v) -> datetime | None:
     if ts <= 0:
         return None
     return datetime.fromtimestamp(ts, tz=timezone.utc)
-
-
-def parse_version_activity(raw: dict) -> VersionActivity | None:
-    act = _data(raw).get("activityData")
-    if not act:
-        return None
-    return VersionActivity(
-        title=act.get("title") or "",
-        end_at=_seconds_ts(act.get("endTime")),
-        enabled=bool(act.get("enabled", True)),
-        core_rewards=[CoreReward(name=c.get("name") or "", cur=int(c.get("cur") or 0),
-                                 total=int(c.get("total") or 0),
-                                 status=int(c.get("status") or 0))
-                      for c in act.get("coreRewards") or []])
 
 
 def parse_progress(raw: dict) -> list[ProgressItem]:

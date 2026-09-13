@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 INTERVAL_ATTRS = {
     Capability.STAMINA: "stamina_seconds",
-    Capability.ACTIVITY: "activity_seconds",
     Capability.PROGRESS: "activity_seconds",
     Capability.ANNOUNCEMENT: "announcement_seconds",
     # 活动日历（版本公告解析）：与公告同源同频
@@ -24,7 +23,7 @@ INTERVAL_ATTRS = {
     # 探索度/数据坞（roleBox）：慢变化数据，与资讯同为 4 小时
     Capability.EXPLORATION: "news_seconds",
     Capability.CALABASH: "news_seconds",
-    # 角色练度墙（roleBox）：抽到新角色能较快反映，与活动同为 1 小时
+    # 角色练度墙（roleBox）：抽到新角色能较快反映，与进度同为 1 小时
     Capability.ROLES: "activity_seconds",
     # 异环（塔吉多）抽卡记录/战绩卡：Phase 1 慢变化数据，与资讯同为 4 小时
     Capability.GACHA: "news_seconds",

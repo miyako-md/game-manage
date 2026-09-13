@@ -22,7 +22,7 @@ class WuwaLike(BaseGameAdapter):
     game_id = "wuwa"
     display_name = "鸣潮"
     section = "mobile"
-    capabilities = [Capability.STAMINA, Capability.ACTIVITY]
+    capabilities = [Capability.STAMINA, Capability.PROGRESS]
 
     def __init__(self):
         self.credentials_configured = True
@@ -32,7 +32,7 @@ class WuwaLike(BaseGameAdapter):
             current=240, maximum=240, expected_full_at=None,
             updated_at="2026-09-12T12:00:00"))
 
-    async def fetch_activity(self) -> FetchResult:
+    async def fetch_progress(self) -> FetchResult:
         return FetchResult(ok=False, error="接口挂了")
 
 
@@ -73,15 +73,15 @@ async def test_poll_once_survives_reminder_engine_error(tmp_path):
 
 async def test_poll_failure_keeps_old_snapshot(tmp_path):
     sched, store = _sched(tmp_path)
-    await sched.poll_once("wuwa", Capability.ACTIVITY)  # 失败
-    assert store.get("wuwa", "activity") is None
+    await sched.poll_once("wuwa", Capability.PROGRESS)  # 失败
+    assert store.get("wuwa", "progress") is None
 
 
 def test_build_jobs_uses_intervals(tmp_path):
     sched, _ = _sched(tmp_path, Settings(stamina_seconds=0, activity_seconds=60))
     jobs = {cap: secs for _, cap, secs in sched.build_jobs()}
     assert Capability.STAMINA not in jobs      # 间隔<=0 不调度
-    assert jobs[Capability.ACTIVITY] == 60
+    assert jobs[Capability.PROGRESS] == 60
 
 
 def test_progress_interval_reuses_activity_seconds():

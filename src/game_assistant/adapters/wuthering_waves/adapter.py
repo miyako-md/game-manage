@@ -23,9 +23,8 @@ class WutheringWavesAdapter(BaseGameAdapter):
     display_name = "鸣潮"
     section = "mobile"
     capabilities = [Capability.ACCOUNT, Capability.STAMINA,
-                    Capability.ACTIVITY, Capability.PROGRESS,
-                    Capability.ANNOUNCEMENT, Capability.EVENTS,
-                    Capability.EXPLORATION,
+                    Capability.EVENTS, Capability.PROGRESS,
+                    Capability.ANNOUNCEMENT, Capability.EXPLORATION,
                     Capability.CALABASH, Capability.ROLES]
 
     def __init__(self, settings: Settings):
@@ -93,15 +92,6 @@ class WutheringWavesAdapter(BaseGameAdapter):
             raw, now = await self._fetch_widget(refresh=True)
             st = role.parse_widget_energy(raw, now)
             return FetchResult(ok=True, payload=st)
-        return await self._guarded_run(run)
-
-    async def fetch_activity(self) -> FetchResult:
-        async def run():
-            # 版本活动来自 widget activityData（社区活动列表 findEventList 已退役）
-            raw, _now = await self._fetch_widget()
-            act = widget.parse_version_activity(raw)
-            # act 可能为 None（widget 未返回活动）→ payload=None，前端显示暂无数据
-            return FetchResult(ok=True, payload=act)
         return await self._guarded_run(run)
 
     async def fetch_progress(self) -> FetchResult:

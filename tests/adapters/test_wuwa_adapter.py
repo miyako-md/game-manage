@@ -5,10 +5,8 @@ import respx
 
 from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
 from game_assistant.config import Settings
-from game_assistant.models import Capability, GameEvent
-from game_assistant.models import (
-    CalabashData, ExplorationData, ProgressItem, VersionActivity,
-)
+from game_assistant.models import Capability, GameEvent, ProgressItem
+from game_assistant.models import CalabashData, ExplorationData
 
 # 实测响应形状（2026-09-13），见 endpoints.py 注释
 ROLE_LIST_RAW = {"code": 200, "msg": "success", "data": [{
@@ -161,34 +159,14 @@ async def test_fetch_stamina_ok():
     assert get_route.calls.call_count == 0  # 体力不走 getData
 
 
-@respx.mock
-async def test_fetch_activity_ok():
-    # 版本活动走 widget getData（activityData），不走 refresh（避免 5 分钟压力）
-    respx.post(ROLE_LIST_URL).mock(
-        return_value=httpx.Response(200, json=ROLE_LIST_RAW))
-    respx.post(WIDGET_URL).mock(
-        return_value=httpx.Response(200, json=WIDGET_RAW))
-    refresh_route = respx.post(WIDGET_REFRESH_URL).mock(
-        return_value=httpx.Response(200, json=WIDGET_RAW))
-    a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))
-    r = await a.fetch(Capability.ACTIVITY)
-    assert r.ok is True
-    assert isinstance(r.payload, VersionActivity)
-    assert r.payload.title == "身赴三途"
-    assert r.payload.end_at is not None
-    assert r.payload.core_rewards[0].name == "若梦仍有回声"
-    assert refresh_route.calls.call_count == 0  # activity 走 getData，不走 refresh
-
-
-@respx.mock
-async def test_fetch_activity_without_activity_data_returns_none_payload():
-    respx.post(ROLE_LIST_URL).mock(
-        return_value=httpx.Response(200, json=ROLE_LIST_RAW))
-    respx.post(WIDGET_URL).mock(return_value=httpx.Response(
-        200, json={"code": 200, "data": {"energyData": WIDGET_RAW["data"]["energyData"]}}))
-    a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))
-    r = await a.fetch(Capability.ACTIVITY)
-    assert r.ok is True and r.payload is None
+def test_capabilities_events_after_stamina_no_activity():
+    # 版本活动卡（ACTIVITY）已删除，活动日历（EVENTS）上移到体力卡之后
+    caps = WutheringWavesAdapter.capabilities
+    assert caps == [Capability.ACCOUNT, Capability.STAMINA, Capability.EVENTS,
+                    Capability.PROGRESS, Capability.ANNOUNCEMENT,
+                    Capability.EXPLORATION, Capability.CALABASH,
+                    Capability.ROLES]
+    assert not hasattr(Capability, "ACTIVITY")
 
 
 @respx.mock

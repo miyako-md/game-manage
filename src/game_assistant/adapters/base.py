@@ -16,7 +16,6 @@ class BaseGameAdapter(ABC):
         method = {
             Capability.ACCOUNT: self.fetch_account,
             Capability.STAMINA: self.fetch_stamina,
-            Capability.ACTIVITY: self.fetch_activity,
             Capability.PROGRESS: self.fetch_progress,
             Capability.ANNOUNCEMENT: self.fetch_announcement,
             Capability.EVENTS: self.fetch_events,
@@ -35,9 +34,6 @@ class BaseGameAdapter(ABC):
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_stamina(self) -> FetchResult:
-        return FetchResult(ok=False, error="适配器未实现该能力")
-
-    async def fetch_activity(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_progress(self) -> FetchResult:

@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
 
-from game_assistant.adapters.wuthering_waves.widget import (
-    parse_progress, parse_version_activity)
-from game_assistant.models import CoreReward, ProgressItem, VersionActivity
+from game_assistant.adapters.wuthering_waves.widget import parse_progress
+from game_assistant.models import ProgressItem
 
 # 实测响应形状（2026-09-13，/gamer/widget/game3/getData 的 data 字段）
 WIDGET_DATA = {
@@ -45,30 +44,12 @@ def _raw(data):
     return {"code": 200, "msg": "success", "data": data}
 
 
-def test_parse_version_activity():
-    act = parse_version_activity(_raw(WIDGET_DATA))
-    assert isinstance(act, VersionActivity)
-    assert act.title == "身赴三途"
-    assert act.enabled is True
-    # 10 位秒级时间戳 → aware UTC
-    assert act.end_at == datetime.fromtimestamp(1790654399, tz=timezone.utc)
-    assert act.core_rewards == [
-        CoreReward(name="若梦仍有回声", cur=0, total=0, status=0),
-        CoreReward(name="清弦纪流年", cur=0, total=0, status=0),
-    ]
-
-
-def test_parse_version_activity_data_as_json_string():
-    # 实测 data 可能为 JSON 字符串形状（role.parse_widget_energy 同款兜底）
+def test_parse_progress_data_as_json_string():
+    # 实测 data 可能为 JSON 字符串形状（role.parse_widget_energy 同款兜底；
+    # 原 activityData 版本活动用例随该能力删除，JSON 兜底覆盖转移到此）
     import json
-    act = parse_version_activity(_raw(json.dumps(WIDGET_DATA, ensure_ascii=False)))
-    assert act.title == "身赴三途"
-    assert len(act.core_rewards) == 2
-
-
-def test_parse_version_activity_missing_returns_none():
-    assert parse_version_activity(_raw({"energyData": {}})) is None
-    assert parse_version_activity(_raw(None)) is None
+    items = parse_progress(_raw(json.dumps(WIDGET_DATA, ensure_ascii=False)))
+    assert len(items) == 10
 
 
 def test_parse_progress_fixed_keys_and_battle_pass():

@@ -36,7 +36,7 @@
 #    - /apihub/awapi/yh/vehicles?roleId=<rid>
 #    - /apihub/awapi/yh/gacha
 # ⑧ 已知边界（参考项目同样如此）：无体力接口、无结构化活动日历，
-#    故异环无 STAMINA/ACTIVITY 能力。
+#    故异环无 STAMINA 能力（ACTIVITY 能力已全局删除）。
 BASE = "https://bbs-api.tajiduo.com"
 GAME_ID = "1289"
 COMMUNITY_ID = "2"

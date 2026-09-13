@@ -37,7 +37,7 @@ const rows = computed(() => {
     })
 })
 
-// 剩余天数徽标：已结束灰 / ≤3 天红 / 其余常规灰（与 VersionActivityCard 同款）
+// 剩余天数徽标：已结束灰 / ≤3 天红 / 其余常规灰（沿用全局徽标样式）
 function remainBadge(end) {
   if (!end) return null
   const d = new Date(end)
