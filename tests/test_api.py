@@ -24,7 +24,9 @@ def _app_with(tmp_path, snapshots=None):
     store = SnapshotStore(str(tmp_path / "t.db"))
     for gid, cap, payload in (snapshots or []):
         store.save(gid, cap, payload)
-    client = TestClient(create_app(registry=FakeRegistry(DummyAdapter()), store=store))
+    client = TestClient(create_app(
+        registry=FakeRegistry(DummyAdapter()), store=store,
+        settings=Settings(notify_send_key="", db_path=str(tmp_path / "unused.db"))))
     return client, store
 
 

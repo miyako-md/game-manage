@@ -18,3 +18,6 @@ notify_send_key = ""
 wuwa_enabled = true
 wuwa_token = ""
 wuwa_user_id = ""
+
+# 以上配置均可用带 GA_ 前缀的环境变量覆盖（如 GA_NOTIFY_SEND_KEY）
+# lol_enabled 控制英雄联盟适配器开关（默认 true）

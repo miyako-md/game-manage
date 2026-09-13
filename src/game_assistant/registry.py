@@ -26,7 +26,18 @@ def build_default_registry(settings: Settings) -> GameRegistry:
         try:
             from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
         except ImportError:
-            pass  # Task 14 完成前尚不存在，届时自动生效
+            import logging
+            logging.getLogger(__name__).warning(
+                "鸣潮适配器导入失败，跳过注册（检查依赖完整性）", exc_info=True)
         else:
             registry.register(WutheringWavesAdapter(settings))
+    if settings.lol_enabled:
+        try:
+            from game_assistant.adapters.league_of_legends.adapter import LeagueOfLegendsAdapter
+        except ImportError:
+            import logging
+            logging.getLogger(__name__).warning(
+                "英雄联盟适配器导入失败，跳过注册（Task 8 完成前属预期）", exc_info=True)
+        else:
+            registry.register(LeagueOfLegendsAdapter(settings))
     return registry

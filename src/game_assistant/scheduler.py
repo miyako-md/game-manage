@@ -19,6 +19,10 @@ INTERVAL_ATTRS = {
 }
 
 
+def interval_for(capability: Capability, settings: Settings) -> int:
+    return getattr(settings, INTERVAL_ATTRS[capability])
+
+
 def _serialize(payload: Any) -> str:
     if isinstance(payload, list):
         import json
@@ -42,7 +46,7 @@ class PollingScheduler:
         jobs = []
         for adapter in self.registry.all():
             for cap in adapter.capabilities:
-                secs = getattr(self.settings, INTERVAL_ATTRS[cap])
+                secs = interval_for(cap, self.settings)
                 if secs > 0:
                     jobs.append((adapter.game_id, cap, secs))
         return jobs

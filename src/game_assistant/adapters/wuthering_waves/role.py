@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from game_assistant.models import AccountInfo, StaminaInfo
 
@@ -15,7 +15,7 @@ def parse_role_data(raw: dict, now: datetime) -> tuple[AccountInfo, StaminaInfo]
     expected_full_at = None
     ts = energy.get("refreshTimestamp")
     if ts:
-        expected_full_at = datetime.fromtimestamp(int(ts) / 1000)
+        expected_full_at = datetime.fromtimestamp(int(ts) / 1000, tz=timezone.utc)
     elif maximum > current:
         expected_full_at = now + timedelta(
             minutes=REGEN_MINUTES_PER_POINT * (maximum - current))

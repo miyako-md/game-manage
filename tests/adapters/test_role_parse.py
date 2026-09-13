@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from game_assistant.adapters.wuthering_waves.role import parse_role_data
 
@@ -22,4 +22,4 @@ def test_stamina_eta_from_refresh_timestamp():
     raw = {"code": 200, "data": {"energy": {"power": 200, "max": 240,
                                             "refreshTimestamp": 1788525600000}}}
     _, st = parse_role_data(raw, NOW)
-    assert st.expected_full_at == datetime.fromtimestamp(1788525600)
+    assert st.expected_full_at == datetime.fromtimestamp(1788525600, tz=timezone.utc)

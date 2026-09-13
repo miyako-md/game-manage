@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     wuwa_enabled: bool = True
     wuwa_token: str = ""
     wuwa_user_id: str = ""
+    lol_enabled: bool = True
+
+    model_config = {"env_prefix": "GA_"}
 
     @classmethod
     def load(cls, path: str = "config.toml") -> "Settings":

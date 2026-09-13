@@ -4,9 +4,10 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException
 
 from game_assistant.config import Settings
+from game_assistant.models import Capability
 from game_assistant.notify.base import build_notifier
 from game_assistant.registry import build_default_registry
-from game_assistant.scheduler import PollingScheduler
+from game_assistant.scheduler import PollingScheduler, interval_for
 from game_assistant.snapshots import SnapshotStore
 
 
@@ -57,13 +58,10 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         if snap is None:
             return {"game_id": game_id, "capability": capability,
                     "payload": None, "fetched_at": None, "stale": False}
-        interval = {
-            "stamina": settings.stamina_seconds,
-            "activity": settings.activity_seconds,
-            "announcement": settings.announcement_seconds,
-            "news": settings.news_seconds,
-            "account": settings.activity_seconds,
-        }.get(capability, 3600)
+        try:
+            interval = interval_for(Capability(capability), settings)
+        except (KeyError, ValueError):
+            interval = 3600
         import json
         return {"game_id": game_id, "capability": capability,
                 "payload": json.loads(snap["payload"]),
