@@ -57,8 +57,10 @@ class LcuClient:
     async def ranked_stats(self, puuid: str) -> dict:
         return await self.get(RANKED_STATS.format(puuid=puuid))
 
-    async def match_history(self, puuid: str, count: int = 20) -> dict:
-        return await self.get(MATCH_HISTORY.format(puuid=puuid, count=count))
+    async def match_history(self, puuid: str) -> dict:
+        # 不带任何 query 参数：国服 LCU 拒绝 count/startIndex（见 endpoints.py 注释），
+        # 默认返回最近 20 场
+        return await self.get(MATCH_HISTORY.format(puuid=puuid))
 
     async def game_detail(self, game_id: str) -> dict:
         return await self.get(GAME_DETAIL.format(game_id=game_id))

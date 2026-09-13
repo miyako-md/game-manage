@@ -2,8 +2,9 @@
 SUMMONER_CURRENT = "/lol-summoner/v1/current-summoner"   # LOLhelper 已验证
 GAMEFLOW_PHASE = "/lol-gameflow/v1/gameflow-phase"       # LOLhelper 已验证
 RANKED_STATS = "/lol-ranked/v1/ranked-stats/{puuid}"     # 未验证（Task 10 时客户端未运行，待人工校准，见 README）
-MATCH_HISTORY = ("/lol-match-history/v1/products/lol/{puuid}"
-                 "/matches?count={count}&startIndex=0")  # LOLhelper 已验证
+# 国服 LCU 拒绝 count/startIndex 查询参数（"Unknown argument 'count'"，
+# 2026-09-13 实测）；不带任何 query 参数返回 200 + 默认最近 20 场
+MATCH_HISTORY = "/lol-match-history/v1/products/lol/{puuid}/matches"
 GAME_DETAIL = "/lol-match-history/v1/games/{game_id}"    # LOLhelper collector 已验证
 
 # ---- 官网新闻/公告（Task 7 Step 5 在线校准 2026-09-13，实测证据见 test_lol_news.py）----

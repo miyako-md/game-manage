@@ -62,8 +62,10 @@ async def test_network_error_is_unavailable():
 
 
 @respx.mock
-async def test_match_history_formats_path():
+async def test_match_history_no_query_params():
+    # 国服 LCU 拒绝 count/startIndex（"Unknown argument 'count'"，2026-09-13 实测）：
+    # 请求必须不带任何 query 参数，默认返回 20 场
     route = respx.get(f"{BASE}/lol-match-history/v1/products/lol/P1/matches").mock(
         return_value=httpx.Response(200, json={"games": {"games": []}}))
-    await _client().match_history("P1", count=20)
-    assert "count=20" in str(route.calls.last.request.url)
+    await _client().match_history("P1")
+    assert "?" not in str(route.calls.last.request.url)
