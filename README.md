@@ -6,7 +6,8 @@
 需求与设计细节见 [docs/需求文档.md](docs/需求文档.md)。
 
 当前进度（M3）：已接入 **鸣潮（官服）** 与 **英雄联盟（国服）**；
-鸣潮支持账号 / 体力 / 版本活动 / 周期进度 / 公告，英雄联盟支持账号 / 战绩 / 公告 / 资讯；
+鸣潮支持账号 / 体力 / 版本活动 / 周期进度 / 公告 / 探索度 / 数据坞
+（探索度与数据坞需可选的 roleBox 三件套配置），英雄联盟支持账号 / 战绩 / 公告 / 资讯；
 新增提醒引擎（体力 / 版本活动临期 / 拉取失败告警，微信推送带去重）；
 后端为 FastAPI + APScheduler + SQLite，前端为 Vue 3 + Vite。
 
@@ -35,7 +36,7 @@ python -m venv .venv
 
 启动后 `http://127.0.0.1:8010/api/games` 应返回已注册的游戏列表；
 日志中 APScheduler 会按各游戏的注册能力逐项注册轮询 job
-（鸣潮 5 个：account / stamina / activity / progress / announcement；英雄联盟 4 个：account / match / announcement / news）。
+（鸣潮 7 个：account / stamina / activity / progress / announcement / exploration / calabash；英雄联盟 4 个：account / match / announcement / news）。
 
 ### 2. 前端（开发模式）
 
@@ -84,7 +85,10 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
 | `wuwa_enabled` | `true` | 是否启用鸣潮适配器 |
 | `wuwa_token` | `""` | 库街区 token，抓取方式见下文 |
 | `wuwa_user_id` | `""` | 库街区数字 userId |
-| `wuwa_app_token` | `""` | 库街区 APP 端 token（可选，用于探索度/数据坞等高级数据），见下文"APP 端 token 抓取教程" |
+| `wuwa_app_token` | `""` | 库街区 APP 端 token（预留字段，当前功能未消费，保留） |
+| `wuwa_b_at` | `""` | roleBox 会话票据（探索度/数据坞），与 `wuwa_dev_code`/`wuwa_did` 三项全部填写才启用，见下文"APP 端 roleBox 抓包教程" |
+| `wuwa_dev_code` | `""` | roleBox `devCode` 请求头整串（格式 = "客户端公网IP, 空格+完整UA"） |
+| `wuwa_did` | `""` | roleBox `did` 请求头（设备 UUID） |
 | `lol_enabled` | `true` | 英雄联盟适配器开关 |
 
 ## 鸣潮凭据配置（token 抓取）
@@ -119,23 +123,41 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
 - 旧的社区活动列表（findEventList）已退役：社区帖子流并非官方活动，
   版本活动以小组件 `activityData` 为准。
 
-## 鸣潮 APP 端 token 抓取教程（可选）
+## 鸣潮 APP 端 roleBox 抓包教程（可选）
 
-`wuwa_app_token` 用于库街区 APP 端独有的高级数据（探索度、数据坞等，
-对应 `/aki/roleBox` 系列接口——网页 token 无权访问，需 APP 端 token）。
-**当前为预留配置项**：留空不影响任何现有功能，相关功能将在 token 配置后开发。
+探索度与数据坞来自库街区 APP 端独有的 `/aki/roleBox` 系列接口，
+鉴权与网页 token **完全不同**：请求不带 `token` 头，靠 APP 内 WebView 会话签发的
+`b-at` 头（会话票据）加 `devCode`/`did` 头完成鉴权。抓包时需记录三样，
+分别填入 `config.toml` 的三个配置（**三项全部填写才启用**，留空不影响其它功能）：
+
+| 请求头 | 配置项 | 说明 |
+| --- | --- | --- |
+| `b-at` | `wuwa_b_at` | 会话票据（32 位十六进制），**可能过期** |
+| `devCode` | `wuwa_dev_code` | **整串复制**（含公网 IP 和完整 UA） |
+| `did` | `wuwa_did` | 设备 UUID |
+
+抓包步骤：
 
 1. **安卓**：安装 [Reqable](https://reqable.com/) 或 HttpCanary → 按应用指引安装并
-   信任其 CA 证书 → 打开库街区 APP 任意页面 → 在抓包记录中找任意发往
-   `api.kurobbs.com` 的请求 → 复制请求头 `token`（`eyJ` 开头的 JWT）；
-2. **iOS**：使用 Stream（需在应用设置里生成并安装描述文件证书），
-   同样抓 `api.kurobbs.com` 请求头中的 `token`；
-3. 填入 `config.toml` 的 `wuwa_app_token` 后重启后端。
+   信任其 CA 证书 → 打开库街区 APP；**iOS**：使用 Stream（需在应用设置里生成并
+   安装描述文件证书）；
+2. 在 APP 内进入鸣潮的探索度/数据坞页面，在抓包记录中找发往
+   `api.kurobbs.com/aki/roleBox/...` 的 POST 请求；
+3. 从该请求的请求头中复制 `b-at`、`devCode`（整串含 IP 和 UA）、`did` 三个头的值，
+   分别填入 `config.toml` 的 `wuwa_b_at` / `wuwa_dev_code` / `wuwa_did` 后重启后端；
+4. 页面刷新后鸣潮卡片应多出"探索度"与"数据坞"两个区块。
+
+`b-at` 是 APP 会话签发的票据，**可能过期**：过期后探索度/数据坞会显示
+"b-at 已失效或角色不可见，请按 README 重新抓包"提示，重新抓一次三个头
+（或仅 `b-at`）填入即可。
+
+注意：`wuwa_app_token` 为预留字段，**当前功能未消费**（探索度/数据坞已改用
+上述 roleBox 三件套），保留不填即可。
 
 风险与边界：
 
 - 抓包证书仅本机自用，请勿长期开启抓包或安装来源不明的证书；
-- APP token 权限比网页 token 更大，**不要分享给任何人**（含截图脱敏）；
+- `b-at` 等同账号会话凭据，**不要分享给任何人**（含截图脱敏）；
 - 库街区接口属非官方，路径/鉴权随时可能变化，抓包结果仅供个人使用。
 
 ## 英雄联盟（国服）
@@ -221,8 +243,9 @@ LCU 采集依赖客户端运行，自动化测试只覆盖凭据发现与解析�
 注意 uvicorn 的 `--log-level` 只影响 uvicorn 自身日志，应用 INFO 日志需自行配置
 root logging（如启动前 `logging.basicConfig(level=logging.INFO)`）方可在控制台看到。
 
-鸣潮卡片展示版本活动（名称/截止/核心奖励）与周期进度（深塔/海墟/周本等），
-不再提供社区活动列表/日历视图。
+鸣潮卡片展示版本活动（名称/截止/核心奖励）与周期进度（深塔/海墟/周本等）；
+配置 roleBox 三件套后追加探索度（全地区/地区列表/残象收录）与数据坞（等级/
+捕获率/声骸收集）区块，不再提供社区活动列表/日历视图。
 
 ## 已知限制
 
