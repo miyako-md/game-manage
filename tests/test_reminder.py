@@ -70,13 +70,27 @@ async def test_success_resets_fail_counter(tmp_path):
 
 async def test_activity_expiry_within_days(tmp_path):
     eng, s = _engine(tmp_path)
-    end = datetime.now(timezone.utc) + timedelta(days=2)
+    # +12h 余量：(end_at - now).days 向下取整，时钟推进不能让 remaining 掉到 1
+    end = datetime.now(timezone.utc) + timedelta(days=2, hours=12)
     r = FetchResult(ok=True, payload=[ActivityItem(
         title="版本限时活动", start_at=None, end_at=end)])
     await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)
     await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)  # 去重
     assert len(eng.notifier.sent) == 1
     assert "版本限时活动" in eng.notifier.sent[0][1] and "还剩 2 天" in eng.notifier.sent[0][1]
+
+
+async def test_activity_naive_end_at_treated_as_beijing_time(tmp_path):
+    eng, s = _engine(tmp_path)
+    # 鸣潮来源可能产出 naive datetime；按北京时间（UTC+8）归一化后不抛 TypeError。
+    # naive_end 被当作北京时间，绝对时间比 UTC now 多 2 天 4 小时 → remaining = 2。
+    naive_end = (datetime.now(timezone.utc)
+                 + timedelta(days=2, hours=12)).replace(tzinfo=None)
+    r = FetchResult(ok=True, payload=[ActivityItem(
+        title="naive 活动计时", start_at=None, end_at=naive_end)])
+    await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)
+    assert len(eng.notifier.sent) == 1
+    assert "naive 活动计时" in eng.notifier.sent[0][1] and "还剩 2 天" in eng.notifier.sent[0][1]
 
 
 async def test_notifier_off_does_not_mark_sent(tmp_path):

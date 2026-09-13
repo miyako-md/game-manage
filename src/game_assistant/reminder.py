@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from game_assistant.config import Settings
 from game_assistant.models import ActivityItem, Capability, FetchResult, StaminaInfo
@@ -92,12 +92,16 @@ class ReminderEngine:
         for it in items:
             if it.end_at is None:
                 continue
-            remaining = (it.end_at - now).days
+            # 鸣潮活动时间为北京时间（UTC+8）：来源解析可能产出 naive datetime，
+            # 先归一化为 aware，否则 (end_at - now) 对 naive 抛 TypeError。
+            end = it.end_at if it.end_at.tzinfo else it.end_at.replace(
+                tzinfo=timezone(timedelta(hours=8)))
+            remaining = (end - now).days
             if not (0 <= remaining <= settings.activity_remind_days):
                 continue
-            raw = f"{it.title}|{it.end_at.isoformat()}"
+            raw = f"{it.title}|{end.isoformat()}"
             key12 = hashlib.md5(raw.encode()).hexdigest()[:12]
             await self.deliver(Reminder(
                 f"{display_name}活动即将结束",
-                f"「{it.title}」还剩 {remaining} 天（{it.end_at:%m-%d %H:%M} 结束）。",
+                f"「{it.title}」还剩 {remaining} 天（{end:%m-%d %H:%M} 结束）。",
                 f"activity_exp:{game_id}:{key12}"))
