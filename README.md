@@ -5,7 +5,8 @@
 
 需求与设计细节见 [docs/需求文档.md](docs/需求文档.md)。
 
-当前进度（M1）：已接入 **鸣潮（官服）**，支持账号 / 体力 / 活动 / 公告四项能力；
+当前进度（M2）：已接入 **鸣潮（官服）** 与 **英雄联盟（国服）**；
+鸣潮支持账号 / 体力 / 活动 / 公告，英雄联盟支持账号 / 战绩 / 公告 / 资讯；
 后端为 FastAPI + APScheduler + SQLite，前端为 Vue 3 + Vite。
 
 ## 项目结构
@@ -32,7 +33,8 @@ python -m venv .venv
 ```
 
 启动后 `http://127.0.0.1:8010/api/games` 应返回已注册的游戏列表；
-日志中 APScheduler 会注册 4 个轮询 job（account / stamina / activity / announcement）。
+日志中 APScheduler 会按各游戏的注册能力逐项注册轮询 job
+（鸣潮 4 个：account / stamina / activity / announcement；英雄联盟 4 个：account / match / announcement / news）。
 
 ### 2. 前端（开发模式）
 
@@ -95,6 +97,53 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
    ```
 
 5. 重启后端，在页面点击刷新（或等待轮询），账号/体力/活动/公告应显示真实数据。
+
+## 英雄联盟（国服）
+
+支持账号、战绩、公告、资讯四项能力，**无需配置任何凭据**：
+账号/战绩通过 LCU（客户端自带本地 API）在客户端运行时采集；公告/资讯来自官网内容接口，始终可用。
+
+### LCU 采集原理
+
+- **仅客户端运行时可用**：LCU 是 LOL 客户端进程内启用的本地 HTTPS 服务，
+  端口与 token 每次客户端启动都会变。适配器在每次拉取前实时发现凭据，
+  **不存储任何凭据**（无需任何配置，页面不会出现"未配置凭据"提示）。
+- **双路径发现**（[lcu_discovery.py](src/game_assistant/adapters/league_of_legends/lcu_discovery.py)）：
+  主路径用 psutil 扫描 `LeagueClientUx` 进程命令行，提取
+  `--app-port` / `--remoting-auth-token`；备路径解析标准 Riot lockfile。
+  **国服 WeGame 的 lockfile 常为 0 字节，故进程扫描是实际主路径**。
+- 客户端未运行时，账号/战绩手动刷新返回"LOL 客户端未运行"，属预期，不是故障。
+
+### 公告 / 资讯来源
+
+数据来自腾讯 CMC 内容接口（lol.qq.com 新闻页的真实数据源，2026-09-13 在线校准通过）：
+
+```
+https://apps.game.qq.com/cmc/zmMcnTargetContentList?page={page}&num={num}&target={target}&source=web_pc
+```
+
+同一端点以 `target` 参数区分分类：**`24`=公告、`23`=综合（资讯）**（另有 25 赛事 / 27 攻略 / 28 社区，暂未接入）。
+该项能力不依赖 LOL 客户端，端到端已验证能拉到真实公告/资讯（如"26.18版本更新公告"）。
+
+### 账号 / 战绩人工验证步骤
+
+LCU 采集依赖客户端运行，自动化测试只覆盖凭据发现与解析逻辑，首次接入请人工验证一次：
+
+1. 启动 LOL 客户端（通过 **WeGame** 启动并进入大厅）；
+2. 打开页面（`cd frontend && npm run dev` → http://localhost:5173），
+   在英雄联盟卡片点击手动刷新（或等待轮询）；
+3. 预期：**账号卡显示召唤师昵称 / 等级 / 段位；战绩列表出现最近对局**。
+   若段位字段缺失，见下文已知限制（ranked_stats 端点未验证）。
+
+### 已知限制
+
+- **客户端未运行时账号/战绩不可用**：刷新返回"LOL 客户端未运行"；
+  快照接口会保留上次成功的数据，首次运行成功前账号/战绩为空属正常。
+- **ranked_stats 端点未验证**：`/lol-ranked/v1/ranked-stats/{puuid}` 尚未经真实客户端校准
+  （见 [endpoints.py](src/game_assistant/adapters/league_of_legends/endpoints.py) 标注）。
+  首次真实运行时请留意段位字段；若缺失/异常，按该文件头校准注释核对真实响应并修正解析
+  （排位失败不影响账号卡其余信息）。
+- **掌盟 Cookie 渠道**为未来备选（计划 M3 评估），用于战绩查询任意玩家等 LCU 覆盖不到的场景。
 
 ## 微信推送启用
 
