@@ -93,6 +93,22 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         if app.state.scheduler:
             await app.state.scheduler.shutdown()
 
+    @app.get("/api/games/{game_id}/match/{match_id}/detail")
+    async def match_detail(game_id: str, match_id: str) -> dict:
+        # 对局详情按需实时拉取（不写快照）；仅支持实现了 fetch_match_detail
+        # 的适配器（LoL），其余 404
+        try:
+            adapter = app.state.registry.get(game_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="未注册的游戏")
+        if not hasattr(adapter, "fetch_match_detail"):
+            raise HTTPException(status_code=404, detail="该游戏不支持对局详情")
+        result = await adapter.fetch_match_detail(match_id)
+        if result.ok:
+            return {"payload": result.payload.model_dump(mode="json")}
+        # 失败走 200 + {"error"}，前端展示错误条（与 refresh 行为一致）
+        return {"error": result.error}
+
     @app.post("/api/games/{game_id}/refresh")
     async def refresh(game_id: str) -> dict:
         try:

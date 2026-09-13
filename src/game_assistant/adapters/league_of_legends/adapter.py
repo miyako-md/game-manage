@@ -6,6 +6,7 @@ catch-all 兜底防解析异常穿透破坏失效隔离，M1 最终审查裁定�
 import logging
 
 from game_assistant.adapters.base import BaseGameAdapter
+from game_assistant.adapters.league_of_legends.champions import ChampionCatalog
 from game_assistant.adapters.league_of_legends.lcu_client import (
     LcuClient, LcuError, LcuUnavailableError,
 )
@@ -15,7 +16,9 @@ from game_assistant.adapters.league_of_legends.lcu_discovery import (
 from game_assistant.adapters.league_of_legends.lol_news import (
     LoLNewsClient, LoLNewsError, parse_news_json,
 )
-from game_assistant.adapters.league_of_legends.matches import parse_match_history
+from game_assistant.adapters.league_of_legends.matches import (
+    parse_match_detail, parse_match_history,
+)
 from game_assistant.adapters.league_of_legends.summoner import parse_summoner
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
@@ -79,6 +82,20 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
                 history = await lcu.match_history(puuid)
                 return FetchResult(ok=True,
                                    payload=parse_match_history(history, puuid))
+        return await self._guarded_run(run)
+
+    async def fetch_match_detail(self, match_id: str) -> FetchResult:
+        # 按需拉取（非 capability 轮询），由 /api/.../detail 路由直接调用
+        async def run():
+            port, token = self._discover()
+            async with LcuClient(port=port, token=token) as lcu:
+                raw = await lcu.current_summoner()
+                puuid = raw.get("puuid") or ""
+                detail = await lcu.game_detail(match_id)
+                catalog = await ChampionCatalog().get()
+                return FetchResult(
+                    ok=True,
+                    payload=parse_match_detail(detail, puuid, catalog))
         return await self._guarded_run(run)
 
     async def _fetch_category(self, category: str) -> FetchResult:

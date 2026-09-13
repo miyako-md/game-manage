@@ -91,12 +91,63 @@ async def test_fetch_announcement_ok():
     assert route.calls.last.request.url.params["target"] == "24"  # 公告分类
 
 
+# ---- 生涯统计 + 对局详情（2026-09-13 新增）----
+
+class _FakeCatalog:
+    """替身 ChampionCatalog：返回受控目录，不碰网络/缓存文件。"""
+
+    catalog: dict = {}
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def get(self) -> dict:
+        return type(self).catalog
+
+
 @respx.mock
-async def test_fetch_news_ok():
-    route = respx.get(NEWS_LIST_BASE).mock(
-        return_value=httpx.Response(200, json=NEWS_RAW))
+async def test_fetch_match_detail_ok(monkeypatch):
+    monkeypatch.setattr(adapter_mod, "discover_lcu_credentials",
+                        lambda: ("54321", "tok"))
+    monkeypatch.setattr(adapter_mod, "ChampionCatalog", _FakeCatalog)
+    _FakeCatalog.catalog = {}
+    respx.get(f"{BASE}/lol-summoner/v1/current-summoner").mock(
+        return_value=httpx.Response(200, json=SUMMONER))
+    respx.get(f"{BASE}/lol-match-history/v1/games/987654321").mock(
+        return_value=httpx.Response(200, json={
+            "gameId": 987654321, "gameMode": "CLASSIC",
+            "gameCreation": 1788525600000, "gameDuration": 2135,
+            "teams": [{"teamId": 100, "win": "Win"},
+                      {"teamId": 200, "win": "Fail"}],
+            "participantIdentities": [
+                {"participantId": 1, "player": {"puuid": "P1", "gameName": "峡谷小毕"}},
+                {"participantId": 2, "player": {"puuid": "P2", "gameName": "对手"}}],
+            "participants": [
+                {"participantId": 1, "championId": 157, "teamId": 100,
+                 "stats": {"kills": 8, "deaths": 3, "assists": 10, "win": True,
+                           "champLevel": 18, "goldEarned": 12000,
+                           "item0": 1001, "item1": 0, "item2": 3003,
+                           "item3": 0, "item4": 0, "item5": 0, "item6": 3340,
+                           "totalDamageDealtToChampions": 20030}},
+                {"participantId": 2, "championId": 22, "teamId": 200,
+                 "stats": {"kills": 2, "deaths": 8, "assists": 4, "win": False,
+                           "champLevel": 15, "goldEarned": 9000}},
+            ]}))
     a = LeagueOfLegendsAdapter(Settings())
-    r = await a.fetch(Capability.NEWS)
-    assert r.ok is True and len(r.payload) == 1
-    assert r.payload[0].title == "26.18版本更新公告"
-    assert route.calls.last.request.url.params["target"] == "23"  # 综合分类
+    r = await a.fetch_match_detail("987654321")
+    assert r.ok is True
+    d = r.payload
+    assert d.match_id == "987654321" and d.mode == "CLASSIC"
+    assert [t.team_id for t in d.teams] == [100, 200]  # 我方在前
+    me = d.teams[0].participants[0]
+    assert me.is_own is True and me.role_name == "峡谷小毕"
+    assert me.items == [1001, 3003, 3340] and me.damage == 20030
+    assert me.champion_name is None  # catalog 为空 → 前端回退"英雄 #id"
+
+
+@respx.mock
+async def test_fetch_match_detail_client_not_running(monkeypatch):
+    monkeypatch.setattr(adapter_mod, "discover_lcu_credentials", lambda: None)
+    a = LeagueOfLegendsAdapter(Settings())
+    r = await a.fetch_match_detail("987654321")
+    assert r.ok is False and "LOL 客户端未运行" in r.error

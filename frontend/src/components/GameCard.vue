@@ -115,7 +115,12 @@ defineExpose({ loadSnapshots })
 
     <div class="cap-list">
       <template v-for="cap in game.capabilities" :key="cap">
-        <component :is="capComponent(cap)" v-if="capComponent(cap)" :snap="snaps[cap]" />
+        <component
+          :is="capComponent(cap)"
+          v-if="capComponent(cap)"
+          :snap="snaps[cap]"
+          :game-id="game.game_id"
+        />
         <div v-else class="cap-card cap-coming">敬请期待</div>
       </template>
     </div>

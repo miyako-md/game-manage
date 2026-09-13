@@ -1,8 +1,11 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { getMatchDetail } from '../api.js'
+import MatchDetailPanel from './MatchDetailPanel.vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
+  gameId: { type: String, default: '' },
 })
 
 function toLocal(value) {
@@ -50,6 +53,37 @@ const rows = computed(() => {
     kda: kdaText(it),
   }))
 })
+
+// ---- 对局详情按需展开（同时只展开一行）----
+const expandedId = ref(null)
+const detail = ref(null)
+const detailLoading = ref(false)
+const detailError = ref('')
+
+async function toggleDetail(row) {
+  if (expandedId.value === row.match_id) {
+    expandedId.value = null
+    detail.value = null
+    detailError.value = ''
+    return
+  }
+  expandedId.value = row.match_id
+  detail.value = null
+  detailError.value = ''
+  detailLoading.value = true
+  try {
+    const data = await getMatchDetail(props.gameId, row.match_id)
+    if (data?.error) {
+      detailError.value = data.error
+    } else {
+      detail.value = data?.payload ?? null
+    }
+  } catch (e) {
+    detailError.value = e?.message || '请求异常'
+  } finally {
+    detailLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -69,12 +103,27 @@ const rows = computed(() => {
             <span class="badge" :class="it.badge.cls">{{ it.badge.text }}</span>
             <span class="item-title">{{ it.mode || '-' }}</span>
           </span>
-          <span v-if="it.dateText" class="item-date">{{ it.dateText }}</span>
+          <span class="item-actions">
+            <span v-if="it.dateText" class="item-date">{{ it.dateText }}</span>
+            <button
+              type="button"
+              class="detail-btn"
+              @click="toggleDetail(it)"
+            >
+              {{ expandedId === it.match_id ? '收起' : '详情' }}
+            </button>
+          </span>
         </div>
         <div class="item-sub">
           <span>{{ it.kda }}</span>
           <span>{{ it.durationText }}</span>
         </div>
+        <MatchDetailPanel
+          v-if="expandedId === it.match_id"
+          :detail="detail"
+          :loading="detailLoading"
+          :error="detailError"
+        />
       </li>
     </ul>
 
@@ -119,6 +168,28 @@ const rows = computed(() => {
   flex-shrink: 0;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.detail-btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 1px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.detail-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .item-sub {
