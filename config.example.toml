@@ -14,6 +14,12 @@ news_seconds = 14400
 notify_provider = "serverchan"
 notify_send_key = ""
 
+# 提醒规则：体力满推送 / 体力满判定阈值（%）/ 活动临期提醒天数 / 轮询连续失败告警阈值
+notify_stamina_full = true
+stamina_threshold_percent = 90
+activity_remind_days = 3
+fail_notify_threshold = 3
+
 # 鸣潮（库街区官服）：登录 kurobbs.com 后从请求头抓 token，uid 即库街区数字 id
 wuwa_enabled = true
 wuwa_token = ""
