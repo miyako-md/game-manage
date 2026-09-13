@@ -51,10 +51,13 @@ async def test_fail_threshold_triggers_once(tmp_path):
     eng, s = _engine(tmp_path, settings=Settings(fail_notify_threshold=2))
     bad = FetchResult(ok=False, error="LOL 客户端未运行")
     await eng.handle_poll("lol", "英雄联盟", Capability.ACCOUNT, bad)  # 1次，不推
-    await eng.handle_poll("lol", "英雄联盟", Capability.ACCOUNT, bad)  # 2次=阈值，推
-    await eng.handle_poll("lol", "英雄联盟", Capability.ACCOUNT, bad)  # 3次，不再推
+    await eng.handle_poll("lol", "英雄联盟", Capability.ACCOUNT, bad)  # 2次>=阈值，推
+    await eng.handle_poll("lol", "英雄联盟", Capability.ACCOUNT, bad)  # 3次>=阈值，但同日 dedup 拦截
     assert len(eng.notifier.sent) == 1
     assert "连续失败" in eng.notifier.sent[0][0]
+    # 达到阈值后每次失败都会尝试推送，但 dedup key 含日期 → 同日只发一条
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    assert eng.dedup.already_sent(f"fetch_fail:lol:account:{today}") is True
 
 
 async def test_success_resets_fail_counter(tmp_path):

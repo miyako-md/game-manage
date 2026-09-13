@@ -41,12 +41,12 @@ class ReminderEngine:
                           capability: Capability, result: FetchResult) -> None:
         settings = self._settings
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        # 规则 1：连续拉取失败（计数恰好等于阈值才推，成功清零）
+        # 规则 1：连续拉取失败（达到阈值后每次失败都会尝试推送，由当日去重限流；成功清零）
         key = (game_id, capability.value)
         if not result.ok:
             self._fail_counts[key] = self._fail_counts.get(key, 0) + 1
             n = settings.fail_notify_threshold
-            if n > 0 and self._fail_counts[key] == n:
+            if n > 0 and self._fail_counts[key] >= n:
                 await self.deliver(Reminder(
                     f"{display_name} 数据拉取连续失败",
                     f"{capability.value}: {result.error}",
