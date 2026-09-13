@@ -9,6 +9,7 @@ import MatchList from './MatchList.vue'
 import ProgressCard from './ProgressCard.vue'
 import RoleWallCard from './RoleWallCard.vue'
 import StaminaCard from './StaminaCard.vue'
+import StatsCard from './StatsCard.vue'
 import VersionActivityCard from './VersionActivityCard.vue'
 
 const props = defineProps({
@@ -22,6 +23,7 @@ const CAP_COMPONENTS = {
   progress: ProgressCard,
   announcement: AnnouncementList,
   match: MatchList,
+  stats: StatsCard,
   exploration: ExplorationCard,
   calabash: CalabashCard,
   roles: RoleWallCard,

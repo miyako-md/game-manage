@@ -17,6 +17,8 @@ INTERVAL_ATTRS = {
     Capability.NEWS: "news_seconds",
     Capability.ACCOUNT: "activity_seconds",
     Capability.MATCH: "activity_seconds",
+    # 生涯统计（近 20 场口径）：慢变化数据，与对局同为 1 小时
+    Capability.STATS: "activity_seconds",
     # 探索度/数据坞（roleBox）：慢变化数据，与资讯同为 4 小时
     Capability.EXPLORATION: "news_seconds",
     Capability.CALABASH: "news_seconds",

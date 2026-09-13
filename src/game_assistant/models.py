@@ -13,6 +13,7 @@ class Capability(str, Enum):
     ANNOUNCEMENT = "announcement"
     NEWS = "news"
     MATCH = "match"
+    STATS = "stats"
     EXPLORATION = "exploration"
     CALABASH = "calabash"
     ROLES = "roles"
@@ -127,6 +128,7 @@ class MatchSummary(BaseModel):
     kills: int | None = None
     deaths: int | None = None
     assists: int | None = None
+    damage: int | None = None  # totalDamageDealtToChampions（生涯"最高伤害"纪录用）
 
 
 class MatchParticipant(BaseModel):
@@ -158,6 +160,26 @@ class MatchDetail(BaseModel):
     start_at: datetime | None = None
     duration_seconds: int | None = None
     teams: list[MatchTeam] = []
+
+
+class ChampionStat(BaseModel):
+    # 常用英雄（生涯统计近 20 场口径）
+    champion_id: int | None = None
+    champion_name: str | None = None
+    games: int = 0
+    wins: int = 0
+
+
+class StatsSummary(BaseModel):
+    # 生涯统计+名场面（国服 match history 不支持翻页，口径 = 最近 20 场）
+    total_games: int = 0
+    wins: int = 0
+    winrate: float | None = None  # 0-100
+    avg_kills: float | None = None
+    avg_deaths: float | None = None
+    avg_assists: float | None = None
+    top_champions: list[ChampionStat] = []  # 按场次降序前 5
+    records: list[dict] = []  # [{"label": "单场最高击杀", "value": "22", "match_id": "..."}]
 
 
 class FetchResult(BaseModel):

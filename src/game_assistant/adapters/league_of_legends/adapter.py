@@ -17,7 +17,7 @@ from game_assistant.adapters.league_of_legends.lol_news import (
     LoLNewsClient, LoLNewsError, parse_news_json,
 )
 from game_assistant.adapters.league_of_legends.matches import (
-    parse_match_detail, parse_match_history,
+    compute_stats, parse_match_detail, parse_match_history,
 )
 from game_assistant.adapters.league_of_legends.summoner import parse_summoner
 from game_assistant.config import Settings
@@ -34,7 +34,7 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
     game_id = "league_of_legends"
     display_name = "英雄联盟"
     section = "pc"
-    capabilities = [Capability.ACCOUNT, Capability.MATCH,
+    capabilities = [Capability.ACCOUNT, Capability.MATCH, Capability.STATS,
                     Capability.ANNOUNCEMENT, Capability.NEWS]
 
     def __init__(self, settings: Settings):
@@ -82,6 +82,21 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
                 history = await lcu.match_history(puuid)
                 return FetchResult(ok=True,
                                    payload=parse_match_history(history, puuid))
+        return await self._guarded_run(run)
+
+    async def fetch_stats(self) -> FetchResult:
+        # 生涯统计：近 20 场口径（国服 match history 不支持翻页）；
+        # 英雄目录网络失败自动降级（champions.py），不影响统计主流程
+        async def run():
+            port, token = self._discover()
+            async with LcuClient(port=port, token=token) as lcu:
+                raw = await lcu.current_summoner()
+                puuid = raw.get("puuid") or ""
+                history = await lcu.match_history(puuid)
+                summaries = parse_match_history(history, puuid)
+                catalog = await ChampionCatalog().get()
+                return FetchResult(ok=True,
+                                   payload=compute_stats(summaries, catalog))
         return await self._guarded_run(run)
 
     async def fetch_match_detail(self, match_id: str) -> FetchResult:

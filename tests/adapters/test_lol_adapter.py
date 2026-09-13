@@ -91,7 +91,31 @@ async def test_fetch_announcement_ok():
     assert route.calls.last.request.url.params["target"] == "24"  # 公告分类
 
 
+@respx.mock
+async def test_fetch_news_ok():
+    route = respx.get(NEWS_LIST_BASE).mock(
+        return_value=httpx.Response(200, json=NEWS_RAW))
+    a = LeagueOfLegendsAdapter(Settings())
+    r = await a.fetch(Capability.NEWS)
+    assert r.ok is True and len(r.payload) == 1
+    assert r.payload[0].title == "26.18版本更新公告"
+    assert route.calls.last.request.url.params["target"] == "23"  # 综合分类
+
+
 # ---- 生涯统计 + 对局详情（2026-09-13 新增）----
+
+HISTORY_GAME = {
+    "gameId": 111, "queueId": 450, "gameMode": "ARAM",
+    "gameCreation": 1788525600000, "gameDuration": 1234,
+    "teams": [{"teamId": 100, "win": "Win"}],
+    "participantIdentities": [
+        {"participantId": 1, "player": {"puuid": "P1"}}],
+    "participants": [
+        {"participantId": 1, "championId": 157, "teamId": 100,
+         "stats": {"kills": 22, "deaths": 3, "assists": 10, "win": True,
+                   "totalDamageDealtToChampions": 50000}}],
+}
+
 
 class _FakeCatalog:
     """替身 ChampionCatalog：返回受控目录，不碰网络/缓存文件。"""
@@ -103,6 +127,52 @@ class _FakeCatalog:
 
     async def get(self) -> dict:
         return type(self).catalog
+
+
+async def test_stats_capability_registered(monkeypatch):
+    a = LeagueOfLegendsAdapter(Settings())
+    assert Capability.STATS in a.capabilities
+    # dispatch 走 fetch_stats（客户端未运行路径），而非"不支持该能力"
+    monkeypatch.setattr(adapter_mod, "discover_lcu_credentials", lambda: None)
+    r = await a.fetch(Capability.STATS)
+    assert r.ok is False and "LOL 客户端未运行" in r.error
+
+
+@respx.mock
+async def test_fetch_stats_ok(monkeypatch):
+    monkeypatch.setattr(adapter_mod, "discover_lcu_credentials",
+                        lambda: ("54321", "tok"))
+    monkeypatch.setattr(adapter_mod, "ChampionCatalog", _FakeCatalog)
+    _FakeCatalog.catalog = {157: {"name": "疾风剑豪", "icon": None}}
+    respx.get(f"{BASE}/lol-summoner/v1/current-summoner").mock(
+        return_value=httpx.Response(200, json=SUMMONER))
+    respx.get(f"{BASE}/lol-match-history/v1/products/lol/P1/matches").mock(
+        return_value=httpx.Response(200, json={"games": {"games": [HISTORY_GAME]}}))
+    a = LeagueOfLegendsAdapter(Settings())
+    r = await a.fetch(Capability.STATS)
+    assert r.ok is True
+    s = r.payload
+    assert (s.total_games, s.wins, s.winrate) == (1, 1, 100.0)
+    assert s.avg_kills == 22 and s.avg_deaths == 3 and s.avg_assists == 10
+    assert s.top_champions[0].champion_name == "疾风剑豪"  # catalog 命名
+    assert s.records[0] == {"label": "单场最高击杀", "value": "22", "match_id": "111"}
+
+
+@respx.mock
+async def test_fetch_stats_catalog_degrades_to_empty(monkeypatch):
+    # 英雄目录失败降级 {} → 常用英雄显示"英雄 #id"，统计仍成功
+    monkeypatch.setattr(adapter_mod, "discover_lcu_credentials",
+                        lambda: ("54321", "tok"))
+    monkeypatch.setattr(adapter_mod, "ChampionCatalog", _FakeCatalog)
+    _FakeCatalog.catalog = {}
+    respx.get(f"{BASE}/lol-summoner/v1/current-summoner").mock(
+        return_value=httpx.Response(200, json=SUMMONER))
+    respx.get(f"{BASE}/lol-match-history/v1/products/lol/P1/matches").mock(
+        return_value=httpx.Response(200, json={"games": {"games": [HISTORY_GAME]}}))
+    a = LeagueOfLegendsAdapter(Settings())
+    r = await a.fetch(Capability.STATS)
+    assert r.ok is True
+    assert r.payload.top_champions[0].champion_name == "英雄 #157"
 
 
 @respx.mock

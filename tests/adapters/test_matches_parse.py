@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
 
-from game_assistant.adapters.league_of_legends.matches import parse_match_detail, parse_match_history
+from game_assistant.adapters.league_of_legends.matches import (
+    compute_stats, parse_match_detail, parse_match_history,
+)
+from game_assistant.models import MatchSummary
 
 # fixture 形状校准来源：C:\GPT\LOLhelper pigeon/collector.py _payload_from_lcu（真实数据验证）
 GAME = {
@@ -46,6 +49,15 @@ def test_win_fallback_from_teams():
 
 def test_empty_history():
     assert parse_match_history({}, "ME") == []
+
+
+def test_damage_extracted():
+    game = {**GAME, "participants": [
+        {**GAME["participants"][0],
+         "stats": {"kills": 1, "deaths": 2, "assists": 3, "win": True,
+                   "totalDamageDealtToChampions": 21450}}]}
+    m = parse_match_history({"games": {"games": [game]}}, "ME")[0]
+    assert m.damage == 21450
 
 
 # ---- parse_match_detail（detail 即 game 本体，2026-09-13 国服实测形状）----
@@ -130,3 +142,88 @@ def test_parse_match_detail_win_fallback_from_teams():
 def test_parse_match_detail_empty_raw():
     d = parse_match_detail({}, "ME", None)
     assert d.match_id == "None" and d.teams == []
+
+
+# ---- compute_stats（近 20 场口径）----
+
+
+def _summary(n, *, win=True, kills=2, deaths=1, assists=3, damage=1000,
+             duration=1000, champion_id=157, match_id=None):
+    return MatchSummary(
+        match_id=match_id or str(n), queue_id=450, mode="ARAM",
+        duration_seconds=duration, win=win, champion_id=champion_id,
+        kills=kills, deaths=deaths, assists=assists, damage=damage,
+    )
+
+
+def test_compute_stats_empty():
+    s = compute_stats([])
+    assert s.total_games == 0 and s.winrate is None and s.records == []
+
+
+def test_compute_stats_rates_and_averages():
+    summaries = [
+        _summary(1, win=True, kills=10, deaths=2, assists=5),
+        _summary(2, win=False, kills=1, deaths=8, assists=1),
+        _summary(3, win=True, kills=4, deaths=3, assists=12),
+        _summary(4, win=True, kills=6, deaths=1, assists=6),
+        _summary(5, win=False, kills=3, deaths=6, assists=6),
+    ]
+    s = compute_stats(summaries, CATALOG)
+    assert (s.total_games, s.wins) == (5, 3)
+    assert s.winrate == 60.0
+    assert (s.avg_kills, s.avg_deaths, s.avg_assists) == (4.8, 4.0, 6.0)
+
+
+def test_compute_stats_top_champions_order_and_names():
+    summaries = [
+        # 157×3 场、22×2 场、160×2 场、1×1 场 → top5 按场次降序，平局按 id 升序
+        _summary(1, champion_id=157, match_id="m1"),
+        _summary(2, champion_id=157, win=False, match_id="m2"),
+        _summary(3, champion_id=157, match_id="m3"),
+        _summary(4, champion_id=22, match_id="m4"),
+        _summary(5, champion_id=22, win=False, match_id="m5"),
+        _summary(6, champion_id=160, match_id="m6"),
+        _summary(7, champion_id=160, win=False, match_id="m7"),
+        _summary(8, champion_id=1, match_id="m8"),
+        _summary(9, champion_id=None),  # 无英雄不计入常用
+    ]
+    s = compute_stats(summaries, CATALOG)
+    assert [(c.champion_id, c.games, c.wins) for c in s.top_champions] == [
+        (157, 3, 2), (22, 2, 1), (160, 2, 1), (1, 1, 1)]
+    assert s.top_champions[0].champion_name == "疾风剑豪"
+    assert s.top_champions[3].champion_name == "英雄 #1"  # catalog 未收录
+    assert len(s.top_champions) == 4
+
+
+def test_compute_stats_top_champions_capped_at_five():
+    summaries = [_summary(i, champion_id=100 + i) for i in range(7)]
+    s = compute_stats(summaries, None)
+    assert len(s.top_champions) == 5
+    assert s.top_champions[0].champion_name == "英雄 #100"  # 平局按 id 升序
+
+
+def test_compute_stats_records():
+    summaries = [
+        _summary(1, kills=5, assists=7, damage=21450, duration=2135, match_id="m1"),
+        _summary(2, kills=22, assists=3, damage=50000, duration=900, match_id="m2"),
+        _summary(3, kills=1, assists=30, damage=8000, duration=2500, match_id="m3"),
+    ]
+    s = compute_stats(summaries, CATALOG)
+    by_label = {r["label"]: r for r in s.records}
+    assert by_label["单场最高击杀"] == {"label": "单场最高击杀",
+                                       "value": "22", "match_id": "m2"}
+    assert by_label["单场最高助攻"] == {"label": "单场最高助攻",
+                                       "value": "30", "match_id": "m3"}
+    assert by_label["最高伤害"] == {"label": "最高伤害",
+                                    "value": "50,000", "match_id": "m2"}  # 千分位
+    assert by_label["最长对局"] == {"label": "最长对局",
+                                    "value": "41分40秒", "match_id": "m3"}
+
+
+def test_compute_stats_damage_record_skipped_when_all_none():
+    summaries = [_summary(1, damage=None), _summary(2, damage=None)]
+    s = compute_stats(summaries, None)
+    labels = [r["label"] for r in s.records]
+    assert "最高伤害" not in labels
+    assert set(labels) == {"单场最高击杀", "单场最高助攻", "最长对局"}

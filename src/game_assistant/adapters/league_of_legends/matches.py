@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 
 from game_assistant.models import (
-    MatchDetail, MatchParticipant, MatchSummary, MatchTeam,
+    ChampionStat, MatchDetail, MatchParticipant, MatchSummary, MatchTeam,
+    StatsSummary,
 )
 from game_assistant.adapters.league_of_legends.champions import ChampionCatalog
 
@@ -22,7 +23,7 @@ def _own_summary(game: dict, own_puuid: str) -> MatchSummary:
         if (ident.get("player") or {}).get("puuid") == own_puuid:
             ident_pid = ident.get("participantId")
             break
-    champion = kills = deaths = assists = team = win = None
+    champion = kills = deaths = assists = damage = team = win = None
     for p in game.get("participants") or []:
         if p.get("participantId") != ident_pid:
             continue
@@ -30,6 +31,7 @@ def _own_summary(game: dict, own_puuid: str) -> MatchSummary:
         champion, team = p.get("championId"), p.get("teamId")
         kills, deaths, assists = (stats.get("kills"), stats.get("deaths"),
                                   stats.get("assists"))
+        damage = stats.get("totalDamageDealtToChampions")
         win = _win_from(stats, team, _team_win(game))
         break
     return MatchSummary(
@@ -37,7 +39,7 @@ def _own_summary(game: dict, own_puuid: str) -> MatchSummary:
         mode=game.get("gameMode") or "", start_at=start_at,
         duration_seconds=game.get("gameDuration"),
         win=win, champion_id=champion,
-        kills=kills, deaths=deaths, assists=assists,
+        kills=kills, deaths=deaths, assists=assists, damage=damage,
     )
 
 
@@ -109,4 +111,64 @@ def parse_match_detail(raw: dict, own_puuid: str,
         match_id=str(raw.get("gameId")), mode=raw.get("gameMode") or "",
         start_at=start_at, duration_seconds=raw.get("gameDuration"),
         teams=teams,
+    )
+
+
+def _fmt_duration(seconds: int) -> str:
+    m, s = divmod(int(seconds), 60)
+    return f"{m}分{s}秒"
+
+
+_RECORDS = [
+    # (label, MatchSummary 字段, value 格式化)
+    ("单场最高击杀", "kills", lambda v: str(v)),
+    ("单场最高助攻", "assists", lambda v: str(v)),
+    ("最高伤害", "damage", lambda v: f"{int(v):,}"),
+    ("最长对局", "duration_seconds", _fmt_duration),
+]
+
+
+def compute_stats(summaries: list[MatchSummary],
+                  catalog: dict[int, dict] | None = None) -> StatsSummary:
+    """生涯统计+名场面（输入 = parse_match_history 输出，近 20 场口径）。"""
+    total = len(summaries)
+    if total == 0:
+        return StatsSummary()
+    wins = sum(1 for s in summaries if s.win is True)
+
+    def avg(field: str) -> float | None:
+        vals = [getattr(s, field) for s in summaries
+                if getattr(s, field) is not None]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    groups: dict[int, list[MatchSummary]] = {}
+    for s in summaries:
+        if s.champion_id is not None:
+            groups.setdefault(s.champion_id, []).append(s)
+    top = sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:5]
+    top_champions = [ChampionStat(
+        champion_id=cid,
+        champion_name=(ChampionCatalog.name_for(catalog, cid) if catalog else None)
+        or f"英雄 #{cid}",
+        games=len(games), wins=sum(1 for s in games if s.win is True),
+    ) for cid, games in top]
+
+    records = []
+    for label, field, fmt in _RECORDS:
+        best = None
+        for s in summaries:
+            v = getattr(s, field, None)
+            if v is None:  # damage=None 的场次跳过该纪录
+                continue
+            if best is None or v > best[0]:
+                best = (v, s)
+        if best:
+            records.append({"label": label, "value": fmt(best[0]),
+                            "match_id": best[1].match_id})
+
+    return StatsSummary(
+        total_games=total, wins=wins,
+        winrate=round(wins / total * 100, 1),
+        avg_kills=avg("kills"), avg_deaths=avg("deaths"), avg_assists=avg("assists"),
+        top_champions=top_champions, records=records,
     )
