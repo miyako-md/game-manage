@@ -12,7 +12,7 @@ import game_assistant.adapters.neverness.adapter as adapter_mod
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.neverness.adapter import NteAdapter
 from game_assistant.config import Settings
-from game_assistant.models import AnnouncementItem, Capability
+from game_assistant.models import AnnouncementItem, Capability, GameEvent
 from game_assistant.registry import build_default_registry
 from game_assistant.scheduler import interval_for
 
@@ -45,6 +45,26 @@ POSTS_RAW = {"code": 0, "msg": "ok", "ok": True, "data": {
          "subject": "维护完成公告", "type": 3},
     ],
 }}
+# getPostFull（活动日历链路）：data.post.content 为正文（2026-09-13 实测端点形状，
+# 正文行文按鸣潮同类版本公告的中文日期区间模式，待异环真实版本公告出现后校准）
+EVENTS_POSTS_RAW = {"code": 0, "msg": "ok", "ok": True, "data": {
+    "column": {"columnName": "官方资讯", "communityId": 2, "id": 4},
+    "hasMore": True, "page": 0,
+    "posts": [
+        {"postId": 486000, "subject": "《异环》1.5版本内容说明",
+         "createTime": 1789990000000, "type": 3},
+        {"postId": 485925, "subject": "《异环》1.3版本「雾中朔望星回」现已开启",
+         "createTime": 1789184890182, "type": 3},
+    ],
+}}
+EVENTS_POST_FULL_RAW = {"code": 0, "msg": "ok", "ok": True, "data": {"post": {
+    "postId": 486000, "subject": "《异环》1.5版本内容说明",
+    "content": "<p>[演练演习]战斗活动</p>"
+               "<p>活动时间：2026年9月20日10:00 ~ 2026年10月8日03:59（服务器时间）</p>"
+               "<p>[签到赠礼]七日签到活动</p>"
+               "<p>活动时间：1.5版本更新后 ~ 2026年10月8日03:59（服务器时间）</p>",
+    "type": 3,
+}}}
 ROLES_RAW = {"code": 0, "data": {"list": [
     {"roleId": "77", "serverName": "异环一区", "level": 60},
 ]}}
@@ -116,6 +136,49 @@ async def test_column_unresolved_reports_error():
     a = _configured()
     r = await a.fetch(Capability.ANNOUNCEMENT)
     assert r.ok is False and "官方资讯栏目" in r.error
+
+
+@respx.mock
+async def test_fetch_events_ok():
+    # 活动日历：官方栏目帖列表筛版本公告（subject 匹配，干扰帖不选中）
+    # → getPostFull 正文 → 行级解析活动列表（匿名 Web 客户端）
+    respx.get(f"{BASE}/apihub/wapi/getAllCommunity").mock(
+        return_value=httpx.Response(200, json=COMMUNITY_RAW))
+    list_route = respx.get(f"{BASE}/bbs/wapi/getOfficialPostList").mock(
+        return_value=httpx.Response(200, json=EVENTS_POSTS_RAW))
+    detail_route = respx.get(f"{BASE}/bbs/wapi/getPostFull").mock(
+        return_value=httpx.Response(200, json=EVENTS_POST_FULL_RAW))
+    a = _configured()
+    r = await a.fetch(Capability.EVENTS)
+    assert r.ok is True and isinstance(r.payload, list)
+    assert all(isinstance(e, GameEvent) for e in r.payload)
+    assert [e.name for e in r.payload] == ["演练演习", "签到赠礼"]
+    first, second = r.payload
+    assert first.category == "战斗活动"
+    assert first.start_at is not None and first.end_at is not None
+    assert second.start_at is None            # "1.5版本更新后" 相对开始
+    assert {e.source_post_id for e in r.payload} == {"486000"}
+    assert {e.source_title for e in r.payload} == {"《异环》1.5版本内容说明"}
+    req = detail_route.calls.last.request
+    assert req.url.params["postId"] == "486000"
+    assert "authorization" not in req.headers and "ds" not in req.headers
+    assert list_route.calls.last.request.url.params["columnId"] == "4"
+
+
+@respx.mock
+async def test_fetch_events_no_version_post_returns_empty():
+    # 官方栏目无版本公告（POSTS_RAW 仅有开启公告/维护完成公告）：
+    # 空列表 + 不请求帖子详情（优雅降级）
+    respx.get(f"{BASE}/apihub/wapi/getAllCommunity").mock(
+        return_value=httpx.Response(200, json=COMMUNITY_RAW))
+    respx.get(f"{BASE}/bbs/wapi/getOfficialPostList").mock(
+        return_value=httpx.Response(200, json=POSTS_RAW))
+    detail_route = respx.get(f"{BASE}/bbs/wapi/getPostFull").mock(
+        return_value=httpx.Response(200, json=EVENTS_POST_FULL_RAW))
+    a = NteAdapter(Settings(nte_enabled=True))
+    r = await a.fetch(Capability.EVENTS)
+    assert r.ok is True and r.payload == []
+    assert detail_route.calls.call_count == 0
 
 
 @respx.mock
@@ -213,9 +276,9 @@ def test_registry_includes_nte():
                                           nte_enabled=True))
     adapter = reg.get("nte")
     assert adapter.display_name == "异环" and adapter.section == "mobile"
-    assert adapter.capabilities == [Capability.ANNOUNCEMENT, Capability.ROLES,
-                                    Capability.PROGRESS, Capability.GACHA,
-                                    Capability.RECORD]
+    assert adapter.capabilities == [Capability.ANNOUNCEMENT, Capability.EVENTS,
+                                    Capability.ROLES, Capability.PROGRESS,
+                                    Capability.GACHA, Capability.RECORD]
 
 
 def test_registry_nte_disabled_skips_registration():
@@ -231,6 +294,12 @@ def test_gacha_record_intervals_reuse_news_seconds():
     assert interval_for(Capability.GACHA, Settings(news_seconds=60)) == 60
 
 
+def test_events_interval_reuses_announcement_seconds():
+    # 活动日历与公告同源（版本公告解析），轮询间隔复用 announcement_seconds
+    assert interval_for(Capability.EVENTS, Settings()) == 3600
+    assert interval_for(Capability.EVENTS, Settings(announcement_seconds=60)) == 60
+
+
 async def test_base_dispatch_defaults_for_gacha_record():
     # base dispatch map 含新能力，默认实现报"适配器未实现该能力"
     class Dummy(BaseGameAdapter):
@@ -242,3 +311,15 @@ async def test_base_dispatch_defaults_for_gacha_record():
     for cap in (Capability.GACHA, Capability.RECORD):
         r = await d.fetch(cap)
         assert r.ok is False and "适配器未实现该能力" in r.error
+
+
+async def test_base_dispatch_default_for_events():
+    # EVENTS 进 dispatch map：未实现的适配器报"适配器未实现该能力"而非 KeyError
+    class Dummy(BaseGameAdapter):
+        game_id = "dummy"
+        capabilities = [Capability.EVENTS]
+
+    d = Dummy()
+    d.credentials_configured = True
+    r = await d.fetch(Capability.EVENTS)
+    assert r.ok is False and "适配器未实现该能力" in r.error

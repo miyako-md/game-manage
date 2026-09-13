@@ -1,7 +1,7 @@
 import httpx
 
 from game_assistant.adapters.wuthering_waves.endpoints import (
-    EVENT_LIST, ROLE_LIST, WIDGET_DATA, WIDGET_REFRESH,
+    EVENT_LIST, POST_DETAIL, ROLE_LIST, WIDGET_DATA, WIDGET_REFRESH,
 )
 
 
@@ -64,3 +64,12 @@ class KuroClient:
     async def find_event_list(self, event_type: int) -> dict:
         # findEventList：eventType 1=活动 2=资讯 3=公告（公告不走 forum/list 社区板块）
         return await self._post(EVENT_LIST, {"gameId": 3, "eventType": event_type})
+
+    async def get_post_detail(self, post_id: str) -> dict:
+        # /forum/getPostDetail：帖子详情（2026-09-13 实测仅需 postId，网页 token 头
+        # 即可）；返回 data.postDetail（dict，postH5Content=H5 HTML 全文/postTitle=标题）
+        raw = await self._post(POST_DETAIL, {"postId": post_id})
+        detail = (raw.get("data") or {}).get("postDetail")
+        if not isinstance(detail, dict):
+            raise KuroError(-3, "帖子详情响应结构异常")
+        return detail

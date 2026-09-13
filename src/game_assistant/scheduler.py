@@ -14,6 +14,8 @@ INTERVAL_ATTRS = {
     Capability.ACTIVITY: "activity_seconds",
     Capability.PROGRESS: "activity_seconds",
     Capability.ANNOUNCEMENT: "announcement_seconds",
+    # 活动日历（版本公告解析）：与公告同源同频
+    Capability.EVENTS: "announcement_seconds",
     Capability.NEWS: "news_seconds",
     Capability.ACCOUNT: "activity_seconds",
     Capability.MATCH: "activity_seconds",

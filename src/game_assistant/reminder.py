@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.config import Settings
-from game_assistant.models import Capability, FetchResult, StaminaInfo, VersionActivity
+from game_assistant.models import (
+    Capability, FetchResult, GameEvent, StaminaInfo, VersionActivity,
+)
 from game_assistant.reminder_store import ReminderDedup
 
 
@@ -58,6 +60,11 @@ class ReminderEngine:
         if isinstance(result.payload, VersionActivity):
             await self._activity_rule(game_id, display_name, result.payload,
                                       settings)
+        # 规则 5：活动日历临期（版本公告解析出的 list[GameEvent]，逐活动评估）
+        if isinstance(result.payload, list) and result.payload and \
+                all(isinstance(e, GameEvent) for e in result.payload):
+            await self._events_rule(game_id, display_name, result.payload,
+                                    settings)
 
     async def _stamina_rules(self, game_id: str, display_name: str,
                              s: StaminaInfo, today: str,
@@ -100,3 +107,28 @@ class ReminderEngine:
             f"{display_name}活动即将结束",
             f"「{act.title}」还剩 {remaining} 天（{end:%m-%d %H:%M} 结束）。",
             f"activity_exp:{game_id}:{key12}"))
+
+    async def _events_rule(self, game_id: str, display_name: str,
+                           events: list[GameEvent],
+                           settings: Settings) -> None:
+        # 规则 5：活动日历临期（与规则 4 同款窗口；逐活动评估，key 含
+        # name+end_at 的 md5 前 12 位，跨日不重复推；前缀 event_exp 与
+        # 版本活动的 activity_exp 区分）
+        if settings.activity_remind_days <= 0:
+            return
+        now = datetime.now(timezone.utc)
+        for ev in events:
+            if ev.end_at is None:
+                continue
+            # 解析层产出 aware UTC+8，naive 理论上不会出现；保留归一化防御
+            end = ev.end_at if ev.end_at.tzinfo else ev.end_at.replace(
+                tzinfo=timezone(timedelta(hours=8)))
+            remaining = (end - now).days
+            if not (0 <= remaining <= settings.activity_remind_days):
+                continue
+            raw = f"{ev.name}|{end.isoformat()}"
+            key12 = hashlib.md5(raw.encode()).hexdigest()[:12]
+            await self.deliver(Reminder(
+                f"{display_name}活动即将结束",
+                f"「{ev.name}」还剩 {remaining} 天（{end:%m-%d %H:%M} 结束）。",
+                f"event_exp:{game_id}:{key12}"))

@@ -5,6 +5,7 @@ import AccountCard from './AccountCard.vue'
 import AnnouncementList from './AnnouncementList.vue'
 import CalabashCard from './CalabashCard.vue'
 import ExplorationCard from './ExplorationCard.vue'
+import EventsCalendarCard from './EventsCalendarCard.vue'
 import MatchList from './MatchList.vue'
 import ProgressCard from './ProgressCard.vue'
 import RoleWallCard from './RoleWallCard.vue'
@@ -22,6 +23,7 @@ const CAP_COMPONENTS = {
   activity: VersionActivityCard,
   progress: ProgressCard,
   announcement: AnnouncementList,
+  events: EventsCalendarCard,
   match: MatchList,
   stats: StatsCard,
   exploration: ExplorationCard,

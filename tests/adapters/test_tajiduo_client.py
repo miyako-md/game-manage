@@ -27,6 +27,13 @@ POST_LIST_RAW = {"code": 0, "msg": "ok", "ok": True, "data": {
     "posts": [{"postId": 485925, "subject": "1.3版本「雾中朔望星回」现已开启",
                "createTime": 1789184890182, "type": 3}],
 }}
+# getPostFull（匿名 GET，code=0）：data.post.content 为正文（HTML 或明文）
+POST_FULL_RAW = {"code": 0, "msg": "ok", "ok": True, "data": {"post": {
+    "postId": 485925, "subject": "《异环》1.5版本内容说明",
+    "content": "<p>[演练演习]战斗活动</p>"
+               "<p>活动时间：2026年9月20日10:00 ~ 2026年10月8日03:59（服务器时间）</p>",
+    "type": 3,
+}}}
 
 
 def test_ds_sign_deterministic():
@@ -73,6 +80,31 @@ async def test_get_official_post_list_anonymous_headers():
     # 2026-09-13 实测：空串 version/officialType 被服务端拒绝（code=6），
     # 必须不传（回归护栏）
     assert "version" not in params and "officialType" not in params
+
+
+@respx.mock
+async def test_get_post_full_anonymous():
+    route = respx.get(f"{BASE}/bbs/wapi/getPostFull").mock(
+        return_value=httpx.Response(200, json=POST_FULL_RAW))
+    async with TajiduoWebClient() as web:
+        post = await web.get_post_full("485925")
+    # 返回 data.post 本体（dict）
+    assert post["subject"] == "《异环》1.5版本内容说明"
+    assert "content" in post
+    req = route.calls.last.request
+    assert req.url.params["postId"] == "485925"
+    # 匿名请求：无 authorization / 无 ds
+    assert "authorization" not in req.headers and "ds" not in req.headers
+
+
+@respx.mock
+async def test_get_post_full_bad_shape_raises():
+    respx.get(f"{BASE}/bbs/wapi/getPostFull").mock(
+        return_value=httpx.Response(200, json={"code": 0, "data": {"post": None}}))
+    async with TajiduoWebClient() as web:
+        with pytest.raises(TajiduoError) as ei:
+            await web.get_post_full("1")
+    assert "帖子详情响应结构异常" in ei.value.message
 
 
 AUTHED_CASES = [

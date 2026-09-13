@@ -19,6 +19,7 @@ class BaseGameAdapter(ABC):
             Capability.ACTIVITY: self.fetch_activity,
             Capability.PROGRESS: self.fetch_progress,
             Capability.ANNOUNCEMENT: self.fetch_announcement,
+            Capability.EVENTS: self.fetch_events,
             Capability.NEWS: self.fetch_news,
             Capability.MATCH: self.fetch_match,
             Capability.STATS: self.fetch_stats,
@@ -43,6 +44,9 @@ class BaseGameAdapter(ABC):
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_announcement(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_events(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_news(self) -> FetchResult:

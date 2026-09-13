@@ -21,6 +21,14 @@ EVENT_RAW = {"code": 200, "msg": "success", "data": {"list": [{
     "postId": "9001", "coverUrl": "https://img.kurobbs.com/upload/9001.jpg",
     "firstPublishTime": 1789182000000, "eventType": 3,
 }]}}
+# getPostDetail 实测形状（2026-09-13）：data.postDetail.postH5Content = H5 HTML 全文
+POST_DETAIL_RAW = {"code": 200, "msg": "success", "data": {"postDetail": {
+    "postId": "1539678546104307712",
+    "postTitle": "「蜃云灯影，凡尘剑心」3.6版本内容说明",
+    "postH5Content": "<p>[烟云赠礼]七日签到活动</p>"
+                     "<p>✦活动时间：2026年8月22日10:00 ~ 2026年9月2日03:59（服务器时间）</p>",
+}}}
+POST_DETAIL_URL = "https://api.kurobbs.com/forum/getPostDetail"
 
 
 @respx.mock
@@ -74,6 +82,31 @@ async def test_find_event_list_ok():
     assert data["data"]["list"][0]["postTitle"] == "2.6版本更新公告"
     body = route.calls.last.request.content.decode()
     assert "gameId=3" in body and "eventType=3" in body
+
+
+@respx.mock
+async def test_get_post_detail_ok():
+    route = respx.post(POST_DETAIL_URL).mock(
+        return_value=httpx.Response(200, json=POST_DETAIL_RAW))
+    client = KuroClient(token="tok", user_id="1")
+    detail = await client.get_post_detail("1539678546104307712")
+    # 返回 data.postDetail 本体（dict）
+    assert detail["postTitle"] == "「蜃云灯影，凡尘剑心」3.6版本内容说明"
+    assert "postH5Content" in detail
+    body = route.calls.last.request.content.decode()
+    # form-urlencoded，实测仅需 postId
+    assert "postId=1539678546104307712" in body
+    assert "isOnlyPublisher" not in body and "showOrderType" not in body
+
+
+@respx.mock
+async def test_get_post_detail_bad_shape_raises():
+    respx.post(POST_DETAIL_URL).mock(return_value=httpx.Response(
+        200, json={"code": 200, "data": {"postDetail": None}}))
+    client = KuroClient(token="tok", user_id="1")
+    with pytest.raises(KuroError) as ei:
+        await client.get_post_detail("1")
+    assert ei.value.code == -3
 
 
 @respx.mock

@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.config import Settings
-from game_assistant.models import Capability, FetchResult, StaminaInfo, VersionActivity
+from game_assistant.models import (
+    Capability, FetchResult, GameEvent, StaminaInfo, VersionActivity,
+)
 from game_assistant.reminder import ReminderEngine
 from game_assistant.reminder_store import ReminderDedup
 
@@ -108,6 +110,59 @@ async def test_activity_skipped_when_disabled_expired_or_far(tmp_path):
     no_end = FetchResult(ok=True, payload=VersionActivity(title="无截止", end_at=None))
     for r in (past, far, disabled, no_end):
         await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)
+    assert eng.notifier.sent == []
+
+
+async def test_event_expiry_within_days_notifies_once(tmp_path):
+    eng, s = _engine(tmp_path)
+    # +12h 余量：(end_at - now).days 向下取整，时钟推进不能让 remaining 掉到 1
+    end = datetime.now(timezone.utc) + timedelta(days=2, hours=12)
+    r = FetchResult(ok=True, payload=[GameEvent(
+        name="群声共振模拟域", category="战斗活动", end_at=end,
+        source_post_id="9001", source_title="3.6版本内容说明")])
+    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, r)
+    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, r)  # 同 key 去重
+    assert len(eng.notifier.sent) == 1
+    title, body = eng.notifier.sent[0]
+    assert title == "鸣潮活动即将结束"
+    assert "群声共振模拟域" in body and "还剩 2 天" in body
+
+
+async def test_event_dedup_key_prefix_differs_from_version_activity(tmp_path):
+    eng, s = _engine(tmp_path)
+    end = datetime.now(timezone.utc) + timedelta(days=1, hours=12)
+    # 活动日历与版本活动同天同名到期：event_exp 与 activity_exp 互不吞并
+    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, FetchResult(
+        ok=True, payload=[GameEvent(name="同名活动", end_at=end)]))
+    await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, FetchResult(
+        ok=True, payload=VersionActivity(title="同名活动", end_at=end,
+                                         enabled=True)))
+    assert len(eng.notifier.sent) == 2
+    # 各自 key 去重生效：再次轮询不再加发
+    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, FetchResult(
+        ok=True, payload=[GameEvent(name="同名活动", end_at=end)]))
+    await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, FetchResult(
+        ok=True, payload=VersionActivity(title="同名活动", end_at=end)))
+    assert len(eng.notifier.sent) == 2
+
+
+async def test_event_skipped_when_expired_far_or_undated(tmp_path):
+    eng, s = _engine(tmp_path)
+    r = FetchResult(ok=True, payload=[
+        GameEvent(name="已结束", end_at=datetime.now(timezone.utc) - timedelta(days=1)),
+        GameEvent(name="远期", end_at=datetime.now(timezone.utc) + timedelta(days=30)),
+        GameEvent(name="无截止", end_at=None),
+    ])
+    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, r)
+    assert eng.notifier.sent == []
+
+
+async def test_event_remind_disabled_by_zero_window(tmp_path):
+    eng, _ = _engine(tmp_path, settings=Settings(activity_remind_days=0,
+                                                 notify_send_key=""))
+    end = datetime.now(timezone.utc) + timedelta(days=1, hours=2)
+    r = FetchResult(ok=True, payload=[GameEvent(name="临期活动", end_at=end)])
+    await eng.handle_poll("nte", "异环", Capability.EVENTS, r)
     assert eng.notifier.sent == []
 
 

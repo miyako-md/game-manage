@@ -45,6 +45,9 @@ APP_VERSION = "1.2.4"
 # ⑥ 官方公告（匿名 Web 客户端）
 GET_ALL_COMMUNITY = f"{BASE}/apihub/wapi/getAllCommunity"
 OFFICIAL_POST_LIST = f"{BASE}/bbs/wapi/getOfficialPostList"
+# 帖子详情（匿名 GET，postId 参数；code=0 成功）：data.post.content 为正文
+# （HTML 或明文），活动日历从版本公告正文解析用（2026-09-13 实测端点形状）
+GET_POST_FULL = f"{BASE}/bbs/wapi/getPostFull"
 
 # ④⑦ usercenter / apihub（鉴权客户端）
 REFRESH_TOKEN = f"{BASE}/usercenter/api/refreshToken"

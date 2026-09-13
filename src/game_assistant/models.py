@@ -19,6 +19,7 @@ class Capability(str, Enum):
     ROLES = "roles"
     GACHA = "gacha"
     RECORD = "record"
+    EVENTS = "events"
 
 
 class StaminaInfo(BaseModel):
@@ -47,6 +48,16 @@ class VersionActivity(BaseModel):
     end_at: datetime | None = None
     enabled: bool = True
     core_rewards: list[CoreReward] = []
+
+
+class GameEvent(BaseModel):
+    # 游戏内限时活动（版本公告正文解析，鸣潮/异环共用 event_calendar）
+    name: str
+    category: str | None = None  # 名称后缀方括号外的活动类型，如"限时联机战斗活动"
+    start_at: datetime | None = None  # 相对开始（"版本更新后"）解析不出 → None
+    end_at: datetime | None = None
+    source_post_id: str | None = None
+    source_title: str | None = None
 
 
 class ProgressItem(BaseModel):

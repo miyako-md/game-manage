@@ -21,9 +21,9 @@ import httpx
 
 from game_assistant.adapters.neverness.endpoints import (
     APP_VERSION, GACHA, GET_ALL_COMMUNITY, GET_GAME_RECORD_CARD,
-    GET_GAME_ROLES, GET_USER_FULL_INFO, ACHIEVE_PROGRESS, AREA_PROGRESS,
-    CHARACTERS, OFFICIAL_POST_LIST, REALESTATE, REFRESH_TOKEN, ROLE_HOME,
-    VEHICLES,
+    GET_GAME_ROLES, GET_POST_FULL, GET_USER_FULL_INFO, ACHIEVE_PROGRESS,
+    AREA_PROGRESS, CHARACTERS, OFFICIAL_POST_LIST, REALESTATE, REFRESH_TOKEN,
+    ROLE_HOME, VEHICLES,
 )
 
 # HTTP 会话失效码（endpoints.py ⑤）
@@ -106,6 +106,16 @@ class TajiduoWebClient:
         return await _request_json(self._client, "GET", OFFICIAL_POST_LIST,
                                    params={"columnId": column_id, "count": count},
                                    authorized=False)
+
+    async def get_post_full(self, post_id) -> dict:
+        # 帖子详情（匿名 GET，2026-09-13 实测 code=0 成功）：返回 data.post
+        # （dict，content 为正文 HTML 或明文，活动日历解析版本公告用）
+        raw = await _request_json(self._client, "GET", GET_POST_FULL,
+                                  params={"postId": post_id}, authorized=False)
+        post = (raw.get("data") or {}).get("post")
+        if not isinstance(post, dict):
+            raise TajiduoError("帖子详情响应结构异常")
+        return post
 
     async def aclose(self) -> None:
         await self._client.aclose()

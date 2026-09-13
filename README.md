@@ -6,9 +6,9 @@
 需求与设计细节见 [docs/需求文档.md](docs/需求文档.md)。
 
 当前进度（M3）：已接入 **鸣潮（官服）**、**英雄联盟（国服）** 与 **异环（塔吉多社区）**；
-鸣潮支持账号 / 体力 / 版本活动 / 周期进度 / 公告 / 探索度 / 数据坞 / 角色练度
+鸣潮支持账号 / 体力 / 版本活动 / 周期进度 / 公告 / 活动日历 / 探索度 / 数据坞 / 角色练度
 （探索度/数据坞/角色练度需可选的 roleBox 三件套配置），英雄联盟支持账号 / 战绩 / 公告 / 资讯，
-异环支持公告（匿名可用）/ 角色 / 进度 / 抽卡 / 战绩（后四项需可选的塔吉多凭据）；
+异环支持公告 / 活动日历（均匿名可用）/ 角色 / 进度 / 抽卡 / 战绩（后四项需可选的塔吉多凭据）；
 新增提醒引擎（体力 / 版本活动临期 / 拉取失败告警，微信推送带去重）；
 后端为 FastAPI + APScheduler + SQLite，前端为 Vue 3 + Vite。
 
@@ -37,7 +37,7 @@ python -m venv .venv
 
 启动后 `http://127.0.0.1:8010/api/games` 应返回已注册的游戏列表；
 日志中 APScheduler 会按各游戏的注册能力逐项注册轮询 job
-（鸣潮 8 个：account / stamina / activity / progress / announcement / exploration / calabash / roles；英雄联盟 4 个：account / match / announcement / news；异环 5 个：announcement / roles / progress / gacha / record）。
+（鸣潮 9 个：account / stamina / activity / progress / announcement / events / exploration / calabash / roles；英雄联盟 4 个：account / match / announcement / news；异环 6 个：announcement / events / roles / progress / gacha / record）。
 
 ### 2. 前端（开发模式）
 
@@ -127,6 +127,9 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
   当前进度条与百分比；带重置时间的条目显示"X 天后重置 / 今日重置"。
 - 旧的社区活动列表（findEventList）已退役：社区帖子流并非官方活动，
   版本活动以小组件 `activityData` 为准。
+- **活动日历（events）**：从版本内容说明公告正文自动解析游戏内限时活动
+  （名称 / 类型 / 起止时间，服务器时间 UTC+8），按结束时间升序展示剩余天数；
+  结束前 0~3 天与"版本活动"同规则推送临期提醒。
 
 ## 鸣潮 APP 端 roleBox 抓包教程（可选）
 
@@ -216,18 +219,21 @@ LCU 采集依赖客户端运行，自动化测试只覆盖凭据发现与解析�
 
 ## 异环（NTE / 塔吉多社区）
 
-异环卡片的五项能力（announcement / roles / progress / gacha / record）数据来自
+异环卡片的能力（announcement / events / roles / progress / gacha / record）数据来自
 塔吉多社区接口（`bbs-api.tajiduo.com`，与官方 BBS 同源）：
 
 | 能力 | 前端区块 | 凭据 |
 | --- | --- | --- |
 | 公告（announcement） | 公告列表 | **无需凭据**，始终可用 |
+| 活动日历（events） | 活动日历 | **无需凭据**，始终可用 |
 | 角色（roles） | 角色练度墙 | 需塔吉多凭据 |
 | 进度（progress） | 周期进度 | 需塔吉多凭据 |
 | 抽卡（gacha） | 敬请期待（Phase 2） | 需塔吉多凭据 |
 | 战绩（record） | 敬请期待（Phase 2） | 需塔吉多凭据 |
 
-公告已在线校准可用（社区"官方资讯"栏目，2026-09-13 实测拉到真实帖子）；
+公告与活动日历走匿名接口（社区"官方资讯"栏目，2026-09-13 实测拉到真实帖子）；
+活动日历来自版本公告正文自动解析（与鸣潮同一套解析器），**异环官方栏目当前
+暂无版本更新公告在榜，解析格式待下个版本公告出现后联调校准**；
 角色 / 进度 / 抽卡 / 战绩的接口客户端已实现，**解析器待配置凭据联调后激活**
 （Phase 2）——配置凭据前这四项显示"未配置塔吉多凭据"，属预期。
 
@@ -261,8 +267,9 @@ Phase 2 联调激活）。
 
 - **无体力接口**：塔吉多社区未提供体力查询端点（参考项目
   [NTEUID](https://github.com/tyql688/NTEUID) 同样如此），故异环无体力能力；
-- **无结构化活动日历**：官方活动为帖子形式，无结构化活动列表接口，
-  版本活动信息以公告流呈现；
+- **无结构化活动列表接口**：官方活动为帖子形式，活动日历（events）为版本
+  公告正文自动解析（见上），格式待下个版本公告联调校准；官网前瞻回顾页
+  （yh.wanmei.com）的活动日期在长图里，HTML 无结构化日期，不做 OCR；
 - 需凭据端点的响应解析器为 Phase 2 范围：当前配置凭据后角色 / 进度 /
   抽卡 / 战绩返回原始数据（联调校准后接入对应卡片展示）。
 
@@ -284,13 +291,14 @@ Phase 2 联调激活）。
 ### 提醒规则
 
 提醒引擎随每次轮询评估，命中规则时经微信推送，去重记录在 SQLite（`notified` 表）。
-四条规则及去重策略（键名均可在 `config.toml` 覆盖）：
+五条规则及去重策略（键名均可在 `config.toml` 覆盖）：
 
 | 规则 | 触发条件 | 去重策略 | 配置键（关闭语义） |
 | --- | --- | --- | --- |
 | 体力已满 | 体力 ≥ 上限 | 每自然日一次 | `notify_stamina_full`（`false` 关闭） |
 | 体力即将回满 | 体力 ≥ 上限的 90% 且未满 | 每自然日一次，不与体力满重复 | `stamina_threshold_percent`（设 0 或 ≥100 关闭） |
 | 活动临期 | 版本活动结束前 0~3 天 | 每活动一次（跨日不重复推） | `activity_remind_days`（`0` 关闭） |
+| 活动日历临期 | 公告解析的活动结束前 0~3 天 | 每活动一次（跨日不重复推） | `activity_remind_days`（`0` 关闭） |
 | 数据拉取连续失败 | 同一能力连续失败达 3 次（成功即清零计数） | 当日一次 | `fail_notify_threshold`（`0` 关闭） |
 
 推送失败（含 SendKey 未配置）不会标记"已发送"，补配 SendKey 后提醒仍可正常送出。

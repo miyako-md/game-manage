@@ -5,7 +5,7 @@ import respx
 
 from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
 from game_assistant.config import Settings
-from game_assistant.models import Capability
+from game_assistant.models import Capability, GameEvent
 from game_assistant.models import (
     CalabashData, ExplorationData, ProgressItem, VersionActivity,
 )
@@ -36,6 +36,34 @@ EVENT_RAW = {"code": 200, "msg": "success", "data": {"list": [{
     "postId": "9001", "coverUrl": "https://img.kurobbs.com/upload/9001.jpg",
     "firstPublishTime": 1789182000000, "eventType": 3,
 }]}}
+# 活动日历链路 fixture：公告列表（含干扰帖 + 版本公告）+ 版本公告详情 H5 正文
+# （正文行文按 2026-09-13 实测 3.6 公告样本：[名称]类型 行 + ✦活动时间 行）
+EVENTS_LIST_RAW = {"code": 200, "msg": "success", "data": {"list": [
+    {"id": "101", "postTitle": "维护完成公告", "publishTime": 1789959600000,
+     "postId": "9002", "eventType": 3},
+    {"id": "100", "postTitle": "「蜃云灯影，凡尘剑心」3.6版本内容说明",
+     "publishTime": 1789182000000, "postId": "9001", "eventType": 3},
+]}}
+EVENTS_LIST_NO_VERSION_RAW = {"code": 200, "msg": "success", "data": {"list": [
+    {"id": "101", "postTitle": "维护完成公告", "publishTime": 1789959600000,
+     "postId": "9002", "eventType": 3},
+]}}
+EVENTS_H5_CONTENT = (
+    "<p>「蜃云灯影，凡尘剑心」版本活动内容一览</p>"
+    "<p>[群声共振模拟域]战斗活动</p>"
+    "<p>完成模拟域挑战可获得奖励。</p>"
+    "<p>✦活动时间：2026年8月22日10:00&nbsp;~&nbsp;2026年9月29日11:59（服务器时间）</p>"
+    "<p>[若梦仍有回声]限时联机战斗活动</p>"
+    "<p>联机击败强敌。</p>"
+    "<p>✦活动时间：3.6版本更新后 ~ 2026年9月29日03:59（服务器时间）</p>"
+    "<p>维护补偿：2026年8月20日06:00 ~ 2026年8月20日12:00（服务器时间）。</p>"
+)
+EVENTS_POST_DETAIL_RAW = {"code": 200, "msg": "success", "data": {"postDetail": {
+    "postId": "9001",
+    "postTitle": "「蜃云灯影，凡尘剑心」3.6版本内容说明",
+    "postH5Content": EVENTS_H5_CONTENT,
+}}}
+DETAIL_URL = "https://api.kurobbs.com/forum/getPostDetail"
 
 ROLE_LIST_URL = "https://api.kurobbs.com/gamer/role/list"
 WIDGET_URL = "https://api.kurobbs.com/gamer/widget/game3/getData"
@@ -203,6 +231,60 @@ async def test_fetch_announcement_ok():
     assert r.payload[0].title == "2.6版本更新公告"
     assert r.payload[0].url == "https://www.kurobbs.com/forum/post/9001"
     assert "eventType=3" in route.calls.last.request.content.decode()
+
+
+@respx.mock
+async def test_fetch_events_ok():
+    # 活动日历：公告列表（eventType=3）筛版本公告（标题匹配，干扰帖不选中）
+    # → getPostDetail H5 正文 → 行级解析活动列表
+    list_route = respx.post(EVENT_URL).mock(
+        return_value=httpx.Response(200, json=EVENTS_LIST_RAW))
+    detail_route = respx.post(DETAIL_URL).mock(
+        return_value=httpx.Response(200, json=EVENTS_POST_DETAIL_RAW))
+    a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))
+    r = await a.fetch(Capability.EVENTS)
+    assert r.ok is True and isinstance(r.payload, list)
+    assert all(isinstance(e, GameEvent) for e in r.payload)
+    assert [e.name for e in r.payload] == ["群声共振模拟域", "若梦仍有回声"]
+    first, second = r.payload
+    assert first.category == "战斗活动"
+    assert first.start_at is not None and first.end_at is not None
+    assert first.start_at.tzinfo is not None  # aware UTC+8（序列化后本地化展示）
+    assert second.start_at is None            # "3.6版本更新后" 相对开始
+    assert second.end_at is not None
+    # 来源帖信息随事件带出
+    assert {e.source_post_id for e in r.payload} == {"9001"}
+    assert {e.source_title for e in r.payload} == \
+        {"「蜃云灯影，凡尘剑心」3.6版本内容说明"}
+    # 列表请求 eventType=3；详情请求仅 postId（实测形状）
+    assert "eventType=3" in list_route.calls.last.request.content.decode()
+    detail_body = detail_route.calls.last.request.content.decode()
+    assert "postId=9001" in detail_body
+
+
+@respx.mock
+async def test_fetch_events_no_version_post_returns_empty():
+    # 公告列表无版本公告（滚出/未发布）：空列表 + 不请求详情（优雅降级）
+    respx.post(EVENT_URL).mock(
+        return_value=httpx.Response(200, json=EVENTS_LIST_NO_VERSION_RAW))
+    detail_route = respx.post(DETAIL_URL).mock(
+        return_value=httpx.Response(200, json=EVENTS_POST_DETAIL_RAW))
+    a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))
+    r = await a.fetch(Capability.EVENTS)
+    assert r.ok is True and r.payload == []
+    assert detail_route.calls.call_count == 0
+
+
+@respx.mock
+async def test_fetch_events_detail_error_wrapped():
+    # 版本公告详情接口失败 → _guarded_run 包裹为失败结果
+    respx.post(EVENT_URL).mock(
+        return_value=httpx.Response(200, json=EVENTS_LIST_RAW))
+    respx.post(DETAIL_URL).mock(
+        return_value=httpx.Response(200, json={"code": -1, "msg": "帖子不存在"}))
+    a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))
+    r = await a.fetch(Capability.EVENTS)
+    assert r.ok is False and r.error
 
 
 @respx.mock

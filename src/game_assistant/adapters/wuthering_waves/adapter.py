@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
+from game_assistant import event_calendar
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.wuthering_waves import announcements, role, rolebox, widget
 from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient, KuroError
@@ -12,6 +13,10 @@ from game_assistant.models import Capability, FetchResult
 
 logger = logging.getLogger(__name__)
 
+# 版本公告标题关键词（findEventList 列表内筛选用，取发布时间最新的一篇；
+# 2026-09-13 实测 3.6 版本公告标题为「蜃云灯影，凡尘剑心」3.6版本内容说明）
+VERSION_TITLE_KEYS = ("版本内容说明", "版本更新公告", "版本维护更新")
+
 
 class WutheringWavesAdapter(BaseGameAdapter):
     game_id = "wuthering_waves"
@@ -19,7 +24,8 @@ class WutheringWavesAdapter(BaseGameAdapter):
     section = "mobile"
     capabilities = [Capability.ACCOUNT, Capability.STAMINA,
                     Capability.ACTIVITY, Capability.PROGRESS,
-                    Capability.ANNOUNCEMENT, Capability.EXPLORATION,
+                    Capability.ANNOUNCEMENT, Capability.EVENTS,
+                    Capability.EXPLORATION,
                     Capability.CALABASH, Capability.ROLES]
 
     def __init__(self, settings: Settings):
@@ -108,6 +114,28 @@ class WutheringWavesAdapter(BaseGameAdapter):
         async def run():
             raw = await self._client.find_event_list(3)  # eventType 3=公告
             return FetchResult(ok=True, payload=announcements.parse_announcement_list(raw))
+        return await self._guarded_run(run)
+
+    async def fetch_events(self) -> FetchResult:
+        async def run():
+            # 活动日历：公告列表找版本公告 → 帖子详情 H5 正文 → 行级解析活动
+            # （起止时间/名称/类型，event_calendar 共用解析器，服务器时间=UTC+8）
+            raw = await self._client.find_event_list(3)  # eventType 3=公告
+            data = raw.get("data") or {}
+            rows = data.get("list") if isinstance(data, dict) else data
+            post = event_calendar.find_version_post(
+                rows, VERSION_TITLE_KEYS, id_key="postId",
+                title_key="postTitle", time_key="publishTime")
+            if not post:
+                # 公告列表滚出/尚未发布版本公告：优雅降级为空列表
+                return FetchResult(ok=True, payload=[])
+            post_id = str(post.get("postId") or "")
+            detail = await self._client.get_post_detail(post_id)
+            lines = event_calendar.strip_html(str(detail.get("postH5Content") or ""))
+            events = event_calendar.parse_events_from_lines(
+                lines, source_post_id=post_id,
+                source_title=str(detail.get("postTitle") or ""))
+            return FetchResult(ok=True, payload=events)
         return await self._guarded_run(run)
 
     async def fetch_exploration(self) -> FetchResult:

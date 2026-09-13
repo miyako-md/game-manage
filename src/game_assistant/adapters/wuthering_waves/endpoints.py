@@ -36,6 +36,9 @@ ROLE_LIST = f"{BASE}/gamer/role/list"
 WIDGET_DATA = f"{BASE}/gamer/widget/game3/getData"
 WIDGET_REFRESH = f"{BASE}/gamer/widget/game3/refresh"
 EVENT_LIST = f"{BASE}/forum/companyEvent/findEventList"
+# 帖子详情（2026-09-13 实测）：POST form 仅 postId 即可；网页 token 头即可访问；
+# data.postDetail.postH5Content 为 H5 HTML 全文，postTitle 为标题（活动日历用）
+POST_DETAIL = f"{BASE}/forum/getPostDetail"
 ROLEBOX_BASE = f"{BASE}/aki/roleBox/akiBox"
 ROLEBOX_BASE_DATA = f"{ROLEBOX_BASE}/baseData"
 ROLEBOX_EXPLORE_INDEX = f"{ROLEBOX_BASE}/exploreIndex"

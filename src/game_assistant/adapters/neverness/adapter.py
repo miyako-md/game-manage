@@ -4,13 +4,16 @@
 catch-all 兜底防解析异常穿透破坏失效隔离）。
 
 Phase 1 边界：
-- 官方公告走匿名 Web 客户端，无需凭据；
+- 官方公告与活动日历走匿名 Web 客户端，无需凭据；活动日历为版本公告正文
+  解析（event_calendar 行级扫描，真实版本公告格式待下个版本公告出现后联调
+  校准——2026-09-13 官方栏目无版本更新公告在榜）；
 - 角色/进度/抽卡/战绩四能力需塔吉多凭据（access_token 或 refresh_token 任一），
   当前直接透传原始 dict payload，解析器等真实响应校准后 Phase 2 补充；
-- 无体力接口、无结构化活动日历（参考项目同样如此），故无 STAMINA/ACTIVITY 能力。
+- 无体力接口（参考项目同样如此），故无 STAMINA 能力。
 """
 import logging
 
+from game_assistant import event_calendar
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.neverness import tajiduo
 from game_assistant.adapters.neverness.tajiduo_client import (
@@ -24,12 +27,16 @@ logger = logging.getLogger(__name__)
 # 官方公告每页条数（与参考项目一致的保守值）
 OFFICIAL_POST_COUNT = 20
 
+# 版本公告标题关键词（官方栏目帖 subject 匹配，取发布时间最新的一篇）
+VERSION_TITLE_KEYS = ("版本更新公告", "版本内容说明", "维护更新公告")
+
 
 class NteAdapter(BaseGameAdapter):
     game_id = "nte"
     display_name = "异环"
     section = "mobile"
-    capabilities = [Capability.ANNOUNCEMENT, Capability.ROLES,
+    capabilities = [Capability.ANNOUNCEMENT, Capability.EVENTS,
+                    Capability.ROLES,
                     Capability.PROGRESS, Capability.GACHA, Capability.RECORD]
 
     def __init__(self, settings: Settings):
@@ -70,6 +77,34 @@ class NteAdapter(BaseGameAdapter):
                     column_id, count=OFFICIAL_POST_COUNT)
             return FetchResult(ok=True,
                                payload=tajiduo.parse_official_posts(raw))
+        return await self._guarded_run(run)
+
+    async def fetch_events(self) -> FetchResult:
+        async def run():
+            # 活动日历：官方栏目帖列表找版本公告（subject 匹配，取最新）→
+            # 帖子详情正文 → 行级解析活动。与公告同走匿名 Web 客户端，
+            # 一次拉取内复用同一连接（TajiduoWebClient 每次新建 + async with）
+            async with TajiduoWebClient() as web:
+                communities = await web.get_all_communities()
+                column_id = tajiduo.resolve_official_column_id(communities)
+                if not column_id:
+                    raise TajiduoError("未能在社区数据中定位官方资讯栏目")
+                raw = await web.get_official_post_list(
+                    column_id, count=OFFICIAL_POST_COUNT)
+                post = event_calendar.find_version_post(
+                    tajiduo._extract_rows(raw), VERSION_TITLE_KEYS,
+                    id_key="postId", title_key="subject", time_key="createTime")
+                if not post:
+                    # 官方栏目无版本公告（如版本间隙期）：优雅降级为空列表
+                    return FetchResult(ok=True, payload=[])
+                post_id = str(post.get("postId") or "")
+                detail = await web.get_post_full(post_id)
+            # content 为 HTML 或明文：strip_html 对明文原样按行拆分
+            lines = event_calendar.strip_html(str(detail.get("content") or ""))
+            events = event_calendar.parse_events_from_lines(
+                lines, source_post_id=post_id,
+                source_title=str(post.get("subject") or ""))
+            return FetchResult(ok=True, payload=events)
         return await self._guarded_run(run)
 
     async def _first_role_id(self, client: TajiduoClient) -> str:
