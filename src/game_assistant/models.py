@@ -11,6 +11,7 @@ class Capability(str, Enum):
     ACTIVITY = "activity"
     ANNOUNCEMENT = "announcement"
     NEWS = "news"
+    MATCH = "match"
 
 
 class StaminaInfo(BaseModel):
@@ -38,6 +39,19 @@ class AnnouncementItem(BaseModel):
     published_at: datetime | None = None
     url: str | None = None
     summary: str = ""
+
+
+class MatchSummary(BaseModel):
+    match_id: str
+    queue_id: int | None = None
+    mode: str = ""
+    start_at: datetime | None = None
+    duration_seconds: int | None = None
+    win: bool | None = None
+    champion_id: int | None = None
+    kills: int | None = None
+    deaths: int | None = None
+    assists: int | None = None
 
 
 class FetchResult(BaseModel):

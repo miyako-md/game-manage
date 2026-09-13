@@ -16,6 +16,7 @@ INTERVAL_ATTRS = {
     Capability.ANNOUNCEMENT: "announcement_seconds",
     Capability.NEWS: "news_seconds",
     Capability.ACCOUNT: "activity_seconds",
+    Capability.MATCH: "activity_seconds",
 }
 
 
