@@ -2,10 +2,11 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSnapshot, refreshGame } from '../api.js'
 import AccountCard from './AccountCard.vue'
-import ActivityList from './ActivityList.vue'
 import AnnouncementList from './AnnouncementList.vue'
 import MatchList from './MatchList.vue'
+import ProgressCard from './ProgressCard.vue'
 import StaminaCard from './StaminaCard.vue'
+import VersionActivityCard from './VersionActivityCard.vue'
 
 const props = defineProps({
   game: { type: Object, required: true },
@@ -14,7 +15,8 @@ const props = defineProps({
 const CAP_COMPONENTS = {
   stamina: StaminaCard,
   account: AccountCard,
-  activity: ActivityList,
+  activity: VersionActivityCard,
+  progress: ProgressCard,
   announcement: AnnouncementList,
   match: MatchList,
 }

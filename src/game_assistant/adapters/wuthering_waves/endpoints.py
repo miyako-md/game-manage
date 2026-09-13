@@ -8,7 +8,9 @@
 #    roleName/gameLevel（字符串，如 "80"）/activeDay/achievementCount/roleNum/serverName。
 # ④ WIDGET_DATA（POST /gamer/widget/game3/getData，form body gameId=3 + roleId +
 #    serverId + type=2 + sizeType=1）实测 200：data.energyData =
-#    {name/cur/total/refreshTimeStamp/expireTimeStamp/status}，另有 hasSignIn/roleName。
+#    {name/cur/total/refreshTimeStamp/expireTimeStamp/status}，另有 hasSignIn/roleName；
+#    data 还含 activityData（版本活动 title/endTime/coreRewards）与 towerData/
+#    slashTowerData/weeklyData 等同构进度对象（解析见 widget.py）。
 #    注意 /aki/roleBox/akiBox/baseData 需 APP 端 token（网页 token 恒 code=10901
 #    禁止访问，已实测），不可用，故体力走 widget 端点。
 # ⑤ EVENT_LIST（POST /forum/companyEvent/findEventList，form body gameId=3 +

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.config import Settings
-from game_assistant.models import ActivityItem, Capability, FetchResult, StaminaInfo
+from game_assistant.models import Capability, FetchResult, StaminaInfo, VersionActivity
 from game_assistant.reminder import ReminderEngine
 from game_assistant.reminder_store import ReminderDedup
 
@@ -75,8 +75,8 @@ async def test_activity_expiry_within_days(tmp_path):
     eng, s = _engine(tmp_path)
     # +12h 余量：(end_at - now).days 向下取整，时钟推进不能让 remaining 掉到 1
     end = datetime.now(timezone.utc) + timedelta(days=2, hours=12)
-    r = FetchResult(ok=True, payload=[ActivityItem(
-        title="版本限时活动", start_at=None, end_at=end)])
+    r = FetchResult(ok=True, payload=VersionActivity(
+        title="版本限时活动", end_at=end, enabled=True))
     await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)
     await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)  # 去重
     assert len(eng.notifier.sent) == 1
@@ -85,15 +85,30 @@ async def test_activity_expiry_within_days(tmp_path):
 
 async def test_activity_naive_end_at_treated_as_beijing_time(tmp_path):
     eng, s = _engine(tmp_path)
-    # 鸣潮来源可能产出 naive datetime；按北京时间（UTC+8）归一化后不抛 TypeError。
+    # 解析层产出 aware UTC，naive 理论上不出现；防御归一化后不抛 TypeError。
     # naive_end 被当作北京时间，绝对时间比 UTC now 多 2 天 4 小时 → remaining = 2。
     naive_end = (datetime.now(timezone.utc)
                  + timedelta(days=2, hours=12)).replace(tzinfo=None)
-    r = FetchResult(ok=True, payload=[ActivityItem(
-        title="naive 活动计时", start_at=None, end_at=naive_end)])
+    r = FetchResult(ok=True, payload=VersionActivity(
+        title="naive 活动计时", end_at=naive_end))
     await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)
     assert len(eng.notifier.sent) == 1
     assert "naive 活动计时" in eng.notifier.sent[0][1] and "还剩 2 天" in eng.notifier.sent[0][1]
+
+
+async def test_activity_skipped_when_disabled_expired_or_far(tmp_path):
+    eng, s = _engine(tmp_path)
+    past = FetchResult(ok=True, payload=VersionActivity(
+        title="已结束活动", end_at=datetime.now(timezone.utc) - timedelta(days=1)))
+    far = FetchResult(ok=True, payload=VersionActivity(
+        title="远期活动", end_at=datetime.now(timezone.utc) + timedelta(days=30)))
+    disabled = FetchResult(ok=True, payload=VersionActivity(
+        title="停用活动", end_at=datetime.now(timezone.utc) + timedelta(days=1),
+        enabled=False))
+    no_end = FetchResult(ok=True, payload=VersionActivity(title="无截止", end_at=None))
+    for r in (past, far, disabled, no_end):
+        await eng.handle_poll("wuwa", "鸣潮", Capability.ACTIVITY, r)
+    assert eng.notifier.sent == []
 
 
 async def test_notifier_off_does_not_mark_sent(tmp_path):

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.config import Settings
-from game_assistant.models import ActivityItem, Capability, FetchResult, StaminaInfo
+from game_assistant.models import Capability, FetchResult, StaminaInfo, VersionActivity
 from game_assistant.reminder_store import ReminderDedup
 
 
@@ -54,9 +54,8 @@ class ReminderEngine:
         if isinstance(result.payload, StaminaInfo):
             await self._stamina_rules(game_id, display_name, result.payload,
                                       today, settings)
-        # 规则 4：活动临期
-        if (isinstance(result.payload, list) and result.payload
-                and isinstance(result.payload[0], ActivityItem)):
+        # 规则 4：版本活动临期
+        if isinstance(result.payload, VersionActivity):
             await self._activity_rule(game_id, display_name, result.payload,
                                       settings)
 
@@ -80,25 +79,24 @@ class ReminderEngine:
                 f"stamina_thres:{game_id}:{today}"))
 
     async def _activity_rule(self, game_id: str, display_name: str,
-                             items: list[ActivityItem],
+                             act: VersionActivity,
                              settings: Settings) -> None:
-        # 规则 4：活动临期（key 含活动 title+end_at 的 md5 前 12 位，跨日不重复推）
+        # 规则 4：版本活动临期（enabled + 结束前 0~N 天；key 含 title+end_at 的
+        # md5 前 12 位，跨日不重复推）
         if settings.activity_remind_days <= 0:
             return
+        if not act.enabled or act.end_at is None:
+            return
         now = datetime.now(timezone.utc)
-        for it in items:
-            if it.end_at is None:
-                continue
-            # 鸣潮活动时间为北京时间（UTC+8）：来源解析可能产出 naive datetime，
-            # 先归一化为 aware，否则 (end_at - now) 对 naive 抛 TypeError。
-            end = it.end_at if it.end_at.tzinfo else it.end_at.replace(
-                tzinfo=timezone(timedelta(hours=8)))
-            remaining = (end - now).days
-            if not (0 <= remaining <= settings.activity_remind_days):
-                continue
-            raw = f"{it.title}|{end.isoformat()}"
-            key12 = hashlib.md5(raw.encode()).hexdigest()[:12]
-            await self.deliver(Reminder(
-                f"{display_name}活动即将结束",
-                f"「{it.title}」还剩 {remaining} 天（{end:%m-%d %H:%M} 结束）。",
-                f"activity_exp:{game_id}:{key12}"))
+        # 解析层产出 aware UTC，naive 理论上不会出现；保留归一化防御防 TypeError
+        end = act.end_at if act.end_at.tzinfo else act.end_at.replace(
+            tzinfo=timezone(timedelta(hours=8)))
+        remaining = (end - now).days
+        if not (0 <= remaining <= settings.activity_remind_days):
+            return
+        raw = f"{act.title}|{end.isoformat()}"
+        key12 = hashlib.md5(raw.encode()).hexdigest()[:12]
+        await self.deliver(Reminder(
+            f"{display_name}活动即将结束",
+            f"「{act.title}」还剩 {remaining} 天（{end:%m-%d %H:%M} 结束）。",
+            f"activity_exp:{game_id}:{key12}"))

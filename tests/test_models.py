@@ -1,14 +1,34 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from game_assistant.models import (
-    AccountInfo, ActivityItem, AnnouncementItem, Capability, FetchResult, MatchSummary,
-    StaminaInfo,
+    AccountInfo, AnnouncementItem, Capability, CoreReward, FetchResult, MatchSummary,
+    ProgressItem, StaminaInfo, VersionActivity,
 )
 
 
 def test_capability_values():
     assert Capability.STAMINA == "stamina"
     assert Capability("account") is Capability.ACCOUNT
+
+
+def test_capability_progress_value():
+    assert Capability.PROGRESS == "progress"
+
+
+def test_version_activity_roundtrip():
+    a = VersionActivity(
+        title="身赴三途",
+        end_at=datetime(2026, 9, 30, 23, 59, 59, tzinfo=timezone.utc),
+        enabled=True,
+        core_rewards=[CoreReward(name="若梦仍有回声", cur=3, total=5, status=0)])
+    assert VersionActivity.model_validate(a.model_dump()) == a
+
+
+def test_progress_item_roundtrip():
+    p = ProgressItem(name="周度游历", cur=6000, total=6000,
+                     refresh_at=datetime(2026, 9, 15, 4, 0, tzinfo=timezone.utc),
+                     status=0)
+    assert ProgressItem.model_validate(p.model_dump()) == p
 
 
 def test_stamina_roundtrip():

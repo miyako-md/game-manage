@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 INTERVAL_ATTRS = {
     Capability.STAMINA: "stamina_seconds",
     Capability.ACTIVITY: "activity_seconds",
+    Capability.PROGRESS: "activity_seconds",
     Capability.ANNOUNCEMENT: "announcement_seconds",
     Capability.NEWS: "news_seconds",
     Capability.ACCOUNT: "activity_seconds",

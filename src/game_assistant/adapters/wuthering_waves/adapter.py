@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 
 from game_assistant.adapters.base import BaseGameAdapter
-from game_assistant.adapters.wuthering_waves import announcements, events, role
+from game_assistant.adapters.wuthering_waves import announcements, role, widget
 from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient, KuroError
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
@@ -15,7 +15,8 @@ class WutheringWavesAdapter(BaseGameAdapter):
     display_name = "鸣潮"
     section = "mobile"
     capabilities = [Capability.ACCOUNT, Capability.STAMINA,
-                    Capability.ACTIVITY, Capability.ANNOUNCEMENT]
+                    Capability.ACTIVITY, Capability.PROGRESS,
+                    Capability.ANNOUNCEMENT]
 
     def __init__(self, settings: Settings):
         self._client: KuroClient | None = None
@@ -38,6 +39,17 @@ class WutheringWavesAdapter(BaseGameAdapter):
             logger.exception("鸣潮数据处理异常")
             return FetchResult(ok=False, error=f"数据解析异常: {e}")
 
+    async def _fetch_widget(self):
+        """role_list 取 roleId/serverId → widget_data。返回 (widget_raw, now)。"""
+        raw_role = await self._client.role_list()
+        role_row = ((raw_role.get("data") or [{}])[0]) or {}
+        role_id = role_row.get("roleId")
+        server_id = role_row.get("serverId")
+        if not role_id or not server_id:
+            raise KuroError(-3, "未找到绑定的鸣潮角色")
+        raw_widget = await self._client.widget_data(str(role_id), str(server_id))
+        return raw_widget, datetime.now(timezone.utc)
+
     async def fetch_account(self) -> FetchResult:
         async def run():
             raw = await self._client.role_list()
@@ -46,21 +58,24 @@ class WutheringWavesAdapter(BaseGameAdapter):
 
     async def fetch_stamina(self) -> FetchResult:
         async def run():
-            # 两段调用（都在 _guarded_run 内）：先 role/list 取默认角色
-            # roleId/serverId（从 raw dict 直取，不经 AccountInfo），再查 widget 体力
-            roles_raw = await self._client.role_list()
-            rows = (roles_raw or {}).get("data") or []
-            first = rows[0] if rows else {}
-            raw = await self._client.widget_data(
-                first.get("roleId") or "", first.get("serverId") or "")
-            st = role.parse_widget_energy(raw, datetime.now(timezone.utc))
+            raw, now = await self._fetch_widget()
+            st = role.parse_widget_energy(raw, now)
             return FetchResult(ok=True, payload=st)
         return await self._guarded_run(run)
 
     async def fetch_activity(self) -> FetchResult:
         async def run():
-            raw = await self._client.find_event_list(1)  # eventType 1=活动
-            return FetchResult(ok=True, payload=events.parse_activity_list(raw))
+            # 版本活动来自 widget activityData（社区活动列表 findEventList 已退役）
+            raw, _now = await self._fetch_widget()
+            act = widget.parse_version_activity(raw)
+            # act 可能为 None（widget 未返回活动）→ payload=None，前端显示暂无数据
+            return FetchResult(ok=True, payload=act)
+        return await self._guarded_run(run)
+
+    async def fetch_progress(self) -> FetchResult:
+        async def run():
+            raw, _now = await self._fetch_widget()
+            return FetchResult(ok=True, payload=widget.parse_progress(raw))
         return await self._guarded_run(run)
 
     async def fetch_announcement(self) -> FetchResult:

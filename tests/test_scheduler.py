@@ -82,3 +82,10 @@ def test_build_jobs_uses_intervals(tmp_path):
     jobs = {cap: secs for _, cap, secs in sched.build_jobs()}
     assert Capability.STAMINA not in jobs      # 间隔<=0 不调度
     assert jobs[Capability.ACTIVITY] == 60
+
+
+def test_progress_interval_reuses_activity_seconds():
+    # 周期进度与活动同源（widget getData），轮询间隔复用 activity_seconds
+    from game_assistant.scheduler import interval_for
+    assert interval_for(Capability.PROGRESS, Settings()) == 3600
+    assert interval_for(Capability.PROGRESS, Settings(activity_seconds=60)) == 60

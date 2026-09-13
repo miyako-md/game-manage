@@ -18,7 +18,7 @@ def test_parse_announcements():
     items = parse_announcement_list(RAW)
     assert len(items) == 2
     assert items[0].title == "2.6版本更新公告"
-    # 毫秒时间戳统一转 aware UTC（events._dt 口径）
+    # 毫秒时间戳统一转 aware UTC（announcements._dt 口径）
     assert items[0].published_at == datetime.fromtimestamp(1789182000, tz=timezone.utc)
     assert items[0].url == "https://www.kurobbs.com/forum/post/123"
     # publishTime=0 视为缺失，且无 firstPublishTime 兜底 → published_at 为 None
@@ -27,7 +27,7 @@ def test_parse_announcements():
 
 
 def test_parse_announcements_data_as_list():
-    # data 也可能直接是数组（events.py 同款双形状兼容）
+    # data 也可能直接是数组（parse_announcement_list 双形状兼容）
     raw = {"code": 200, "data": [{"postTitle": "数组形式公告", "postId": "789"}]}
     items = parse_announcement_list(raw)
     assert len(items) == 1
