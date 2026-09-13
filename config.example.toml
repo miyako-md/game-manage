@@ -34,3 +34,9 @@ wuwa_did = ""
 
 # 以上配置均可用带 GA_ 前缀的环境变量覆盖（如 GA_NOTIFY_SEND_KEY）
 # lol_enabled 控制英雄联盟适配器开关（默认 true）
+
+# 异环（塔吉多社区）：凭据抓取教程见 README；
+# 留空 = 仅官方公告可用（公告为匿名接口，无需凭据）
+nte_enabled = true
+nte_access_token = ""
+nte_refresh_token = ""

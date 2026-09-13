@@ -42,4 +42,12 @@ def build_default_registry(settings: Settings) -> GameRegistry:
                 "英雄联盟适配器导入失败，跳过注册（排查适配器模块导入错误）", exc_info=True)
         else:
             registry.register(LeagueOfLegendsAdapter(settings))
+    if settings.nte_enabled:
+        try:
+            from game_assistant.adapters.neverness.adapter import NteAdapter
+        except ImportError:
+            logger.warning(
+                "异环适配器导入失败，跳过注册（检查依赖完整性）", exc_info=True)
+        else:
+            registry.register(NteAdapter(settings))
     return registry

@@ -16,6 +16,8 @@ class Capability(str, Enum):
     EXPLORATION = "exploration"
     CALABASH = "calabash"
     ROLES = "roles"
+    GACHA = "gacha"
+    RECORD = "record"
 
 
 class StaminaInfo(BaseModel):

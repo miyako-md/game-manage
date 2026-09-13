@@ -22,6 +22,9 @@ INTERVAL_ATTRS = {
     Capability.CALABASH: "news_seconds",
     # 角色练度墙（roleBox）：抽到新角色能较快反映，与活动同为 1 小时
     Capability.ROLES: "activity_seconds",
+    # 异环（塔吉多）抽卡记录/战绩卡：Phase 1 慢变化数据，与资讯同为 4 小时
+    Capability.GACHA: "news_seconds",
+    Capability.RECORD: "news_seconds",
 }
 
 

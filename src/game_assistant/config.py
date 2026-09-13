@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     wuwa_dev_code: str = ""
     wuwa_did: str = ""
     lol_enabled: bool = True
+    # 异环（塔吉多社区 bbs.tajiduo.com）凭据，抓取教程见 README；
+    # 留空 = 仅官方公告可用（公告为匿名接口，无需凭据）
+    nte_enabled: bool = True
+    nte_access_token: str = ""
+    nte_refresh_token: str = ""
 
     model_config = {"env_prefix": "GA_"}
 

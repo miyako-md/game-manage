@@ -18,6 +18,12 @@ def test_capability_exploration_calabash_roles_values():
     assert Capability.ROLES == "roles"
 
 
+def test_capability_gacha_record_values():
+    # 异环（塔吉多）新增能力
+    assert Capability.GACHA == "gacha"
+    assert Capability.RECORD == "record"
+
+
 def test_role_entry_roundtrip():
     e = RoleEntry(role_id=1402, name="散华", level=90, attribute="衍射",
                   breach=6, chain=6, star_level=5, weapon="迅刀",
