@@ -44,6 +44,16 @@ async def test_non_json_raises():
 
 
 @respx.mock
+async def test_non_dict_json_raises():
+    # 200 + 合法 JSON 但顶层不是 dict（如 list）→ "响应结构异常"（lcu_client.py get 分支）
+    respx.get(f"{BASE}/lol-summoner/v1/current-summoner").mock(
+        return_value=httpx.Response(200, json=["unexpected"]))
+    with pytest.raises(LcuError) as ei:
+        await _client().current_summoner()
+    assert "响应结构异常" in str(ei.value)
+
+
+@respx.mock
 async def test_network_error_is_unavailable():
     respx.get(f"{BASE}/lol-summoner/v1/current-summoner").mock(
         side_effect=httpx.ConnectError("refused"))
