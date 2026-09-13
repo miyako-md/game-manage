@@ -7,11 +7,13 @@ fixture 为 2026-09-13 匿名实测校准的形状，见 endpoints.py ⑥'）；
 """
 import httpx
 import respx
+from datetime import datetime
 
 import game_assistant.adapters.neverness.adapter as adapter_mod
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.neverness.adapter import NteAdapter
 from game_assistant.config import Settings
+from game_assistant.event_calendar import BEIJING_TZ
 from game_assistant.models import AnnouncementItem, Capability, GameEvent
 from game_assistant.registry import build_default_registry
 from game_assistant.scheduler import interval_for
@@ -179,6 +181,51 @@ async def test_fetch_events_no_version_post_returns_empty():
     r = await a.fetch(Capability.EVENTS)
     assert r.ok is True and r.payload == []
     assert detail_route.calls.call_count == 0
+
+
+# ---------- 手填活动（config [[nte_events]]，可靠主路径） ----------
+
+MANUAL_EVENTS = [
+    {"name": "第二索拉·诡影迷踪", "category": "休闲活动",
+     "start": "2026-08-27 04:00", "end": "2026-09-14 03:59"},
+    {"name": "烟云赠礼", "start": "2026-08-27 04:00",
+     "end": "2026-09-14 03:59"},
+]
+
+
+@respx.mock
+async def test_fetch_events_manual_config_takes_priority():
+    # 手填非空 → 直接解析为 payload，不再请求塔吉多（可靠主路径）
+    comm = respx.get(f"{BASE}/apihub/wapi/getAllCommunity").mock(
+        return_value=httpx.Response(200, json=COMMUNITY_RAW))
+    a = NteAdapter(Settings(nte_enabled=True, nte_events=MANUAL_EVENTS))
+    r = await a.fetch(Capability.EVENTS)
+    assert r.ok is True and isinstance(r.payload, list)
+    assert [e.name for e in r.payload] == ["第二索拉·诡影迷踪", "烟云赠礼"]
+    first = r.payload[0]
+    assert isinstance(first, GameEvent)
+    assert first.category == "休闲活动"
+    # 字符串时间 → aware UTC+8 datetime（服务器时间）
+    assert first.start_at == datetime(2026, 8, 27, 4, 0, tzinfo=BEIJING_TZ)
+    assert first.end_at == datetime(2026, 9, 14, 3, 59, tzinfo=BEIJING_TZ)
+    assert comm.calls.call_count == 0                # 不走塔吉多扫描
+
+
+@respx.mock
+async def test_fetch_events_manual_bad_entries_skipped_no_fallback():
+    # 坏时间戳项跳过并告警，好项保留；配置非空即手填主路径（不回退扫描，
+    # 避免配置错误被自动扫描静默掩盖）
+    comm = respx.get(f"{BASE}/apihub/wapi/getAllCommunity").mock(
+        return_value=httpx.Response(200, json=COMMUNITY_RAW))
+    a = NteAdapter(Settings(nte_enabled=True, nte_events=[
+        {"name": "坏项", "start": "2026/08/27 04:00",
+         "end": "2026-09-14 03:59"},
+        MANUAL_EVENTS[0],
+    ]))
+    r = await a.fetch(Capability.EVENTS)
+    assert r.ok is True
+    assert [e.name for e in r.payload] == ["第二索拉·诡影迷踪"]
+    assert comm.calls.call_count == 0
 
 
 @respx.mock

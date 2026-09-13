@@ -13,12 +13,18 @@
 tests/test_event_calendar.py 的 WUWA_36_LINES fixture。
 """
 import html as _html
+import logging
 import re
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.models import GameEvent
 
+logger = logging.getLogger(__name__)
+
 BEIJING_TZ = timezone(timedelta(hours=8))
+
+# 手填条目（config [[nte_events]]）的时间写法："YYYY-MM-DD HH:MM"
+MANUAL_DT_FMT = "%Y-%m-%d %H:%M"
 
 # YYYY年M月D日HH:MM（月/日允许单位数；时:分固定 HH:MM 写法）
 CN_DATE_RANGE_RE = re.compile(r"(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2}):(\d{1,2})")
@@ -126,6 +132,49 @@ def _post_ts(value) -> int:
     if isinstance(value, str) and value.isdigit():
         return int(value)
     return 0
+
+
+def _manual_dt(value) -> datetime | None:
+    # "YYYY-MM-DD HH:MM" 字符串 → aware UTC+8；空值 → None
+    if value is None or str(value).strip() == "":
+        return None
+    return datetime.strptime(str(value).strip(), MANUAL_DT_FMT).replace(
+        tzinfo=BEIJING_TZ)
+
+
+def parse_manual_events(entries) -> list[GameEvent]:
+    """config 手填条目（[[nte_events]]）→ GameEvent 列表（可靠主路径）。
+
+    每项为 dict：name 必填；category/start/end 可选，start/end 为
+    "YYYY-MM-DD HH:MM" 字符串（服务器时间 UTC+8）。缺 name、时间格式
+    非法或非 dict 的条目跳过并 log.warning（不中断其它条目）。
+    """
+    events: list[GameEvent] = []
+    for i, item in enumerate(entries or []):
+        if not isinstance(item, dict):
+            logger.warning("nte_events 第 %d 项不是表（dict），已跳过", i + 1)
+            continue
+        name = str(item.get("name") or "").strip()
+        if not name:
+            logger.warning("nte_events 第 %d 项缺少 name，已跳过", i + 1)
+            continue
+        try:
+            start = _manual_dt(item.get("start"))
+            end = _manual_dt(item.get("end"))
+        except ValueError:
+            logger.warning(
+                "nte_events 第 %d 项（%s）start/end 应为 \"%s\" 格式，已跳过",
+                i + 1, name, MANUAL_DT_FMT)
+            continue
+        if start is None and end is None:
+            # 无任何时间的活动无法进日历（手填场景几乎必为配置错误）
+            logger.warning("nte_events 第 %d 项（%s）start/end 至少填一个，"
+                           "已跳过", i + 1, name)
+            continue
+        events.append(GameEvent(
+            name=name, category=item.get("category") or None,
+            start_at=start, end_at=end, source_title="手动配置"))
+    return events
 
 
 def find_version_post(posts: list[dict], title_keys, id_key: str = "postId",

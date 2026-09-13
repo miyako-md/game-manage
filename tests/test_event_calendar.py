@@ -11,6 +11,7 @@ from game_assistant.event_calendar import (
     find_version_post,
     parse_cn_date_range,
     parse_events_from_lines,
+    parse_manual_events,
     strip_html,
 )
 from game_assistant.models import GameEvent
@@ -220,3 +221,47 @@ async def test_find_version_post_tolerates_missing_time():
     got2 = find_version_post(posts2, ("版本内容说明",), id_key="postId",
                              title_key="subject", time_key="createTime")
     assert got2 is not None and got2["postId"] == "8"
+
+
+# ---------- 手填活动（config [[nte_events]]，可靠主路径） ----------
+
+
+async def test_parse_manual_events_ok():
+    events = parse_manual_events([
+        {"name": "第二索拉·诡影迷踪", "category": "休闲活动",
+         "start": "2026-08-27 04:00", "end": "2026-09-14 03:59"},
+        {"name": "签到赠礼", "start": "2026-08-27 04:00",
+         "end": "2026-09-14 03:59"},  # category 缺省 → None
+    ])
+    assert [e.name for e in events] == ["第二索拉·诡影迷踪", "签到赠礼"]
+    first = events[0]
+    assert first.category == "休闲活动"
+    assert first.start_at == _dt(2026, 8, 27, 4, 0)
+    assert first.end_at == _dt(2026, 9, 14, 3, 59)
+    assert first.start_at.tzinfo is not None          # aware UTC+8
+    assert first.start_at.utcoffset().total_seconds() == 8 * 3600
+    assert events[1].category is None
+
+
+async def test_parse_manual_events_bad_timestamp_skipped(caplog):
+    # 坏时间戳/缺名字的项跳过并 log.warning，好项保留；顺序不变
+    import logging
+
+    with caplog.at_level(logging.WARNING):
+        events = parse_manual_events([
+            {"name": "格式坏", "start": "2026/08/27 04:00",
+             "end": "2026-09-14 03:59"},
+            {"name": "", "start": "2026-08-27 04:00",
+             "end": "2026-09-14 03:59"},                    # 缺名字
+            {"name": "只填名字"},
+            {"name": "好的", "start": "2026-08-27 04:00",
+             "end": "2026-09-14 03:59"},
+        ])
+    assert [e.name for e in events] == ["好的"]
+    assert any("跳过" in r.getMessage() for r in caplog.records)
+
+
+async def test_parse_manual_events_empty_and_non_dict():
+    assert parse_manual_events([]) == []
+    assert parse_manual_events(None) == []
+    assert parse_manual_events(["not-a-dict", 42]) == []  # 非法条目防御性跳过

@@ -81,9 +81,16 @@ class NteAdapter(BaseGameAdapter):
 
     async def fetch_events(self) -> FetchResult:
         async def run():
-            # 活动日历：官方栏目帖列表找版本公告（subject 匹配，取最新）→
-            # 帖子详情正文 → 行级解析活动。与公告同走匿名 Web 客户端，
-            # 一次拉取内复用同一连接（TajiduoWebClient 每次新建 + async with）
+            # 主路径：config 手填（[[nte_events]]，长图 OCR 辅助人工抄写，
+            # 可靠）。配置非空即走手填（即使条目全部非法也不回退，避免配置
+            # 错误被自动扫描静默掩盖——坏项已 log.warning）
+            if self._settings.nte_events:
+                return FetchResult(
+                    ok=True,
+                    payload=event_calendar.parse_manual_events(
+                        self._settings.nte_events))
+            # 兜底：塔吉多版本公告扫描（官方栏目帖列表找版本公告 → 帖子
+            # 详情正文 → 行级解析）。匿名 Web 客户端，一次拉取内复用同一连接
             async with TajiduoWebClient() as web:
                 communities = await web.get_all_communities()
                 column_id = tajiduo.resolve_official_column_id(communities)

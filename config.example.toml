@@ -40,3 +40,17 @@ wuwa_did = ""
 nte_enabled = true
 nte_access_token = ""
 nte_refresh_token = ""
+
+# 异环活动日历手填（可靠主路径）：官网前瞻活动日期在长图里，OCR 数字可能不准，
+# 以人眼比对长图为准抄写；每版本填一次。非空时优先于版本公告自动扫描，
+# 时间戳非法的条目会跳过并在日志告警（不会回退到自动扫描）。
+# start/end 为游戏服务器时间（UTC+8），格式 "YYYY-MM-DD HH:MM"。
+# 长图取数可用 OCR 辅助命令（按行输出文本+置信度，人工核对后抄写）：
+#   python -m game_assistant.nte_ocr --news-page <新闻页URL>    # 列出页面全部图片
+#   python -m game_assistant.nte_ocr <图片URL或本地路径...>      # OCR 行文本+置信度
+# 取消注释并按当期活动填写：
+# [[nte_events]]
+# name = "第二索拉·诡影迷踪"
+# category = "休闲活动"
+# start = "2026-08-27 04:00"
+# end = "2026-09-14 03:59"

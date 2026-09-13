@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     nte_enabled: bool = True
     nte_access_token: str = ""
     nte_refresh_token: str = ""
+    # 异环活动日历手填（可靠主路径）：TOML 数组表 [[nte_events]]，每项
+    # name/category/start/end；start/end 为 "YYYY-MM-DD HH:MM"（服务器时间
+    # UTC+8）。示例见 config.example.toml；非空时优先于版本公告自动扫描。
+    nte_events: list[dict] = []
 
     model_config = {"env_prefix": "GA_"}
 
