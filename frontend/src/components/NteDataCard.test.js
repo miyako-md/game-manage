@@ -228,3 +228,31 @@ test('GameCard routes only NTE private capabilities to the native cards', async 
   const other = mount(t, GameCard, { game: { game_id: 'other', display_name: '其他', capabilities: ['gacha'], credentials_configured: true } })
   assert.match(content(other), /敬请期待/)
 })
+
+test('managed game detail uses supplied snapshots and tabs without issuing duplicate reads', async (t) => {
+  const GameCard = await loadVue(new URL('./GameCard.vue', import.meta.url))
+  let reads = 0
+  t.mock.method(globalThis, 'fetch', async () => { reads++; throw Error('must use supplied snapshots') })
+  const root = mount(t, GameCard, { game: { game_id: 'nte', display_name: '异环', capabilities: ['account', 'gacha', 'events', 'announcement'], credentials_configured: true },
+    externalSnapshots: { account: snap({ nickname: '管理态账号' }), gacha: snap({ total_draws: 80, total_s: 1, pools: [] }) }, initialSection: 'overview' })
+  await new Promise(setImmediate)
+  await nextTick()
+  assert.equal(reads, 0)
+  assert.match(content(root), /管理态账号/)
+  assert.doesNotMatch(content(root), /统计抽数/)
+  const tab = nodes(root, 'button').find(n => content(n) === '抽卡统计')
+  assert.ok(tab)
+  tab.props.onClick(); await nextTick()
+  assert.match(content(root), /统计抽数.*80/)
+  assert.match(content(root), /活动日历/)
+})
+
+test('news capability displays its own heading, freshness and only safe source links', async (t) => {
+  const AnnouncementList = await loadVue(new URL('./AnnouncementList.vue', import.meta.url))
+  const root = mount(t, AnnouncementList, { capability: 'news', snap: { stale: true, fetched_at: '2026-09-14T12:00:00Z', payload: [
+    { title: '合法资讯', url: 'https://example.com/news', published_at: '2026-09-14T00:00:00Z' },
+    { title: '不安全链接', url: 'javascript:alert(1)' },
+  ] } })
+  assert.match(content(root), /资讯.*数据可能过期/)
+  assert.deepEqual(nodes(root, 'a').map(n => n.props.href), ['https://example.com/news'])
+})

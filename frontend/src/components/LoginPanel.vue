@@ -382,7 +382,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .text-button { border: 0; color: var(--accent); padding: 4px; white-space: nowrap; background: transparent; }
 .logout { color: var(--text-muted); }
-.primary { color: white; background: var(--accent); border-color: var(--accent); }
+.primary { color: var(--accent-ink, white); background: var(--accent); border-color: var(--accent); }
 .login-form { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px; display: flex; flex-direction: column; align-items: stretch; gap: 10px; max-width: 560px; }
 label { font-size: 13px; font-weight: 600; margin-top: 4px; }
 input { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font: inherit; color: var(--text); background: var(--card-bg); }
