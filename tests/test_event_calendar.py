@@ -265,3 +265,12 @@ async def test_parse_manual_events_empty_and_non_dict():
     assert parse_manual_events([]) == []
     assert parse_manual_events(None) == []
     assert parse_manual_events(["not-a-dict", 42]) == []  # 非法条目防御性跳过
+
+
+def test_manual_reversed_interval_is_skipped_with_warning(caplog):
+    events = parse_manual_events([
+        {'name': '逆序', 'start': '2026-09-19 04:00', 'end': '2026-09-18 04:00'},
+        {'name': '正常', 'start': '2026-09-17 04:00', 'end': '2026-09-18 04:00'},
+    ])
+    assert [event.name for event in events] == ['正常']
+    assert any('开始时间晚于结束时间' in record.getMessage() for record in caplog.records)

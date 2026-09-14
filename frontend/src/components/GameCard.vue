@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSnapshot, refreshGame } from '../api.js'
 import { gameStyle } from '../dashboard.js'
 import AppIcon from './AppIcon.vue'
+import SourceStatusPanel from './SourceStatusPanel.vue'
 import AccountCard from './AccountCard.vue'
 import AnnouncementList from './AnnouncementList.vue'
 import CalabashCard from './CalabashCard.vue'
@@ -21,6 +22,7 @@ const props = defineProps({
   externalRefreshing: { type: Boolean, default: false },
   externalError: { type: String, default: '' },
   initialSection: { type: String, default: 'all' },
+  collectionStatus: { type: Array, default: () => [] },
 })
 const emit = defineEmits(['refresh', 'calendar'])
 const activeSection = ref(props.initialSection)
@@ -150,6 +152,7 @@ defineExpose({ loadSnapshots })
       </button>
     </header>
 
+    <SourceStatusPanel v-if="externalSnapshots !== null" :game="game" :collection="collectionStatus" />
     <div class="detail-navigation"><nav class="detail-tabs" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
     <div class="cap-list">
       <template v-for="cap in visibleCaps" :key="cap">

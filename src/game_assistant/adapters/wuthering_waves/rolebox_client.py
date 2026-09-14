@@ -59,9 +59,10 @@ class RoleBoxClient:
         try:
             resp = await self._client.post(path, data=body)
         except httpx.HTTPError as e:
-            raise RoleBoxError(f"网络错误: {e}") from e
+            # Exception messages may contain request URLs or credential values.
+            raise RoleBoxError(f"网络错误: {type(e).__name__}") from e
         if resp.status_code != 200:
-            raise RoleBoxError(f"HTTP {resp.status_code}")
+            raise RoleBoxError(f"HTTP {resp.status_code}", resp.status_code)
         try:
             data = resp.json()
         except ValueError as e:

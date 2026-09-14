@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult, GameEvent, StaminaInfo
 from game_assistant.reminder_store import ReminderDedup
+
+BEIJING_TZ = timezone(timedelta(hours=8))
 
 
 @dataclass
@@ -35,13 +38,20 @@ class ReminderEngine:
         return True
 
     async def handle_poll(self, game_id: str, display_name: str,
-                          capability: Capability, result: FetchResult) -> None:
+                          capability: Capability, result: FetchResult,
+                          failure_count: int | None = None) -> None:
         settings = self._settings
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(BEIJING_TZ).strftime("%Y-%m-%d")
         # 规则 1：连续拉取失败（达到阈值后每次失败都会尝试推送，由当日去重限流；成功清零）
         key = (game_id, capability.value)
+        if result.error_kind == 'account_changed':
+            return
+        if not result.ok and result.error_kind in ('offline', 'unconfigured'):
+            self._fail_counts.pop(key, None)
+            return
         if not result.ok:
-            self._fail_counts[key] = self._fail_counts.get(key, 0) + 1
+            self._fail_counts[key] = (failure_count if failure_count is not None
+                                     else self._fail_counts.get(key, 0) + 1)
             n = settings.fail_notify_threshold
             if n > 0 and self._fail_counts[key] >= n:
                 await self.deliver(Reminder(
@@ -82,7 +92,7 @@ class ReminderEngine:
     async def _events_rule(self, game_id: str, display_name: str,
                            events: list[GameEvent],
                            settings: Settings) -> None:
-        # 规则 4：活动日历临期（结束前 0~N 天；逐活动评估，key 含 name+end_at
+        # 规则 4：活动日历临期（结束前严格 0 < 秒数 <= N 天；逐活动评估，key 含 name+end_at
         # 的 md5 前 12 位，跨日不重复推）
         if settings.activity_remind_days <= 0:
             return
@@ -91,11 +101,16 @@ class ReminderEngine:
             if ev.end_at is None:
                 continue
             # 解析层产出 aware UTC+8，naive 理论上不会出现；保留归一化防御
-            end = ev.end_at if ev.end_at.tzinfo else ev.end_at.replace(
-                tzinfo=timezone(timedelta(hours=8)))
-            remaining = (end - now).days
-            if not (0 <= remaining <= settings.activity_remind_days):
+            end = (ev.end_at if ev.end_at.tzinfo else ev.end_at.replace(
+                tzinfo=BEIJING_TZ)).astimezone(BEIJING_TZ)
+            if ev.start_at is not None:
+                start = ev.start_at if ev.start_at.tzinfo else ev.start_at.replace(tzinfo=BEIJING_TZ)
+                if start >= end:
+                    continue
+            seconds = (end - now).total_seconds()
+            if not (0 < seconds <= settings.activity_remind_days * 86400):
                 continue
+            remaining = math.ceil(seconds / 86400)
             raw = f"{ev.name}|{end.isoformat()}"
             key12 = hashlib.md5(raw.encode()).hexdigest()[:12]
             await self.deliver(Reminder(

@@ -23,20 +23,27 @@ class WeChatPushNotifier:
                         f"https://sctapi.ftqq.com/{self.send_key}.send",
                         data={"title": title, "desp": body},
                     )
-                    ok = resp.json().get("code") == 0
+                    code = resp.json().get("code")
+                    ok = code == 0
                 elif self.provider == "pushplus":
                     resp = await client.post(
                         "https://www.pushplus.plus/send",
                         json={"token": self.send_key, "title": title,
                               "content": body, "template": "txt"},
                     )
-                    ok = resp.json().get("code") == 200
+                    code = resp.json().get("code")
+                    ok = code == 200
                 else:
                     logger.warning("未知推送 provider: %s", self.provider)
                     return False
             if not ok:
-                logger.warning("微信推送响应异常: %s", resp.text[:200])
+                # A provider can echo submitted tokens/URLs in any response
+                # field, including code. Only bounded numeric codes are safe.
+                safe_code = code if type(code) is int and -1_000_000 <= code <= 1_000_000 else "unknown"
+                logger.warning("微信推送响应异常: HTTP %s, provider_code=%s",
+                               resp.status_code, safe_code)
             return ok
-        except Exception:
-            logger.warning("微信推送失败", exc_info=True)
+        except Exception as exc:
+            # Exception messages/tracebacks may contain the credential URL.
+            logger.warning("微信推送失败 (%s)", type(exc).__name__)
             return False

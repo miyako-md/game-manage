@@ -56,7 +56,7 @@ async def test_fail_threshold_triggers_once(tmp_path):
     assert len(eng.notifier.sent) == 1
     assert "连续失败" in eng.notifier.sent[0][0]
     # 达到阈值后每次失败都会尝试推送，但 dedup key 含日期 → 同日只发一条
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
     assert eng.dedup.already_sent(f"fetch_fail:lol:account:{today}") is True
 
 
@@ -74,19 +74,19 @@ async def test_success_resets_fail_counter(tmp_path):
 async def test_event_naive_end_at_treated_as_beijing_time(tmp_path):
     eng, s = _engine(tmp_path)
     # 解析层产出 aware UTC+8，naive 理论上不出现；防御归一化后不抛 TypeError。
-    # naive_end 被当作北京时间，绝对时间比 UTC now 多 2 天 4 小时 → remaining = 2。
+    # naive_end 被当作北京时间，绝对时间比 UTC now 多 2 天 4 小时 → 向上取整为 3 天。
     naive_end = (datetime.now(timezone.utc)
                  + timedelta(days=2, hours=12)).replace(tzinfo=None)
     r = FetchResult(ok=True, payload=[GameEvent(
         name="naive 活动计时", end_at=naive_end)])
     await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, r)
     assert len(eng.notifier.sent) == 1
-    assert "naive 活动计时" in eng.notifier.sent[0][1] and "还剩 2 天" in eng.notifier.sent[0][1]
+    assert "naive 活动计时" in eng.notifier.sent[0][1] and "还剩 3 天" in eng.notifier.sent[0][1]
 
 
 async def test_event_expiry_within_days_notifies_once(tmp_path):
     eng, s = _engine(tmp_path)
-    # +12h 余量：(end_at - now).days 向下取整，时钟推进不能让 remaining 掉到 1
+    # 2.5 天在 3 天窗口内；展示向上取整为 3 天。
     end = datetime.now(timezone.utc) + timedelta(days=2, hours=12)
     r = FetchResult(ok=True, payload=[GameEvent(
         name="群声共振模拟域", category="战斗活动", end_at=end,
@@ -96,7 +96,7 @@ async def test_event_expiry_within_days_notifies_once(tmp_path):
     assert len(eng.notifier.sent) == 1
     title, body = eng.notifier.sent[0]
     assert title == "鸣潮活动即将结束"
-    assert "群声共振模拟域" in body and "还剩 2 天" in body
+    assert "群声共振模拟域" in body and "还剩 3 天" in body
 
 
 async def test_event_dedup_key_is_per_event(tmp_path):

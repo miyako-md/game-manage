@@ -30,6 +30,10 @@ ANNOUNCEMENT_CATEGORY = "公告"
 NEWS_CATEGORY = "综合"
 
 
+class _ClientNotRunningError(LcuUnavailableError):
+    """Discovery found no client; connection failures remain source errors."""
+
+
 class LeagueOfLegendsAdapter(BaseGameAdapter):
     game_id = "league_of_legends"
     display_name = "英雄联盟"
@@ -45,21 +49,23 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
         # 每次拉取重新发现：客户端重启后端口/token 都会变，psutil 扫描很轻
         creds = discover_lcu_credentials()
         if creds is None:
-            raise LcuUnavailableError("LOL 客户端未运行")
+            raise _ClientNotRunningError("LOL 客户端未运行")
         return creds
 
     async def _guarded_run(self, run) -> FetchResult:
         """run 是零参协程工厂；统一处理客户端错误与解析兜底。"""
         try:
             return await run()
+        except _ClientNotRunningError as e:
+            return FetchResult(ok=False, error=e.message, error_kind='offline')
         except LcuError as e:
-            return FetchResult(ok=False, error=e.message)
+            return FetchResult(ok=False, error=e.message, error_kind='source_error')
         except LoLNewsError as e:
-            return FetchResult(ok=False, error=e.message)
-        except Exception as e:
+            return FetchResult(ok=False, error=e.message, error_kind='source_error')
+        except Exception:
             # 解析器异常不得穿透 fetch 破坏失效隔离
-            logger.exception("英雄联盟数据处理异常")
-            return FetchResult(ok=False, error=f"数据处理异常: {e}")
+            logger.warning("英雄联盟数据处理异常，保留上次成功数据")
+            return FetchResult(ok=False, error="数据处理异常，请稍后重试", error_kind='invalid_data')
 
     async def fetch_account(self) -> FetchResult:
         async def run():

@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 VERSION_TITLE_KEYS = ("版本内容说明", "版本更新公告", "版本维护更新")
 
 
+class _UnconfiguredRoleBoxError(RoleBoxError):
+    """Local missing configuration, distinct from a failed upstream request."""
+
+
 class WutheringWavesAdapter(BaseGameAdapter):
     game_id = "wuthering_waves"
     display_name = "鸣潮"
@@ -42,22 +46,29 @@ class WutheringWavesAdapter(BaseGameAdapter):
         s = self._settings
         if s.wuwa_b_at and s.wuwa_dev_code and s.wuwa_did:
             return RoleBoxClient(s.wuwa_b_at, s.wuwa_dev_code, s.wuwa_did)
-        raise RoleBoxError("未配置 b-at（见 README APP 抓包教程）")
+        raise _UnconfiguredRoleBoxError("未配置 b-at（见 README APP 抓包教程）")
 
     async def _guarded_run(self, run) -> FetchResult:
         """run 是零参协程工厂；统一处理未配置凭据与客户端错误。"""
         if self._client is None:
-            return FetchResult(ok=False, error="未配置凭据")
+            return FetchResult(ok=False, error="未配置凭据", error_kind='unconfigured')
         try:
             return await run()
+        except _UnconfiguredRoleBoxError as e:
+            return FetchResult(ok=False, error=e.message, error_kind='unconfigured')
         except RoleBoxError as e:
-            return FetchResult(ok=False, error=e.message, error_code=e.code)
+            return FetchResult(ok=False, error=e.message, error_code=e.code,
+                error_kind='auth_expired' if e.code in (220, 401, 402, 403, 10900, 10901, 10903) else 'source_error')
         except KuroError as e:
-            return FetchResult(ok=False, error=f"库街区接口错误: {e.message}", error_code=e.code)
-        except Exception as e:
+            # The legacy client includes str(httpx_error) for network errors;
+            # request URLs can contain secrets and must not enter persisted status.
+            message = '网络请求失败，请稍后重试' if e.code == -1 else e.message
+            return FetchResult(ok=False, error=f"库街区接口错误: {message}", error_code=e.code,
+                error_kind='auth_expired' if e.code in (220, 401, 402, 403, 10900, 10901, 10903) else 'source_error')
+        except Exception:
             # 解析器异常不得穿透 fetch 破坏失效隔离（spec §6）
-            logger.exception("鸣潮数据处理异常")
-            return FetchResult(ok=False, error=f"数据解析异常: {e}")
+            logger.warning("鸣潮数据处理异常，保留上次成功数据")
+            return FetchResult(ok=False, error="数据解析异常，请稍后重试", error_kind='invalid_data')
 
     async def _get_role_ids(self) -> tuple[str, str]:
         """role_list 取默认角色 roleId/serverId（roleBox 与 widget 共用）。"""
@@ -125,14 +136,17 @@ class WutheringWavesAdapter(BaseGameAdapter):
                 rows, VERSION_TITLE_KEYS, id_key="postId",
                 title_key="postTitle", time_key="publishTime")
             if not post:
-                # 公告列表滚出/尚未发布版本公告：优雅降级为空列表
-                return FetchResult(ok=True, payload=[])
+                return FetchResult(ok=False, error='未找到版本公告，保留上次成功日历',
+                                   error_kind='source_error')
             post_id = str(post.get("postId") or "")
             detail = await self._client.get_post_detail(post_id)
             lines = event_calendar.strip_html(str(detail.get("postH5Content") or ""))
             events = event_calendar.parse_events_from_lines(
                 lines, source_post_id=post_id,
                 source_title=str(detail.get("postTitle") or ""))
+            if not events:
+                return FetchResult(ok=False, error='版本公告正文为空或无法解析活动，保留上次成功日历',
+                                   error_kind='invalid_data')
             return FetchResult(ok=True, payload=events)
         return await self._guarded_run(run)
 

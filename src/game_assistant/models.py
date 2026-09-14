@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -182,4 +182,6 @@ class FetchResult(BaseModel):
     payload: Any = None
     error: str | None = None
     error_code: int | None = None
+    error_kind: Literal['offline', 'unconfigured', 'auth_expired', 'source_error',
+                        'invalid_data', 'account_changed'] | None = None
     credential_version: int | None = None

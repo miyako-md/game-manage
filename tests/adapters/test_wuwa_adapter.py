@@ -241,15 +241,15 @@ async def test_fetch_events_ok():
 
 
 @respx.mock
-async def test_fetch_events_no_version_post_returns_empty():
-    # 公告列表无版本公告（滚出/未发布）：空列表 + 不请求详情（优雅降级）
+async def test_fetch_events_no_version_post_preserves_previous_calendar():
+    # 无版本公告属于来源问题；失败结果让调度器保留上次成功日历。
     respx.post(EVENT_URL).mock(
         return_value=httpx.Response(200, json=EVENTS_LIST_NO_VERSION_RAW))
     detail_route = respx.post(DETAIL_URL).mock(
         return_value=httpx.Response(200, json=EVENTS_POST_DETAIL_RAW))
     a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))
     r = await a.fetch(Capability.EVENTS)
-    assert r.ok is True and r.payload == []
+    assert r.ok is False and r.error_kind == 'source_error'
     assert detail_route.calls.call_count == 0
 
 

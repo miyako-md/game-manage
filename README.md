@@ -18,6 +18,10 @@
 
 前端验收：`cd frontend` 后执行 `npm test` 与 `npm run build`。重设计说明见 [设计记录](docs/superpowers/specs/2026-09-14-dashboard-redesign.md)。
 
+**可靠性与本地常驻**：游戏档案新增「采集状态」，展示逐能力的最近成功/尝试、连续失败与原因。客户端离线、未配置不再当作故障告警；采集失败保留旧数据。活动解析失败、找不到版本公告或手填日期全部无效时，不再把已有日历清空。每日提醒以北京时间零点换日，临期窗口按真实秒数判断。完整方案见 [可靠性设计](docs/superpowers/specs/2026-09-14-reliability-runtime.md)。
+
+Windows 日常运行推荐构建前端后，使用 `scripts/start.ps1` 打开 **http://127.0.0.1:8010**（网页与API同端口）。提供 `status.ps1`、`restart.ps1`、`stop.ps1` 和可撤销的 `autostart.ps1`；开机入口默认关闭。详见 [本地运行说明](docs/local-runtime.md)。
+
 **2026-09-14 新增社区免抓包登录**：仪表盘顶部「社区账号」支持鸣潮和异环手机号 + 短信验证码登录；鸣潮由用户完成人机验证。登录后自动保存加密凭据并接入采集，支持令牌续期和退出。正常使用不再需要手机抓包；下方抓包说明仅保留为旧配置兼容参考。详见 [登录使用说明](docs/community-login.md)。更新后请先安装依赖：`.venv/Scripts/python.exe -m pip install -e .[dev]`。
 
 当前进度（M3）：已接入 **鸣潮（官服）**、**英雄联盟（国服）** 与 **异环（塔吉多社区）**；
@@ -69,16 +73,7 @@ npm run dev        # http://localhost:5173，/api 已代理到 127.0.0.1:8010
 cd frontend && npm run build   # 产物输出到 frontend/dist
 ```
 
-> 注意：当前 `src/game_assistant/main.py` 尚未挂载静态文件托管。
-> 生产部署时可在 FastAPI 应用上挂载 `frontend/dist`，例如：
->
-> ```python
-> from fastapi.staticfiles import StaticFiles
->
-> app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="spa")
-> ```
->
-> （mount 需放在 API 路由注册之后、且位于 `/api` 之外，避免覆盖接口。）
+构建后 FastAPI 会自动托管 `frontend/dist`，无需手动增加静态挂载。使用项目启动脚本时，网页与API统一为8010；5173保留为开发模式。缺少构建产物时API仍可运行，网页需构建后重启。未知API路径和缺失静态资源返回404，不会被错误替换为首页。
 
 ## 配置说明（config.toml）
 
@@ -342,6 +337,7 @@ python -m game_assistant.nte_ocr <图片URL或本地路径> [<更多图片>...]
 ### 提醒规则
 
 提醒引擎随每次轮询评估，命中规则时经微信推送，去重记录在 SQLite（`notified` 表）。
+自然日均指北京时间，活动窗口严格采用 `0 < 剩余秒数 <= 配置天数 × 86400`，显示天数向上取整。正常客户端离线及未配置凭据不累计故障；真实故障次数保存在 `poll_status`，重启后延续，成功后清零。
 四条规则及去重策略（键名均可在 `config.toml` 覆盖）：
 
 | 规则 | 触发条件 | 去重策略 | 配置键（关闭语义） |

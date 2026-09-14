@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Any
 
@@ -55,6 +56,7 @@ class PollingScheduler:
         self.notifier = notifier
         self.reminder = reminder
         self._scheduler: AsyncIOScheduler | None = None
+        self._poll_locks: dict[tuple[str, Capability], asyncio.Lock] = {}
 
     def build_jobs(self) -> list[tuple[str, Capability, int]]:
         jobs = []
@@ -66,21 +68,33 @@ class PollingScheduler:
         return jobs
 
     async def poll_once(self, game_id: str, capability: Capability) -> FetchResult:
+        lock = self._poll_locks.setdefault((game_id, capability), asyncio.Lock())
+        async with lock:
+            return await self._poll_once_locked(game_id, capability)
+
+    async def _poll_once_locked(self, game_id: str, capability: Capability) -> FetchResult:
         adapter = self.registry.get(game_id)
-        result = await adapter.fetch(capability)
+        try:
+            result = await adapter.fetch(capability)
+        except Exception:
+            result = FetchResult(ok=False, error='数据源请求失败，请稍后重试', error_kind='source_error')
         auth = getattr(adapter, '_auth', None)
         if auth and result.credential_version is not None and result.credential_version != auth.version(game_id):
-            return FetchResult(ok=False, error='账号已切换，请重新刷新')
+            return FetchResult(ok=False, error='账号已切换，请重新刷新', error_kind='account_changed')
+        if result.error_kind == 'account_changed':
+            return result
         if result.ok:
             self.store.save(game_id, capability.value, _serialize(result.payload))
-        else:
+        elif result.error_kind not in ('offline', 'unconfigured'):
             logger.warning("拉取失败 %s/%s: %s（保留旧快照）",
                            game_id, capability.value, result.error)
+        status = self.store.record_poll(game_id, capability.value, result)
         if self.reminder:
             # 提醒引擎异常不得影响轮询与快照保存
             try:
                 await self.reminder.handle_poll(game_id, adapter.display_name,
-                                                capability, result)
+                                                capability, result,
+                                                failure_count=status['consecutive_failures'])
             except Exception:
                 logger.warning("提醒规则评估失败", exc_info=True)
         return result

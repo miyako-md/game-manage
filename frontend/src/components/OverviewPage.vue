@@ -2,21 +2,23 @@
 import { computed, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import { gameStyle, summaryFor, upcomingEvents, recentNews, formatTime } from '../dashboard.js'
+import { sourceForGame } from '../source-status.js'
 
 const props = defineProps({ games: { type: Array, default: () => [] }, snapshots: { type: Object, default: () => ({}) },
   accounts: { type: Object, default: () => ({}) }, readErrors: { type: Object, default: () => ({}) }, refreshErrors: { type: Object, default: () => ({}) },
-  refreshing: { type: Object, default: () => ({}) }, now: { type: Number, required: true }, loading: Boolean })
+  refreshing: { type: Object, default: () => ({}) }, collection: { type: Array, default: () => [] }, now: { type: Number, required: true }, loading: Boolean })
 const emit = defineEmits(['navigate', 'refresh'])
 const newsFilter = ref('')
-const cards = computed(() => props.games.map(game => ({ ...game, style: gameStyle(game.game_id), summary: summaryFor(game, props.snapshots[game.game_id]), auth: props.accounts[game.game_id] })))
+const cards = computed(() => props.games.map(game => ({ ...game, style: gameStyle(game.game_id), summary: summaryFor(game, props.snapshots[game.game_id]), auth: props.accounts[game.game_id], source: sourceForGame(game.game_id, props.collection) })))
 const events = computed(() => upcomingEvents(props.games, props.snapshots, props.now))
 const nearEvents = computed(() => events.value.filter(event => event.remainingDays <= 3))
-const fullGames = computed(() => cards.value.filter(card => card.summary.hasStamina && card.summary.percent >= 90 && !card.summary.stale && !props.readErrors[card.game_id]))
+const fullGames = computed(() => cards.value.filter(card => card.summary.hasStamina && card.summary.percent >= 90 && !card.summary.stale && !props.readErrors[card.game_id] && (!card.source || card.source.state === 'ok')))
 const news = computed(() => recentNews(props.games, props.snapshots).filter(item => !newsFilter.value || item.gameId === newsFilter.value).slice(0, 5))
 const anyRefreshing = computed(() => Object.values(props.refreshing).some(Boolean))
 const notices = computed(() => cards.value.filter(g => props.readErrors[g.game_id] || props.refreshErrors[g.game_id]))
 function status(card) {
   if (props.readErrors[card.game_id]) return '读取异常'
+  if (card.source && card.source.state !== 'ok') return card.source.label
   if (card.auth?.state === 'expired') return '登录已失效'
   if (card.summary.stale) return '旧快照'
   if (card.game_id === 'league_of_legends') return '本机客户端'
@@ -47,7 +49,7 @@ function resourceNote(card) {
     <div class="section-heading"><h2>我的游戏 <span class="count-label">/ {{ String(games.length).padStart(2, '0') }}</span></h2><span class="muted small">各游戏独立同步</span></div>
     <div class="game-summary-grid">
       <button v-for="card in cards" :key="card.game_id" class="game-summary" :style="{ '--game-color': card.style.color }" @click="emit('navigate', 'game', card.game_id)">
-        <div class="summary-header"><div class="game-identity"><span class="game-monogram">{{ card.style.mark }}</span><div><h3>{{ card.display_name }}</h3><p>{{ card.game_id === 'league_of_legends' ? 'PC / 国服' : '手游 / 社区数据' }}</p></div></div><span class="summary-state" :class="{ warn: card.summary.stale || card.auth?.state === 'expired' || readErrors[card.game_id] }"><i></i>{{ status(card) }}</span></div>
+        <div class="summary-header"><div class="game-identity"><span class="game-monogram">{{ card.style.mark }}</span><div><h3>{{ card.display_name }}</h3><p>{{ card.game_id === 'league_of_legends' ? 'PC / 国服' : '手游 / 社区数据' }}</p></div></div><span class="summary-state" :class="{ warn: card.summary.stale || card.auth?.state === 'expired' || readErrors[card.game_id] || card.source?.tone === 'danger' }"><i></i>{{ status(card) }}</span></div>
         <div class="summary-metric"><p>{{ card.summary.hasStamina ? card.style.resource : '最近对局胜率' }}</p><div class="summary-number">{{ card.summary.value ?? '—' }}<small>{{ card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : '%' }}</small></div></div>
         <div v-if="card.summary.percent != null" class="summary-meter" role="meter" :aria-label="card.summary.hasStamina ? card.style.resource : '胜率'" :aria-valuenow="card.summary.percent" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.min(100, card.summary.percent)}%` }"></i></div>
         <div v-else class="summary-meter unknown"></div>

@@ -154,6 +154,28 @@ async def test_http_error_status():
         with pytest.raises(RoleBoxError) as ei:
             await client.base_data(ROLE_ID, SERVER_ID)
     assert ei.value.message == "HTTP 502"
+    assert ei.value.code == 502
+
+
+@pytest.mark.parametrize('status', [401, 403])
+@respx.mock
+async def test_http_auth_error_preserves_status(status):
+    respx.post(f'{BASE_URL}/roleData').mock(return_value=httpx.Response(status))
+    async with _client() as client:
+        with pytest.raises(RoleBoxError) as failure:
+            await client.role_data(ROLE_ID, SERVER_ID)
+    assert failure.value.code == status
+
+
+@respx.mock
+async def test_network_error_does_not_expose_exception_message():
+    respx.post(f'{BASE_URL}/roleData').mock(side_effect=httpx.ConnectError(
+        'https://example.test/?token=fake-secret-marker'))
+    async with _client() as client:
+        with pytest.raises(RoleBoxError) as failure:
+            await client.role_data(ROLE_ID, SERVER_ID)
+    assert 'fake-secret-marker' not in failure.value.message
+    assert '网络错误' in failure.value.message
 
 
 @respx.mock

@@ -23,6 +23,10 @@ OFFICIAL_POST_COUNT = 20
 VERSION_TITLE_KEYS = ("版本更新公告", "版本内容说明", "维护更新公告")
 
 
+class _UnconfiguredCredentialsError(TajiduoError):
+    """Credentials absent locally, not a network or authentication failure."""
+
+
 class NteAdapter(BaseGameAdapter):
     game_id = "nte"
     display_name = "异环"
@@ -43,7 +47,7 @@ class NteAdapter(BaseGameAdapter):
         """每次拉取新建鉴权客户端（参考 LoLNewsClient 生命周期模式）。"""
         s = self._settings
         if not (s.nte_access_token or s.nte_refresh_token):
-            raise TajiduoError("未配置塔吉多凭据")
+            raise _UnconfiguredCredentialsError("未配置塔吉多凭据")
         return TajiduoClient(s.nte_access_token, s.nte_refresh_token,
                              device_id=s.nte_device_id or None)
 
@@ -51,14 +55,18 @@ class NteAdapter(BaseGameAdapter):
         """run 是零参协程工厂；统一处理未配置凭据与客户端/解析错误。"""
         try:
             return await run()
+        except _UnconfiguredCredentialsError as e:
+            return FetchResult(ok=False, error=e.message, error_kind='unconfigured')
         except TajiduoError as e:
-            return FetchResult(ok=False, error=e.message, error_code=e.status_code)
+            return FetchResult(ok=False, error=e.message, error_code=e.status_code,
+                error_kind='auth_expired' if e.status_code in (401, 402, 403) else 'source_error')
         except ValueError:
-            return FetchResult(ok=False, error='塔吉多数据格式已变化或角色不匹配，保留上次成功数据')
-        except Exception as e:
+            return FetchResult(ok=False, error='塔吉多数据格式已变化或角色不匹配，保留上次成功数据',
+                               error_kind='invalid_data')
+        except Exception:
             # 解析器异常不得穿透 fetch 破坏失效隔离
-            logger.exception("异环数据处理异常")
-            return FetchResult(ok=False, error=f"数据处理异常: {e}")
+            logger.warning("异环数据处理异常，保留上次成功数据")
+            return FetchResult(ok=False, error="数据处理异常，请稍后重试", error_kind='invalid_data')
 
     async def fetch_announcement(self) -> FetchResult:
         async def run():
@@ -81,10 +89,11 @@ class NteAdapter(BaseGameAdapter):
             # 可靠）。配置非空即走手填（即使条目全部非法也不回退，避免配置
             # 错误被自动扫描静默掩盖——坏项已 log.warning）
             if self._settings.nte_events:
-                return FetchResult(
-                    ok=True,
-                    payload=event_calendar.parse_manual_events(
-                        self._settings.nte_events))
+                events = event_calendar.parse_manual_events(self._settings.nte_events)
+                if not events:
+                    return FetchResult(ok=False, error='手动配置的活动全部无效，保留上次成功日历',
+                                       error_kind='invalid_data')
+                return FetchResult(ok=True, payload=events)
             # 兜底：塔吉多版本公告扫描（官方栏目帖列表找版本公告 → 帖子
             # 详情正文 → 行级解析）。匿名 Web 客户端，一次拉取内复用同一连接
             async with TajiduoWebClient() as web:
@@ -98,8 +107,8 @@ class NteAdapter(BaseGameAdapter):
                     tajiduo._extract_rows(raw), VERSION_TITLE_KEYS,
                     id_key="postId", title_key="subject", time_key="createTime")
                 if not post:
-                    # 官方栏目无版本公告（如版本间隙期）：优雅降级为空列表
-                    return FetchResult(ok=True, payload=[])
+                    return FetchResult(ok=False, error='未找到版本公告，保留上次成功日历',
+                                       error_kind='source_error')
                 post_id = str(post.get("postId") or "")
                 detail = await web.get_post_full(post_id)
             # content 为 HTML 或明文：strip_html 对明文原样按行拆分
@@ -107,6 +116,9 @@ class NteAdapter(BaseGameAdapter):
             events = event_calendar.parse_events_from_lines(
                 lines, source_post_id=post_id,
                 source_title=str(post.get("subject") or ""))
+            if not events:
+                return FetchResult(ok=False, error='版本公告正文为空或无法解析活动，保留上次成功日历',
+                                   error_kind='invalid_data')
             return FetchResult(ok=True, payload=events)
         return await self._guarded_run(run)
 

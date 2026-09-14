@@ -1,4 +1,5 @@
 <script setup>
+import { displayBeijing } from '../time.js'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -7,8 +8,7 @@ const props = defineProps({
 
 function toLocal(value) {
   if (!value) return null
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleString()
+  return displayBeijing(value)
 }
 
 const payload = computed(() => props.snap?.payload ?? null)

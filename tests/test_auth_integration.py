@@ -103,3 +103,61 @@ def test_persisted_web_token_source_is_not_migrated_to_ios(tmp_path):
         'token': 'web-token', 'user_id': 'user', 'token_source': 'h5',
     }})
     assert registry.get('wuthering_waves')._client._headers()['source'] == 'h5'
+
+
+@pytest.mark.parametrize('status', [401, 403])
+@pytest.mark.parametrize('capability,path,payload', [
+    (Capability.ROLES, 'roleData', {'roleList': []}),
+    (Capability.EXPLORATION, 'exploreIndex', {'detectionInfoList': [], 'exploreList': []}),
+    (Capability.CALABASH, 'calabashData', {'level': 30}),
+])
+@respx.mock
+async def test_rolebox_http_expiry_renews_once(tmp_path, status, capability, path, payload):
+    auth, registry, _ = integrated(tmp_path, {'wuthering_waves': {
+        'token': 'token', 'user_id': 'user', 'did': 'device',
+        'dev_code': 'test-device', 'role_id': 'r1', 'server_id': 's1', 'b_at': 'old-ticket',
+    }})
+    source = respx.post('https://api.kurobbs.com/aki/roleBox/akiBox/' + path).mock(side_effect=[
+        httpx.Response(status), httpx.Response(200, json={'code': 200, 'data': payload}),
+    ])
+    renewal = respx.post('https://api.kurobbs.com/aki/roleBox/requestToken').mock(
+        return_value=httpx.Response(200, json={'code': 200, 'data': {'accessToken': 'new-ticket'}}))
+    result = await registry.get('wuthering_waves').fetch(capability)
+    assert result.ok and result.error_kind is None
+    assert source.call_count == 2 and renewal.call_count == 1
+    assert source.calls.last.request.headers['b-at'] == 'new-ticket'
+    assert auth.store.load()['wuthering_waves']['b_at'] == 'new-ticket'
+
+
+@pytest.mark.parametrize('status', [401, 403])
+@respx.mock
+async def test_rolebox_http_expiry_stops_after_one_failed_retry(tmp_path, status):
+    auth, registry, _ = integrated(tmp_path, {'wuthering_waves': {
+        'token': 'token', 'user_id': 'user', 'did': 'device',
+        'dev_code': 'test-device', 'role_id': 'r1', 'server_id': 's1', 'b_at': 'old-ticket',
+    }})
+    source = respx.post('https://api.kurobbs.com/aki/roleBox/akiBox/roleData').mock(
+        return_value=httpx.Response(status))
+    renewal = respx.post('https://api.kurobbs.com/aki/roleBox/requestToken').mock(
+        return_value=httpx.Response(200, json={'code': 200, 'data': {'accessToken': 'new-ticket'}}))
+    result = await registry.get('wuthering_waves').fetch(Capability.ROLES)
+    assert not result.ok and result.error_kind == 'auth_expired'
+    assert source.call_count == 2 and renewal.call_count == 1
+    assert auth.status()['accounts']['wuthering_waves']['state'] == 'expired'
+
+
+@pytest.mark.parametrize('status', [220, 401, 403])
+@respx.mock
+async def test_base_account_token_expiry_requires_login_without_ticket_renewal(tmp_path, status):
+    auth, registry, _ = integrated(tmp_path, {'wuthering_waves': {
+        'token': 'token', 'user_id': 'user', 'did': 'device',
+        'dev_code': 'test-device', 'role_id': 'r1', 'server_id': 's1', 'b_at': 'ticket',
+    }})
+    source = respx.post('https://api.kurobbs.com/gamer/role/list').mock(
+        return_value=httpx.Response(200, json={'code': status, 'msg': '登录失效'}))
+    renewal = respx.post('https://api.kurobbs.com/aki/roleBox/requestToken').mock(
+        return_value=httpx.Response(200, json={'code': 200, 'data': {'accessToken': 'new-ticket'}}))
+    result = await registry.get('wuthering_waves').fetch(Capability.ACCOUNT)
+    assert not result.ok and result.error_kind == 'auth_expired'
+    assert source.call_count == 1 and renewal.call_count == 0
+    assert auth.status()['accounts']['wuthering_waves']['state'] == 'expired'

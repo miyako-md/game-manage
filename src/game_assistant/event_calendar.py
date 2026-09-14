@@ -171,6 +171,10 @@ def parse_manual_events(entries) -> list[GameEvent]:
             logger.warning("nte_events 第 %d 项（%s）start/end 至少填一个，"
                            "已跳过", i + 1, name)
             continue
+        if start is not None and end is not None and start > end:
+            logger.warning("nte_events 第 %d 项（%s）开始时间晚于结束时间，已跳过",
+                           i + 1, name)
+            continue
         events.append(GameEvent(
             name=name, category=item.get("category") or None,
             start_at=start, end_at=end, source_title="手动配置"))

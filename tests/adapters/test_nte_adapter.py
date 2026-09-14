@@ -169,9 +169,9 @@ async def test_fetch_events_ok():
 
 
 @respx.mock
-async def test_fetch_events_no_version_post_returns_empty():
+async def test_fetch_events_no_version_post_preserves_previous_calendar():
     # 官方栏目无版本公告（POSTS_RAW 仅有开启公告/维护完成公告）：
-    # 空列表 + 不请求帖子详情（优雅降级）
+    # 返回来源问题，不请求帖子详情；保留上次成功日历。
     respx.get(f"{BASE}/apihub/wapi/getAllCommunity").mock(
         return_value=httpx.Response(200, json=COMMUNITY_RAW))
     respx.get(f"{BASE}/bbs/wapi/getOfficialPostList").mock(
@@ -180,7 +180,7 @@ async def test_fetch_events_no_version_post_returns_empty():
         return_value=httpx.Response(200, json=EVENTS_POST_FULL_RAW))
     a = NteAdapter(Settings(nte_enabled=True))
     r = await a.fetch(Capability.EVENTS)
-    assert r.ok is True and r.payload == []
+    assert r.ok is False and r.error_kind == 'source_error'
     assert detail_route.calls.call_count == 0
 
 

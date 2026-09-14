@@ -115,3 +115,48 @@ test('hash routes support calendar game links and fail closed on malformed locat
   assert.deepEqual(readRoute('#/accounts'), { page: 'accounts', game: '' })
   assert.deepEqual(readRoute('#/game/%E0%A4'), { page: 'overview', game: '' })
 })
+
+test('collection status is loaded and cleared for a switched private account', async () => {
+  const d = createDashboard(api({ getStatus: async () => ({ notify: { enabled: false }, collection: [
+    { game_id: 'nte', capability: 'account', state: 'auth_expired' },
+    { game_id: 'nte', capability: 'events', state: 'ok' },
+  ] }) }))
+  await d.load()
+  assert.equal(d.state.collection[0].state, 'auth_expired')
+  d.invalidateGame('nte')
+  assert.deepEqual(d.state.collection.map(row => row.capability), ['events'])
+})
+
+test('snapshot collection status replaces older status but cannot be rolled back by a status response', async () => {
+  const d = createDashboard(api({ getStatus: async () => ({ collection: [{ game_id: 'nte', capability: 'account', state: 'error', last_attempt_at: '2026-09-14T12:00:00Z' }] }),
+    getSnapshot: async (_id, cap) => ({ ...snapshot({ nickname: '当前' }), poll_status: { game_id: 'nte', capability: cap, state: 'ok', last_attempt_at: '2026-09-14T12:01:00Z' } }),
+  }))
+  await d.load(); await d.loadStatus()
+  assert.equal(d.state.collection.find(row => row.capability === 'account').state, 'ok')
+})
+
+test('expected unavailable manual refresh is shown as source state without a fault banner', async () => {
+  const d = createDashboard(api({ refreshGame: async () => ({ results: { account: { ok: false, error: '客户端未运行', error_kind: 'offline' } } }) }))
+  await d.load(); await d.refresh('nte')
+  assert.equal(d.state.refreshErrors.nte, '')
+})
+
+test('a newer observation of cleared collection state replaces older failures', async () => {
+  let cleared = false
+  const d = createDashboard(api({ getStatus: async () => ({ collection: [{ game_id: 'nte', capability: 'account',
+    state: cleared ? 'never' : 'auth_expired', last_attempt_at: cleared ? null : '2026-09-14T12:00:00Z',
+    observed_at: cleared ? '2026-09-14T12:03:00Z' : '2026-09-14T12:02:00Z' }] }),
+  }))
+  await d.load(); cleared = true; await d.loadStatus()
+  assert.equal(d.state.collection[0].state, 'never')
+})
+
+test('late older observations cannot roll back a newer cleared status', async () => {
+  let old = false
+  const d = createDashboard(api({ getStatus: async () => ({ collection: [{ game_id: 'nte', capability: 'account',
+    state: old ? 'error' : 'never', last_attempt_at: old ? '2026-09-14T12:00:00Z' : null,
+    observed_at: old ? '2026-09-14T12:02:00Z' : '2026-09-14T12:03:00Z' }] }),
+  }))
+  await d.load(); old = true; await d.loadStatus()
+  assert.equal(d.state.collection[0].state, 'never')
+})

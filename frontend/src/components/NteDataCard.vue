@@ -1,4 +1,5 @@
 <script setup>
+import { displayBeijing } from '../time.js'
 import { computed, reactive } from 'vue'
 
 const props = defineProps({
@@ -45,8 +46,7 @@ function obtainedAt(value) {
 
 const fetchedAt = computed(() => {
   if (!props.snap?.fetched_at) return null
-  const date = new Date(props.snap.fetched_at)
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleString()
+  return displayBeijing(props.snap.fetched_at)
 })
 const accountStats = computed(() => [
   ['等级', display(data.value.level)], ['世界等级', display(data.value.world_level)],

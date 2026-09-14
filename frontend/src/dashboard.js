@@ -82,16 +82,30 @@ export function readRoute(hash) {
 }
 
 export function createDashboard(api) {
-  const state = reactive({ games: [], snapshots: {}, notify: null, accounts: {}, readErrors: {}, refreshErrors: {}, refreshing: {},
+  const state = reactive({ games: [], snapshots: {}, notify: null, accounts: {}, collection: [], readErrors: {}, refreshErrors: {}, refreshing: {},
     loading: false, loadError: '', serviceError: '', loadedAt: null })
   const requests = new Map(), epochs = new Map()
   let catalogRequest = 0, statusRequest = 0, disposed = false
+
+  function mergeCollection(rows) {
+    if (!Array.isArray(rows)) return
+    const merged = new Map(state.collection.map(row => [`${row.game_id}:${row.capability}`, row]))
+    for (const row of rows) {
+      if (!row?.game_id || !row?.capability) continue
+      const key = `${row.game_id}:${row.capability}`, previous = merged.get(key)
+      const observed = timestamp(row.observed_at), previousObserved = timestamp(previous?.observed_at)
+      const latest = observed != null ? previousObserved == null || observed >= previousObserved
+        : previousObserved == null && (timestamp(row.last_attempt_at) || 0) >= (timestamp(previous?.last_attempt_at) || 0)
+      if (!previous || latest) merged.set(key, row)
+    }
+    state.collection = [...merged.values()]
+  }
 
   async function loadStatus() {
     const request = ++statusRequest
     const results = await Promise.allSettled([api.getStatus(), api.getAuthStatus ? api.getAuthStatus() : Promise.resolve(null)])
     if (disposed || request !== statusRequest) return
-    if (results[0].status === 'fulfilled') { state.notify = results[0].value?.notify || null; state.serviceError = '' }
+    if (results[0].status === 'fulfilled') { state.notify = results[0].value?.notify || null; mergeCollection(results[0].value?.collection); state.serviceError = '' }
     else state.serviceError = '服务状态读取失败，请检查后端连接。'
     if (results[1].status === 'fulfilled' && results[1].value) state.accounts = results[1].value.accounts || {}
   }
@@ -106,7 +120,10 @@ export function createDashboard(api) {
       const next = { ...(state.snapshots[id] || {}) }, failed = []
       results.forEach((r, index) => {
         const cap = game.capabilities[index]
-        if (r.status === 'fulfilled' && r.value && 'payload' in r.value) next[cap] = r.value
+        if (r.status === 'fulfilled' && r.value && 'payload' in r.value) {
+          next[cap] = r.value
+          if (r.value.poll_status) mergeCollection([r.value.poll_status])
+        }
         else failed.push(cap)
       })
       state.snapshots[id] = next
@@ -135,9 +152,11 @@ export function createDashboard(api) {
   }
 
   function invalidateGame(id) {
+    statusRequest += 1
     epochs.set(id, (epochs.get(id) || 0) + 1)
     requests.set(id, (requests.get(id) || 0) + 1)
     state.snapshots[id] = Object.fromEntries(Object.entries(state.snapshots[id] || {}).filter(([cap]) => PUBLIC_CAPS.has(cap)))
+    state.collection = state.collection.filter(row => row.game_id !== id || PUBLIC_CAPS.has(row.capability))
     delete state.readErrors[id]; delete state.refreshErrors[id]; delete state.accounts[id]
     state.refreshing[id] = false
   }
@@ -149,7 +168,7 @@ export function createDashboard(api) {
     try {
       const result = await api.refreshGame(id)
       if (disposed || epoch !== (epochs.get(id) || 0)) return
-      const failed = Object.entries(result?.results || {}).filter(([, r]) => r?.ok !== true)
+      const failed = Object.entries(result?.results || {}).filter(([, r]) => r?.ok !== true && !['offline', 'unconfigured', 'account_changed'].includes(r?.error_kind))
       state.refreshErrors[id] = failed.length ? failed.map(([cap, r]) => `${cap}：${r?.error || '拉取失败'}`).join('；') : ''
     } catch {
       if (!disposed && epoch === (epochs.get(id) || 0)) state.refreshErrors[id] = '刷新请求失败，请检查连接后重试。'

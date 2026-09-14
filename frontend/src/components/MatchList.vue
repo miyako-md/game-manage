@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
+import { displayBeijing, monthDay } from '../time.js'
 import { getMatchDetail } from '../api.js'
 import MatchDetailPanel from './MatchDetailPanel.vue'
 
@@ -10,18 +11,12 @@ const props = defineProps({
 
 function toLocal(value) {
   if (!value) return null
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleString()
+  return displayBeijing(value)
 }
 
 // start_at 仅显示月-日
 function fmtMonthDay(value) {
-  if (!value) return ''
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return ''
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${mm}-${dd}`
+  return monthDay(value)
 }
 
 function fmtDuration(seconds) {
@@ -59,12 +54,16 @@ const expandedId = ref(null)
 const detail = ref(null)
 const detailLoading = ref(false)
 const detailError = ref('')
+let detailGeneration = 0
+onBeforeUnmount(() => { detailGeneration += 1 })
 
 async function toggleDetail(row) {
+  const request = ++detailGeneration
   if (expandedId.value === row.match_id) {
     expandedId.value = null
     detail.value = null
     detailError.value = ''
+    detailLoading.value = false
     return
   }
   expandedId.value = row.match_id
@@ -73,15 +72,16 @@ async function toggleDetail(row) {
   detailLoading.value = true
   try {
     const data = await getMatchDetail(props.gameId, row.match_id)
+    if (request !== detailGeneration) return
     if (data?.error) {
       detailError.value = data.error
     } else {
       detail.value = data?.payload ?? null
     }
   } catch (e) {
-    detailError.value = e?.message || '请求异常'
+    if (request === detailGeneration) detailError.value = e?.message || '请求异常'
   } finally {
-    detailLoading.value = false
+    if (request === detailGeneration) detailLoading.value = false
   }
 }
 </script>

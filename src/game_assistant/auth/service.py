@@ -23,10 +23,11 @@ FIELDS = {
 
 
 class LoginError(Exception):
-    def __init__(self, message, status=400):
+    def __init__(self, message, status=400, error_kind=None):
         super().__init__(message)
         self.message = message
         self.status = status
+        self.error_kind = error_kind
 
 
 class LoginService:
@@ -229,7 +230,9 @@ class LoginService:
         except AuthError as error:
             if error.code in (220, 401, 402, 403, 10900, 10901, 10903):
                 self._errors[game] = '登录已失效，请重新登录'
-            raise LoginError(error.message) from None
+            kind = ('auth_expired' if error.code in (220, 401, 402, 403, 10900, 10901, 10903)
+                    else 'source_error')
+            raise LoginError(error.message, error_kind=kind) from None
         except LoginError:
             raise
         except Exception:
@@ -249,16 +252,25 @@ class LoginService:
                     await self._renew(game)
                     renewed = True
                 result = await action()
-                invalid = result.error_code in ((10900, 10901, 10903) if game == GAMES[0] else (401, 402, 403))
+                if game == GAMES[0]:
+                    # RoleBox uses a renewable b-at ticket. Base account/widget
+                    # HTTP auth errors concern the login token and require login.
+                    rolebox = capability in (Capability.ROLES, Capability.EXPLORATION, Capability.CALABASH)
+                    invalid = result.error_code in (10900, 10901, 10903) or (
+                        rolebox and result.error_code in (401, 403))
+                else:
+                    invalid = result.error_code in (401, 402, 403)
                 can_renew = bool(account.get('token') and account.get('role_id')) if game == GAMES[0] else bool(account.get('refresh_token'))
                 if not result.ok and invalid and can_renew and not renewed:
                     await self._renew(game)
                     result = await action()
                 if not result.ok and result.error_code in (220, 401, 402, 403, 10900, 10901, 10903):
                     self._errors[game] = '登录已失效，请重新登录'
+                    result.error_kind = 'auth_expired'
                 elif result.ok:
                     self._errors.pop(game, None)
                 result.credential_version = self.version(game)
                 return result
             except LoginError as error:
-                return FetchResult(ok=False, error=error.message, credential_version=self.version(game))
+                return FetchResult(ok=False, error=error.message, error_kind=error.error_kind or 'source_error',
+                                   credential_version=self.version(game))

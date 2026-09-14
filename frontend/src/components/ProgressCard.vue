@@ -1,4 +1,5 @@
 <script setup>
+import { displayBeijing, resetLabel } from '../time.js'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -7,19 +8,12 @@ const props = defineProps({
 
 function toLocal(value) {
   if (!value) return null
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleString()
+  return displayBeijing(value)
 }
 
 // refresh_at 重置提示：负数=已可重置，同日=今日重置，否则 X天后重置
 function refreshText(value) {
-  if (!value) return null
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return null
-  const days = Math.ceil((d.getTime() - Date.now()) / 86400000)
-  if (days < 0) return '已可重置'
-  if (days === 0) return '今日重置'
-  return `${days}天后重置`
+  return resetLabel(value)
 }
 
 const rows = computed(() => {

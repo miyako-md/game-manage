@@ -49,7 +49,17 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
 
     @app.get("/api/health")
     async def health() -> dict:
-        return {"status": "ok"}
+        return {"status": "ok", "service": "game-assistant"}
+
+    def poll_status(game_id: str, capability: str, snap=None) -> dict:
+        observed_at = datetime.now(timezone.utc).isoformat()
+        stored = app.state.store.get_poll_status(game_id, capability)
+        if stored is not None:
+            return {**stored, "observed_at": observed_at}
+        snap = snap or app.state.store.get(game_id, capability)
+        return {"game_id": game_id, "capability": capability, "state": "never",
+                "last_attempt_at": None, "last_success_at": snap["fetched_at"] if snap else None,
+                "consecutive_failures": 0, "error": None, "error_kind": None, "observed_at": observed_at}
 
     @app.get("/api/games")
     async def games() -> list[dict]:
@@ -67,9 +77,11 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         except KeyError:
             raise HTTPException(status_code=404, detail="未注册的游戏")
         snap = app.state.store.get(game_id, capability)
+        source_status = poll_status(game_id, capability, snap)
         if snap is None:
             return {"game_id": game_id, "capability": capability,
-                    "payload": None, "fetched_at": None, "stale": False}
+                    "payload": None, "fetched_at": None, "stale": False,
+                    "poll_status": source_status}
         try:
             interval = interval_for(Capability(capability), settings)
         except (KeyError, ValueError):
@@ -78,14 +90,18 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         return {"game_id": game_id, "capability": capability,
                 "payload": json.loads(snap["payload"]),
                 "fetched_at": snap["fetched_at"],
-                "stale": _stale(snap["fetched_at"], interval)}
+                "stale": _stale(snap["fetched_at"], interval) or source_status["state"] in ("error", "auth_expired"),
+                "poll_status": source_status}
 
     @app.get("/api/status")
     async def status() -> dict:
         notifier = app.state.notifier
         enabled = bool(notifier and getattr(notifier, "send_key", "") )
         provider = getattr(notifier, "provider", None)
-        return {"notify": {"enabled": enabled, "provider": provider}}
+        return {"notify": {"enabled": enabled, "provider": provider},
+                "collection": [poll_status(adapter.game_id, cap.value)
+                               for adapter in app.state.registry.all()
+                               for cap in adapter.capabilities]}
 
     if scheduler is None and start_scheduler:
         # 默认路径：notifier → 提醒引擎 → 调度器（引擎随每轮轮询评估提醒规则）
@@ -131,9 +147,12 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
                 r = await app.state.scheduler.poll_once(game_id, cap)
             else:
                 r = await adapter.fetch(cap)
-            results[cap.value] = {"ok": r.ok, "error": r.error}
+            results[cap.value] = {"ok": r.ok, "error": r.error, "error_kind": r.error_kind}
         return {"results": results}
 
     app.router.lifespan_context = lifespan
+
+    from game_assistant.web_ui import install_web_ui
+    install_web_ui(app)
 
     return app
