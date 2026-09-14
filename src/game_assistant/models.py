@@ -181,3 +181,5 @@ class FetchResult(BaseModel):
     ok: bool
     payload: Any = None
     error: str | None = None
+    error_code: int | None = None
+    credential_version: int | None = None

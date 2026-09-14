@@ -51,14 +51,15 @@ class NteAdapter(BaseGameAdapter):
         s = self._settings
         if not (s.nte_access_token or s.nte_refresh_token):
             raise TajiduoError("未配置塔吉多凭据")
-        return TajiduoClient(s.nte_access_token, s.nte_refresh_token)
+        return TajiduoClient(s.nte_access_token, s.nte_refresh_token,
+                             device_id=s.nte_device_id or None)
 
     async def _guarded_run(self, run) -> FetchResult:
         """run 是零参协程工厂；统一处理未配置凭据与客户端/解析错误。"""
         try:
             return await run()
         except TajiduoError as e:
-            return FetchResult(ok=False, error=e.message)
+            return FetchResult(ok=False, error=e.message, error_code=e.status_code)
         except Exception as e:
             # 解析器异常不得穿透 fetch 破坏失效隔离
             logger.exception("异环数据处理异常")
@@ -116,6 +117,8 @@ class NteAdapter(BaseGameAdapter):
 
     async def _first_role_id(self, client: TajiduoClient) -> str:
         """getGameRoles 取首个绑定角色 roleId（防御式提取，Phase 2 校准）。"""
+        if self._settings.nte_role_id:
+            return self._settings.nte_role_id
         raw = await client.get_game_roles()
         role_id = tajiduo.find_first(raw, ("roleId", "role_id"))
         if not role_id:

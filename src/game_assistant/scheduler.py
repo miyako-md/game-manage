@@ -68,6 +68,9 @@ class PollingScheduler:
     async def poll_once(self, game_id: str, capability: Capability) -> FetchResult:
         adapter = self.registry.get(game_id)
         result = await adapter.fetch(capability)
+        auth = getattr(adapter, '_auth', None)
+        if auth and result.credential_version is not None and result.credential_version != auth.version(game_id):
+            return FetchResult(ok=False, error='账号已切换，请重新刷新')
         if result.ok:
             self.store.save(game_id, capability.value, _serialize(result.payload))
         else:

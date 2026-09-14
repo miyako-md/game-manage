@@ -32,7 +32,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
         self._settings = settings
         if settings.wuwa_token and settings.wuwa_user_id:
             self.credentials_configured = True
-            self._client = KuroClient(settings.wuwa_token, settings.wuwa_user_id)
+            self._client = KuroClient(settings.wuwa_token, settings.wuwa_user_id, did=settings.wuwa_did)
         else:
             self.credentials_configured = False
 
@@ -50,9 +50,9 @@ class WutheringWavesAdapter(BaseGameAdapter):
         try:
             return await run()
         except RoleBoxError as e:
-            return FetchResult(ok=False, error=e.message)
+            return FetchResult(ok=False, error=e.message, error_code=e.code)
         except KuroError as e:
-            return FetchResult(ok=False, error=f"库街区接口错误: {e.message}")
+            return FetchResult(ok=False, error=f"库街区接口错误: {e.message}", error_code=e.code)
         except Exception as e:
             # 解析器异常不得穿透 fetch 破坏失效隔离（spec §6）
             logger.exception("鸣潮数据处理异常")
@@ -60,6 +60,8 @@ class WutheringWavesAdapter(BaseGameAdapter):
 
     async def _get_role_ids(self) -> tuple[str, str]:
         """role_list 取默认角色 roleId/serverId（roleBox 与 widget 共用）。"""
+        if self._settings.wuwa_role_id and self._settings.wuwa_server_id:
+            return self._settings.wuwa_role_id, self._settings.wuwa_server_id
         raw_role = await self._client.role_list()
         role_row = ((raw_role.get("data") or [{}])[0]) or {}
         role_id = role_row.get("roleId")
@@ -83,6 +85,11 @@ class WutheringWavesAdapter(BaseGameAdapter):
     async def fetch_account(self) -> FetchResult:
         async def run():
             raw = await self._client.role_list()
+            if self._settings.wuwa_role_id:
+                rows = [r for r in raw.get('data', []) if str(r.get('roleId')) == self._settings.wuwa_role_id]
+                if not rows:
+                    raise KuroError(-3, '已登录角色不再绑定，请重新登录')
+                raw = {**raw, 'data': rows}
             return FetchResult(ok=True, payload=role.parse_role_list(raw))
         return await self._guarded_run(run)
 

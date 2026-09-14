@@ -21,8 +21,14 @@ def _stale(fetched_at: str, interval_seconds: int) -> bool:
 
 def create_app(registry=None, store=None, scheduler=None, notifier=None,
                settings: Settings | None = None,
-               start_scheduler: bool = True) -> FastAPI:
+               start_scheduler: bool = True, auth_service=None) -> FastAPI:
     settings = settings or Settings.load()
+    if auth_service is None:
+        from pathlib import Path
+        from game_assistant.auth.service import LoginService
+        from game_assistant.auth.store import CredentialStore
+        auth_path = settings.auth_store_path or str(Path(settings.db_path).with_suffix('.credentials.json'))
+        auth_service = LoginService(settings, CredentialStore(auth_path))
     app = FastAPI(title="Game Assistant")
     app.state.settings = settings
     app.state.registry = registry if registry is not None else build_default_registry(settings)
@@ -31,6 +37,10 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         Path(settings.db_path).parent.mkdir(parents=True, exist_ok=True)
         store = SnapshotStore(settings.db_path)
     app.state.store = store
+    app.state.auth = auth_service
+    auth_service.attach(app.state.registry, store)
+    from game_assistant.auth.routes import install_auth_routes
+    install_auth_routes(app, auth_service, settings)
     app.state.scheduler = scheduler
     # main.py 走默认路径时不传 notifier：在此统一解析，保证 state 与 scheduler
     # 持同一 notifier 实例，/api/status 不会恒报"未配置"

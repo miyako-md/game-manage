@@ -13,14 +13,15 @@ class KuroError(Exception):
 
 
 class KuroClient:
-    def __init__(self, token: str, user_id: str):
+    def __init__(self, token: str, user_id: str, did: str = ''):
         self.token = token
         self.user_id = user_id
+        self.did = did
 
     def _headers(self) -> dict:
         return {
             "token": self.token,
-            "devCode": "9asdpjhjklgfhjko90876532134",  # 库街区 APP 固定 devCode 样例
+            "devCode": self.did or "9asdpjhjklgfhjko90876532134",  # legacy config fallback
             "version": "3.0.0",
             "countryCode": "CN",
             "source": "h5",

@@ -111,7 +111,8 @@ async def test_invalid_ticket_maps_to_recapture_hint():
     async with _client() as client:
         with pytest.raises(RoleBoxError) as ei:
             await client.base_data(ROLE_ID, SERVER_ID)
-    assert ei.value.message == "b-at 已失效或角色不可见，请按 README 重新抓包"
+    assert ei.value.message == "b-at 已失效或角色不可见，请在账号管理重新登录"
+    assert ei.value.code == 10901
 
 
 @respx.mock
@@ -121,7 +122,8 @@ async def test_role_query_failure_maps_to_recapture_hint():
     async with _client() as client:
         with pytest.raises(RoleBoxError) as ei:
             await client.explore_index(ROLE_ID, SERVER_ID)
-    assert "重新抓包" in ei.value.message
+    assert "重新登录" in ei.value.message
+    assert ei.value.code == 10900
 
 
 @respx.mock

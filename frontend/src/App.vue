@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { getGames, getStatus } from './api.js'
 import StatusChip from './components/StatusChip.vue'
 import SectionTabs from './components/SectionTabs.vue'
 import GameCard from './components/GameCard.vue'
+import LoginPanel from './components/LoginPanel.vue'
 
 const SECTIONS = ['pc', 'mobile']
 
@@ -11,6 +12,7 @@ const games = ref([])
 const notify = ref(null)
 const loadError = ref('')
 const activeSection = ref('pc')
+const accountRevisions = ref({})
 
 const cardEls = new Map()
 let timer = null
@@ -26,6 +28,20 @@ function setCardRef(el, gameId) {
 
 function pullSnapshots() {
   cardEls.forEach((card) => card.loadSnapshots && card.loadSnapshots())
+}
+
+async function onAccountChanged({ game }) {
+  // Remount the affected card so a previous account's in-flight snapshots cannot reappear.
+  accountRevisions.value = { ...accountRevisions.value, [game]: (accountRevisions.value[game] || 0) + 1 }
+  try {
+    const data = await getGames()
+    games.value = Array.isArray(data) ? data : []
+    loadError.value = ''
+    await nextTick()
+    pullSnapshots()
+  } catch {
+    loadError.value = '账号授权已更新，游戏列表刷新失败，请稍后刷新页面。'
+  }
 }
 
 onMounted(async () => {
@@ -61,6 +77,7 @@ onBeforeUnmount(() => {
     </header>
 
     <main class="content">
+      <LoginPanel @account-changed="onAccountChanged" />
       <p v-if="loadError" class="page-hint">{{ loadError }}</p>
 
       <p v-else-if="games.length === 0" class="page-hint">暂无已接入游戏</p>
@@ -70,7 +87,7 @@ onBeforeUnmount(() => {
         <div class="card-grid">
           <GameCard
             v-for="g in activeGames"
-            :key="g.game_id"
+            :key="`${g.game_id}:${accountRevisions[g.game_id] || 0}`"
             :ref="(el) => setCardRef(el, g.game_id)"
             :game="g"
           />

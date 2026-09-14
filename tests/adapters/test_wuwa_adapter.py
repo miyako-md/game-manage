@@ -351,7 +351,8 @@ async def test_rolebox_invalid_ticket_reports_recapture_hint():
     a = _rolebox_configured()
     r = await a.fetch(Capability.EXPLORATION)
     assert r.ok is False
-    assert "b-at 已失效或角色不可见，请按 README 重新抓包" in r.error
+    assert "b-at 已失效或角色不可见，请在账号管理重新登录" in r.error
+    assert r.error_code == 10901
 
 
 @respx.mock

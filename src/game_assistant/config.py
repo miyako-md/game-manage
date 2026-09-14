@@ -29,12 +29,21 @@ class Settings(BaseSettings):
     wuwa_b_at: str = ""
     wuwa_dev_code: str = ""
     wuwa_did: str = ""
+    wuwa_role_id: str = ""
+    wuwa_server_id: str = ""
     lol_enabled: bool = True
     # 异环（塔吉多社区 bbs.tajiduo.com）凭据，抓取教程见 README；
     # 留空 = 仅官方公告可用（公告为匿名接口，无需凭据）
     nte_enabled: bool = True
     nte_access_token: str = ""
     nte_refresh_token: str = ""
+    nte_device_id: str = ""
+    nte_role_id: str = ""
+    auth_store_path: str = ""  # empty: adjacent to db_path, *.credentials.json
+    auth_allowed_origins: list[str] = [
+        "http://127.0.0.1:8010", "http://localhost:8010",
+        "http://127.0.0.1:5173", "http://localhost:5173",
+    ]
     # 异环活动日历手填（可靠主路径）：TOML 数组表 [[nte_events]]，每项
     # name/category/start/end；start/end 为 "YYYY-MM-DD HH:MM"（服务器时间
     # UTC+8）。示例见 config.example.toml；非空时优先于版本公告自动扫描。

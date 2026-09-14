@@ -28,6 +28,9 @@ class BaseGameAdapter(ABC):
             Capability.GACHA: self.fetch_gacha,
             Capability.RECORD: self.fetch_record,
         }[capability]
+        auth = getattr(self, '_auth', None)
+        if auth:
+            return await auth.fetch(self.game_id, capability, method)
         return await method()
 
     async def fetch_account(self) -> FetchResult:

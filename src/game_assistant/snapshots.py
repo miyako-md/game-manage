@@ -39,3 +39,11 @@ class SnapshotStore:
                 (game_id, capability),
             ).fetchone()
         return {"payload": row[0], "fetched_at": row[1]} if row else None
+
+    def clear_private(self, game_id: str) -> None:
+        """Account switching must never display the previous account's data."""
+        with self._lock:
+            self._conn.execute(
+                "DELETE FROM snapshots WHERE game_id = ? AND capability NOT IN ('announcement','events','news')",
+                (game_id,))
+            self._conn.commit()
