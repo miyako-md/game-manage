@@ -7,6 +7,7 @@ import CalabashCard from './CalabashCard.vue'
 import ExplorationCard from './ExplorationCard.vue'
 import EventsCalendarCard from './EventsCalendarCard.vue'
 import MatchList from './MatchList.vue'
+import NteDataCard from './NteDataCard.vue'
 import ProgressCard from './ProgressCard.vue'
 import RoleWallCard from './RoleWallCard.vue'
 import StaminaCard from './StaminaCard.vue'
@@ -36,6 +37,7 @@ const refreshError = ref('')
 let errorTimer = null
 
 function capComponent(cap) {
+  if (props.game.game_id === 'nte' && ['account', 'stamina', 'roles', 'progress', 'exploration', 'gacha', 'record'].includes(cap)) return NteDataCard
   return CAP_COMPONENTS[cap] || null
 }
 
@@ -122,6 +124,7 @@ defineExpose({ loadSnapshots })
           v-if="capComponent(cap)"
           :snap="snaps[cap]"
           :game-id="game.game_id"
+          :capability="cap"
         />
         <div v-else class="cap-card cap-coming">敬请期待</div>
       </template>

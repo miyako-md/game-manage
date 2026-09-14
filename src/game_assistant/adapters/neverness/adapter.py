@@ -1,21 +1,13 @@
-"""异环（NTE）适配器：塔吉多社区官方公告 + 需凭据的账号数据（Phase 1）。
-
-结构照鸣潮/英雄联盟适配器的 _guarded_run 模式（客户端错误暴露 message，
-catch-all 兜底防解析异常穿透破坏失效隔离）。
-
-Phase 1 边界：
-- 官方公告与活动日历走匿名 Web 客户端，无需凭据；活动日历为版本公告正文
-  解析（event_calendar 行级扫描，真实版本公告格式待下个版本公告出现后联调
-  校准——2026-09-13 官方栏目无版本更新公告在榜）；
-- 角色/进度/抽卡/战绩四能力需塔吉多凭据（access_token 或 refresh_token 任一），
-  当前直接透传原始 dict payload，解析器等真实响应校准后 Phase 2 补充；
-- 无体力接口（参考项目同样如此），故无 STAMINA 能力。
-"""
+"""异环账号数据标准化；公开公告/活动与私人角色数据隔离。"""
 import logging
+import json
+import time
+from datetime import datetime, timezone
 
 from game_assistant import event_calendar
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.neverness import tajiduo
+from game_assistant.adapters.neverness import parse
 from game_assistant.adapters.neverness.tajiduo_client import (
     TajiduoClient, TajiduoError, TajiduoWebClient,
 )
@@ -35,14 +27,15 @@ class NteAdapter(BaseGameAdapter):
     game_id = "nte"
     display_name = "异环"
     section = "mobile"
-    capabilities = [Capability.ANNOUNCEMENT, Capability.EVENTS,
-                    Capability.ROLES,
-                    Capability.PROGRESS, Capability.GACHA, Capability.RECORD]
+    capabilities = [Capability.ACCOUNT, Capability.STAMINA, Capability.ROLES,
+                    Capability.PROGRESS, Capability.EXPLORATION, Capability.GACHA,
+                    Capability.RECORD, Capability.EVENTS, Capability.ANNOUNCEMENT]
 
     def __init__(self, settings: Settings):
         self._settings = settings
-        # access/refresh 任一即可（只有 access 也能查询，过期后重新抓取；
-        # refresh_session 换新对属 Phase 2 联调范围）
+        self._home_cache = None
+        self._characters_cache = None
+        # access/refresh 任一即可；登录服务负责令牌续期和原请求单次重试。
         self.credentials_configured = bool(
             settings.nte_access_token or settings.nte_refresh_token)
 
@@ -60,6 +53,8 @@ class NteAdapter(BaseGameAdapter):
             return await run()
         except TajiduoError as e:
             return FetchResult(ok=False, error=e.message, error_code=e.status_code)
+        except ValueError:
+            return FetchResult(ok=False, error='塔吉多数据格式已变化或角色不匹配，保留上次成功数据')
         except Exception as e:
             # 解析器异常不得穿透 fetch 破坏失效隔离
             logger.exception("异环数据处理异常")
@@ -116,52 +111,119 @@ class NteAdapter(BaseGameAdapter):
         return await self._guarded_run(run)
 
     async def _first_role_id(self, client: TajiduoClient) -> str:
-        """getGameRoles 取首个绑定角色 roleId（防御式提取，Phase 2 校准）。"""
+        """使用登录选中的角色；旧配置仅在绑定角色列表范围内查找。"""
         if self._settings.nte_role_id:
             return self._settings.nte_role_id
         raw = await client.get_game_roles()
-        role_id = tajiduo.find_first(raw, ("roleId", "role_id"))
-        if not role_id:
-            raise TajiduoError("未找到绑定的异环角色")
-        return str(role_id)
+        data = self._data(raw)
+        rows = data.get('roles', data.get('list', [])) if isinstance(data, dict) else data
+        if isinstance(rows, list):
+            for row in rows:
+                if not isinstance(row, dict) or str(row.get('gameId', '1289')) != '1289':
+                    continue
+                role_id = str(row.get('roleId') or '')
+                if role_id and role_id != '0':
+                    return role_id
+        raise TajiduoError("未找到绑定的异环角色")
+
+    @staticmethod
+    def _data(raw):
+        data = raw.get('data')
+        return json.loads(data) if isinstance(data, str) else data
+
+    async def _home(self, client, role_id):
+        key = (self._settings.nte_access_token, role_id)
+        if self._home_cache and self._home_cache[0] == key and self._home_cache[1] > time.monotonic():
+            return self._home_cache[2], self._home_cache[3]
+        raw = await client.get_role_home(role_id)
+        parse.parse_account(raw, expected_role_id=role_id)
+        fetched = datetime.now(timezone.utc)
+        self._home_cache = (key, time.monotonic() + 30, raw, fetched)
+        return raw, fetched
+
+    async def _characters(self, client, role_id):
+        key = (self._settings.nte_access_token, role_id)
+        if self._characters_cache and self._characters_cache[0] == key and self._characters_cache[1] > time.monotonic():
+            return self._characters_cache[2]
+        raw = await client.get_role_characters(role_id)
+        parse.parse_roles(raw)
+        self._characters_cache = (key, time.monotonic() + 30, raw)
+        return raw
+
+    async def fetch_account(self) -> FetchResult:
+        async def run():
+            async with self._require_client() as client:
+                role_id = await self._first_role_id(client)
+                raw, _ = await self._home(client, role_id)
+            return FetchResult(ok=True, payload=parse.parse_account(raw, expected_role_id=role_id))
+        return await self._guarded_run(run)
+
+    async def fetch_stamina(self) -> FetchResult:
+        async def run():
+            async with self._require_client() as client:
+                role_id = await self._first_role_id(client)
+                raw, fetched = await self._home(client, role_id)
+            return FetchResult(ok=True, payload=parse.parse_stamina(raw, fetched, expected_role_id=role_id))
+        return await self._guarded_run(run)
+
+    async def fetch_exploration(self) -> FetchResult:
+        async def run():
+            async with self._require_client() as client:
+                role_id = await self._first_role_id(client)
+                raw = await client.get_role_area_progress(role_id)
+            return FetchResult(ok=True, payload=parse.parse_exploration(raw))
+        return await self._guarded_run(run)
 
     async def fetch_roles(self) -> FetchResult:
         async def run():
-            # 角色面板：getGameRoles 取 roleId → yh/characters 角色列表
-            # （原始 dict payload，Phase 2 校准解析为练度墙）
             async with self._require_client() as client:
                 role_id = await self._first_role_id(client)
-                raw = await client.get_role_characters(role_id)
-            return FetchResult(ok=True, payload=raw)
+                raw = await self._characters(client, role_id)
+            return FetchResult(ok=True, payload=parse.parse_roles(raw))
         return await self._guarded_run(run)
 
     async def fetch_progress(self) -> FetchResult:
         async def run():
-            # 进度：getGameRoles 取 roleId → yh/achieveProgress 成就进度
-            # （ProgressCard 语义最接近；areaProgress/realestate/vehicles
-            # 挂哪张卡待 Phase 2 按真实响应决定）
             async with self._require_client() as client:
                 role_id = await self._first_role_id(client)
                 raw = await client.get_role_achievement_progress(role_id)
-            return FetchResult(ok=True, payload=raw)
+            return FetchResult(ok=True, payload=parse.parse_progress(raw))
         return await self._guarded_run(run)
 
     async def fetch_gacha(self) -> FetchResult:
         async def run():
-            # 抽卡记录：yh/gacha（参考项目调用未见 roleId 参数）
             async with self._require_client() as client:
+                role_id = await self._first_role_id(client)
                 raw = await client.get_gacha_summary()
-            return FetchResult(ok=True, payload=raw)
+                names = {}
+                try:
+                    characters = self._data(await self._characters(client, role_id))
+                    for character in characters:
+                        names[str(character['id'])] = str(character['name'])
+                        weapon = character.get('fork')
+                        if isinstance(weapon, dict) and weapon.get('id') and weapon.get('name'):
+                            names[str(weapon['id'])] = str(weapon['name'])
+                except TajiduoError as error:
+                    if error.status_code in (401, 402, 403):
+                        raise  # 交给登录生命周期刷新并重试，不能把失效标成成功。
+                    logger.info('异环抽卡物品名称暂不可用，使用物品 ID')
+                except (ValueError, KeyError, TypeError):
+                    # 名称不可用不影响抽卡统计；以原始 ID 明确标识未命中的物品。
+                    logger.info('异环抽卡物品名称暂不可用，使用物品 ID')
+            return FetchResult(ok=True, payload=parse.parse_gacha(raw, names=names, expected_role_id=role_id))
         return await self._guarded_run(run)
 
     async def fetch_record(self) -> FetchResult:
         async def run():
-            # 战绩卡：getUserFullInfo 取 uid → getGameRecordCard
+            # 社区名片：用户中心 UID 与游戏 roleId 不同；只读取已知 user 字段。
             async with self._require_client() as client:
+                role_id = await self._first_role_id(client)
                 info = await client.get_user_full_info()
-                uid = tajiduo.find_first(info, ("uid", "gameUid", "userUid"))
+                data = self._data(info)
+                user = data.get('user', data) if isinstance(data, dict) else {}
+                uid = user.get('uid') if isinstance(user, dict) else None
                 if not uid:
                     raise TajiduoError("未找到游戏 uid")
                 raw = await client.get_game_record_card(str(uid))
-            return FetchResult(ok=True, payload=raw)
+            return FetchResult(ok=True, payload=parse.parse_record(raw, expected_role_id=role_id))
         return await self._guarded_run(run)

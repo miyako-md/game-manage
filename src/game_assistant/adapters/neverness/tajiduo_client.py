@@ -1,8 +1,7 @@
 """塔吉多社区（bbs-api.tajiduo.com）HTTP 客户端。
 
 API 事实来源：参考项目 github.com/tyql688/NTEUID 公开源码（逐字引用，
-见 endpoints.py 文件头注释）。Phase 1 为离线实现（respx 单测），Phase 2
-以真实响应校准响应形状与成功码约定。
+见 endpoints.py 文件头注释）。2026-09-14 已完成实际登录态的数据查询校准。
 
 两个客户端（参考 LoLNewsClient 生命周期模式：实例持有 AsyncClient，
 aclose / async with 收尾；适配器每次拉取新建）：

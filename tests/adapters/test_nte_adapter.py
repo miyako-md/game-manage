@@ -1,9 +1,8 @@
-"""NteAdapter 组装测试（respx 离线）。
+"""NteAdapter 标准化数据组装测试（respx 离线）。
 
 公告走匿名 Web 客户端（社区列表定位"官方资讯"栏目 → 栏目帖列表，
 fixture 为 2026-09-13 匿名实测校准的形状，见 endpoints.py ⑥'）；
-角色/进度/抽卡/战绩需塔吉多凭据，Phase 1 透传原始 dict payload
-（解析器等真实响应校准后 Phase 2 补充）。
+角色/成就/抽卡/社区名片使用塔吉多凭据，成功返回版本化 Pydantic 数据。
 """
 import httpx
 import respx
@@ -70,11 +69,13 @@ EVENTS_POST_FULL_RAW = {"code": 0, "msg": "ok", "ok": True, "data": {"post": {
 ROLES_RAW = {"code": 0, "data": {"list": [
     {"roleId": "77", "serverName": "异环一区", "level": 60},
 ]}}
-CHARACTERS_RAW = {"code": 0, "data": {"list": [{"name": "角色甲", "level": 80}]}}
-ACHIEVE_RAW = {"code": 0, "data": {"achieveNum": 120, "achieveTotal": 300}}
-GACHA_RAW = {"code": 0, "data": {"list": [{"gachaId": "g1", "count": 42}]}}
+CHARACTERS_RAW = {"code": 0, "data": [{"id": "1019", "name": "角色甲", "alev": 80}]}
+ACHIEVE_RAW = {"code": 0, "data": {"achievementCnt": 120, "total": 300, "detail": []}}
+GACHA_RAW = {"code": 0, "data": {"gachaDetails": [{"tab": "限定卡池", "drawCount": 42,
+                                                   "rareCount": 1, "details": []}]}}
 FULL_INFO_RAW = {"code": 0, "data": {"uid": "900001", "nickname": "玩家"}}
-RECORD_RAW = {"code": 0, "data": {"uid": "900001", "hasRole": True}}
+RECORD_RAW = {"code": 0, "data": [{"gameId": 1289, "gameName": "异环",
+                                  "bindRoleInfo": {"roleId": "77", "roleName": "玩家", "lev": 40}}]}
 
 
 def _configured():
@@ -229,7 +230,7 @@ async def test_fetch_events_manual_bad_entries_skipped_no_fallback():
 
 
 @respx.mock
-async def test_fetch_roles_returns_raw_payload():
+async def test_fetch_roles_returns_normalized_payload():
     respx.get(f"{BASE}/usercenter/api/v2/getGameRoles").mock(
         return_value=httpx.Response(200, json=ROLES_RAW))
     route = respx.get(f"{BASE}/apihub/awapi/yh/characters").mock(
@@ -238,7 +239,8 @@ async def test_fetch_roles_returns_raw_payload():
     assert a.credentials_configured is True
     r = await a.fetch(Capability.ROLES)
     assert r.ok is True
-    assert r.payload == CHARACTERS_RAW  # Phase 1：原始 dict payload
+    assert r.payload.entries[0].name == '角色甲'
+    assert r.payload.entries[0].level == 80
     req = route.calls.last.request
     assert req.headers["authorization"] == "acc"
     assert "ds" in req.headers
@@ -263,23 +265,29 @@ async def test_fetch_progress_ok():
     a = _configured()
     r = await a.fetch(Capability.PROGRESS)
     assert r.ok is True
-    assert r.payload == ACHIEVE_RAW
+    assert r.payload.completed == 120 and r.payload.total == 300
     assert route.calls.last.request.url.params["roleId"] == "77"
 
 
 @respx.mock
 async def test_fetch_gacha_ok():
+    respx.get(f"{BASE}/usercenter/api/v2/getGameRoles").mock(
+        return_value=httpx.Response(200, json=ROLES_RAW))
+    respx.get(f"{BASE}/apihub/awapi/yh/characters").mock(
+        return_value=httpx.Response(200, json=CHARACTERS_RAW))
     route = respx.get(f"{BASE}/apihub/awapi/yh/gacha").mock(
         return_value=httpx.Response(200, json=GACHA_RAW))
     a = _configured()
     r = await a.fetch(Capability.GACHA)
     assert r.ok is True
-    assert r.payload == GACHA_RAW
+    assert r.payload.total_draws == 42 and r.payload.total_s == 1
     assert route.calls.last.request.headers["authorization"] == "acc"
 
 
 @respx.mock
 async def test_fetch_record_ok():
+    respx.get(f"{BASE}/usercenter/api/v2/getGameRoles").mock(
+        return_value=httpx.Response(200, json=ROLES_RAW))
     respx.get(f"{BASE}/usercenter/api/getUserFullInfo").mock(
         return_value=httpx.Response(200, json=FULL_INFO_RAW))
     route = respx.get(f"{BASE}/apihub/api/getGameRecordCard").mock(
@@ -287,7 +295,7 @@ async def test_fetch_record_ok():
     a = _configured()
     r = await a.fetch(Capability.RECORD)
     assert r.ok is True
-    assert r.payload == RECORD_RAW
+    assert r.payload.cards[0].nickname == '玩家'
     assert route.calls.last.request.url.params["uid"] == "900001"
 
 
@@ -323,9 +331,9 @@ def test_registry_includes_nte():
                                           nte_enabled=True))
     adapter = reg.get("nte")
     assert adapter.display_name == "异环" and adapter.section == "mobile"
-    assert adapter.capabilities == [Capability.ANNOUNCEMENT, Capability.EVENTS,
-                                    Capability.ROLES, Capability.PROGRESS,
-                                    Capability.GACHA, Capability.RECORD]
+    assert adapter.capabilities == [Capability.ACCOUNT, Capability.STAMINA,
+                                    Capability.ROLES, Capability.PROGRESS, Capability.EXPLORATION,
+                                    Capability.GACHA, Capability.RECORD, Capability.EVENTS, Capability.ANNOUNCEMENT]
 
 
 def test_registry_nte_disabled_skips_registration():

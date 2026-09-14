@@ -42,7 +42,7 @@ async def test_legacy_nte_refresh_only_acquires_stable_device_and_persists(tmp_p
     roles = respx.get('https://bbs-api.tajiduo.com/usercenter/api/v2/getGameRoles').mock(
         return_value=httpx.Response(200, json={'code': 0, 'data': {'roles': [{'roleId': '77'}]}}))
     characters = respx.get('https://bbs-api.tajiduo.com/apihub/awapi/yh/characters').mock(
-        return_value=httpx.Response(200, json={'code': 0, 'data': {'list': []}}))
+        return_value=httpx.Response(200, json={'code': 0, 'data': []}))
     result = await registry.get('nte').fetch(Capability.ROLES)
     assert result.ok
     assert settings.nte_device_id

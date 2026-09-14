@@ -3,8 +3,8 @@
 2026-09-13 匿名实测（见 endpoints.py ⑥'）：getAllCommunity 的 data 直接是
 社区数组，异环社区 id=2，"官方资讯"栏目 id=4；getOfficialPostList 返回
 data.posts，post 键 subject/createTime（毫秒）/postId（int）。
-需凭据端点（角色面板/进度/抽卡/战绩）的完整解析器等真实响应校准后在
-Phase 2 补充，当前适配器直接透传原始 dict payload。
+需凭据端点的版本化模型与解析器位于 data_models.py / parse.py，已于
+2026-09-14 使用实际响应校准；此模块只负责匿名公告及历史工具函数。
 
 解析函数对容器与键名仍做多级回退（data.list / data.posts / data /
 顶层 posts / list；subject/sTitle/title/postTitle 等），保留对上游改版的防御。

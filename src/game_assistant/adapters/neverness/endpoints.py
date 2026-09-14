@@ -1,6 +1,6 @@
-# 异环（NTE / Neverness to Endlessness）塔吉多社区接口端点。
+# 异环（NTE / Neverness to Everness）塔吉多社区接口端点。
 # API 事实全部取自参考项目 github.com/tyql688/NTEUID 公开源码（逐字引用），
-# Phase 1 为离线实现（respx 单测），尚未真实联调——Phase 2 以真实响应校准。
+# 2026-09-14 已以真实登录态校准私人数据结构，映射见 parse.py/data_models.py。
 # 已知事实（Phase 2 校准时以本文件头注释为准逐条核对）：
 # ① BASE=https://bbs-api.tajiduo.com；异环 gameId="1289"；塔吉多社区 id="2"。
 # ② DS 签名（每个鉴权请求）：时间戳 int(time.time()) + 8 位随机 nonce（字母数字），
@@ -35,8 +35,8 @@
 #    - /apihub/awapi/yh/realestate?roleId=<rid>
 #    - /apihub/awapi/yh/vehicles?roleId=<rid>
 #    - /apihub/awapi/yh/gacha
-# ⑧ 已知边界（参考项目同样如此）：无体力接口、无结构化活动日历，
-#    故异环无 STAMINA 能力（ACTIVITY 能力已全局删除）。
+# ⑧ roleHome 已包含 staminaValue/staminaMaxValue 与都市活力；无需独立体力端点。
+#    当前无结构化活动日历；沿用手填和公告扫描。
 BASE = "https://bbs-api.tajiduo.com"
 GAME_ID = "1289"
 COMMUNITY_ID = "2"
