@@ -13,10 +13,11 @@ class KuroError(Exception):
 
 
 class KuroClient:
-    def __init__(self, token: str, user_id: str, did: str = ''):
+    def __init__(self, token: str, user_id: str, did: str = '', source: str = 'h5'):
         self.token = token
         self.user_id = user_id
         self.did = did
+        self.source = source
 
     def _headers(self) -> dict:
         return {
@@ -24,7 +25,7 @@ class KuroClient:
             "devCode": self.did or "9asdpjhjklgfhjko90876532134",  # legacy config fallback
             "version": "3.0.0",
             "countryCode": "CN",
-            "source": "h5",
+            "source": self.source,
         }
 
     async def _post(self, url: str, body: dict) -> dict:

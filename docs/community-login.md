@@ -17,6 +17,8 @@
 
 鸣潮 token 和 roleBox 的 b-at 是不同凭据：短信登录取得 token 后，通过 `/aki/roleBox/requestToken` 换取 b-at；短期令牌失效时自动换取一次并重试。主登录 token 失效后需要重新短信登录。
 
+短信登录得到 APP 端 token，后续账号与小组件请求使用 `source=ios`；旧网页版 token 配置继续使用 `source=h5`。首版已保存的短信登录凭据会自动识别为 APP 来源，无需重新接收验证码。
+
 异环通过老虎短信登录换取塔吉多 access/refresh token。访问令牌会按本地 1 小时间隔或服务端拒绝时刷新，轮换后的令牌保存到本地。refresh token 失效后需要重新短信登录。旧配置中只有 refresh token 时也支持换取访问令牌。
 
 登录仅解决授权；异环角色、进度、抽卡、战绩的标准化展示仍属于 Phase 2，登录成功不意味着这些页面已完成。
@@ -43,3 +45,5 @@
 - NTEUID `ba7790e13e39f9a825090853498848b51a06c3c9`：[老虎 SDK](https://github.com/tyql688/NTEUID/blob/ba7790e13e39f9a825090853498848b51a06c3c9/NTEUID/utils/sdk/laohu.py)、[塔吉多 SDK](https://github.com/tyql688/NTEUID/blob/ba7790e13e39f9a825090853498848b51a06c3c9/NTEUID/utils/sdk/tajiduo.py)。
 
 自动化验证使用模拟 HTTP 和独立临时数据，不发送真实短信。完整在线验收需要用户在页面完成人工验证及输入真实短信验证码，然后检查账号、体力与 roleBox 数据；不得将模拟通过视为真实账号在线通过。
+
+2026-09-14 后续联调：用户完成鸣潮短信登录后，发现旧采集客户端固定 `source=h5` 导致账号/小组件返回 code 220。使用同一已保存凭据只修改为 `source=ios`，角色列表和小组件均返回 code 200。修复并重启后，鸣潮 8 项能力全部刷新成功，页面账号、体力和周期进度恢复；无需重发短信。异环真实短信登录仍待验证。

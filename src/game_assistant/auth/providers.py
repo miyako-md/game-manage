@@ -145,7 +145,7 @@ class WuwaLoginProvider:
                          and _text(role.get("serverId"))), None) if isinstance(roles, list) else None
         if not selected:
             raise AuthError("该账号未绑定鸣潮角色，请先在库街区绑定角色")
-        credentials = {"token": token, "did": context["did"], "dev_code": context["dev_code"],
+        credentials = {"token": token, "token_source": "ios", "did": context["did"], "dev_code": context["dev_code"],
                        "role_id": _required(selected, "roleId"), "server_id": _required(selected, "serverId"),
                        "user_id": _text(account.get("userId")) or _text(selected.get("userId")) or _required(selected, "roleId"),
                        "nickname": _text(selected.get("roleName"))}

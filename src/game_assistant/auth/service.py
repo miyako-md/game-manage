@@ -14,6 +14,7 @@ GAMES = ('wuthering_waves', 'nte')
 CAPTCHA_ID = 'ec4aa4174277d822d73f2442a165a2cd'
 FIELDS = {
     'wuthering_waves': {'token': 'wuwa_token', 'user_id': 'wuwa_user_id',
+        'token_source': 'wuwa_token_source',
         'b_at': 'wuwa_b_at', 'did': 'wuwa_did', 'dev_code': 'wuwa_dev_code',
         'role_id': 'wuwa_role_id', 'server_id': 'wuwa_server_id'},
     'nte': {'access_token': 'nte_access_token', 'refresh_token': 'nte_refresh_token',
@@ -53,6 +54,10 @@ class LoginService:
         for game in GAMES:
             self._accounts[game] = deepcopy(self._saved.get(game, {
                 key: getattr(settings, field, '') for key, field in FIELDS[game].items()}))
+            if game == 'wuthering_waves' and game in self._saved:
+                # Credentials written by the first SMS-login release had no source.
+                # sdkLogin returns an APP token; sending it as h5 yields code 220.
+                self._accounts[game].setdefault('token_source', 'ios')
             if game == 'nte' and not self._accounts[game].get('device_id') and any(
                     self._accounts[game].get(k) for k in ('access_token', 'refresh_token')):
                 self._accounts[game]['device_id'] = 'HT' + uuid.uuid4().hex[:14].upper()
@@ -83,7 +88,8 @@ class LoginService:
                     if game == 'wuthering_waves':
                         from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient
                         adapter._client = (KuroClient(self.settings.wuwa_token, self.settings.wuwa_user_id,
-                                                      did=self.settings.wuwa_did)
+                                                      did=self.settings.wuwa_did,
+                                                      source=self.settings.wuwa_token_source)
                                            if adapter.credentials_configured else None)
 
     def _configured(self, game):

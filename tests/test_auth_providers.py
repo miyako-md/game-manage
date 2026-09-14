@@ -72,7 +72,7 @@ async def test_wuwa_login_exchanges_token_for_selected_role_ticket():
     mock_wuwa_login()
     ticket = respx.post(KURO + "/aki/roleBox/requestToken").respond(200, json={"code": 200, "data": {"accessToken": "ticket"}})
     credentials = await WuwaLoginProvider().login(CONTEXT, "13800000000", "123456")
-    assert credentials == {**CONTEXT, "token": "kuro-secret", "b_at": "ticket", "role_id": "1001", "server_id": "server", "user_id": "12", "nickname": "漂泊者"}
+    assert credentials == {**CONTEXT, "token": "kuro-secret", "token_source": "ios", "b_at": "ticket", "role_id": "1001", "server_id": "server", "user_id": "12", "nickname": "漂泊者"}
     assert form(respx.calls[0].request) == {"mobile": "13800000000", "code": "123456", "devCode": CONTEXT["did"]}
     assert form(respx.calls[1].request) == {"gameId": "3"}
     assert form(ticket.calls.last.request) == {"roleId": "1001", "serverId": "server"}

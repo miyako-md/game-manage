@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     fail_notify_threshold: int = 3
     wuwa_enabled: bool = True
     wuwa_token: str = ""
+    wuwa_token_source: str = "h5"  # legacy web token; SDK login persists ios
     wuwa_user_id: str = ""
     # 库街区 APP 端 token：预留字段，当前功能未消费（保留）
     wuwa_app_token: str = ""
