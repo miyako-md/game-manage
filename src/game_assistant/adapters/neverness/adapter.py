@@ -8,6 +8,7 @@ from game_assistant import event_calendar
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.neverness import tajiduo
 from game_assistant.adapters.neverness import parse
+from game_assistant.adapters.neverness import assets
 from game_assistant.adapters.neverness.tajiduo_client import (
     TajiduoClient, TajiduoError, TajiduoWebClient,
 )
@@ -33,7 +34,8 @@ class NteAdapter(BaseGameAdapter):
     section = "mobile"
     capabilities = [Capability.ACCOUNT, Capability.STAMINA, Capability.ROLES,
                     Capability.PROGRESS, Capability.EXPLORATION, Capability.GACHA,
-                    Capability.RECORD, Capability.EVENTS, Capability.ANNOUNCEMENT]
+                    Capability.RECORD, Capability.EVENTS, Capability.ANNOUNCEMENT,
+                    Capability.REALESTATE, Capability.VEHICLES, Capability.TEAMS]
 
     def __init__(self, settings: Settings):
         self._settings = settings
@@ -194,6 +196,29 @@ class NteAdapter(BaseGameAdapter):
                 role_id = await self._first_role_id(client)
                 raw = await client.get_role_area_progress(role_id)
             return FetchResult(ok=True, payload=parse.parse_exploration(raw))
+        return await self._guarded_run(run)
+
+    async def fetch_realestate(self) -> FetchResult:
+        async def run():
+            async with self._require_client() as client:
+                role_id = await self._first_role_id(client)
+                raw = await client.get_role_realestate(role_id)
+            return FetchResult(ok=True, payload=assets.parse_realestate(raw))
+        return await self._guarded_run(run)
+
+    async def fetch_vehicles(self) -> FetchResult:
+        async def run():
+            async with self._require_client() as client:
+                role_id = await self._first_role_id(client)
+                raw = await client.get_role_vehicles(role_id)
+            return FetchResult(ok=True, payload=assets.parse_vehicles(raw))
+        return await self._guarded_run(run)
+
+    async def fetch_teams(self) -> FetchResult:
+        async def run():
+            async with TajiduoWebClient() as client:
+                raw = await client.get_teams()
+            return FetchResult(ok=True, payload=assets.parse_teams(raw))
         return await self._guarded_run(run)
 
     async def fetch_roles(self) -> FetchResult:

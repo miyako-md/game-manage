@@ -109,7 +109,8 @@ async def test_record_uses_community_uid_and_filters_other_games():
 def test_nte_registers_all_display_capabilities():
     assert adapter().capabilities == [Capability.ACCOUNT, Capability.STAMINA,
         Capability.ROLES, Capability.PROGRESS, Capability.EXPLORATION,
-        Capability.GACHA, Capability.RECORD, Capability.EVENTS, Capability.ANNOUNCEMENT]
+        Capability.GACHA, Capability.RECORD, Capability.EVENTS, Capability.ANNOUNCEMENT,
+                                    Capability.REALESTATE, Capability.VEHICLES, Capability.TEAMS]
 
 
 @respx.mock

@@ -23,6 +23,7 @@ export async function loadVue(url) {
 export function mount(t, component, props) {
   const node = (type, text = '') => ({ type, text, props: {}, children: [], parent: null,
     addEventListener() {}, get options() { return this.children.filter(child => child.type === 'option') },
+    getRootNode() { return { activeElement: null } },
   })
   const renderer = createRenderer({
     createElement: type => node(type), createText: text => node('#text', text), createComment: () => node('#comment'),

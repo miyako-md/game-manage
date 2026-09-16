@@ -102,6 +102,7 @@ class NteGachaDetail(BaseModel):
     name: str
     pity: int | None = None
     obtained_at: datetime | None = None
+    lucky_type: int | None = None
 
 
 class NteGachaPool(BaseModel):
@@ -117,6 +118,8 @@ class NteGachaPool(BaseModel):
 class NteGacha(NtePayload):
     role_id: str = ""
     nickname: str | None = None
+    luck_title: str | None = None
+    luck_type: int | None = None
     total_draws: int | None = None
     total_s: int | None = None
     pools: list[NteGachaPool] = Field(default_factory=list)

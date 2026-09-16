@@ -22,6 +22,9 @@ class Capability(str, Enum):
     GACHA = "gacha"
     RECORD = "record"
     EVENTS = "events"
+    REALESTATE = "realestate"
+    VEHICLES = "vehicles"
+    TEAMS = "teams"
 
 
 class StaminaInfo(BaseModel):

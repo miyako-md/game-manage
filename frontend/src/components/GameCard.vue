@@ -12,6 +12,9 @@ import ExplorationCard from './ExplorationCard.vue'
 import EventsCalendarCard from './EventsCalendarCard.vue'
 import MatchList from './MatchList.vue'
 import NteDataCard from './NteDataCard.vue'
+import NteAssetsPanel from './NteAssetsPanel.vue'
+import NteRolesPanel from './NteRolesPanel.vue'
+import NteGachaPanel from './NteGachaPanel.vue'
 import ProgressCard from './ProgressCard.vue'
 import RoleWallCard from './RoleWallCard.vue'
 import StaminaCard from './StaminaCard.vue'
@@ -33,6 +36,8 @@ const groups = computed(() => [
   { id: 'all', label: '全部', caps: props.game.capabilities },
   { id: 'overview', label: '概览', caps: ['account', 'stamina', 'progress', 'stats', 'record'] },
   { id: 'characters', label: '角色与探索', caps: ['roles', 'exploration', 'calabash'] },
+  { id: 'assets', label: '房产与载具', caps: ['realestate', 'vehicles'] },
+  { id: 'teams', label: '官方配队', caps: ['teams'] },
   { id: 'matches', label: '近期对局', caps: ['match'] },
   { id: 'gacha', label: '抽卡统计', caps: ['gacha'] },
   { id: 'news', label: '公告与资讯', caps: ['announcement', 'news'] },
@@ -68,6 +73,9 @@ let disposed = false
 let errorTimer = null
 
 function capComponent(cap) {
+  if (props.game.game_id === 'nte' && ['realestate', 'vehicles', 'teams'].includes(cap)) return NteAssetsPanel
+  if (props.game.game_id === 'nte' && cap === 'roles') return NteRolesPanel
+  if (props.game.game_id === 'nte' && cap === 'gacha') return NteGachaPanel
   if (props.game.game_id === 'nte' && ['account', 'stamina', 'roles', 'progress', 'exploration', 'gacha', 'record'].includes(cap)) return NteDataCard
   return CAP_COMPONENTS[cap] || null
 }
@@ -165,6 +173,8 @@ defineExpose({ loadSnapshots })
           :snap="snaps[cap]"
           :game-id="game.game_id"
           :capability="cap"
+          :account-id="game.game_id === 'nte' ? snaps.account?.payload?.role_id || '' : ''"
+          :roles="snaps.roles?.payload?.entries || []"
           :class="['detail-cap', `detail-cap-${cap}`]"
         />
         <div v-else class="cap-card cap-coming">敬请期待</div>
@@ -174,6 +184,7 @@ defineExpose({ loadSnapshots })
 </template>
 
 <style scoped>
+.detail-cap-realestate, .detail-cap-vehicles, .detail-cap-teams, .detail-cap-roles, .detail-cap-gacha { grid-column: 1 / -1; }
 .game-card {
   min-width: 0;
 }
@@ -239,7 +250,7 @@ defineExpose({ loadSnapshots })
 .detail-cap-roles,.detail-cap-match,.detail-cap-gacha,.detail-cap-exploration { grid-column:1/-1; }
 .detail-cap-match :deep(.item-main),.detail-cap-match :deep(.item-sub) { font-size:13px; }
 .detail-cap-roles :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
-.detail-cap-roles:not(.nte-card) :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); }
+.detail-cap-roles:not(.nte-card):not(.nte-roles-panel) :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); }
 @media(max-width:950px) { .cap-list { grid-template-columns:1fr; gap:16px; } }
 @media(max-width:600px) { .card-head { gap:12px; }.game-heading { gap:11px; }.game-name { font-size:25px; }.detail-monogram { width:43px; height:43px; font-size:25px; }.detail-tabs button { padding:10px 8px; font-size:11px; }.detail-navigation>.text-link { margin-bottom:12px; }.game-heading .eyebrow { font-size:8px; letter-spacing:.7px; } }
 

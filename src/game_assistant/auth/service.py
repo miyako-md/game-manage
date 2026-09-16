@@ -247,7 +247,7 @@ class LoginService:
 
     async def fetch(self, game, capability, action):
         # Public NTE feeds remain available without a community session.
-        if game == 'nte' and capability in (Capability.ANNOUNCEMENT, Capability.EVENTS):
+        if game == 'nte' and capability in (Capability.ANNOUNCEMENT, Capability.EVENTS, Capability.TEAMS):
             return await action()
         async with self._locks[game]:
             account = self._accounts[game]

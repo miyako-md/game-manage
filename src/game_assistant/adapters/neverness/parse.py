@@ -228,6 +228,7 @@ def parse_gacha(raw: Any, names: dict[str, str] | None = None, expected_role_id:
             details.append(NteGachaDetail(
                 item_id=item_id, name=_text((names or {}).get(item_id)) or f"角色/弧盘 {item_id}",
                 pity=_count(detail.get("rareCount")), obtained_at=_obtained_at(detail),
+                lucky_type=_count(detail.get("luckyType")),
             ))
         percentile_raw = row.get("playerOver")
         if isinstance(percentile_raw, str):
@@ -239,6 +240,7 @@ def parse_gacha(raw: Any, names: dict[str, str] | None = None, expected_role_id:
             guarantee=_count(row.get("m")), details=details,
         ))
     return NteGacha(role_id=role_id, nickname=_text(data.get("rolename")),
+                    luck_title=_text(data.get("luckTitle")), luck_type=_count(data.get("luckType")),
                     total_draws=_known_sum([pool.total_draws for pool in pools]),
                     total_s=_known_sum([pool.s_count for pool in pools]), pools=pools)
 

@@ -16,5 +16,6 @@ export function capabilityLabel(capability, gameId = '') {
   if (capability === 'progress') return gameId === 'nte' ? '成就进度' : '周期进度'
   return ({ account: '账号', stamina: '体力', roles: '角色练度', exploration: '探索', calabash: '数据坞',
     events: '活动日历', announcement: '公告', news: '资讯', match: '近期对局', stats: '近期对局统计',
-    gacha: '抽卡统计', record: '社区名片', combat: '挑战战报', activities: '玩法进度', resources: '资源简报' })[capability] || capability
+    gacha: '抽卡统计', record: '社区名片', realestate: '房产', vehicles: '载具', teams: '官方配队',
+    combat: '挑战战报', activities: '玩法进度', resources: '资源简报' })[capability] || capability
 }

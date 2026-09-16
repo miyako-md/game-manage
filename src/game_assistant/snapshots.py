@@ -110,9 +110,9 @@ class SnapshotStore:
         """Account switching must never display the previous account's data."""
         with self._lock:
             self._conn.execute(
-                "DELETE FROM snapshots WHERE game_id = ? AND capability NOT IN ('announcement','events','news')",
+                "DELETE FROM snapshots WHERE game_id = ? AND capability NOT IN ('announcement','events','news','teams')",
                 (game_id,))
             self._conn.execute(
-                "DELETE FROM poll_status WHERE game_id = ? AND capability NOT IN ('announcement','events','news')",
+                "DELETE FROM poll_status WHERE game_id = ? AND capability NOT IN ('announcement','events','news','teams')",
                 (game_id,))
             self._conn.commit()

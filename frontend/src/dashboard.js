@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
 import { parseBeijingTime } from './calendar.js'
 
-const PUBLIC_CAPS = new Set(['events', 'announcement', 'news'])
+const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams'])
 export const GAME_STYLE = {
   wuthering_waves: { mark: '鸣', icon: '/game-icons/wuthering_waves.jpg', color: '#d8bb84', english: 'WUTHERING WAVES', resource: '结晶波片' },
   nte: { mark: '异', icon: '/game-icons/nte.jpg', color: '#b6a3d4', english: 'NEVERNESS TO EVERNESS', resource: '本性像素' },

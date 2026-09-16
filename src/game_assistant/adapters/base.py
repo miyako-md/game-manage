@@ -34,6 +34,9 @@ class BaseGameAdapter(ABC):
             Capability.RESOURCES: self.fetch_resources,
             Capability.GACHA: self.fetch_gacha,
             Capability.RECORD: self.fetch_record,
+            Capability.REALESTATE: self.fetch_realestate,
+            Capability.VEHICLES: self.fetch_vehicles,
+            Capability.TEAMS: self.fetch_teams,
         }[capability]
         auth = getattr(self, '_auth', None)
         if auth:
@@ -41,6 +44,15 @@ class BaseGameAdapter(ABC):
         return await method()
 
     async def fetch_account(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_realestate(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_vehicles(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_teams(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_stamina(self) -> FetchResult:

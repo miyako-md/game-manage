@@ -333,7 +333,8 @@ def test_registry_includes_nte():
     assert adapter.display_name == "异环" and adapter.section == "mobile"
     assert adapter.capabilities == [Capability.ACCOUNT, Capability.STAMINA,
                                     Capability.ROLES, Capability.PROGRESS, Capability.EXPLORATION,
-                                    Capability.GACHA, Capability.RECORD, Capability.EVENTS, Capability.ANNOUNCEMENT]
+                                    Capability.GACHA, Capability.RECORD, Capability.EVENTS, Capability.ANNOUNCEMENT,
+                                    Capability.REALESTATE, Capability.VEHICLES, Capability.TEAMS]
 
 
 def test_registry_nte_disabled_skips_registration():

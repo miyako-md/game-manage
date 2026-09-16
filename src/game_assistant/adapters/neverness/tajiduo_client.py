@@ -22,7 +22,7 @@ from game_assistant.adapters.neverness.endpoints import (
     APP_VERSION, GACHA, GET_ALL_COMMUNITY, GET_GAME_RECORD_CARD,
     GET_GAME_ROLES, GET_POST_FULL, GET_USER_FULL_INFO, ACHIEVE_PROGRESS,
     AREA_PROGRESS, CHARACTERS, OFFICIAL_POST_LIST, REALESTATE, REFRESH_TOKEN,
-    ROLE_HOME, VEHICLES,
+    ROLE_HOME, VEHICLES, TEAMS,
 )
 
 # HTTP 会话失效码（endpoints.py ⑤）
@@ -97,6 +97,9 @@ class TajiduoWebClient:
     async def get_all_communities(self) -> dict:
         return await _request_json(self._client, "GET", GET_ALL_COMMUNITY,
                                    authorized=False)
+
+    async def get_teams(self) -> dict:
+        return await _request_json(self._client, 'GET', TEAMS, authorized=False)
 
     async def get_official_post_list(self, column_id: str, count: int = 20) -> dict:
         # 2026-09-13 匿名实测：version/officialType 传空串会被服务端拒绝
