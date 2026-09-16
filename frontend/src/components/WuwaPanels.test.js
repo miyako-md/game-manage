@@ -35,6 +35,30 @@ const account = snap({
 })
 const reply = (payload) => ({ ok: true, json: async () => payload })
 
+test('history season heading converts UTC across Beijing midnight', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () =>
+    reply({
+      ...identity,
+      total: 1,
+      items: [
+        {
+          id: 1,
+          season: '2026-10-11T20:00:00+00:00',
+          payload: {},
+          delta: null,
+        },
+      ],
+    }),
+  )
+  const root = mount(t, await component('WuwaHistory'), {
+    accountKey: 'account:server',
+  })
+  await tick()
+  const heading = nodes(root, 'h3').find((n) => content(n).includes('赛季结束'))
+  assert.match(content(heading), /2026-10-12.*04:00.*北京时间/)
+  assert.doesNotMatch(content(heading), /2026-10-11|\+00:00/)
+})
+
 test('holograms group every difficulty under collapsed boss summaries without losing source status', async (t) => {
   const root = mount(t, await component('WuwaCombat'), {
     snap: snap({

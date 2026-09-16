@@ -115,7 +115,7 @@ watch(
         >
           <header class="wuwa-heading">
             <h3 v-if="kind === 'tower'">
-              赛季结束 {{ item.season || '未知' }}
+              赛季结束 {{ stamp(item.season) }}（北京时间）
             </h3>
             <h3 v-else>
               {{
