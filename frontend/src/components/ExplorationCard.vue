@@ -17,7 +17,7 @@ const payload = computed(() => props.snap?.payload ?? null)
 const detections = computed(() => payload.value?.detections ?? null)
 const detectionText = computed(() => {
   const d = detections.value
-  if (!d || !d.total) return null
+  if (!d || d.total == null) return null
   const parts = Object.entries(d.by_level || {}).map(([k, v]) => `${k} ${v}`)
   return parts.length > 0 ? `（${parts.join(' / ')}）` : null
 })
@@ -42,7 +42,7 @@ const groups = computed(() => {
 })
 
 const hasData = computed(() =>
-  groups.value.length > 0 || (detections.value && detections.value.total > 0))
+  groups.value.length > 0 || (detections.value && detections.value.total != null))
 
 const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
 </script>
@@ -58,7 +58,7 @@ const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
 
     <p v-if="!hasData" class="empty">暂无数据</p>
     <template v-else>
-      <p v-if="detectionText" class="detection">
+      <p v-if="detections?.total != null" class="detection">
         残象已收录 {{ detections.total }} 只 {{ detectionText }}
       </p>
 

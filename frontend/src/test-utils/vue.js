@@ -5,7 +5,7 @@ import { compileScript, parse } from '@vue/compiler-sfc'
 const modules = new Map()
 export async function loadVue(url) {
   if (modules.has(url.href)) return modules.get(url.href)
-  const { descriptor } = parse(readFileSync(url, 'utf8'))
+  const { descriptor } = parse(readFileSync(url, 'utf8'), { filename: url.pathname })
   let code = compileScript(descriptor, { id: url.pathname, inlineTemplate: true, templateOptions: { compilerOptions: { hoistStatic: false } } }).content
   for (const [, name] of [...code.matchAll(/from ['"]([^'"]+)['"]/g)]) {
     let resolved

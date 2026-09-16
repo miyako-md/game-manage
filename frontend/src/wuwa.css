@@ -1,0 +1,405 @@
+.wuwa-dashboard {
+  --wuwa-gold: var(--accent, #d7b574);
+  min-width: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.wuwa-dashboard * {
+  box-sizing: border-box;
+}
+.wuwa-dashboard h2 {
+  font-size: 22px;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  margin: 0 0 12px;
+}
+.wuwa-dashboard h3 {
+  font-size: 15px;
+  font-weight: 550;
+  margin: 15px 0 10px;
+}
+.wuwa-dashboard h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 9px 0;
+}
+.wuwa-dashboard p {
+  margin: 8px 0;
+}
+.wuwa-dashboard button,
+.wuwa-dashboard input,
+.wuwa-dashboard select {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg, #111c2c);
+  border: 1px solid var(--border, #304052);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.wuwa-dashboard button {
+  cursor: pointer;
+}
+.wuwa-dashboard button:hover:not(:disabled),
+.wuwa-dashboard button[aria-pressed='true'] {
+  color: var(--wuwa-gold);
+  border-color: var(--wuwa-gold);
+}
+.wuwa-dashboard button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.wuwa-dashboard :focus-visible {
+  outline: 2px solid var(--wuwa-gold);
+  outline-offset: 3px;
+}
+.wuwa-dashboard input,
+.wuwa-dashboard select {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+}
+.wuwa-dashboard label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.wuwa-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+  flex-wrap: wrap;
+}
+.wuwa-tabs {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.wuwa-tabs button {
+  background: transparent;
+}
+.wuwa-calendar {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.wuwa-panel {
+  background: var(--card-bg, #142033);
+  border: 1px solid var(--border, #304052);
+  border-radius: 12px;
+  padding: 25px;
+  min-width: 0;
+}
+.wuwa-stack {
+  display: grid;
+  gap: 20px;
+}
+.wuwa-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+.wuwa-heading h2,
+.wuwa-heading h3 {
+  margin-bottom: 0;
+}
+.wuwa-kicker {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--wuwa-gold);
+}
+.wuwa-muted,
+.wuwa-meta {
+  color: var(--text-muted, #99a9ba);
+}
+.wuwa-meta {
+  font-size: 11px;
+}
+.wuwa-gold,
+.wuwa-big {
+  color: var(--wuwa-gold);
+}
+.wuwa-big {
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-warning {
+  color: var(--stale-text, #dfbb7b);
+}
+.wuwa-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  padding: 12px;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.wuwa-notice {
+  padding: 13px 17px;
+  border-left: 2px solid var(--wuwa-gold);
+  background: var(--bg);
+  border-radius: 4px;
+}
+.wuwa-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px;
+  margin: 14px 0;
+}
+.wuwa-inset {
+  padding: 18px;
+  background: var(--bg, #101b2b);
+  border: 1px solid var(--border, #304052);
+  border-radius: 8px;
+  min-width: 0;
+}
+.wuwa-inset > h3:first-child {
+  margin-top: 0;
+}
+.wuwa-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+.wuwa-metrics > div {
+  display: flex;
+  flex-direction: column;
+  border-left: 2px solid var(--wuwa-gold);
+  padding: 10px 16px;
+  background: var(--bg);
+  border-radius: 3px;
+}
+.wuwa-metrics span,
+.wuwa-metrics small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.wuwa-metrics strong {
+  font-size: 27px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-dashboard dl {
+  margin: 8px 0;
+}
+.wuwa-dashboard dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  border-bottom: 1px solid var(--border);
+  padding: 7px 0;
+}
+.wuwa-dashboard dt {
+  color: var(--text-muted);
+}
+.wuwa-dashboard dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 15px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.wuwa-field > .wuwa-fields {
+  min-width: 45%;
+}
+.wuwa-fields {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.wuwa-dashboard details {
+  padding: 10px 0;
+}
+.wuwa-dashboard summary {
+  cursor: pointer;
+  color: var(--wuwa-gold);
+  font-size: 12px;
+}
+.wuwa-supplement {
+  font-size: 11px;
+}
+.wuwa-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.85;
+}
+.wuwa-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 18px 0;
+}
+.wuwa-toolbar > label {
+  flex: 1;
+  min-width: 115px;
+}
+.wuwa-role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 13px;
+  margin: 18px 0;
+}
+.wuwa-role {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 17px 10px !important;
+  overflow: hidden;
+}
+.wuwa-role img,
+.wuwa-avatar-placeholder {
+  width: 78px;
+  height: 78px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--card-bg);
+}
+.wuwa-avatar-placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 35px;
+  color: var(--wuwa-gold);
+}
+.wuwa-role > span {
+  font-size: 11px;
+}
+.wuwa-detail {
+  border-top: 2px solid var(--wuwa-gold);
+  margin-top: 24px;
+  padding-top: 23px;
+}
+.wuwa-detail > .wuwa-heading {
+  margin-bottom: 23px;
+}
+.wuwa-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 23px;
+}
+.wuwa-equipment {
+  display: flex;
+  gap: 15px;
+  align-items: start;
+}
+.wuwa-equipment img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.wuwa-locked {
+  opacity: 0.65;
+}
+.wuwa-tag {
+  display: inline-block;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  margin: 3px;
+  font-size: 11px;
+}
+.wuwa-floor {
+  border-top: 1px solid var(--border);
+  padding: 11px 0;
+}
+.wuwa-floor > span {
+  float: right;
+}
+.wuwa-periods {
+  display: grid;
+  gap: 10px;
+  margin: 20px 0;
+}
+.wuwa-periods fieldset {
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 6px;
+}
+.wuwa-periods button {
+  margin: 4px;
+}
+.wuwa-table-wrap {
+  max-width: 100%;
+  overflow: auto;
+  margin: 12px 0;
+}
+.wuwa-dashboard table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 520px;
+  text-align: left;
+  font-size: 12px;
+}
+.wuwa-dashboard th,
+.wuwa-dashboard td {
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.wuwa-dashboard th {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.wuwa-gold-row {
+  color: var(--wuwa-gold);
+  background: color-mix(in srgb, var(--wuwa-gold) 5%, transparent);
+}
+.wuwa-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+  font-size: 11px;
+}
+.wuwa-inset > button {
+  margin-top: 13px;
+}
+@media (max-width: 700px) {
+  .wuwa-panel {
+    padding: 17px;
+  }
+  .wuwa-grid {
+    grid-template-columns: 1fr;
+  }
+  .wuwa-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .wuwa-role-grid {
+    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+  }
+  .wuwa-stat-grid {
+    grid-template-columns: 1fr;
+  }
+  .wuwa-field {
+    flex-wrap: wrap;
+  }
+  .wuwa-nav {
+    gap: 10px;
+  }
+  .wuwa-tabs button {
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+  .wuwa-pager {
+    gap: 9px;
+  }
+  .wuwa-equipment {
+    gap: 10px;
+  }
+  .wuwa-equipment img {
+    width: 55px;
+    height: 55px;
+  }
+}

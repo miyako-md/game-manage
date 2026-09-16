@@ -1,0 +1,141 @@
+import { displayBeijing } from './time.js'
+export const value = (v) =>
+  v === null || v === undefined || v === ''
+    ? '未知'
+    : typeof v === 'boolean'
+      ? v
+        ? '是'
+        : '否'
+      : v
+export const list = (v) =>
+  Array.isArray(v) ? v.filter((item) => item != null) : []
+export const stamp = (v) =>
+  v == null || v === ''
+    ? '未知'
+    : displayBeijing(typeof v === 'number' ? new Date(v).toISOString() : v)
+export function safeImage(url) {
+  try {
+    const u = new URL(url)
+    return ['https:', 'http:'].includes(u.protocol) &&
+      !u.username &&
+      !u.password
+      ? u.href
+      : null
+  } catch {
+    return null
+  }
+}
+export const fieldLabels = {
+  role_num: '已拥有角色数',
+  energy: '结晶波片',
+  max_energy: '结晶波片上限',
+  liveness: '每日活跃',
+  liveness_max_count: '每日活跃上限',
+  weekly_inst_count: '周本次数',
+  weekly_inst_count_limit: '周本次数上限',
+  weekly_inst_title: '周本说明',
+  store_energy: '储存波片',
+  store_energy_limit: '储存波片上限',
+  store_energy_title: '储存波片说明',
+  store_energy_recover_time: '恢复时间',
+  rouge_score: '周期积分',
+  rouge_score_limit: '周期积分上限',
+  rouge_score_title: '周期积分名称',
+  unlock: '已解锁',
+  badge_list: '徽章收藏',
+  max_badge_num: '徽章上限',
+  max_card_num: '卡牌上限',
+  card_total_num: '卡牌总数',
+  next_exp: '下一级经验',
+  exp_limit: '经验上限',
+  level_name: '等级名称',
+  world_level: '世界等级',
+  active_days: '活跃天数',
+  achievement_count: '成就数',
+  achievement_star: '成就星数',
+  big_count: '大型信标',
+  small_count: '小型信标',
+  level: '等级',
+  breach: '突破',
+  chain: '共鸣链',
+  chain_unlock_num: '已解锁共鸣链',
+  total_skill_level: '技能总等级',
+  star_level: '稀有度',
+  name: '名称',
+  role_name: '角色',
+  score: '得分',
+  max_score: '最高分',
+  all_score: '总得分',
+  count: '数量',
+  total: '总量',
+  num: '数量',
+  rank: '评级',
+  high: '高难进度',
+  low: '基础进度',
+  animal_count: '动物数',
+  map_count: '地图数',
+  toy_count: '玩具数',
+  reward: '奖励',
+  animal: '动物',
+  map: '地图',
+  toy: '玩具',
+  items: '收集项目',
+  item_num: '已收集',
+  max_item_num: '收集上限',
+  badge: '徽章',
+  card: '卡牌',
+  exp: '经验',
+  badge_num: '徽章数',
+  card_num: '卡牌数',
+  animal_num: '动物数',
+  map_num: '地图数',
+  toy_num: '玩具数',
+  max_animal_num: '动物上限',
+  max_map_num: '地图上限',
+  max_toy_num: '玩具上限',
+  total_coin: '贝币',
+  total_star: '星声',
+  coin_inc: '贝币环比',
+  star_inc: '星声环比',
+  inc: '环比',
+  type: '类别',
+  detail: '来源明细',
+  item_list: '资源类别',
+  coin_list: '贝币来源',
+  star_list: '星声来源',
+  title: '名称',
+  description: '说明',
+  first_description: '两件套效果',
+  second_description: '五件套效果',
+  triple_description: '套装额外效果',
+  attribute_name: '属性',
+  attribute_value: '数值',
+  before: '之前',
+  after: '之后',
+  delta: '变化量',
+  cost: 'COST',
+  quality: '品质',
+  reson_level: '谐振等级',
+  is_unlock: '已解锁',
+  reward_num: '已获奖励',
+  max_reward_num: '奖励上限',
+  reward_count: '奖励数',
+  max_level: '等级上限',
+  max_exp: '经验上限',
+  buff_list: '增益',
+  buff_name: '增益名称',
+  buff_description: '增益说明',
+  half_name: '半场名称',
+  pass_time: '通关时间',
+  difficulty: '难度',
+  boss_level: '首领等级',
+  start_time: '开始时间',
+  end_time: '结束时间',
+  start_date: '开始日期',
+  end_date: '结束日期',
+  period: '周期',
+  week: '周',
+  month: '月',
+  version: '版本',
+}
+export const label = (key) => fieldLabels[key] || key
