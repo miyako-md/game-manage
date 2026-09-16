@@ -32,6 +32,10 @@ def install_wuwa_routes(app):
             status = {'not_found': 404, 'unconfigured': 401, 'auth_expired': 401,
                       'account_changed': 409}.get(result.error_kind, 502)
             raise HTTPException(status, result.error or '读取失败')
+        store = getattr(app.state, 'store', None)
+        if method == 'fetch_role_detail' and store is not None:
+            store.wuwa_history.capture('role_detail', jsonable_encoder(result.payload),
+                expected=(str(original_identity[1]), str(original_identity[2])))
         return {'payload': jsonable_encoder(result.payload),
                 'fetched_at': datetime.now(timezone.utc).isoformat()}
 

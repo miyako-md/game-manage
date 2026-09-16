@@ -77,11 +77,15 @@ class PollingScheduler:
 
     async def _poll_once_locked(self, game_id: str, capability: Capability) -> FetchResult:
         adapter = self.registry.get(game_id)
+        auth = getattr(adapter, '_auth', None)
+        generation = getattr(auth, 'account_generation', lambda _: None)
+        original_generation = generation(game_id)
         try:
             result = await adapter.fetch(capability)
         except Exception:
             result = FetchResult(ok=False, error='数据源请求失败，请稍后重试', error_kind='source_error')
-        auth = getattr(adapter, '_auth', None)
+        if original_generation != generation(game_id):
+            return FetchResult(ok=False, error='账号已切换，请重新刷新', error_kind='account_changed')
         if auth and result.credential_version is not None and result.credential_version != auth.version(game_id):
             return FetchResult(ok=False, error='账号已切换，请重新刷新', error_kind='account_changed')
         if result.error_kind == 'account_changed':

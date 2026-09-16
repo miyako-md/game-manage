@@ -10,6 +10,8 @@ class SnapshotStore:
         self._lock = threading.Lock()
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._ensure_schema()
+        from game_assistant.wuwa_history import WuwaHistory
+        self.wuwa_history = WuwaHistory(self._conn, self._lock)
 
     def _ensure_schema(self) -> None:
         with self._lock:
@@ -91,6 +93,9 @@ class SnapshotStore:
                  datetime.now(timezone.utc).isoformat()),
             )
             self._conn.commit()
+        if game_id == 'wuthering_waves' and capability in ('combat', 'roles'):
+            import json
+            self.wuwa_history.capture(capability, json.loads(payload_json))
 
     def get(self, game_id: str, capability: str) -> dict | None:
         with self._lock:

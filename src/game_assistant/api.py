@@ -43,6 +43,8 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
     install_auth_routes(app, auth_service, settings)
     from game_assistant.adapters.wuthering_waves.routes import install_wuwa_routes
     install_wuwa_routes(app)
+    from game_assistant.wuwa_archive_routes import install_wuwa_archive_routes
+    install_wuwa_archive_routes(app)
     from game_assistant.sources.bilibili_service import BilibiliService
     from game_assistant.sources.bilibili_routes import install_bilibili_routes
     from game_assistant.sources.public_content import MOBILE_GAMES, merge_events, merge_news
