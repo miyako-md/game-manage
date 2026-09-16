@@ -12,7 +12,7 @@ from game_assistant.adapters.wuthering_waves.rolebox_client import (
 )
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
-from .detail_parse import normalize, parse_tower, parse_periods, parse_profile, parse_report
+from .detail_parse import normalize, parse_tower, parse_periods, parse_profile, parse_report, latest_month_period
 from .data_models import SourceResult, CombatPayload, ActivitiesPayload, ResourcesPayload
 
 AUTH_CODES = (220, 401, 402, 403, 10900, 10901, 10903)
@@ -347,7 +347,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
                 periods = parse_periods(await rb.period_list())
                 current, error = None, None
                 if periods['month']:
-                    period = periods['month'][0]['period']
+                    period = latest_month_period(periods['month'])
                     try:
                         raw = await rb.resource_report(role_id, server_id, 'month', period)
                         current = {'kind': 'month', 'period': period, 'data': parse_report(raw),

@@ -46,6 +46,34 @@ def test_resources_use_returned_quantities_and_periods():
         'total_coin': 0, 'total_star': None, 'star_list': [{'type': '活动', 'num': 25}]}
 
 
+@pytest.mark.parametrize('periods,expected', [
+    (['202607', '202608', '202609'], '202609'),
+    (['202609', '202607', '202608'], '202609'),
+    (['202512', '202601'], '202601'),
+    (['202609'], '202609'),
+    (['latest', '9', '202613'], 'latest'),
+    (['unknown', '202512', '202601'], '202601'),
+    ([], None),
+])
+def test_latest_month_selection_validates_period_without_reordering(periods, expected):
+    rows = [{'period': period, 'title': '2099年12月'} for period in periods]
+    assert detail_parse.latest_month_period(rows) == expected
+    assert [row['period'] for row in rows] == periods
+
+
+@pytest.mark.asyncio
+async def test_default_resources_request_latest_available_month(monkeypatch):
+    adapter, client = adapter_with_client(monkeypatch)
+    client.period_list.return_value = {'months': [
+        {'index': 202607, 'title': '7月'}, {'index': 202609, 'title': '9月'},
+        {'index': 202608, 'title': '8月'}]}
+    client.resource_report.return_value = {'totalStar': 0}
+    result = await adapter.fetch_resources()
+    assert result.ok and result.payload.current['period'] == '202609'
+    assert [row['period'] for row in result.payload.periods['month']] == ['202607', '202609', '202608']
+    client.resource_report.assert_awaited_once_with('account', 'server', 'month', '202609')
+
+
 def adapter_with_client(monkeypatch):
     adapter = WutheringWavesAdapter(Settings(wuwa_token='t', wuwa_user_id='u',
         wuwa_role_id='account', wuwa_server_id='server', wuwa_b_at='b', wuwa_did='d', wuwa_dev_code='c'))

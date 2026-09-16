@@ -59,3 +59,14 @@ def parse_periods(raw: dict) -> dict:
         result[kind] = [{'period': str(row['index']), 'title': row.get('title')}
                         for row in rows if isinstance(row, dict) and row.get('index') is not None]
     return result
+
+
+def latest_month_period(rows: list[dict]) -> str | None:
+    """Choose greatest valid YYYYMM; unknown-only lists retain source priority.
+
+    Titles are display text, not dates. Never reorder the available periods.
+    """
+    valid = [row['period'] for row in rows
+             if re.fullmatch(r'[0-9]{4}(?:0[1-9]|1[0-2])', row['period'])
+             and int(row['period'][:4]) > 0]
+    return max(valid) if valid else rows[0]['period'] if rows else None
