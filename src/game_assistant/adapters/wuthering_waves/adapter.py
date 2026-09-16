@@ -49,7 +49,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
         s = self._settings
         if s.wuwa_b_at and s.wuwa_dev_code and s.wuwa_did:
             return RoleBoxClient(s.wuwa_b_at, s.wuwa_dev_code, s.wuwa_did)
-        raise _UnconfiguredRoleBoxError("未配置 b-at（见 README APP 抓包教程）")
+        raise _UnconfiguredRoleBoxError("未配置 b-at，请在「社区账号」登录鸣潮以自动获取角色会话")
 
     def _has_rolebox(self) -> bool:
         s = self._settings

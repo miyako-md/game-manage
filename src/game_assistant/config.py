@@ -28,16 +28,16 @@ class Settings(BaseSettings):
     wuwa_user_id: str = ""
     # 库街区 APP 端 token：预留字段，当前功能未消费（保留）
     wuwa_app_token: str = ""
-    # roleBox 三件套（库街区 APP 内 WebView 会话抓包，教程见 README）：
-    # 用于探索度/数据坞；留空 = 该功能未启用，不影响其它功能
+    # roleBox会话由页面短信登录自动取得；以下字段保留旧手填配置兼容。
+    # 会话供体力、进度、角色、探索度和数据坞等能力使用。
     wuwa_b_at: str = ""
     wuwa_dev_code: str = ""
     wuwa_did: str = ""
     wuwa_role_id: str = ""
     wuwa_server_id: str = ""
     lol_enabled: bool = True
-    # 异环（塔吉多社区 bbs.tajiduo.com）凭据，抓取教程见 README；
-    # 留空 = 仅官方公告可用（公告为匿名接口，无需凭据）
+    # 异环凭据由页面短信登录取得；以下字段保留旧配置兼容。
+    # 未登录时私人能力不可用，公共来源独立运行。
     nte_enabled: bool = True
     nte_access_token: str = ""
     nte_refresh_token: str = ""
@@ -48,9 +48,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:8010", "http://localhost:8010",
         "http://127.0.0.1:5173", "http://localhost:5173",
     ]
-    # 异环活动日历手填（可靠主路径）：TOML 数组表 [[nte_events]]，每项
+    # 异环旧版手填活动：TOML数组表 [[nte_events]]，作为原适配器回退数据。每项
     # name/category/start/end；start/end 为 "YYYY-MM-DD HH:MM"（服务器时间
-    # UTC+8）。示例见 config.example.toml；非空时优先于版本公告自动扫描。
+    # UTC+8）。非空时优先于原适配器扫描；API层再按手游B站主来源规则合并。
     nte_events: list[dict] = []
 
     model_config = {"env_prefix": "GA_"}

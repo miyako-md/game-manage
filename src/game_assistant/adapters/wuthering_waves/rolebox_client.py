@@ -1,7 +1,7 @@
 """库街区 roleBox 客户端（b-at 会话票据鉴权）。
 
 头三件套（b-at/devCode/did）与 UA 逐字复刻自 APP WebView 请求（2026-09-13 实测）。
-b-at 由 APP 会话签发，可能过期：过期时适配层返回明确的重新抓包提示。
+b-at由页面登录后的requestToken换取；过期由登录服务尝试续期，失败后提示重新登录。
 
 与 kuro_client.py 的 token 鉴权完全不同：roleBox 系列请求不带 token 头，
 鉴权全靠 b-at 头（32 位十六进制会话票据，来自库街区 APP 内 WebView 会话）。

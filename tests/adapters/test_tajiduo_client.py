@@ -209,7 +209,7 @@ async def test_auth_session_expired_reports_recapture_hint(status):
     with pytest.raises(TajiduoError) as ei:
         await client.get_game_roles()
     await client.aclose()
-    assert "塔吉多会话已失效，请重新抓取 token" == ei.value.message
+    assert "塔吉多会话已失效，请在「社区账号」重新登录异环" == ei.value.message
     assert ei.value.status_code == status
 
 

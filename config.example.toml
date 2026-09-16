@@ -1,61 +1,36 @@
-# 复制为 config.toml 后填写真实值；config.toml 已被 gitignore，不会入库
+# 首次使用复制为 config.toml；已有配置不要覆盖。真实配置不提交Git。
+# 鸣潮、异环均在看板「社区账号」短信登录，无需填写token或抓包字段。
 app_host = "127.0.0.1"
-# 8000 被 Windows HTTP.sys 系统服务永久占用，故默认使用 8010
 app_port = 8010
 db_path = "data/assistant.db"
 
-# 轮询间隔（秒）：体力 5 分钟 / 进度·公告等 1 小时 / 资讯 4 小时（activity_seconds 为沿用键名，供进度/账号/角色等默认间隔使用）
+wuwa_enabled = true
+nte_enabled = true
+lol_enabled = true
+
+# 游戏社区轮询间隔（秒）。B站使用独立的轮询间隔。
 stamina_seconds = 300
 activity_seconds = 3600
 announcement_seconds = 3600
 news_seconds = 14400
+bilibili_history_days = 60
+bilibili_poll_seconds = 600
 
-# 微信推送：provider = "serverchan" 或 "pushplus"；send_key 留空 = 功能可用但未启用
+# 社区凭据自动加密保存；留空使用数据库旁的 assistant.credentials.json。
+auth_store_path = ""
+auth_allowed_origins = ["http://127.0.0.1:8010", "http://localhost:8010", "http://127.0.0.1:5173", "http://localhost:5173"]
+
+# 可选微信推送：send_key留空时不发送。provider可选serverchan或pushplus。
 notify_provider = "serverchan"
 notify_send_key = ""
-
-# 提醒规则：体力满推送 / 体力满判定阈值（%）/ 活动临期提醒天数 / 轮询连续失败告警阈值
 notify_stamina_full = true
 stamina_threshold_percent = 90
 activity_remind_days = 3
 fail_notify_threshold = 3
 
-# 鸣潮（库街区官服）：登录 kurobbs.com 后从请求头抓 token，uid 即库街区数字 id
-wuwa_enabled = true
-wuwa_token = ""
-wuwa_user_id = ""
-# 库街区 APP 端 token（可选）：预留字段，当前功能未消费（保留）
-wuwa_app_token = ""
-# roleBox 三件套（可选）：探索度/数据坞功能，抓包教程见 README；
-# 三项全部填写才启用，留空不影响其它功能
-wuwa_b_at = ""
-wuwa_dev_code = ""
-wuwa_did = ""
-
-# 以上配置均可用带 GA_ 前缀的环境变量覆盖（如 GA_NOTIFY_SEND_KEY）
-# lol_enabled 控制英雄联盟适配器开关（默认 true）
-
-# 异环（塔吉多社区）：凭据抓取教程见 README；
-# 留空 = 仅官方公告可用（公告为匿名接口，无需凭据）
-nte_enabled = true
-nte_access_token = ""
-nte_refresh_token = ""
-
-# 异环活动日历手填（可靠主路径）：官网前瞻活动日期在长图里，OCR 数字可能不准，
-# 以人眼比对长图为准抄写；每版本填一次。非空时优先于版本公告自动扫描，
-# 时间戳非法的条目会跳过并在日志告警（不会回退到自动扫描）。
-# start/end 为游戏服务器时间（UTC+8），格式 "YYYY-MM-DD HH:MM"。
-# 长图取数可用 OCR 辅助命令（按行输出文本+置信度，人工核对后抄写）：
-#   python -m game_assistant.nte_ocr --news-page <新闻页URL>    # 列出页面全部图片
-#   python -m game_assistant.nte_ocr <图片URL或本地路径...>      # OCR 行文本+置信度
-# 取消注释并按当期活动填写：
-# [[nte_events]]
-# name = "第二索拉·诡影迷踪"
-# category = "休闲活动"
-# start = "2026-08-27 04:00"
-# end = "2026-09-14 03:59"
-# 社区账号：推荐在页面「社区账号」短信登录，不再需要手工复制 token。
-# 加密凭据默认存放在 db_path 旁，auth_store_path 留空使用默认位置。
-# auth_store_path = ""
-# 默认仅允许本机 8010/5173 页面发起登录；反向代理时按实际地址显式配置。
-# auth_allowed_origins = ["http://127.0.0.1:8010", "http://localhost:8010", "http://127.0.0.1:5173", "http://localhost:5173"]
+# 旧版手填token/roleBox字段仍受Settings兼容，正常使用不必填写。
+# B站登录与游戏社区登录独立，在页面底部来源面板配置并加密保存。
+# 以下为官方UP主的公开UID，不是个人账号。只对这两款手游应用B站主来源规则。
+[bilibili_sources]
+wuthering_waves = "1955897084"
+nte = "3546636978489848"

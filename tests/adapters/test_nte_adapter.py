@@ -306,7 +306,7 @@ async def test_session_expired_maps_to_recapture_hint():
         return_value=httpx.Response(401))
     a = _configured()
     r = await a.fetch(Capability.ROLES)
-    assert r.ok is False and "会话已失效，请重新抓取 token" in r.error
+    assert r.ok is False and "会话已失效，请在「社区账号」重新登录异环" in r.error
 
 
 @respx.mock

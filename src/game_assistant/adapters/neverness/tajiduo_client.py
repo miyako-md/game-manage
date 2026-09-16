@@ -71,7 +71,7 @@ async def _request_json(client: httpx.AsyncClient, method: str, url: str, *,
     except httpx.HTTPError as e:
         raise TajiduoError(f"网络错误: {type(e).__name__}") from e
     if authorized and resp.status_code in _SESSION_EXPIRED_CODES:
-        raise TajiduoError("塔吉多会话已失效，请重新抓取 token",
+        raise TajiduoError("塔吉多会话已失效，请在「社区账号」重新登录异环",
                            status_code=resp.status_code)
     if resp.status_code != 200:
         raise TajiduoError(f"HTTP {resp.status_code}", status_code=resp.status_code)

@@ -9,7 +9,7 @@
 #    appversion: 1.2.4、uid: "0"、authorization: <access_token>（鉴权请求）。
 # ④ token 刷新：POST /usercenter/api/refreshToken，头 authorization=<refresh_token>，
 #    无 body；返回新 access/refresh 对。
-# ⑤ HTTP 401/402/403 = 会话失效（需用户重新抓取 token）。
+# ⑤ HTTP 401/402/403 = 会话失效；登录服务尝试续期，失败后在页面重新登录。
 # ⑥ 官方公告走匿名 Web 客户端（UA Mozilla/5.0，无 DS 签名/authorization）：
 #    - GET /apihub/wapi/getAllCommunity → 社区列表（异环社区 id=2 及其栏目）；
 #    - GET /bbs/wapi/getOfficialPostList?columnId=<栏目id>&count=<n>
