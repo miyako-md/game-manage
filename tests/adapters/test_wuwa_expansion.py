@@ -75,20 +75,63 @@ async def test_combat_failure_keeps_successful_siblings_and_previous_source(monk
 
 
 @pytest.mark.asyncio
-async def test_combat_restores_persisted_sibling_and_rejects_malformed_data(monkeypatch):
+async def test_restart_restores_combat_and_resource_source_data(monkeypatch, tmp_path):
     from types import SimpleNamespace
+    from game_assistant.snapshots import SnapshotStore
+    store = SnapshotStore(str(tmp_path / 'snapshots.db'))
     adapter, client = adapter_with_client(monkeypatch)
-    persisted = {'role_id': 'account', 'server_id': 'server', 'hologram': {
-        'state': 'ok', 'source': 'challengeDetails', 'data': {'challenge_info': {}},
-        'fetched_at': '2026-09-15T00:00:00+00:00'}}
-    adapter._auth = SimpleNamespace(snapshots=SimpleNamespace(get=lambda *args: {'payload': persisted}))
     client.tower_detail.return_value = {'seasonEndTime': 60000, 'difficultyList': []}
-    client.challenge_details.return_value = {}
+    client.challenge_details.return_value = {'challengeInfo': {'1': [{'difficulty': 6}]}}
     client.slash_detail.return_value = {'isUnlock': False}
-    result = await adapter.fetch_combat()
-    assert result.payload.hologram.state == 'stale'
-    assert result.payload.hologram.data == {'challenge_info': {}}
-    assert result.payload.hologram.fetched_at == '2026-09-15T00:00:00+00:00'
+    client.period_list.return_value = {'months': [{'index': 9}]}
+    client.resource_report.return_value = {'totalStar': 0, 'totalCoin': 12}
+    combat = await adapter.fetch_combat()
+    resources = await adapter.fetch_resources()
+    assert combat.ok and resources.ok
+    store.save(adapter.game_id, 'combat', combat.payload.model_dump_json())
+    store.save(adapter.game_id, 'resources', resources.payload.model_dump_json())
+    assert isinstance(store.get(adapter.game_id, 'combat')['payload'], str)
+
+    restarted, source = adapter_with_client(monkeypatch)
+    restarted._auth = SimpleNamespace(snapshots=store)
+    source.tower_detail.return_value = client.tower_detail.return_value
+    source.slash_detail.return_value = client.slash_detail.return_value
+    source.challenge_details.side_effect = RoleBoxError('offline')
+    source.period_list.return_value = {'months': [{'index': 10}]}
+    source.resource_report.side_effect = RoleBoxError('offline')
+    restored_combat = await restarted.fetch_combat()
+    restored_resources = await restarted.fetch_resources()
+    assert restored_combat.ok and restored_resources.ok
+    assert restored_combat.payload.tower.state == 'ok'
+    assert restored_combat.payload.hologram.model_dump() == {
+        **combat.payload.hologram.model_dump(), 'state': 'stale',
+        'error': '来源请求失败，请稍后重试'}
+    assert restored_resources.payload.current == {**resources.payload.current, 'state': 'stale'}
+    assert restored_resources.payload.current['period'] == '9'
+    assert restored_resources.payload.periods['month'][0]['period'] == '10'
+
+
+@pytest.mark.parametrize('persisted', [
+    '{broken', 'null', '[]', '42',
+    '{"role_id":"foreign","server_id":"server"}',
+    '{"role_id":"account","server_id":"foreign"}',
+    '{"role_id":"account"}',
+])
+def test_persisted_restore_rejects_malformed_or_foreign_identity(monkeypatch, tmp_path, persisted):
+    import sqlite3
+    from types import SimpleNamespace
+    from game_assistant.snapshots import SnapshotStore
+    store = SnapshotStore(str(tmp_path / 'snapshots.db'))
+    adapter, _ = adapter_with_client(monkeypatch)
+    adapter._auth = SimpleNamespace(snapshots=store)
+    for capability in ('combat', 'resources'):
+        store.save(adapter.game_id, capability, '{}')
+        # Simulate an old/corrupt database without feeding invalid JSON into the
+        # current save hook (which also archives successful combat snapshots).
+        with sqlite3.connect(str(tmp_path / 'snapshots.db')) as connection:
+            connection.execute('UPDATE snapshots SET payload=? WHERE capability=?',
+                               (persisted, capability))
+        assert adapter._previous_payload(capability, 'account', 'server') == {}
 
 
 @pytest.mark.asyncio

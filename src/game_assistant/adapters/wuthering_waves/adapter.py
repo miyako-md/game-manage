@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 from datetime import datetime, timezone
@@ -241,6 +242,11 @@ class WutheringWavesAdapter(BaseGameAdapter):
         store = getattr(getattr(self, '_auth', None), 'snapshots', None)
         snapshot = store.get(self.game_id, capability) if store else None
         payload = snapshot.get('payload') if snapshot else None
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except ValueError:
+                return {}
         if isinstance(payload, dict) and payload.get('role_id') == role_id and payload.get('server_id') == server_id:
             return payload
         return {}
