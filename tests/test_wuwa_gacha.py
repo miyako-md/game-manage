@@ -41,6 +41,19 @@ def test_multiplicity_idempotency_unknowns_and_isolation(tmp_path):
     assert store.import_records([], '100', 'S')['inserted'] == 0
 
 
+def test_null_and_literal_unknown_rarity_counts_reconcile_without_losing_raw_values(tmp_path):
+    g = module()
+    snapshots = SnapshotStore(str(tmp_path / 'db'))
+    store = g.GachaStore(snapshots._conn, snapshots._lock)
+    rows = [{**record(), 'qualityLevel': rarity} for rarity in (None, 'unknown', 5)]
+    store.import_records({'info': {'uid': '100'}, 'list': rows}, '100', 'S')
+    result = store.read('100', 'S')
+    pool = result['pools'][0]
+    assert pool['rarity_distribution'] == {'unknown': 2, '5': 1}
+    assert sum(pool['rarity_distribution'].values()) == pool['total'] == 3
+    assert {row['rarity'] for row in result['items']} == {None, 'unknown', '5'}
+
+
 def test_url_validation_fragment_aliases_and_secret_sanitization(tmp_path):
     g = module()
     for url in [

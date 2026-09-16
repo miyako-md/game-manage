@@ -197,7 +197,8 @@ class GachaStore:
             p = pools.setdefault(pool, {'pool': pool, 'name': POOL_NAMES.get(pool, f'未知卡池 {pool}'),
                                         'total': 0, 'rarity_distribution': {}})
             p['total'] += count
-            p['rarity_distribution'][rarity if rarity is not None else 'unknown'] = count
+            rarity_key = rarity if rarity is not None else 'unknown'
+            p['rarity_distribution'][rarity_key] = p['rarity_distribution'].get(rarity_key, 0) + count
         unpack = lambda values: [{'draw_id': key, **json.loads(payload)} for key, payload in values]
         return {'schema_version': 1, 'role_id': account, 'server_id': server,
                 'state': 'available' if total else 'need_import', 'total': total,
