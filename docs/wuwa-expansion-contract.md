@@ -7,10 +7,10 @@ This document defines the Task 1 backend interface. Existing snapshot HTTP envel
 `account` keeps `{nickname,level,extra}`. `extra.role_id` and `extra.server_id` identify the account, while `extra.profile` is normalized `baseData`, including:
 
 ```json
-{"creat_time":1780000000000,"world_level":8,"active_days":100,"achievement_count":200,"achievement_star":1000,"big_count":20,"small_count":100,"box_list":[{"box_name":"简易奇藏箱","id":1,"num":0}],"treasure_box_list":[{"id":1,"name":"声匣","num":null}],"phantom_box_list":[{"id":1,"name":"收集项","num":2}]}
+{"creat_time":1780000000000,"world_level":8,"active_days":100,"achievement_count":200,"achievement_star":1000,"big_count":20,"small_count":100,"box_list":[{"box_name":"简易奇藏箱","id":1,"num":0}],"treasure_box_list":[{"id":1,"name":"朴素奇藏箱","num":null}],"phantom_box_list":[{"id":1,"name":"潮汐之遗·绿","num":2}]}
 ```
 
-These are illustrative values, never seeded data. `creat_time` preserves the upstream typo and milliseconds. All actual baseData fields are retained (energy, liveness, weekly, rouge, etc.). Token-only legacy accounts still have the original summary without profile.
+These are illustrative values, never seeded data. `creat_time` preserves the upstream typo and milliseconds. Live collection labels were rechecked: box_list and treasure_box_list both list 奇藏箱 tiers (do not sum overlapping counts); phantom_box_list lists 潮汐之遗 colors, not equipped echoes or a sonance-casket count. All actual baseData fields are retained (energy, liveness, weekly, rouge, etc.). Token-only legacy accounts still have the original summary without profile.
 
 `roles` remains an array of original `RoleEntry` objects: `{role_id,name,level,attribute,breach,chain,star_level,weapon,icon_url,is_main,extra}`. Its outer `role_id` is the **character ID**, and `weapon` is the **weapon type**, never an equipped weapon. `extra` contains all normalized roleData entry fields (`total_skill_level`, `role_skin`, `attribute_id`, `weapon_type_id`, `role_pic_url`, etc.) plus `account_role_id`, `server_id`, and `provenance` for archive isolation. `extra.role_id` also remains the upstream character ID. A role detail response carries account `role_id` and separate `character_id`.
 

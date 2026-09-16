@@ -12,7 +12,7 @@
 - 保持 FastAPI + SQLite + Vue，继续使用已有库街区登录与 b-at 续期；不新增登录流程。
 - 扩展原 account.extra 和 roles 条目；增加 combat、activities、resources 能力，用现有快照/轮询/采集错误契约。
 - 复杂模型放 adapters/wuthering_waves 扩展模块，原有摘要字段兼容。未知保留 null，不能伪造零、满星或历史。
-- 从 baseData 保存创建日期、世界等级、活跃天数、成就/星数、信标、宝箱/声匣分类；探索进度仍保留现有语义。
+- 从 baseData 保存创建日期、世界等级、活跃天数、成就/星数、信标、奇藏箱与潮汐之遗分类（按实测名称）；探索进度仍保留现有语义。
 - towerDataDetail 保存全部分区和层级，默认只展示 difficulty=3 深境区；seasonEndTime 是剩余毫秒，过期周期不可作为本期发布。
 - getRoleDetail 保存 roleAttributeList、skillList、chainList、weaponData、phantomData 等实际字段；角色 id 必须属于当前账号角色列表；图片/来源链接仅 http(s)。
 - challengeDetails、slashDetail、moreActivity 各自单独解析和报错；某子接口失败不得使其他成功结果消失。
