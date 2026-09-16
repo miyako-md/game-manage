@@ -45,8 +45,8 @@ function obtainedAt(value) {
 }
 
 const fetchedAt = computed(() => {
-  if (!props.snap?.fetched_at) return null
-  return displayBeijing(props.snap.fetched_at)
+  const readAt = props.capability === 'stamina' ? data.value.updated_at || props.snap?.fetched_at : props.snap?.fetched_at
+  return readAt ? displayBeijing(readAt) : null
 })
 const accountStats = computed(() => [
   ['等级', display(data.value.level)], ['世界等级', display(data.value.world_level)],
@@ -92,6 +92,7 @@ const roleStats = computed(() => ({
     </template>
 
     <template v-else-if="capability === 'stamina'">
+      <p class="muted">来源：塔吉多角色面板。社区数据可能延迟，请以游戏内体力为准。</p>
       <ul class="rows">
         <li v-for="row in staminaRows" :key="row.name">
           <div class="row-head"><span>{{ row.name }}</span><strong>{{ ratio(row.current, row.total) }}</strong></div>
@@ -203,7 +204,7 @@ const roleStats = computed(() => ({
       </ul>
     </template>
 
-    <p v-if="fetchedAt" class="fetched-at">更新于 {{ fetchedAt }}</p>
+    <p v-if="fetchedAt" class="fetched-at">{{ capability === 'stamina' ? '读取于' : '更新于' }} {{ fetchedAt }}</p>
   </section>
 </template>
 

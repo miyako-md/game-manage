@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { getSnapshot, refreshGame } from '../api.js'
 import { gameStyle } from '../dashboard.js'
 import AppIcon from './AppIcon.vue'
+import GameIcon from './GameIcon.vue'
 import SourceStatusPanel from './SourceStatusPanel.vue'
 import AccountCard from './AccountCard.vue'
 import AnnouncementList from './AnnouncementList.vue'
@@ -135,7 +136,7 @@ defineExpose({ loadSnapshots })
     </div>
 
     <header class="card-head">
-      <div class="game-heading"><span class="detail-monogram" :style="{ color: style.color }">{{ style.mark }}</span><div><p class="eyebrow">{{ style.english }}</p><h1 class="game-name">{{ game.display_name }}</h1></div></div>
+      <div class="game-heading"><GameIcon class="detail-monogram" :game-id="game.game_id" :name="game.display_name" /><div><p class="eyebrow">{{ style.english }}</p><h1 class="game-name">{{ game.display_name }}</h1></div></div>
       <span
         v-if="!game.credentials_configured"
         class="badge badge-danger"
@@ -193,7 +194,7 @@ defineExpose({ loadSnapshots })
   flex-wrap: wrap;
 }
 .game-heading { display:flex; align-items:center; gap:17px; margin-right:auto; }
-.detail-monogram { display:grid; place-items:center; font-size:32px; width:58px; height:64px; border:1px solid var(--border); border-radius:10px; background:var(--card-bg); }
+.detail-monogram { display:grid; place-items:center; font-size:32px; width:58px; height:58px; border:1px solid var(--border); border-radius:10px; background:var(--card-bg); }
 .game-heading .eyebrow { font-size:9px; }
 
 .game-name {
@@ -238,7 +239,7 @@ defineExpose({ loadSnapshots })
 .detail-cap-roles :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
 .detail-cap-roles:not(.nte-card) :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); }
 @media(max-width:950px) { .cap-list { grid-template-columns:1fr; gap:16px; } }
-@media(max-width:600px) { .card-head { gap:12px; }.game-heading { gap:11px; }.game-name { font-size:25px; }.detail-monogram { width:43px; height:51px; font-size:25px; }.detail-tabs button { padding:10px 8px; font-size:11px; }.detail-navigation>.text-link { margin-bottom:12px; }.game-heading .eyebrow { font-size:8px; letter-spacing:.7px; } }
+@media(max-width:600px) { .card-head { gap:12px; }.game-heading { gap:11px; }.game-name { font-size:25px; }.detail-monogram { width:43px; height:43px; font-size:25px; }.detail-tabs button { padding:10px 8px; font-size:11px; }.detail-navigation>.text-link { margin-bottom:12px; }.game-heading .eyebrow { font-size:8px; letter-spacing:.7px; } }
 
 .cap-coming {
   color: var(--text-muted);

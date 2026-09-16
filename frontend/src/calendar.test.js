@@ -3,6 +3,37 @@ import assert from 'node:assert/strict'
 import { parseBeijingTime, formatBeijingDateTime, beijingDayStart, calendarRange, shiftCalendarAnchor, eventStatus, eventGeometry, collectCalendarEvents, groupCalendarEvents, safeSourceUrl } from './calendar.js'
 
 const at = parseBeijingTime
+test('relative starts use date geometry without claiming midnight is the opening time', () => {
+  const e = { start_at: null, start_date: '2026-08-20', start_text: '3.6版本更新后', end_at: '2026-09-29T03:59:00+08:00' }
+  const geometry = eventGeometry(e, calendarRange(at('2026-09-16'), 'rolling'))
+  assert.equal(geometry.kind, 'range')
+  assert.equal(geometry.approximateStart, true)
+  assert.equal(e.start_at, null)
+  assert.equal(eventStatus(e, at('2026-08-20T08:00:00+08:00')), '更新后开放')
+  assert.equal(eventStatus(e, at('2026-09-16')), '进行中')
+})
+test('rolling view starts three days before today and shifts thirty days without drifting', () => {
+  const anchor = at('2026-12-31T23:00:00+08:00')
+  const range = calendarRange(anchor, 'rolling')
+  assert.equal(range.start, at('2026-12-28'))
+  assert.equal(range.end, at('2027-01-27'))
+  assert.equal(range.days.length, 30)
+  assert.equal(range.days[3].timestamp, beijingDayStart(anchor))
+  const next = shiftCalendarAnchor(anchor, 'rolling', 1)
+  assert.equal(calendarRange(next, 'rolling').start, at('2027-01-27'))
+  assert.equal(calendarRange(shiftCalendarAnchor(next, 'rolling', -1), 'rolling').start, range.start)
+})
+test('different activity types share one game group while preserving their row metadata', () => {
+  const events = [
+    { gameId: 'nte', gameName: '异环', category: '签到', name: '活动一' },
+    { gameId: 'lol', gameName: '英雄联盟', category: '比赛', name: '活动二' },
+    { gameId: 'nte', gameName: '异环', category: '卡池', name: '活动三' },
+  ]
+  const groups = groupCalendarEvents(events)
+  assert.equal(groups.length, 2)
+  assert.deepEqual(groups[0].events, [events[0], events[2]])
+  assert.equal(groups[1].gameId, 'lol')
+})
 test('dates consistently cross midnight in Beijing, independent of machine timezone', () => {
   assert.equal(formatBeijingDateTime('2026-09-13T16:30:00Z'), '2026-09-14 00:30')
   assert.equal(at('2026-09-14T00:30:00'), at('2026-09-13T16:30:00Z'))

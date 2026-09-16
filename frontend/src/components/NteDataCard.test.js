@@ -202,8 +202,18 @@ test('all capabilities distinguish missing snapshots from legacy schemas and sho
     const legacy = mount(t, NteDataCard, { capability, snap: { payload: { raw: true }, fetched_at: '2026-09-14T10:00:00+08:00', stale: true } })
     assert.match(content(legacy), /数据格式已更新，请刷新/)
     assert.match(content(legacy), /数据可能过期/)
-    assert.match(content(legacy), /更新于/)
+    assert.match(content(legacy), capability === 'stamina' ? /读取于/ : /更新于/)
   }
+})
+
+test('stamina reports the actual source read time rather than the later cache-save time', (t) => {
+  const root = mount(t, NteDataCard, { capability: 'stamina', snap: {
+    payload: { schema_version: 1, current: 0, maximum: 320, updated_at: '2026-09-15T00:50:00+08:00' },
+    fetched_at: '2026-09-15T00:50:25+08:00',
+  } })
+  assert.match(content(root), /0 \/ 320/)
+  assert.match(content(root), /读取于 2026-09-15 00:50/)
+  assert.match(content(root), /社区数据可能延迟/)
 })
 
 test('empty normalized collections show no-data rather than an empty card', (t) => {

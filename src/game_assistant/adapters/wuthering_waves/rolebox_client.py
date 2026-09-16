@@ -18,7 +18,7 @@ import httpx
 
 from game_assistant.adapters.wuthering_waves.endpoints import (
     ROLEBOX_BASE_DATA, ROLEBOX_CALABASH_DATA, ROLEBOX_EXPLORE_INDEX,
-    ROLEBOX_ROLE_DATA,
+    ROLEBOX_ROLE_DATA, ROLEBOX_REFRESH_DATA, ROLEBOX_TOWER_DETAIL,
 )
 
 # 与 devCode 内 UA 逐字一致（注意 KuroGameBox 前是两个空格，保留）
@@ -54,7 +54,7 @@ class RoleBoxClient:
             timeout=15,
         )
 
-    async def post(self, path: str, body: dict) -> dict:
+    async def post(self, path: str, body: dict, *, refresh_ack: bool = False) -> dict | bool:
         """POST form 请求 → 内层 data dict（data 字符串已二次解析）。"""
         try:
             resp = await self._client.post(path, data=body)
@@ -77,6 +77,10 @@ class RoleBoxClient:
                 raise RoleBoxError('数据令牌已失效，请在账号管理重新登录', 10903)
             raise RoleBoxError(msg, data.get('code'))
         payload = data.get("data")
+        if refresh_ack:
+            if payload is not True:
+                raise RoleBoxError('角色数据刷新未成功，请稍后重试')
+            return True
         if isinstance(payload, str):
             try:
                 payload = json.loads(payload)
@@ -87,10 +91,18 @@ class RoleBoxClient:
         return payload
 
     async def base_data(self, role_id: str, server_id: str) -> dict:
-        # baseData：实时体力/等级/活跃天数/周本次数等
+        # baseData is cached; call refresh_data first when collecting live state.
         return await self.post(ROLEBOX_BASE_DATA,
                                {"gameId": 3, "roleId": role_id,
                                 "serverId": server_id})
+
+    async def refresh_data(self, role_id: str, server_id: str) -> None:
+        await self.post(ROLEBOX_REFRESH_DATA,
+                        {"gameId": 3, "roleId": role_id, "serverId": server_id}, refresh_ack=True)
+
+    async def tower_detail(self, role_id: str, server_id: str) -> dict:
+        return await self.post(ROLEBOX_TOWER_DETAIL,
+                               {"gameId": 3, "roleId": role_id, "serverId": server_id})
 
     async def explore_index(self, role_id: str, server_id: str) -> dict:
         # exploreIndex：探索度/残象探寻（channelId=19&countryCode=1 实测必需）

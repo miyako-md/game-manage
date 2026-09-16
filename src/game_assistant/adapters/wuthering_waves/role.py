@@ -53,3 +53,12 @@ def parse_widget_energy(raw: dict, now: datetime) -> StaminaInfo:
             minutes=REGEN_MINUTES_PER_POINT * (maximum - current))
     return StaminaInfo(current=current, maximum=maximum,
                        expected_full_at=expected_full_at, updated_at=now)
+
+
+def parse_base_energy(data: dict, now: datetime) -> StaminaInfo:
+    """Read refreshed roleBox energy; unavailable values must not become zero."""
+    current, maximum = _int_or_none(data.get('energy')), _int_or_none(data.get('maxEnergy'))
+    if current is None or maximum is None or current < 0 or maximum <= 0:
+        raise ValueError('角色面板未返回有效体力')
+    full = now + timedelta(minutes=REGEN_MINUTES_PER_POINT * (maximum - current)) if maximum > current else None
+    return StaminaInfo(current=current, maximum=maximum, expected_full_at=full, updated_at=now)

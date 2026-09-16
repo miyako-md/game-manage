@@ -11,8 +11,8 @@
 #    {name/cur/total/refreshTimeStamp/expireTimeStamp/status}，另有 hasSignIn/roleName；
 #    data 还含 activityData（版本活动 title/endTime/coreRewards）与 towerData/
 #    slashTowerData/weeklyData 等同构进度对象（解析见 widget.py）。
-#    注意 /aki/roleBox/akiBox/baseData 需 APP 端 token（网页 token 恒 code=10901
-#    禁止访问，已实测），不可用，故体力走 widget 端点。# ⑤ EVENT_LIST（POST /forum/companyEvent/findEventList，form body gameId=3 +
+#    baseData 需要下述 roleBox 三件套；不能直接沿用网页 token。
+# ⑤ EVENT_LIST（POST /forum/companyEvent/findEventList，form body gameId=3 +
 #    eventType，eventType：1=活动 2=资讯 3=公告）实测 200：data.list 含
 #    postTitle/publishTime（毫秒时间戳）/postId/coverUrl/firstPublishTime/eventType/id。
 # ⑥ forum/list 的鸣潮板块 forumId 9/10/11（推荐/天诚茶馆/同人）为社区板块而非官方
@@ -28,9 +28,9 @@
 # ⑧ WIDGET_REFRESH（POST /gamer/widget/game3/refresh）实测 200：参数与 getData
 #    相同，响应形状一致。2026-09-13 实测对比：getData 返回缓存体力 26/240，
 #    refresh 返回 33/240（更新鲜，Kuro-API-Collection 亦注明"refresh 返回的
-#    数据更准确点"）；baseData 与 getData 同为缓存且需 b-at，不采用。
-#    仅体力（stamina）走 refresh；activity/progress 保持 getData，
-#    避免 5 分钟一次的 refresh 压力并保持各能力数据来源语义清晰。
+#    数据更准确点"）。该结论仅是历史观测，2026-09-15 已被新实测修正：
+#    已登录账号必须先 roleBox refreshData，再读 baseData / towerDataDetail；
+#    小组件 refresh 不能保证触发最新角色数据，现仅供旧 token 配置兼容。
 BASE = "https://api.kurobbs.com"
 ROLE_LIST = f"{BASE}/gamer/role/list"
 WIDGET_DATA = f"{BASE}/gamer/widget/game3/getData"
@@ -44,3 +44,7 @@ ROLEBOX_BASE_DATA = f"{ROLEBOX_BASE}/baseData"
 ROLEBOX_EXPLORE_INDEX = f"{ROLEBOX_BASE}/exploreIndex"
 ROLEBOX_CALABASH_DATA = f"{ROLEBOX_BASE}/calabashData"
 ROLEBOX_ROLE_DATA = f"{ROLEBOX_BASE}/roleData"
+# 2026-09-15 live check: widget refresh stayed at 240 while refreshed roleBox
+# baseData returned 2. refreshData returns data=true, not a data object.
+ROLEBOX_REFRESH_DATA = f"{ROLEBOX_BASE}/refreshData"
+ROLEBOX_TOWER_DETAIL = f"{ROLEBOX_BASE}/towerDataDetail"

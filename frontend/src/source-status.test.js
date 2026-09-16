@@ -2,6 +2,14 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { describeSource, sourceForGame, capabilityLabel } from './source-status.js'
 
+test('an independent public news source cannot override game account health', () => {
+  const status = sourceForGame('nte', [
+    { game_id: 'nte', capability: 'account', state: 'ok' },
+    { game_id: 'nte', capability: 'news', scope: 'public_source', state: 'error' },
+  ])
+  assert.equal(status.state, 'ok')
+})
+
 test('offline and unconfigured are nonfault states, retaining successful data where available', () => {
   const offline = describeSource({ state: 'offline', last_success_at: '2026-09-14T12:00:00Z', consecutive_failures: 0 })
   assert.equal(offline.label, '客户端离线'); assert.equal(offline.tone, 'muted'); assert.equal(offline.retained, true)

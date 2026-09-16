@@ -8,7 +8,7 @@ export function describeSource(row) {
   return { ...row, label, tone, retained: !!row?.last_success_at && row.state !== 'ok' }
 }
 export function sourceForGame(gameId, rows = []) {
-  const selected = rows.filter(row => row.game_id === gameId)
+  const selected = rows.filter(row => row.game_id === gameId && row.scope !== 'public_source')
     .sort((a, b) => (PRIORITY[b.state] || 0) - (PRIORITY[a.state] || 0))[0]
   return selected ? describeSource(selected) : null
 }

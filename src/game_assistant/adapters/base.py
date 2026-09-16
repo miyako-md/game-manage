@@ -10,6 +10,10 @@ class BaseGameAdapter(ABC):
     capabilities: list[Capability] = []
     credentials_configured: bool = True
 
+    def prepare_refresh(self) -> None:
+        """Invalidate reusable reads before an explicit user refresh."""
+        pass
+
     async def fetch(self, capability: Capability) -> FetchResult:
         if capability not in self.capabilities:
             return FetchResult(ok=False, error="不支持该能力")

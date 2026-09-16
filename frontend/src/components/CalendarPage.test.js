@@ -78,6 +78,7 @@ test('calendar filters by initial game, keeps unknown events and exposes accessi
 })
 test('navigation changes displayed time range and allows returning to today', async (t) => {
   const root = mount(t, CalendarPage, { games: [], snapshots: {} })
+  assert.ok(nodes(root, 'button').find(n => n.text === '近 30 天').props['aria-pressed'])
   const initial = content(root)
   const next = nodes(root, 'button').find(n => n.props['aria-label'] === '下一时间范围')
   next.props.onClick()
@@ -90,6 +91,19 @@ test('navigation changes displayed time range and allows returning to today', as
   await nextTick()
   assert.ok(nodes(root, 'button').find(n => n.text === '14 天').props['aria-pressed'])
 })
+test('calendar puts different activity types in one game group and includes type and status on each bar', (t) => {
+  const now = Date.now()
+  const iso = delta => new Date(now + delta * 86400000).toISOString()
+  const root = mount(t, CalendarPage, { games, snapshots: { nte: { events: { payload: [
+    { name: '签到活动', category: '签到', start_at: iso(-2), end_at: iso(5) },
+    { name: '限时卡池', category: '卡池', start_at: iso(-2), end_at: iso(-1) },
+  ] } } } })
+  assert.equal(nodes(root, 'div').filter(n => n.props.class === 'timeline-group').length, 1)
+  const bars = nodes(root, 'button').filter(n => n.props.class?.includes('timeline-event'))
+  assert.equal(bars.length, 2)
+  assert.match(content(bars[0]), /签到活动 签到 进行中/)
+  assert.match(content(bars[1]), /限时卡池 卡池 已结束/)
+})
 test('timeline renders exact range proportions, a separate single-date marker and clipped detail', async (t) => {
   const range = calendarRange(Date.now(), 'month')
   const iso = time => new Date(time).toISOString()
@@ -100,6 +114,8 @@ test('timeline renders exact range proportions, a separate single-date marker an
     { name: '跨月活动', start_at: iso(range.start - 86400000), end_at: iso(range.end + 86400000) },
     { name: '异常活动', start_at: iso(range.end), end_at: iso(range.start) },
   ] } } } })
+  nodes(root, 'button').find(n => n.text === '整月').props.onClick()
+  await nextTick()
   const bar = nodes(root, 'button').find(n => n.props['aria-label'] === '查看活动详情：半月活动')
   assert.equal(bar.props.style.left, '25%')
   assert.equal(bar.props.style.width, '50%')

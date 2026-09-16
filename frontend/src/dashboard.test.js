@@ -3,6 +3,19 @@ import assert from 'node:assert/strict'
 import { createDashboard, summaryFor, upcomingEvents, recentNews, readRoute } from './dashboard.js'
 
 const game = { game_id: 'nte', display_name: '异环', capabilities: ['account', 'stamina', 'events'] }
+test('mobile duplicate notices prefer Bilibili but LOL keeps both different links', () => {
+  const lol = { game_id: 'league_of_legends', display_name: '英雄联盟' }
+  const native = { title: '更新公告', url: 'https://community.test/1', published_at: '2026-09-16T00:00:00Z' }
+  const bili = { ...native, url: 'https://t.bilibili.com/123', source: 'bilibili', published_at: '2026-09-15T00:00:00Z' }
+  const snaps = {
+    nte: { news: { primary_source: 'bilibili', payload: [bili] }, announcement: { payload: [native] } },
+    league_of_legends: { news: { payload: [bili] }, announcement: { payload: [native] } },
+  }
+  const rows = recentNews([game,lol],snaps)
+  assert.equal(rows.filter(r => r.gameId === 'nte').length, 1)
+  assert.equal(rows.find(r => r.gameId === 'nte').source, 'bilibili')
+  assert.equal(rows.filter(r => r.gameId === 'league_of_legends').length, 2)
+})
 const snapshot = (payload) => ({ payload, stale: false, fetched_at: '2026-09-14T12:30:00Z' })
 const deferred = () => { let resolve; const promise = new Promise((r) => { resolve = r }); return { promise, resolve } }
 function api(overrides = {}) {

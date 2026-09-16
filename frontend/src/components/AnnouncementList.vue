@@ -37,6 +37,7 @@ const rows = computed(() => {
           <span v-else class="item-title">{{ it.title }}</span>
           <span v-if="it.dateText" class="item-date">{{ it.dateText }}</span>
         </div>
+        <small v-if="it.source_name">{{ it.source_name }}<span v-if="it.source_stale"> · 来源采集异常，保留旧记录</span></small>
         <p v-if="it.summary" class="item-summary">{{ it.summary }}</p>
       </li>
     </ul>

@@ -39,9 +39,15 @@ class NteAdapter(BaseGameAdapter):
         self._settings = settings
         self._home_cache = None
         self._characters_cache = None
+        self._cache_generation = 0
         # access/refresh 任一即可；登录服务负责令牌续期和原请求单次重试。
         self.credentials_configured = bool(
             settings.nte_access_token or settings.nte_refresh_token)
+
+    def prepare_refresh(self) -> None:
+        self._cache_generation += 1
+        self._home_cache = None
+        self._characters_cache = None
 
     def _require_client(self) -> TajiduoClient:
         """每次拉取新建鉴权客户端（参考 LoLNewsClient 生命周期模式）。"""
@@ -144,22 +150,26 @@ class NteAdapter(BaseGameAdapter):
         return json.loads(data) if isinstance(data, str) else data
 
     async def _home(self, client, role_id):
+        generation = self._cache_generation
         key = (self._settings.nte_access_token, role_id)
         if self._home_cache and self._home_cache[0] == key and self._home_cache[1] > time.monotonic():
             return self._home_cache[2], self._home_cache[3]
         raw = await client.get_role_home(role_id)
         parse.parse_account(raw, expected_role_id=role_id)
         fetched = datetime.now(timezone.utc)
-        self._home_cache = (key, time.monotonic() + 30, raw, fetched)
+        if generation == self._cache_generation:
+            self._home_cache = (key, time.monotonic() + 30, raw, fetched)
         return raw, fetched
 
     async def _characters(self, client, role_id):
+        generation = self._cache_generation
         key = (self._settings.nte_access_token, role_id)
         if self._characters_cache and self._characters_cache[0] == key and self._characters_cache[1] > time.monotonic():
             return self._characters_cache[2]
         raw = await client.get_role_characters(role_id)
         parse.parse_roles(raw)
-        self._characters_cache = (key, time.monotonic() + 30, raw)
+        if generation == self._cache_generation:
+            self._characters_cache = (key, time.monotonic() + 30, raw)
         return raw
 
     async def fetch_account(self) -> FetchResult:

@@ -3,9 +3,9 @@ import { parseBeijingTime } from './calendar.js'
 
 const PUBLIC_CAPS = new Set(['events', 'announcement', 'news'])
 export const GAME_STYLE = {
-  wuthering_waves: { mark: '鸣', color: '#d8bb84', english: 'WUTHERING WAVES', resource: '结晶波片' },
-  nte: { mark: '异', color: '#b6a3d4', english: 'NEVERNESS TO EVERNESS', resource: '本性像素' },
-  league_of_legends: { mark: 'L', color: '#87b9ce', english: 'LEAGUE OF LEGENDS' },
+  wuthering_waves: { mark: '鸣', icon: '/game-icons/wuthering_waves.jpg', color: '#d8bb84', english: 'WUTHERING WAVES', resource: '结晶波片' },
+  nte: { mark: '异', icon: '/game-icons/nte.jpg', color: '#b6a3d4', english: 'NEVERNESS TO EVERNESS', resource: '本性像素' },
+  league_of_legends: { mark: 'L', icon: '/game-icons/league_of_legends.svg', color: '#87b9ce', english: 'LEAGUE OF LEGENDS' },
 }
 export const gameStyle = (id) => GAME_STYLE[id] || { mark: '游', color: '#d8bb84', english: 'MY GAME', resource: '体力' }
 export const finiteValue = (value) => typeof value === 'number' && Number.isFinite(value) ? value : null
@@ -60,15 +60,26 @@ export function upcomingEvents(games, snapshots, now = Date.now()) {
 }
 
 export function recentNews(games, snapshots) {
-  const rows = games.flatMap(game => ['announcement', 'news'].flatMap(cap => {
+  const rows = games.flatMap(game => {
+    const primary = ['nte', 'wuthering_waves'].includes(game.game_id) && snapshots[game.game_id]?.news?.primary_source === 'bilibili'
+    return (primary ? ['news', 'announcement'] : ['announcement', 'news']).flatMap(cap => {
     const snap = snapshots[game.game_id]?.[cap]
     if (!Array.isArray(snap?.payload)) return []
     return snap.payload.filter(row => row && typeof row.title === 'string').map(row => ({ ...row,
-      gameName: game.display_name, gameId: game.game_id, capability: cap, stale: !!snap.stale,
+      gameName: game.display_name, gameId: game.game_id, capability: cap, primary, stale: !!snap.stale || !!row.source_stale,
       url: safeUrl(row.url), publishedTime: timestamp(row.published_at) || 0 }))
-  })).sort((a, b) => b.publishedTime - a.publishedTime)
-  const seen = new Set()
-  return rows.filter(row => { const key = `${row.gameId}:${row.url || row.title}`; if (seen.has(key)) return false; seen.add(key); return true })
+  })})
+  const selected = new Map()
+  for (const row of rows) {
+    const key = `${row.gameId}:${row.primary ? row.title.normalize('NFKC').replace(/[^\p{L}\p{N}]/gu, '') : row.url || row.title}`
+    const previous = selected.get(key)
+    const priority = item => item.primary && item.source === 'bilibili' ? 1 : 0
+    if (!previous || priority(row) > priority(previous) || (priority(row) === priority(previous) && row.publishedTime > previous.publishedTime)) selected.set(key, row)
+  }
+  // Only configured mobile community supplements move behind primary notices.
+  // LOL keeps its original source and chronological order.
+  const supplement = row => row.primary && row.source !== 'bilibili' ? 1 : 0
+  return [...selected.values()].sort((a, b) => supplement(a) - supplement(b) || b.publishedTime - a.publishedTime)
 }
 
 export function readRoute(hash) {

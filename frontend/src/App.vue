@@ -2,12 +2,14 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import * as api from './api.js'
 import { getAuthStatus } from './auth-api.js'
-import { createDashboard, gameStyle, readRoute } from './dashboard.js'
+import { createDashboard, readRoute } from './dashboard.js'
 import AppIcon from './components/AppIcon.vue'
+import GameIcon from './components/GameIcon.vue'
 import OverviewPage from './components/OverviewPage.vue'
 import CalendarPage from './components/CalendarPage.vue'
 import GameCard from './components/GameCard.vue'
 import LoginPanel from './components/LoginPanel.vue'
+import BilibiliSourcePanel from './components/BilibiliSourcePanel.vue'
 
 const dashboard = createDashboard({ ...api, getAuthStatus })
 const state = dashboard.state
@@ -79,7 +81,7 @@ onBeforeUnmount(() => { clearInterval(timer); dashboard.dispose(); window.remove
         <a href="#/accounts" :class="{ active: route.page === 'accounts' }" :aria-current="route.page === 'accounts' ? 'page' : undefined"><AppIcon name="user" /><span>社区账号</span></a>
       </nav>
       <div class="sidebar-label"><span>我的游戏</span><span>{{ String(state.games.length).padStart(2, '0') }}</span></div>
-      <nav class="game-nav" aria-label="游戏档案" @click="sidebarNavigate"><a v-for="game in state.games" :key="game.game_id" :href="`#/game/${encodeURIComponent(game.game_id)}`" :class="{ active: route.page === 'game' && route.game === game.game_id }" :aria-current="route.page === 'game' && route.game === game.game_id ? 'page' : undefined"><span class="nav-game-mark" :style="{ color: gameStyle(game.game_id).color }">{{ gameStyle(game.game_id).mark }}</span><span>{{ game.display_name }}</span><AppIcon class="nav-arrow" name="arrow" :size="14" /></a></nav>
+      <nav class="game-nav" aria-label="游戏档案" @click="sidebarNavigate"><a v-for="game in state.games" :key="game.game_id" :href="`#/game/${encodeURIComponent(game.game_id)}`" :class="{ active: route.page === 'game' && route.game === game.game_id }" :aria-current="route.page === 'game' && route.game === game.game_id ? 'page' : undefined"><GameIcon class="nav-game-mark" :game-id="game.game_id" :name="game.display_name" /><span>{{ game.display_name }}</span><AppIcon class="nav-arrow" name="arrow" :size="14" /></a></nav>
       <div class="sidebar-bottom"><p class="local-status"><i :class="{ offline: state.loadError || state.serviceError }"></i>{{ state.loadError || state.serviceError ? '本地服务连接异常' : state.loadedAt ? '本地工作台已连接' : '正在连接本地服务' }}</p><p>{{ state.notify ? state.notify.enabled ? '微信推送已启用' : '微信推送未启用' : '提醒状态读取中' }}</p><div><AppIcon name="shield" :size="13" />个人使用 · 数据保存在本机</div></div>
     </aside>
     <div class="workspace-body" :inert="mobileNavigation && menuOpen">
@@ -90,6 +92,7 @@ onBeforeUnmount(() => { clearInterval(timer); dashboard.dispose(); window.remove
         <CalendarPage v-else-if="route.page === 'calendar'" :games="state.games" :snapshots="state.snapshots" :loading="state.loading" :initial-game-id="route.game" :read-errors="calendarErrors" />
         <template v-else-if="route.page === 'game'"><GameCard v-if="selectedGame" :key="`${selectedGame.game_id}:${accountRevisions[selectedGame.game_id] || 0}`" :game="selectedGame" initial-section="overview" :collection-status="state.collection" :external-snapshots="state.snapshots[selectedGame.game_id] || {}" :external-refreshing="!!state.refreshing[selectedGame.game_id]" :external-error="state.refreshErrors[selectedGame.game_id] || state.readErrors[selectedGame.game_id] || ''" @refresh="dashboard.refresh(selectedGame.game_id)" @calendar="navigate('calendar', selectedGame.game_id)" /><div v-else class="empty-page"><p>{{ state.loading ? '正在读取游戏列表…' : '这个游戏尚未启用或已从配置中移除。' }}</p><button class="ui-button" @click="navigate('overview')">返回总览</button></div></template>
         <div v-show="route.page === 'accounts'" class="accounts-page"><header class="page-heading"><p class="eyebrow">CONNECTED WORLDS</p><h1>社区账号</h1><p class="page-description">连接你的游戏世界，让账号与进度自动汇聚。</p></header><LoginPanel @account-changed="onAccountChanged" /><section class="connection-note"><AppIcon name="shield" :size="24" /><div><h2>授权只保存在本机</h2><p>鸣潮与异环使用社区手机号登录；短期凭据自动续期。英雄联盟通过本机客户端读取数据，无需在这里登录。</p><p>登录成功后，进入对应游戏点击「刷新数据」即可加载账号快照。</p></div></section></div>
+        <BilibiliSourcePanel v-if="route.page === 'overview' || route.page === 'game'" :game-id="route.page === 'game' ? route.game : ''" @collected="dashboard.loadSnapshots()" />
       </main>
     </div>
   </div>

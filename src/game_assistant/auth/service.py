@@ -255,7 +255,8 @@ class LoginService:
                 if game == GAMES[0]:
                     # RoleBox uses a renewable b-at ticket. Base account/widget
                     # HTTP auth errors concern the login token and require login.
-                    rolebox = capability in (Capability.ROLES, Capability.EXPLORATION, Capability.CALABASH)
+                    rolebox = capability in (Capability.ROLES, Capability.EXPLORATION, Capability.CALABASH,
+                                             Capability.STAMINA, Capability.PROGRESS)
                     invalid = result.error_code in (10900, 10901, 10903) or (
                         rolebox and result.error_code in (401, 403))
                 else:

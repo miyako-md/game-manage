@@ -44,6 +44,17 @@ tests/                 后端测试（pytest）
 
 ## 快速启动
 
+### Windows 一键启动（推荐日常使用）
+
+双击项目根目录的 **`启动游戏管家.bat`**：自动检查前端更新，必要时构建看板，启动或复用后台，然后在默认浏览器打开 **http://127.0.0.1:8010/**。网页和 API 使用同一个后台服务，无需另开5173。
+
+- 重复双击不会重复启动后台；关闭启动窗口或网页后，后台继续运行。
+- 前端首次构建需要 Node.js/npm；后端需已按下方说明安装到 `.venv`。
+- 命令行使用：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/launch.ps1`。
+- 不打开浏览器：增加 `-NoBrowser`；强制重建看板：增加 `-Rebuild`。
+- 停止后台：`powershell -File scripts/stop.ps1`；重启后台：`powershell -File scripts/restart.ps1`。
+- 运行日志：`data/runtime/service.log`。启动失败时窗口会保留错误信息。
+
 ### 1. 后端
 
 ```bash
@@ -126,9 +137,11 @@ cd frontend && npm run build   # 产物输出到 frontend/dist
 
 ## 鸣潮活动与周期进度
 
-鸣潮卡片的"周期进度"来自库街区小组件接口
-（`/gamer/widget/game3/getData`，无需额外配置；体力走同族 `refresh` 端点——
-参数相同，实测比 getData 的缓存值更实时）：
+已登录鸣潮账号先调用角色面板 `refreshData` 更新上游缓存，再读取 `baseData`
+中的体力、活跃度、周本收取次数、千道门扉和结晶单质。深塔取专项接口
+`towerDataDetail` 中周期性的深境区，不再沿用小组件可能选中的超载区。
+电台、冥歌海墟、终焉矩阵、周度游历仍取刷新后的库街区汇总接口，可能存在上游
+同步延迟。接口与字段说明、历史兼容路径见 [鸣潮数据来源](docs/wuwa-data.md)。
 
 - **周期进度卡片**：逆境深塔 / 冥歌海墟 / 周本（战歌重奏）/ 千道门扉的异想 /
   终焉矩阵 / 周度游历 / 活跃度 / 结晶单质 / 电台（联觉觉醒之战令）等条目的

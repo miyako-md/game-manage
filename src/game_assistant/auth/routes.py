@@ -28,7 +28,7 @@ def install_auth_routes(app, service, settings):
 
     @app.middleware('http')
     async def protect_login(request: Request, call_next):
-        if request.url.path.startswith('/api/auth/'):
+        if request.url.path.startswith(('/api/auth/', '/api/sources/bilibili')):
             origin = request.headers.get('origin')
             allowed = request.url.hostname in hosts and (not origin or origin in origins)
             if request.method not in ('GET', 'HEAD', 'OPTIONS'):

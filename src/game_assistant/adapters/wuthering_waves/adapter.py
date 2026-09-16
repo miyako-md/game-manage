@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime, timezone
 
 from game_assistant import event_calendar
@@ -34,6 +35,8 @@ class WutheringWavesAdapter(BaseGameAdapter):
     def __init__(self, settings: Settings):
         self._client: KuroClient | None = None
         self._settings = settings
+        self._rolebox_refresh_key = None
+        self._rolebox_refresh_time = 0.0
         if settings.wuwa_token and settings.wuwa_user_id:
             self.credentials_configured = True
             self._client = KuroClient(settings.wuwa_token, settings.wuwa_user_id,
@@ -47,6 +50,19 @@ class WutheringWavesAdapter(BaseGameAdapter):
         if s.wuwa_b_at and s.wuwa_dev_code and s.wuwa_did:
             return RoleBoxClient(s.wuwa_b_at, s.wuwa_dev_code, s.wuwa_did)
         raise _UnconfiguredRoleBoxError("未配置 b-at（见 README APP 抓包教程）")
+
+    def _has_rolebox(self) -> bool:
+        s = self._settings
+        return bool(s.wuwa_b_at and s.wuwa_dev_code and s.wuwa_did)
+
+    async def _refresh_rolebox(self, client, role_id, server_id):
+        # A manual refresh collects stamina and progress together. Share only the
+        # refresh acknowledgement for ten seconds, never the fetched payload.
+        key = (role_id, server_id, self._settings.wuwa_b_at, self._settings.wuwa_did, self._settings.wuwa_dev_code)
+        if key == self._rolebox_refresh_key and time.monotonic() - self._rolebox_refresh_time < 10:
+            return
+        await client.refresh_data(role_id, server_id)
+        self._rolebox_refresh_key, self._rolebox_refresh_time = key, time.monotonic()
 
     async def _guarded_run(self, run) -> FetchResult:
         """run 是零参协程工厂；统一处理未配置凭据与客户端错误。"""
@@ -85,9 +101,8 @@ class WutheringWavesAdapter(BaseGameAdapter):
     async def _fetch_widget(self, refresh: bool = False):
         """role_list 取 roleId/serverId → widget_data。返回 (widget_raw, now)。
 
-        refresh=True 走 widget refresh 端点（体力专用，实测比 getData 缓存更
-        实时，见 endpoints.py ⑧）；activity/progress 保持 getData（缓存足够，
-        避免 5 分钟一次的 refresh 压力）。
+        Only token-only legacy accounts use widget refresh for stamina. Logged-in
+        accounts refresh roleBox first; widget supplies remaining summary fields.
         """
         role_id, server_id = await self._get_role_ids()
         raw_widget = await self._client.widget_data(role_id, server_id,
@@ -107,7 +122,14 @@ class WutheringWavesAdapter(BaseGameAdapter):
 
     async def fetch_stamina(self) -> FetchResult:
         async def run():
-            # 体力走 refresh 端点：getData 为缓存值（实测 26/240 vs refresh 33/240）
+            if self._has_rolebox():
+                role_id, server_id = await self._get_role_ids()
+                async with self._get_rolebox() as rb:
+                    await self._refresh_rolebox(rb, role_id, server_id)
+                    data = await rb.base_data(role_id, server_id)
+                return FetchResult(ok=True, payload=role.parse_base_energy(data, datetime.now(timezone.utc)))
+            # Legacy token-only accounts retain widget support. Never fall back
+            # after a configured roleBox request fails and publish an older value.
             raw, now = await self._fetch_widget(refresh=True)
             st = role.parse_widget_energy(raw, now)
             return FetchResult(ok=True, payload=st)
@@ -115,6 +137,20 @@ class WutheringWavesAdapter(BaseGameAdapter):
 
     async def fetch_progress(self) -> FetchResult:
         async def run():
+            if self._has_rolebox():
+                role_id, server_id = await self._get_role_ids()
+                async with self._get_rolebox() as rb:
+                    await self._refresh_rolebox(rb, role_id, server_id)
+                    detail = await rb.tower_detail(role_id, server_id)
+                    tower_fetched_at = datetime.now(timezone.utc)
+                    base = await rb.base_data(role_id, server_id)
+                try:
+                    tower = widget.parse_periodic_tower(detail, tower_fetched_at)
+                    base_progress = widget.parse_base_progress(base)
+                except ValueError as e:
+                    return FetchResult(ok=False, error=str(e), error_kind='invalid_data')
+                raw, _now = await self._fetch_widget()
+                return FetchResult(ok=True, payload=[tower, *widget.parse_progress(raw, include_tower=False, overrides=base_progress)])
             raw, _now = await self._fetch_widget()
             return FetchResult(ok=True, payload=widget.parse_progress(raw))
         return await self._guarded_run(run)

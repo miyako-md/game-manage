@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
+import GameIcon from './GameIcon.vue'
 import { gameStyle, summaryFor, upcomingEvents, recentNews, formatTime } from '../dashboard.js'
 import { sourceForGame } from '../source-status.js'
 
@@ -9,11 +10,12 @@ const props = defineProps({ games: { type: Array, default: () => [] }, snapshots
   refreshing: { type: Object, default: () => ({}) }, collection: { type: Array, default: () => [] }, now: { type: Number, required: true }, loading: Boolean })
 const emit = defineEmits(['navigate', 'refresh'])
 const newsFilter = ref('')
+const sourceFilter = ref('')
 const cards = computed(() => props.games.map(game => ({ ...game, style: gameStyle(game.game_id), summary: summaryFor(game, props.snapshots[game.game_id]), auth: props.accounts[game.game_id], source: sourceForGame(game.game_id, props.collection) })))
 const events = computed(() => upcomingEvents(props.games, props.snapshots, props.now))
 const nearEvents = computed(() => events.value.filter(event => event.remainingDays <= 3))
 const fullGames = computed(() => cards.value.filter(card => card.summary.hasStamina && card.summary.percent >= 90 && !card.summary.stale && !props.readErrors[card.game_id] && (!card.source || card.source.state === 'ok')))
-const news = computed(() => recentNews(props.games, props.snapshots).filter(item => !newsFilter.value || item.gameId === newsFilter.value).slice(0, 5))
+const news = computed(() => recentNews(props.games, props.snapshots).filter(item => (!newsFilter.value || item.gameId === newsFilter.value) && (!sourceFilter.value || item.source === sourceFilter.value)).slice(0, 5))
 const anyRefreshing = computed(() => Object.values(props.refreshing).some(Boolean))
 const notices = computed(() => cards.value.filter(g => props.readErrors[g.game_id] || props.refreshErrors[g.game_id]))
 function status(card) {
@@ -27,6 +29,7 @@ function status(card) {
 function resourceNote(card) {
   const s = card.summary
   if (!s.hasStamina) return s.totalGames == null ? '等待对局数据' : `最近 ${s.totalGames} 场 · ${s.wins == null ? '胜场未知' : `${s.wins} 胜`}`
+  if (card.game_id === 'nte') return '塔吉多体力快照 · 可能有同步延迟'
   if (s.percent >= 100) return '快照显示体力已满'
   if (s.expectedFullAt) return `预计 ${formatTime(s.expectedFullAt)} 回满`
   return '恢复时间未提供'
@@ -49,7 +52,7 @@ function resourceNote(card) {
     <div class="section-heading"><h2>我的游戏 <span class="count-label">/ {{ String(games.length).padStart(2, '0') }}</span></h2><span class="muted small">各游戏独立同步</span></div>
     <div class="game-summary-grid">
       <button v-for="card in cards" :key="card.game_id" class="game-summary" :style="{ '--game-color': card.style.color }" @click="emit('navigate', 'game', card.game_id)">
-        <div class="summary-header"><div class="game-identity"><span class="game-monogram">{{ card.style.mark }}</span><div><h3>{{ card.display_name }}</h3><p>{{ card.game_id === 'league_of_legends' ? 'PC / 国服' : '手游 / 社区数据' }}</p></div></div><span class="summary-state" :class="{ warn: card.summary.stale || card.auth?.state === 'expired' || readErrors[card.game_id] || card.source?.tone === 'danger' }"><i></i>{{ status(card) }}</span></div>
+        <div class="summary-header"><div class="game-identity"><GameIcon class="game-monogram" :game-id="card.game_id" :name="card.display_name" /><div><h3>{{ card.display_name }}</h3><p>{{ card.game_id === 'league_of_legends' ? 'PC / 国服' : '手游 / 社区数据' }}</p></div></div><span class="summary-state" :class="{ warn: card.summary.stale || card.auth?.state === 'expired' || readErrors[card.game_id] || card.source?.tone === 'danger' }"><i></i>{{ status(card) }}</span></div>
         <div class="summary-metric"><p>{{ card.summary.hasStamina ? card.style.resource : '最近对局胜率' }}</p><div class="summary-number">{{ card.summary.value ?? '—' }}<small>{{ card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : '%' }}</small></div></div>
         <div v-if="card.summary.percent != null" class="summary-meter" role="meter" :aria-label="card.summary.hasStamina ? card.style.resource : '胜率'" :aria-valuenow="card.summary.percent" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.min(100, card.summary.percent)}%` }"></i></div>
         <div v-else class="summary-meter unknown"></div>
@@ -64,8 +67,8 @@ function resourceNote(card) {
       <section><div class="section-heading"><h2>临近截止</h2><button class="text-link" @click="emit('navigate', 'calendar')">全部活动 <AppIcon name="arrow" :size="15" /></button></div>
         <div class="overview-list"><p v-if="!events.length" class="empty-page">{{ loading ? '正在读取活动…' : '当前没有已知截止时间的待结束活动。' }}</p><button v-for="event in events.slice(0, 5)" :key="event.id" class="event-summary" @click="emit('navigate', 'calendar', event.gameId)"><span class="event-date"><b>{{ formatTime(event.end_at, { day: '2-digit', month: undefined, hour: undefined, minute: undefined }).replace('日', '') }}</b><small>截止日</small></span><span class="event-copy"><strong>{{ event.name }}</strong><small>{{ event.gameName }} · {{ event.category || '限时活动' }}</small><small>{{ formatTime(event.end_at) }} 截止<span v-if="event.stale"> · 数据可能过期</span></small></span><span class="deadline-label" :class="{ urgent: event.remainingDays <= 3 }">{{ event.upcoming ? '未开始 · ' : '' }}剩 {{ event.remainingDays }} 天</span></button></div>
       </section>
-      <section><div class="section-heading"><h2>公告与资讯</h2><label class="sr-only" for="news-game-filter">公告游戏筛选</label><select id="news-game-filter" v-model="newsFilter" class="quiet-select"><option value="">全部游戏</option><option v-for="g in games" :key="g.game_id" :value="g.game_id">{{ g.display_name }}</option></select></div>
-        <div class="overview-list news-list"><p v-if="!news.length" class="empty-page">{{ loading ? '正在读取公告…' : '暂无公告快照。' }}</p><article v-for="(item, i) in news" :key="`${item.gameId}:${item.title}:${i}`" class="news-summary"><div class="news-source"><i :style="{ background: gameStyle(item.gameId).color }"></i>{{ item.gameName }}<span> / {{ item.capability === 'news' ? '资讯' : '官方公告' }}<span v-if="item.stale"> · 旧快照</span></span></div><a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer">{{ item.title }} <span>↗</span></a><p v-else>{{ item.title }}</p><time v-if="item.published_at">{{ formatTime(item.published_at) }}</time></article></div>
+      <section><div class="section-heading"><h2>公告与资讯</h2><label class="sr-only" for="news-game-filter">公告游戏筛选</label><select id="news-game-filter" v-model="newsFilter" class="quiet-select"><option value="">全部游戏</option><option v-for="g in games" :key="g.game_id" :value="g.game_id">{{ g.display_name }}</option></select><label class="sr-only" for="news-source-filter">资讯来源</label><select id="news-source-filter" v-model="sourceFilter" class="quiet-select"><option value="">全部来源</option><option value="bilibili">B站官方动态</option></select></div>
+        <div class="overview-list news-list"><p v-if="!news.length" class="empty-page">{{ loading ? '正在读取公告…' : '暂无公告快照。' }}</p><article v-for="(item, i) in news" :key="`${item.gameId}:${item.title}:${i}`" class="news-summary"><div class="news-source"><i :style="{ background: gameStyle(item.gameId).color }"></i>{{ item.gameName }}<span> / {{ item.source_name || (item.capability === 'news' ? '资讯' : '官方公告') }}<span v-if="item.stale"> · 旧快照</span></span></div><a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer">{{ item.title }} <span>↗</span></a><p v-else>{{ item.title }}</p><time v-if="item.published_at">{{ formatTime(item.published_at) }}</time></article></div>
       </section>
     </div>
     <footer class="overview-footer"><span><AppIcon name="shield" :size="14" />数据保存在本机</span><span>日期与时间均为北京时间</span></footer>

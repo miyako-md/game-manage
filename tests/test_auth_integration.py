@@ -72,7 +72,7 @@ async def test_wuwa_expired_ticket_rotates_then_retries_existing_rolebox(tmp_pat
 
 @pytest.mark.parametrize('capability,path,data', [
     (Capability.ACCOUNT, '/gamer/role/list', [{'roleId': 'r1', 'serverId': 's1', 'roleName': 'test'}]),
-    (Capability.STAMINA, '/gamer/widget/game3/refresh', {'energyData': {'cur': 100, 'total': 240}}),
+    (Capability.STAMINA, '/aki/roleBox/akiBox/baseData', {'energy': 100, 'maxEnergy': 240}),
     (Capability.PROGRESS, '/gamer/widget/game3/getData', {}),
 ])
 @respx.mock
@@ -85,11 +85,26 @@ async def test_sdk_login_credentials_keep_app_source_during_polling(tmp_path, ca
     def upstream(request):
         if request.headers.get('source') != 'ios':
             return httpx.Response(200, json={'code': 220, 'msg': 'login expired'})
+        if request.url.path.endswith('/refreshData'):
+            return httpx.Response(200, json={'code': 200, 'data': True})
+        if request.url.path.endswith('/towerDataDetail'):
+            return httpx.Response(200, json={'code': 200, 'data': {'seasonEndTime': 86400000,
+                'difficultyList': [{'difficulty': 3, 'towerAreaList': [{'star': 0, 'maxStar': 36}]}]}})
+        if request.url.path.endswith('/baseData') and capability == Capability.PROGRESS:
+            return httpx.Response(200, json={'code': 200, 'data': {'storeEnergy': 0, 'storeEnergyLimit': 480,
+                'liveness': 0, 'livenessMaxCount': 100, 'weeklyInstCount': 0, 'weeklyInstCountLimit': 3,
+                'rougeScore': 0, 'rougeScoreLimit': 6000}})
         return httpx.Response(200, json={'code': 200, 'data': data})
     route = respx.post('https://api.kurobbs.com' + path).mock(side_effect=upstream)
+    if capability != Capability.ACCOUNT:
+        respx.post('https://api.kurobbs.com/aki/roleBox/akiBox/refreshData').mock(side_effect=upstream)
+    if capability == Capability.PROGRESS:
+        for endpoint in ['baseData', 'towerDataDetail']:
+            respx.post('https://api.kurobbs.com/aki/roleBox/akiBox/' + endpoint).mock(side_effect=upstream)
     result = await registry.get('wuthering_waves').fetch(capability)
     assert result.ok, result.error
     assert route.calls.last.request.headers['source'] == 'ios'
+    assert all(call.request.headers['source'] == 'ios' for call in respx.calls)
     assert auth.status()['accounts']['wuthering_waves']['state'] == 'connected'
 
 
