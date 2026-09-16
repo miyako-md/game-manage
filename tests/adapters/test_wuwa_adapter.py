@@ -165,7 +165,7 @@ def test_capabilities_events_after_stamina_no_activity():
     assert caps == [Capability.ACCOUNT, Capability.STAMINA, Capability.EVENTS,
                     Capability.PROGRESS, Capability.ANNOUNCEMENT,
                     Capability.EXPLORATION, Capability.CALABASH,
-                    Capability.ROLES]
+                    Capability.ROLES, Capability.COMBAT, Capability.ACTIVITIES, Capability.RESOURCES]
     assert not hasattr(Capability, "ACTIVITY")
 
 

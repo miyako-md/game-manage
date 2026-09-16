@@ -11,6 +11,10 @@ from game_assistant.adapters.wuthering_waves.rolebox_client import (
 )
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
+from .detail_parse import normalize, parse_tower, parse_periods, parse_profile, parse_report
+from .data_models import SourceResult, CombatPayload, ActivitiesPayload, ResourcesPayload
+
+AUTH_CODES = (220, 401, 402, 403, 10900, 10901, 10903)
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +34,14 @@ class WutheringWavesAdapter(BaseGameAdapter):
     capabilities = [Capability.ACCOUNT, Capability.STAMINA,
                     Capability.EVENTS, Capability.PROGRESS,
                     Capability.ANNOUNCEMENT, Capability.EXPLORATION,
-                    Capability.CALABASH, Capability.ROLES]
+                    Capability.CALABASH, Capability.ROLES, Capability.COMBAT,
+                    Capability.ACTIVITIES, Capability.RESOURCES]
 
     def __init__(self, settings: Settings):
         self._client: KuroClient | None = None
         self._settings = settings
+        self._combat_cache = {}
+        self._resource_cache = {}
         self._rolebox_refresh_key = None
         self._rolebox_refresh_time = 0.0
         if settings.wuwa_token and settings.wuwa_user_id:
@@ -48,7 +55,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
         """roleBox 三件套全非空才启用（每次拉取新建，参考 LcuClient 生命周期）。"""
         s = self._settings
         if s.wuwa_b_at and s.wuwa_dev_code and s.wuwa_did:
-            return RoleBoxClient(s.wuwa_b_at, s.wuwa_dev_code, s.wuwa_did)
+            return RoleBoxClient(s.wuwa_b_at, s.wuwa_dev_code, s.wuwa_did, token=s.wuwa_token)
         raise _UnconfiguredRoleBoxError("未配置 b-at，请在「社区账号」登录鸣潮以自动获取角色会话")
 
     def _has_rolebox(self) -> bool:
@@ -74,6 +81,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
             return FetchResult(ok=False, error=e.message, error_kind='unconfigured')
         except RoleBoxError as e:
             return FetchResult(ok=False, error=e.message, error_code=e.code,
+                error_source='rolebox',
                 error_kind='auth_expired' if e.code in (220, 401, 402, 403, 10900, 10901, 10903) else 'source_error')
         except KuroError as e:
             # The legacy client includes str(httpx_error) for network errors;
@@ -117,7 +125,15 @@ class WutheringWavesAdapter(BaseGameAdapter):
                 if not rows:
                     raise KuroError(-3, '已登录角色不再绑定，请重新登录')
                 raw = {**raw, 'data': rows}
-            return FetchResult(ok=True, payload=role.parse_role_list(raw))
+            payload = role.parse_role_list(raw)
+            if self._has_rolebox():
+                role_id, server_id = await self._get_role_ids()
+                async with self._get_rolebox() as rb:
+                    await self._refresh_rolebox(rb, role_id, server_id)
+                    base = await rb.base_data(role_id, server_id)
+                payload.extra.update(role_id=role_id, server_id=server_id,
+                    profile=parse_profile(base), provenance=self._provenance('baseData'))
+            return FetchResult(ok=True, payload=payload)
         return await self._guarded_run(run)
 
     async def fetch_stamina(self) -> FetchResult:
@@ -207,5 +223,140 @@ class WutheringWavesAdapter(BaseGameAdapter):
             role_id, server_id = await self._get_role_ids()
             async with self._get_rolebox() as rb:
                 raw = await rb.role_data(role_id, server_id)
-            return FetchResult(ok=True, payload=rolebox.parse_role_data(raw))
+            entries = rolebox.parse_role_data(raw)
+            provenance = self._provenance('roleData')
+            for entry in entries:
+                entry.extra['account_role_id'] = role_id
+                entry.extra['server_id'] = server_id
+                entry.extra['provenance'] = provenance
+            return FetchResult(ok=True, payload=entries)
+        return await self._guarded_run(run)
+
+    @staticmethod
+    def _provenance(endpoint):
+        return {'source': 'https://api.kurobbs.com', 'endpoint': endpoint,
+                'fetched_at': datetime.now(timezone.utc).isoformat()}
+
+    def _previous_payload(self, capability, role_id, server_id):
+        store = getattr(getattr(self, '_auth', None), 'snapshots', None)
+        snapshot = store.get(self.game_id, capability) if store else None
+        payload = snapshot.get('payload') if snapshot else None
+        if isinstance(payload, dict) and payload.get('role_id') == role_id and payload.get('server_id') == server_id:
+            return payload
+        return {}
+
+    async def fetch_combat(self) -> FetchResult:
+        async def run():
+            role_id, server_id = await self._get_role_ids()
+            # Token is only an in-memory cache discriminator, never serialized.
+            identity = (role_id, server_id, self._settings.wuwa_user_id, self._settings.wuwa_token)
+            previous = self._combat_cache.get(identity, {})
+            if not previous:
+                saved = self._previous_payload('combat', role_id, server_id)
+                for key in ('tower', 'hologram', 'slash'):
+                    if isinstance(saved.get(key), dict):
+                        try:
+                            previous[key] = SourceResult.model_validate(saved[key])
+                        except ValueError:
+                            pass
+            sources = {}
+            async with self._get_rolebox() as rb:
+                await self._refresh_rolebox(rb, role_id, server_id)
+                for name, method, endpoint in [('tower', rb.tower_detail, 'towerDataDetail'),
+                        ('hologram', rb.challenge_details, 'challengeDetails'),
+                        ('slash', rb.slash_detail, 'slashDetail')]:
+                    try:
+                        raw = await method(role_id, server_id)
+                        if not isinstance(raw, dict) or not raw:
+                            raise ValueError('来源数据缺失')
+                        now = datetime.now(timezone.utc)
+                        data = parse_tower(raw, now) if name == 'tower' else normalize(raw)
+                        sources[name] = SourceResult(data=data, fetched_at=now.isoformat(), source=endpoint)
+                    except RoleBoxError as error:
+                        if error.code in AUTH_CODES:
+                            raise
+                        old = previous.get(name)
+                        sources[name] = SourceResult(state='stale' if old and old.data is not None else 'error',
+                            data=old.data if old else None, fetched_at=old.fetched_at if old else None,
+                            source=endpoint, error='来源请求失败，请稍后重试')
+                    except (ValueError, TypeError, KeyError):
+                        old = previous.get(name)
+                        sources[name] = SourceResult(state='stale' if old and old.data is not None else 'error',
+                            data=old.data if old else None, fetched_at=old.fetched_at if old else None,
+                            source=endpoint, error='来源数据缺失、过期或无法解析')
+            self._combat_cache = {identity: sources}
+            return FetchResult(ok=True, payload=CombatPayload(role_id=role_id, server_id=server_id,
+                provenance=self._provenance('combat'), **sources))
+        return await self._guarded_run(run)
+
+    async def fetch_activities(self) -> FetchResult:
+        async def run():
+            role_id, server_id = await self._get_role_ids()
+            async with self._get_rolebox() as rb:
+                raw = await rb.more_activity(role_id, server_id)
+                if not isinstance(raw, dict) or not raw:
+                    raise ValueError('玩法数据缺失')
+            return FetchResult(ok=True, payload=ActivitiesPayload(role_id=role_id, server_id=server_id,
+                provenance=self._provenance('moreActivity'), sections=normalize(raw)))
+        return await self._guarded_run(run)
+
+    async def fetch_role_detail(self, character_id: str) -> FetchResult:
+        async def run():
+            role_id, server_id = await self._get_role_ids()
+            async with self._get_rolebox() as rb:
+                owned = await rb.role_data(role_id, server_id)
+                if character_id not in {str(r.get('roleId')) for r in owned.get('roleList', []) if isinstance(r, dict)}:
+                    return FetchResult(ok=False, error='角色不属于当前账号', error_kind='not_found')
+                raw = await rb.role_detail(role_id, server_id, character_id)
+                if not isinstance(raw, dict) or not raw:
+                    raise ValueError('角色详情缺失')
+                returned_id = (raw.get('role') or {}).get('roleId')
+                if returned_id is not None and str(returned_id) != character_id:
+                    raise ValueError('角色详情不匹配')
+            return FetchResult(ok=True, payload={'schema_version': 1, 'role_id': role_id,
+                'server_id': server_id, 'character_id': character_id, 'data': normalize(raw),
+                'provenance': self._provenance('getRoleDetail')})
+        return await self._guarded_run(run)
+
+    async def fetch_resource_detail(self, kind: str, period: str) -> FetchResult:
+        async def run():
+            if kind not in ('week', 'month', 'version'):
+                return FetchResult(ok=False, error='无效资源类型', error_kind='not_found')
+            role_id, server_id = await self._get_role_ids()
+            async with self._get_rolebox() as rb:
+                periods = parse_periods(await rb.period_list())
+                if period not in {p['period'] for p in periods[kind]}:
+                    return FetchResult(ok=False, error='该账号没有此资源周期', error_kind='not_found')
+                raw = await rb.resource_report(role_id, server_id, kind, period)
+            return FetchResult(ok=True, payload={'schema_version': 1, 'role_id': role_id,
+                'server_id': server_id, 'kind': kind, 'period': period, 'data': parse_report(raw),
+                'provenance': self._provenance('resource/' + kind)})
+        return await self._guarded_run(run)
+
+    async def fetch_resources(self) -> FetchResult:
+        async def run():
+            role_id, server_id = await self._get_role_ids()
+            identity = (role_id, server_id, self._settings.wuwa_user_id, self._settings.wuwa_token)
+            async with self._get_rolebox() as rb:
+                periods = parse_periods(await rb.period_list())
+                current, error = None, None
+                if periods['month']:
+                    period = periods['month'][0]['period']
+                    try:
+                        raw = await rb.resource_report(role_id, server_id, 'month', period)
+                        current = {'kind': 'month', 'period': period, 'data': parse_report(raw),
+                            'state': 'ok', 'fetched_at': datetime.now(timezone.utc).isoformat()}
+                    except (RoleBoxError, ValueError, TypeError) as exc:
+                        if isinstance(exc, RoleBoxError) and exc.code in AUTH_CODES:
+                            raise
+                        error = '本月资源报告暂不可用'
+                        previous = self._resource_cache.get(identity)
+                        if previous is None:
+                            previous = self._previous_payload('resources', role_id, server_id).get('current')
+                        if previous:
+                            current = {**previous, 'state': 'stale'}
+            if current:
+                self._resource_cache = {identity: current}
+            return FetchResult(ok=True, payload=ResourcesPayload(role_id=role_id, server_id=server_id,
+                provenance=self._provenance('resource'), periods=periods, current=current, error=error))
         return await self._guarded_run(run)

@@ -19,6 +19,8 @@ import httpx
 from game_assistant.adapters.wuthering_waves.endpoints import (
     ROLEBOX_BASE_DATA, ROLEBOX_CALABASH_DATA, ROLEBOX_EXPLORE_INDEX,
     ROLEBOX_ROLE_DATA, ROLEBOX_REFRESH_DATA, ROLEBOX_TOWER_DETAIL,
+    ROLEBOX_ROLE_DETAIL, ROLEBOX_CHALLENGE_DETAILS, ROLEBOX_SLASH_DETAIL,
+    ROLEBOX_MORE_ACTIVITY, RESOURCE_BASE,
 )
 
 # 与 devCode 内 UA 逐字一致（注意 KuroGameBox 前是两个空格，保留）
@@ -37,7 +39,8 @@ class RoleBoxError(Exception):
 
 
 class RoleBoxClient:
-    def __init__(self, b_at: str, dev_code: str, did: str):
+    def __init__(self, b_at: str, dev_code: str, did: str, *, token: str = ''):
+        self.token = token
         self.b_at = b_at
         self.dev_code = dev_code
         self.did = did
@@ -54,10 +57,12 @@ class RoleBoxClient:
             timeout=15,
         )
 
-    async def post(self, path: str, body: dict, *, refresh_ack: bool = False) -> dict | bool:
+    async def post(self, path: str, body: dict, *, refresh_ack: bool = False,
+                   method: str = 'POST', resource: bool = False) -> dict | bool:
         """POST form 请求 → 内层 data dict（data 字符串已二次解析）。"""
         try:
-            resp = await self._client.post(path, data=body)
+            headers = {'token': self.token} if resource else {}
+            resp = await self._client.request(method, path, data=body if method == 'POST' else None, headers=headers)
         except httpx.HTTPError as e:
             # Exception messages may contain request URLs or credential values.
             raise RoleBoxError(f"网络错误: {type(e).__name__}") from e
@@ -126,6 +131,28 @@ class RoleBoxClient:
 
     async def aclose(self) -> None:
         await self._client.aclose()
+
+    async def role_detail(self, role_id, server_id, character_id):
+        return await self.post(ROLEBOX_ROLE_DETAIL, {'gameId': 3, 'roleId': role_id,
+            'serverId': server_id, 'id': character_id, 'channelId': 19, 'countryCode': 1})
+
+    async def challenge_details(self, role_id, server_id):
+        return await self.post(ROLEBOX_CHALLENGE_DETAILS, {'gameId': 3, 'roleId': role_id, 'serverId': server_id})
+
+    async def slash_detail(self, role_id, server_id):
+        return await self.post(ROLEBOX_SLASH_DETAIL, {'gameId': 3, 'roleId': role_id, 'serverId': server_id})
+
+    async def more_activity(self, role_id, server_id):
+        return await self.post(ROLEBOX_MORE_ACTIVITY, {'gameId': 3, 'roleId': role_id, 'serverId': server_id})
+
+    async def period_list(self):
+        return await self.post(RESOURCE_BASE + '/period/list', {}, method='GET', resource=True)
+
+    async def resource_report(self, role_id, server_id, kind, period):
+        if kind not in ('week', 'month', 'version'):
+            raise ValueError('无效资源类型')
+        return await self.post(RESOURCE_BASE + '/' + kind,
+            {'roleId': role_id, 'serverId': server_id, 'period': period}, resource=True)
 
     async def __aenter__(self) -> "RoleBoxClient":
         return self

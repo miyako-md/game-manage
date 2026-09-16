@@ -43,6 +43,7 @@ class LoginService:
         self._sms_attempts = []
         self._start_times = []
         self._versions = {g: 0 for g in GAMES}
+        self._account_generations = {g: 0 for g in GAMES}
         self._errors = {}
         self.registry = self.snapshots = None
         try:
@@ -77,6 +78,10 @@ class LoginService:
 
     def version(self, game):
         return self._versions.get(game, 0)
+
+    def account_generation(self, game):
+        """Account replacement/logout epoch, unchanged by same-account renewal."""
+        return self._account_generations.get(game, 0)
 
     def _apply(self, game):
         account = self._accounts[game]
@@ -188,6 +193,8 @@ class LoginService:
         self._accounts[game] = account
         self._errors.pop(game, None)
         self._versions[game] += 1
+        if clear_snapshots:
+            self._account_generations[game] += 1
         self._apply(game)
 
     async def login(self, game, sid, mobile, code):
@@ -256,7 +263,8 @@ class LoginService:
                     # RoleBox uses a renewable b-at ticket. Base account/widget
                     # HTTP auth errors concern the login token and require login.
                     rolebox = capability in (Capability.ROLES, Capability.EXPLORATION, Capability.CALABASH,
-                                             Capability.STAMINA, Capability.PROGRESS)
+                                             Capability.STAMINA, Capability.PROGRESS,
+                                             Capability.COMBAT, Capability.ACTIVITIES, Capability.RESOURCES) or result.error_source == 'rolebox'
                     invalid = result.error_code in (10900, 10901, 10903) or (
                         rolebox and result.error_code in (401, 403))
                 else:

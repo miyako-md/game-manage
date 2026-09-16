@@ -23,6 +23,9 @@ def integrated(tmp_path, credentials=None, **config):
 
 @respx.mock
 async def test_saved_wuwa_identity_used_by_existing_account_client(tmp_path):
+    for endpoint, payload in [('refreshData', True), ('baseData', {'boxList': []})]:
+        respx.post('https://api.kurobbs.com/aki/roleBox/akiBox/' + endpoint).mock(
+            return_value=httpx.Response(200, json={'code': 200, 'data': payload}))
     auth, registry, settings = integrated(tmp_path, {'wuthering_waves': {
         'token': 'token', 'user_id': 'user', 'did': 'same-login-device',
         'dev_code': '1.1.1.1, UA', 'role_id': 'r1', 'server_id': 's1', 'b_at': 'ticket',
@@ -96,8 +99,10 @@ async def test_sdk_login_credentials_keep_app_source_during_polling(tmp_path, ca
                 'rougeScore': 0, 'rougeScoreLimit': 6000}})
         return httpx.Response(200, json={'code': 200, 'data': data})
     route = respx.post('https://api.kurobbs.com' + path).mock(side_effect=upstream)
-    if capability != Capability.ACCOUNT:
-        respx.post('https://api.kurobbs.com/aki/roleBox/akiBox/refreshData').mock(side_effect=upstream)
+    respx.post('https://api.kurobbs.com/aki/roleBox/akiBox/refreshData').mock(side_effect=upstream)
+    if capability == Capability.ACCOUNT:
+        respx.post('https://api.kurobbs.com/aki/roleBox/akiBox/baseData').mock(
+            return_value=httpx.Response(200, json={'code': 200, 'data': {'boxList': []}}))
     if capability == Capability.PROGRESS:
         for endpoint in ['baseData', 'towerDataDetail']:
             respx.post('https://api.kurobbs.com/aki/roleBox/akiBox/' + endpoint).mock(side_effect=upstream)
@@ -125,6 +130,7 @@ def test_persisted_web_token_source_is_not_migrated_to_ios(tmp_path):
     (Capability.ROLES, 'roleData', {'roleList': []}),
     (Capability.EXPLORATION, 'exploreIndex', {'detectionInfoList': [], 'exploreList': []}),
     (Capability.CALABASH, 'calabashData', {'level': 30}),
+    (Capability.ACTIVITIES, 'moreActivity', {'permanentRouge': {'score': 0}}),
 ])
 @respx.mock
 async def test_rolebox_http_expiry_renews_once(tmp_path, status, capability, path, payload):
@@ -142,6 +148,8 @@ async def test_rolebox_http_expiry_renews_once(tmp_path, status, capability, pat
     assert source.call_count == 2 and renewal.call_count == 1
     assert source.calls.last.request.headers['b-at'] == 'new-ticket'
     assert auth.store.load()['wuthering_waves']['b_at'] == 'new-ticket'
+    assert auth.account_generation('wuthering_waves') == 0
+    assert auth.version('wuthering_waves') == 1
 
 
 @pytest.mark.parametrize('status', [401, 403])

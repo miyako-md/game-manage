@@ -29,6 +29,9 @@ class BaseGameAdapter(ABC):
             Capability.EXPLORATION: self.fetch_exploration,
             Capability.CALABASH: self.fetch_calabash,
             Capability.ROLES: self.fetch_roles,
+            Capability.COMBAT: self.fetch_combat,
+            Capability.ACTIVITIES: self.fetch_activities,
+            Capability.RESOURCES: self.fetch_resources,
             Capability.GACHA: self.fetch_gacha,
             Capability.RECORD: self.fetch_record,
         }[capability]
@@ -71,6 +74,15 @@ class BaseGameAdapter(ABC):
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_gacha(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_combat(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_activities(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_resources(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_record(self) -> FetchResult:

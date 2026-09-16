@@ -18,6 +18,7 @@ roleData data 实测形状：
   + showToGuest。
 """
 import json as _json
+from .detail_parse import normalize
 from collections import Counter
 
 from game_assistant.models import (
@@ -116,6 +117,7 @@ def parse_role_data(raw) -> list[RoleEntry]:
     """
     data = _data(raw)
     roles = [RoleEntry(
+        extra=normalize(r),
         role_id=_int_or_none(r.get("roleId")),
         name=str(r.get("roleName") or ""),
         level=_int_or_none(r.get("level")),
@@ -124,7 +126,7 @@ def parse_role_data(raw) -> list[RoleEntry]:
         chain=_int_or_none(r.get("chainUnlockNum")),
         star_level=_int_or_none(r.get("starLevel")),
         weapon=_str_or_none(r.get("weaponTypeName")),
-        icon_url=_str_or_none(r.get("roleIconUrl")),
+        icon_url=normalize(r).get('role_icon_url'),
         is_main=bool(r.get("isMainRole", False)),
     ) for r in data.get("roleList") or [] if isinstance(r, dict)]
     roles.sort(key=lambda e: (-(e.level or 0), -(e.chain or 0)))

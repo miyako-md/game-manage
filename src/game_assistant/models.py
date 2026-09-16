@@ -16,6 +16,9 @@ class Capability(str, Enum):
     EXPLORATION = "exploration"
     CALABASH = "calabash"
     ROLES = "roles"
+    COMBAT = "combat"
+    ACTIVITIES = "activities"
+    RESOURCES = "resources"
     GACHA = "gacha"
     RECORD = "record"
     EVENTS = "events"
@@ -90,6 +93,7 @@ class ExplorationData(BaseModel):
 
 
 class RoleEntry(BaseModel):
+    extra: dict = {}
     # roleBox roleData roleList 单项（角色练度墙）：等级/命链/突破/属性/武器等
     role_id: int | None = None
     name: str = ""
@@ -182,6 +186,7 @@ class FetchResult(BaseModel):
     payload: Any = None
     error: str | None = None
     error_code: int | None = None
+    error_source: str | None = None
     error_kind: Literal['offline', 'unconfigured', 'auth_expired', 'source_error',
-                        'invalid_data', 'account_changed'] | None = None
+                        'invalid_data', 'account_changed', 'not_found'] | None = None
     credential_version: int | None = None
