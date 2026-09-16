@@ -11,6 +11,11 @@ const current = computed(() =>
   zones.value.find((z) => String(z.difficulty) === difficulty.value),
 )
 const roster = (entry) => list(entry?.role_list || entry?.roles)
+const hasMissingFloorCaps = computed(() =>
+  list(current.value?.tower_area_list).some((area) =>
+    list(area.floor_list).some((floor) => floor.max_star == null),
+  ),
+)
 </script>
 <template>
   <div>
@@ -30,7 +35,10 @@ const roster = (entry) => list(entry?.role_list || entry?.roles)
         </button>
       </div>
       <p v-if="!current" class="wuwa-muted">未提供所选分区记录</p>
-      <div v-else class="wuwa-grid">
+      <p v-if="hasMissingFloorCaps" class="wuwa-meta">
+        来源未提供部分楼层的星数上限；这些楼层仅显示已得星数。
+      </p>
+      <div v-if="current" class="wuwa-grid">
         <article
           v-for="(area, i) in list(current.tower_area_list)"
           :key="i"
@@ -48,9 +56,10 @@ const roster = (entry) => list(entry?.role_list || entry?.roles)
             class="wuwa-floor"
           >
             <strong>第 {{ value(floor.floor ?? floor.floor_index) }} 层</strong
-            ><span
+            ><span v-if="floor.max_star != null"
               >{{ value(floor.star) }} / {{ value(floor.max_star) }} 星</span
             >
+            <span v-else>已得 {{ value(floor.star) }} 星</span>
             <p>
               队伍：<span
                 v-for="(role, k) in roster(floor)"

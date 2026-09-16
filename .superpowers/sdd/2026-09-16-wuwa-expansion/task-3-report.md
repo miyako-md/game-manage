@@ -34,3 +34,10 @@ TDD: initial eight integration cases failed on empty components before implement
 - Added `src/wuwa-api.test.js` for cross-account/cross-server owner rejection, generation cancellation, application POST headers/no-referrer/no-store and non-reflective authorization errors. Added `src/wuwa-display.test.js` for safe images, null/zero/false semantics and Beijing date boundaries.
 - Red evidence: new role metadata renderer assertion and invalid numeric-date test failed before changes. Invalid numeric dates previously raised RangeError; now all missing/invalid dates display 未知 while timestamp 0 remains a real date.
 - Validation after review fixes: `npm test` PASS 101/101 (18 Wuwa panel cases plus 6 focused Wuwa helper/API cases); `npm run build` PASS, 74 modules, JS 202.06 kB before compression. Browser/live visual acceptance remains the controller's responsibility.
+
+## Browser-polish follow-up
+
+- Applied controller's real-browser feedback in this worktree only: `store_energy`, its limit and title now use the user-confirmed 结晶单质 terminology.
+- Hologram records are grouped by boss name in native `details` elements, collapsed by default. Each summary shows boss name and record count; all difficulty, team and original pass-time values remain inside the group. Unknown boss names remain separated by source group. Source stale/error status stays outside the collapsed groups, and the sea report follows the compact summaries.
+- Floors with supplied max stars retain the ratio; floors without a max display only 已得 X 星. One source-omission explanation appears for the selected zone, without guessing an upper bound. Real zero stars remain visible.
+- Three new behavioral tests failed before these changes and now pass. `npm test`: PASS 104/104; `npm run build`: PASS, 74 modules. No shared integration files changed in this polish batch, and no direct edits were made to the main runtime directory.

@@ -35,6 +35,88 @@ const account = snap({
 })
 const reply = (payload) => ({ ok: true, json: async () => payload })
 
+test('holograms group every difficulty under collapsed boss summaries without losing source status', async (t) => {
+  const root = mount(t, await component('WuwaCombat'), {
+    snap: snap({
+      hologram: {
+        state: 'stale',
+        error: '保留旧记录',
+        data: {
+          challenge_info: {
+            a: [
+              { boss_name: '首领甲', difficulty: 1, pass_time: 123 },
+              {
+                boss_name: '首领甲',
+                difficulty: 2,
+                roles: [{ role_name: '今汐' }],
+              },
+            ],
+            b: [{ boss_name: '首领乙', difficulty: 3 }],
+          },
+        },
+      },
+    }),
+  })
+  const groups = nodes(root, 'details').filter((n) =>
+    nodes(n, 'summary').some((s) => /首领[甲乙]/.test(content(s))),
+  )
+  assert.equal(groups.length, 2)
+  assert.ok(groups.every((n) => !n.props.open))
+  assert.match(content(nodes(groups[0], 'summary')[0]), /首领甲.*2 条记录/)
+  assert.match(content(groups[0]), /难度 1/)
+  assert.match(content(groups[0]), /难度 2/)
+  assert.match(content(groups[0]), /通关时间 123/)
+  assert.match(content(groups[0]), /今汐/)
+  assert.match(content(root), /保留旧记录/)
+  assert.match(content(root), /冥歌海墟/)
+})
+test('tower floors omit unknown denominators and explain omitted caps once', async (t) => {
+  const root = mount(t, await component('WuwaTower'), {
+    data: {
+      difficulty_list: [
+        {
+          difficulty: 3,
+          tower_area_list: [
+            {
+              star: 6,
+              max_star: 12,
+              floor_list: [
+                { floor: 1, star: 3 },
+                { floor: 2, star: 0, max_star: null },
+                { floor: 3, star: 2, max_star: 3 },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  })
+  assert.match(content(root), /已得 3 星/)
+  assert.match(content(root), /已得 0 星/)
+  assert.match(content(root), /2 \/ 3 星/)
+  assert.doesNotMatch(content(root), /\/ 未知 星/)
+  assert.equal(
+    (content(root).match(/来源未提供部分楼层的星数上限/g) || []).length,
+    1,
+  )
+})
+test('profile uses confirmed crystal material terminology for stored resource fields', async (t) => {
+  const root = mount(t, await component('WuwaProfile'), {
+    snap: snap({
+      extra: {
+        profile: {
+          store_energy: 0,
+          store_energy_limit: 480,
+          store_energy_title: '结晶单质',
+        },
+      },
+    }),
+  })
+  assert.match(content(root), /结晶单质 0/)
+  assert.match(content(root), /结晶单质上限 480/)
+  assert.doesNotMatch(content(root), /储存波片/)
+})
+
 test('full detail preserves role, skin, current branch and set metadata without hiding supplemental fields', async (t) => {
   const root = mount(t, await component('WuwaRoleDetail'), {
     data: {

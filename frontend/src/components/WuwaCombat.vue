@@ -9,11 +9,24 @@ const props = defineProps({
   snap: { default: null },
 })
 const payload = computed(() => props.snap?.payload || {})
-const bosses = computed(() =>
-  Object.values(payload.value.hologram?.data?.challenge_info || {}).flatMap(
-    list,
-  ),
-)
+const bossGroups = computed(() => {
+  const groups = new Map()
+  for (const [sourceId, records] of Object.entries(
+    payload.value.hologram?.data?.challenge_info || {},
+  )) {
+    for (const record of list(records)) {
+      const key = record.boss_name || `unknown:${sourceId}`
+      if (!groups.has(key))
+        groups.set(key, {
+          key,
+          name: record.boss_name || '未知首领',
+          records: [],
+        })
+      groups.get(key).records.push(record)
+    }
+  }
+  return [...groups.values()]
+})
 </script>
 <template>
   <div class="wuwa-stack">
@@ -31,25 +44,37 @@ const bosses = computed(() =>
       <h2>战术全息</h2>
       <WuwaStatus :snap="payload.hologram" />
       <p v-if="payload.hologram?.data?.is_unlock === false">尚未解锁</p>
-      <div v-else-if="bosses.length" class="wuwa-grid">
-        <article v-for="(boss, i) in bosses" :key="i" class="wuwa-inset">
-          <h3>{{ boss.boss_name || '未知首领' }}</h3>
-          <p>
-            等级 {{ value(boss.boss_level) }} · 难度
-            {{ value(boss.difficulty) }}
-          </p>
-          <p>通关时间 {{ value(boss.pass_time) }}</p>
-          <p>
-            队伍：<span
-              v-for="(role, j) in list(boss.roles)"
-              :key="j"
-              class="wuwa-tag"
-              >{{ role.role_name || '未知角色' }} Lv.{{
-                value(role.role_level)
-              }}</span
-            ><span v-if="!list(boss.roles).length">未提供</span>
-          </p>
-        </article>
+      <div v-else-if="bossGroups.length" class="wuwa-grid">
+        <details
+          v-for="group in bossGroups"
+          :key="group.key"
+          class="wuwa-inset"
+        >
+          <summary>
+            {{ group.name }} · {{ group.records.length }} 条记录
+          </summary>
+          <article
+            v-for="(boss, i) in group.records"
+            :key="i"
+            class="wuwa-floor"
+          >
+            <p>
+              等级 {{ value(boss.boss_level) }} · 难度
+              {{ value(boss.difficulty) }}
+            </p>
+            <p>通关时间 {{ value(boss.pass_time) }}</p>
+            <p>
+              队伍：<span
+                v-for="(role, j) in list(boss.roles)"
+                :key="j"
+                class="wuwa-tag"
+                >{{ role.role_name || '未知角色' }} Lv.{{
+                  value(role.role_level)
+                }}</span
+              ><span v-if="!list(boss.roles).length">未提供</span>
+            </p>
+          </article>
+        </details>
       </div>
       <p v-else class="wuwa-muted">未提供挑战记录</p>
     </section>
