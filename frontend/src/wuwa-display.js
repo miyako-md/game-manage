@@ -9,10 +9,16 @@ export const value = (v) =>
       : v
 export const list = (v) =>
   Array.isArray(v) ? v.filter((item) => item != null) : []
-export const stamp = (v) =>
-  v == null || v === ''
-    ? '未知'
-    : displayBeijing(typeof v === 'number' ? new Date(v).toISOString() : v)
+export function stamp(v) {
+  if (v == null || v === '') return '未知'
+  if (typeof v === 'number') {
+    const date = new Date(v)
+    if (!Number.isFinite(date.getTime())) return '未知'
+    v = date.toISOString()
+  }
+  const formatted = displayBeijing(v)
+  return formatted === '未提供' ? '未知' : formatted
+}
 export function safeImage(url) {
   try {
     const u = new URL(url)
@@ -26,6 +32,11 @@ export function safeImage(url) {
   }
 }
 export const fieldLabels = {
+  weapon_type_name: '武器类型',
+  is_main_role: '当前主角',
+  skin_name: '外观名称',
+  quality_name: '外观品质',
+  is_addition: '附加外观标记',
   role_num: '已拥有角色数',
   energy: '结晶波片',
   max_energy: '结晶波片上限',

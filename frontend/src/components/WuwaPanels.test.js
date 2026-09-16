@@ -35,6 +35,63 @@ const account = snap({
 })
 const reply = (payload) => ({ ok: true, json: async () => payload })
 
+test('full detail preserves role, skin, current branch and set metadata without hiding supplemental fields', async (t) => {
+  const root = mount(t, await component('WuwaRoleDetail'), {
+    data: {
+      active_branch_id: 0,
+      role: {
+        role_name: '今汐',
+        level: 80,
+        breach: 6,
+        chain_unlock_num: 0,
+        star_level: 5,
+        attribute_name: '衍射',
+        weapon_type_name: '长刃',
+        is_main_role: false,
+        role_id: 1501,
+        future_role_field: '角色补充值',
+      },
+      role_skin: {
+        skin_name: '默认外观',
+        quality_name: '典藏',
+        quality: 5,
+        is_addition: false,
+        skin_id: 42,
+        future_skin_field: '外观补充值',
+      },
+      phantom_data: {
+        cost: 12,
+        equip_phantom_list: [
+          {
+            phantom_prop: { name: '角', future_phantom_field: '声骸补充值' },
+            fetter_detail: {
+              name: '浮星祛暗',
+              num: 0,
+              group_id: 9,
+              type: 1,
+              future_set_field: '套装补充值',
+            },
+          },
+        ],
+      },
+    },
+  })
+  for (const expected of [
+    '角色基本信息',
+    '武器类型 长刃',
+    '已解锁共鸣链 0',
+    '当前分支（来源编号） 0',
+    '外观品质 典藏',
+    '附加外观标记 否',
+    '套装已装备数量 0',
+    '角色补充值',
+    '外观补充值',
+    '声骸补充值',
+    '套装补充值',
+  ])
+    assert.ok(content(root).includes(expected), expected)
+})
+
 test('whole snapshot staleness remains visible when nested source states were once ok', async (t) => {
   const root = mount(t, await component('WuwaCombat'), {
     snap: {

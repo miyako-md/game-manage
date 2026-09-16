@@ -27,3 +27,10 @@ TDD: initial eight integration cases failed on empty components before implement
 - No claim of browser/visual acceptance or live authorized gacha import; controller performs final runtime/browser checks after integration. No real link was used, and no archive/test writes touched production data.
 - Source omission remains unknown. UI does not infer individual echo substats, missing challenge teams/stars, pre-archive history, version labels, wallet balance, pity, scores or damage.
 - No source/style changes were made in primary `C:/Zcode/game-manage`; only this isolated worktree. Root-owned docs changes were excluded from the UI commit.
+
+## Independent review follow-up
+
+- Added Chinese role basics, current branch source ID explanation, complete skin metadata, and equipped set count. Role/skin/weapon/skill/chain/echo/set unknown nested metadata remains available in supplemental views instead of being discarded by parent exclusions. Internal IDs remain supplemental source references, not gameplay metrics.
+- Added `src/wuwa-api.test.js` for cross-account/cross-server owner rejection, generation cancellation, application POST headers/no-referrer/no-store and non-reflective authorization errors. Added `src/wuwa-display.test.js` for safe images, null/zero/false semantics and Beijing date boundaries.
+- Red evidence: new role metadata renderer assertion and invalid numeric-date test failed before changes. Invalid numeric dates previously raised RangeError; now all missing/invalid dates display 未知 while timestamp 0 remains a real date.
+- Validation after review fixes: `npm test` PASS 101/101 (18 Wuwa panel cases plus 6 focused Wuwa helper/API cases); `npm run build` PASS, 74 modules, JS 202.06 kB before compression. Browser/live visual acceptance remains the controller's responsibility.

@@ -5,6 +5,27 @@ defineProps({ data: { type: Object, default: () => ({}) } })
 </script>
 <template>
   <div class="wuwa-stack">
+    <section class="wuwa-inset">
+      <h3>角色基本信息</h3>
+      <WuwaFields :data="data.role" />
+      <details>
+        <summary>当前分支与来源资料</summary>
+        <p>当前分支（来源编号） {{ value(data.active_branch_id) }}</p>
+        <p class="wuwa-meta">分支编号仅为来源标识，不代表已解锁数量或练度。</p>
+      </details>
+    </section>
+    <section class="wuwa-inset">
+      <h3>角色外观</h3>
+      <div class="wuwa-equipment">
+        <img
+          v-if="safeImage(data.role_skin?.skin_icon)"
+          :src="safeImage(data.role_skin.skin_icon)"
+          alt="当前外观"
+          loading="lazy"
+        />
+        <WuwaFields :data="data.role_skin" />
+      </div>
+    </section>
     <section>
       <h3>完整属性</h3>
       <dl class="wuwa-stat-grid">
@@ -47,6 +68,28 @@ defineProps({ data: { type: Object, default: () => ({}) } })
           <p class="wuwa-description">
             {{ data.weapon_data.weapon?.effect_description }}
           </p>
+          <details>
+            <summary>武器来源补充资料</summary>
+            <WuwaFields
+              :data="data.weapon_data.weapon"
+              :exclude="[
+                'weapon_name',
+                'weapon_star_level',
+                'weapon_effect_name',
+                'effect_description',
+              ]"
+            />
+            <WuwaFields
+              :data="data.weapon_data"
+              :exclude="[
+                'weapon',
+                'level',
+                'breach',
+                'reson_level',
+                'main_prop_list',
+              ]"
+            />
+          </details>
         </div>
       </div>
       <p v-else class="wuwa-muted">
@@ -74,6 +117,17 @@ defineProps({ data: { type: Object, default: () => ({}) } })
             v-if="list(entry.skill?.skill_branches).length"
             :data="entry.skill.skill_branches"
           />
+          <details>
+            <summary>技能来源补充资料</summary>
+            <WuwaFields
+              :data="entry.skill"
+              :exclude="['name', 'type', 'description', 'skill_branches']"
+            />
+            <WuwaFields
+              :data="entry"
+              :exclude="['skill', 'level', 'active_branch']"
+            />
+          </details>
         </article>
       </div>
     </section>
@@ -97,6 +151,10 @@ defineProps({ data: { type: Object, default: () => ({}) } })
             }}</span>
           </h4>
           <p class="wuwa-description">{{ chain.description }}</p>
+          <WuwaFields
+            :data="chain"
+            :exclude="['order', 'name', 'unlocked', 'description']"
+          />
         </article>
       </div>
       <p v-if="!list(data.chain_list).length" class="wuwa-muted">未提供</p>
@@ -146,6 +204,7 @@ defineProps({ data: { type: Object, default: () => ({}) } })
             </div>
           </dl>
           <h4>{{ echo.fetter_detail?.name || '套装未知' }}</h4>
+          <p>套装已装备数量 {{ value(echo.fetter_detail?.num) }}</p>
           <p
             v-for="key in [
               'first_description',
@@ -163,6 +222,38 @@ defineProps({ data: { type: Object, default: () => ({}) } })
               {{ echo.phantom_prop.skill_description }}
             </p>
           </details>
+          <details>
+            <summary>声骸与套装来源补充资料</summary>
+            <h4>声骸资料</h4>
+            <WuwaFields
+              :data="echo.phantom_prop"
+              :exclude="['name', 'skill_description']"
+            />
+            <h4>套装资料</h4>
+            <WuwaFields
+              :data="echo.fetter_detail"
+              :exclude="[
+                'name',
+                'num',
+                'first_description',
+                'second_description',
+                'triple_description',
+              ]"
+            />
+            <h4>装备资料</h4>
+            <WuwaFields
+              :data="echo"
+              :exclude="[
+                'phantom_prop',
+                'fetter_detail',
+                'level',
+                'cost',
+                'quality',
+                'main_props',
+                'sub_props',
+              ]"
+            />
+          </details>
         </article>
       </div>
       <p
@@ -171,19 +262,23 @@ defineProps({ data: { type: Object, default: () => ({}) } })
       >
         未提供装备声骸
       </p>
+      <WuwaFields
+        :data="data.phantom_data"
+        :exclude="['cost', 'equip_phantom_list']"
+      />
     </section>
     <details>
-      <summary>声骸汇总属性与外观</summary>
+      <summary>声骸汇总属性</summary>
       <h4>声骸属性汇总</h4>
       <WuwaFields :data="data.equip_phantom_attribute_list" />
       <h4>声骸附加属性汇总（非单个声骸副词条）</h4>
       <WuwaFields :data="data.equip_phantom_add_prop_list" />
-      <p>外观 {{ data.role_skin?.skin_name || '未提供' }}</p>
     </details>
     <WuwaFields
       :data="data"
       :exclude="[
         'role',
+        'active_branch_id',
         'role_attribute_list',
         'weapon_data',
         'skill_list',
