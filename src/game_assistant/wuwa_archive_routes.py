@@ -1,7 +1,6 @@
 """Account-scoped archives; gacha network access is explicit POST import only."""
 import json
 from typing import Literal
-from urllib.parse import urlsplit
 
 from fastapi import HTTPException, Query, Request
 
@@ -37,11 +36,6 @@ def install_wuwa_archive_routes(app):
         return str(account), str(server), app.state.auth.account_generation(GAME)
 
     async def body(request):
-        configured = {urlsplit(o).netloc for o in app.state.settings.auth_allowed_origins}
-        origin = request.headers.get('origin')
-        if (request.headers.get('x-game-assistant') != '1' or request.url.netloc not in configured
-                or (origin is not None and origin != f'{request.url.scheme}://{request.url.netloc}')):
-            raise HTTPException(403, '请从本机游戏助手页面操作')
         try:
             length = int(request.headers.get('content-length', '0'))
         except ValueError:

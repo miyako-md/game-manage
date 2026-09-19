@@ -87,7 +87,7 @@ def test_main_missing_rapidocr_friendly_error(monkeypatch, capsys):
     rc = nte_ocr.main(["some.png"])
     assert rc == 1
     err = capsys.readouterr().err
-    assert "pip install rapidocr-onnxruntime" in err
+    assert 'pip install -e ".[ocr]"' in err
 
 
 def test_main_no_args_prints_help(capsys):
@@ -101,7 +101,14 @@ def test_load_ocr_engine_unavailable(monkeypatch):
     monkeypatch.setitem(sys.modules, "rapidocr_onnxruntime", None)
     with pytest.raises(nte_ocr.OcrUnavailableError) as ei:
         nte_ocr.load_ocr_engine()
-    assert "pip install rapidocr-onnxruntime" in str(ei.value)
+    assert 'pip install -e ".[ocr]"' in str(ei.value)
+
+
+@pytest.mark.parametrize("dependency", ["cv2", "numpy"])
+def test_load_image_missing_dependency_has_install_hint(monkeypatch, dependency):
+    monkeypatch.setitem(sys.modules, dependency, None)
+    with pytest.raises(nte_ocr.OcrUnavailableError, match=r"\[ocr\]"):
+        nte_ocr.load_image("some.png")
 
 
 def test_load_image_local_non_ascii_path(tmp_path):

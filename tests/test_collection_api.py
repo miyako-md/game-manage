@@ -20,7 +20,7 @@ def build(tmp_path):
     store = SnapshotStore(settings.db_path)
     registry = GameRegistry()
     registry.register(SampleAdapter())
-    return TestClient(create_app(registry=registry, store=store, settings=settings, start_scheduler=False)), store
+    return TestClient(create_app(registry=registry, store=store, settings=settings, start_scheduler=False), base_url="http://127.0.0.1:8010"), store
 
 
 def test_health_identifies_the_service_for_local_process_management(tmp_path):

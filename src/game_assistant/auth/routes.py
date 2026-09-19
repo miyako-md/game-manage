@@ -1,5 +1,3 @@
-from urllib.parse import urlsplit
-
 from fastapi import APIRouter, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
@@ -23,23 +21,15 @@ class LoginRequest(BaseModel):
 
 def install_auth_routes(app, service, settings):
     router = APIRouter(prefix='/api/auth')
-    origins = {origin.rstrip('/') for origin in settings.auth_allowed_origins}
-    hosts = {urlsplit(origin).hostname for origin in origins}
 
     @app.middleware('http')
     async def protect_login(request: Request, call_next):
         if request.url.path.startswith(('/api/auth/', '/api/sources/bilibili')):
-            origin = request.headers.get('origin')
-            allowed = request.url.hostname in hosts and (not origin or origin in origins)
-            if request.method not in ('GET', 'HEAD', 'OPTIONS'):
-                allowed = allowed and request.headers.get('x-game-assistant') == '1'
             try:
                 length = int(request.headers.get('content-length', '0') or 0)
             except ValueError:
                 length = 16385
-            if not allowed:
-                response = JSONResponse({'detail': '请从本机游戏助手页面操作登录'}, status_code=403)
-            elif length > 16384 or length < 0:
+            if length > 16384 or length < 0:
                 response = JSONResponse({'detail': '登录请求过大'}, status_code=413)
             else:
                 response = await call_next(request)

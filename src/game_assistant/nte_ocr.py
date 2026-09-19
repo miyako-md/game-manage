@@ -12,7 +12,7 @@
   # 对一个或多个图片（URL 或本地路径）OCR，按 y 坐标排序打印行文本+置信度
   python -m game_assistant.nte_ocr <图片URL或本地路径> [<图片URL或本地路径> ...]
 
-RapidOCR 为可选依赖：未安装时提示 `pip install rapidocr-onnxruntime`
+RapidOCR 为可选依赖：未安装时提示 `python -m pip install -e ".[ocr]"`
 并以退出码 1 退出。
 """
 import argparse
@@ -67,7 +67,7 @@ def load_ocr_engine():
     except ImportError as e:  # pragma: no cover - venv 已装时走不到
         raise OcrUnavailableError(
             "未安装 RapidOCR（可选依赖）。请先执行："
-            "pip install rapidocr-onnxruntime") from e
+            'python -m pip install -e ".[ocr]"') from e
     return RapidOCR()
 
 
@@ -77,8 +77,13 @@ def load_image(source: str):
     本地路径必须走 np.fromfile + cv2.imdecode：Windows 中文路径下
     cv2.imread 会失败（实测教训）。
     """
-    import cv2
-    import numpy as np
+    try:
+        import numpy as np
+        import cv2
+    except ImportError as e:
+        raise OcrUnavailableError(
+            '未安装 OCR 图片依赖。请先执行：python -m pip install -e ".[ocr]"'
+        ) from e
 
     if source.startswith(("http://", "https://")):
         resp = httpx.get(source, headers={"User-Agent": UA},

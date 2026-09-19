@@ -8,3 +8,10 @@ dist/
 .pytest_cache/
 .superpowers/
 *.egg-info/
+*.bundle
+.env
+.env.*
+!.env.example
+*.credentials.json
+*.credentials.json.key
+private-backups/

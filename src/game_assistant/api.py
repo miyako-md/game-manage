@@ -215,4 +215,8 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
     from game_assistant.web_ui import install_web_ui
     install_web_ui(app)
 
+    # Install last so malformed Host values are rejected before route middleware.
+    from game_assistant.api_security import install_api_security
+    install_api_security(app, settings)
+
     return app

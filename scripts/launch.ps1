@@ -14,7 +14,9 @@ try {
         throw 'Python environment missing. Follow README.md to install backend dependencies first.'
     }
     $hadFrontend = Test-Path -LiteralPath $index
-    $needsBuild = $Rebuild.IsPresent -or -not $hadFrontend
+    . (Join-Path $PSScriptRoot 'frontend-dependencies.ps1')
+    $dependenciesChanged = Ensure-FrontendDependencies -Frontend $frontend
+    $needsBuild = $Rebuild.IsPresent -or -not $hadFrontend -or $dependenciesChanged
     if ($hadFrontend -and -not $needsBuild) {
         $builtAt = (Get-Item -LiteralPath $index).LastWriteTimeUtc
         foreach ($entry in @('src', 'public', 'index.html', 'package.json', 'package-lock.json', 'vite.config.js', 'vite.config.ts')) {
@@ -33,11 +35,6 @@ try {
         if (-not $npm) { throw 'Node.js/npm is required to build the dashboard. Install Node.js, then retry.' }
         Push-Location -LiteralPath $frontend
         try {
-            if (-not (Test-Path -LiteralPath 'node_modules\vite\package.json')) {
-                Write-Host 'Installing frontend dependencies...'
-                & $npm.Source ci
-                if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' }
-            }
             Write-Host 'Building dashboard...'
             & $npm.Source run build
             if ($LASTEXITCODE -ne 0) { throw 'Dashboard build failed. Backend was not restarted.' }

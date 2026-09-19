@@ -14,6 +14,8 @@ async def test_routes_security_preview_commit_and_actual_size(tmp_path):
                         auth_allowed_origins=['http://testserver'])
     app.state.settings = settings
     install_nte_gacha_routes(app, settings)
+    from game_assistant.api_security import install_api_security
+    install_api_security(app, settings)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
         body = {'document': document(), 'latest_confirmed': True, 'continuity_confirmed': True}
         assert (await client.post('/api/nte/gacha/preview', json=body)).status_code == 403

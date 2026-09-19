@@ -21,6 +21,8 @@ def make_client(tmp_path):
     app.state.store = SnapshotStore(str(tmp_path / 'db'))
     app.state.settings = SimpleNamespace(auth_allowed_origins=['http://testserver'])
     install_wuwa_archive_routes(app)
+    from game_assistant.api_security import install_api_security
+    install_api_security(app, app.state.settings)
     return TestClient(app), app, adapter
 
 

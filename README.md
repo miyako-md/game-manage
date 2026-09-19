@@ -2,6 +2,8 @@
 
 个人使用的本地游戏看板，集中查看鸣潮、异环和英雄联盟的账号数据、活动日历及公告资讯。后端使用 Python / FastAPI / SQLite，前端使用 Vue 3 / Vite；Windows 下可一键启动，网页与 API 共用 `8010` 端口。
 
+本项目采用 **GPL-3.0-only**，见 [LICENSE](LICENSE) 和 [第三方说明](THIRD_PARTY_NOTICES.md)。公开版使用原创文字标识图标，不分发官方游戏图包。仅支持本机单用户使用；安全边界和漏洞反馈见 [SECURITY.md](SECURITY.md)。
+
 **鸣潮、异环均已支持页面短信登录，正常使用无需手机抓包，也无需手工填写 token、b-at 或设备标识。** 手游资讯和日历以 B 站官方动态为主、社区为补充；LOL 保持客户端和原资讯渠道。
 
 ## 当前功能
@@ -25,10 +27,10 @@
 
 ### 环境
 
-- Windows 10 / 11：一键启动和本地运行管理脚本面向 Windows。
-- Python **3.11 或以上**。
-- Node.js **22.12 或以上**；也兼容 Vite 要求的 Node.js 20.19 系列。
-- Git，以及该私有仓库的访问权限。
+- Windows 10 / 11：支持单用户本机运行；Linux 部署和公网托管不在支持范围内。
+- Python **3.11 或以上**；CI 覆盖 3.11 / 3.12，初次安装建议使用这两个版本。
+- Node.js **22.12 或以上**；CI 使用 Node.js 22。
+- Git。
 
 在 PowerShell 中执行：
 
@@ -36,14 +38,49 @@
 git clone https://github.com/miyako-md/game-manage.git
 cd game-manage
 python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 Copy-Item config.example.toml config.toml
+cd frontend
+npm ci --registry=https://registry.npmjs.org
+cd ..
 .\启动游戏管家.bat
 ```
 
 已有 `config.toml` 的机器不要再次覆盖配置。模板已配置鸣潮、异环的官方 B 站 UID，私人游戏账号通过页面登录。
 
-启动脚本按需安装前端依赖、构建看板，随后启动或复用后台，并在默认浏览器打开 **http://127.0.0.1:8010/**。正常使用不需要另开 `5173`。
+启动脚本根据 `package.json` 和 `package-lock.json` 的内容指纹检查依赖，变化或安装不完整时执行 `npm ci` 并重建看板；只有安装成功才保存标记。首次运行脚本会校验安装一次。随后启动或复用后台，并在默认浏览器打开 **http://127.0.0.1:8010/**。正常使用不需要另开 `5173`。启动脚本固定监听该地址，`config.toml` 不能改变监听地址或端口。
+
+`dev` 包含测试所需的 NumPy / OpenCV，普通看板不依赖 OCR 引擎。要使用独立的长图 OCR 辅助命令，可另执行 `.\.venv\Scripts\python.exe -m pip install -e ".[ocr]"`；未安装时命令会给出提示。OCR 不会自动将图片日期导入日历。
+
+### 更新已有安装
+
+在仓库根目录执行，先保留自己的 `config.toml` 和 `data/`；升级时无需再次复制配置模板：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop.ps1
+git pull --ff-only
+.\.venv\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
+.\.venv\Scripts\python.exe -m pip install --upgrade -e ".[dev]"
+cd frontend
+npm ci --registry=https://registry.npmjs.org
+cd ..
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/launch.ps1 -Rebuild
+```
+
+若 Git 提示本地改动冲突，先保存并处理改动，再继续升级。不要删除 `data/` 来解决依赖问题。
+
+### 使用锁定的后端依赖（可选）
+
+仓库提交 `uv.lock`，CI 按它安装依赖。上面的 pip 流程适合一般安装，但会解析当前满足版本范围的依赖。需要与锁文件一致时，可用以下命令替代 pip 安装项目的步骤：
+
+```powershell
+python -m pip install uv==0.12.3
+uv sync --locked --extra dev
+# 需要 OCR 引擎时改用：uv sync --locked --extra dev --extra ocr
+```
+
+`uv sync` 使用项目的 `.venv` 并清理未声明的依赖，因此请勿与其他项目共用虚拟环境。维护依赖时更新 `pyproject.toml` 后执行 `uv lock --default-index https://pypi.org/simple`，将锁文件一同提交。前端以 `package-lock.json` 和 `npm ci` 固定依赖。
 
 ### 日常启动与停止
 
@@ -129,7 +166,7 @@ nte = "3546636978489848"
 | `news_seconds` | `14400`，社区资讯及慢变化数据轮询间隔 |
 | `bilibili_history_days` / `bilibili_poll_seconds` | `60` / `600`，B站回补窗口与轮询间隔 |
 | `auth_store_path` | 留空使用数据库旁的凭据文件 |
-| `auth_allowed_origins` | 默认仅允许本机8010、5173页面发起登录写请求 |
+| `auth_allowed_origins` | 所有 API 的浏览器 Origin 允许列表，默认仅本机8010、5173；写请求还需要 `X-Game-Assistant: 1`。不是公网用户鉴权。 |
 | `notify_provider` / `notify_send_key` | 微信推送渠道与密钥，密钥留空即不发送 |
 
 `config.toml`、`data/`、虚拟环境、node_modules和构建产物均不提交Git。换电脑后应重新登录社区；Windows凭据文件绑定原系统用户，不能当作通用配置直接复制使用。

@@ -1,0 +1,46 @@
+name: Windows checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install uv==0.12.3
+          uv sync --locked --extra dev --python ${{ matrix.python }}
+      - name: Backend tests
+        run: .\.venv\Scripts\python.exe -m pytest -q
+      - name: Isolated runtime checks (never autostart)
+        env:
+          GA_RUN_RUNTIME_TESTS: '1'
+        run: .\.venv\Scripts\python.exe -m pytest tests/test_powershell_runtime.py -q -k "not current_user_autostart"
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --registry=https://registry.npmjs.org
+      - name: Frontend tests
+        working-directory: frontend
+        run: npm test
+      - name: Build dashboard
+        working-directory: frontend
+        run: npm run build

@@ -1,7 +1,6 @@
 """NTE ledger HTTP boundary: local-origin checks and bounded streaming bodies."""
 import json
 from pathlib import Path
-from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Request
 from starlette.responses import JSONResponse
@@ -15,25 +14,6 @@ def install_nte_gacha_routes(app, settings):
     store = GachaStore(Path(settings.db_path).with_suffix('.gacha.sqlite3'))
     app.state.nte_gacha = store
     router = APIRouter(prefix='/api/nte/gacha')
-    origins = {o.rstrip('/') for o in settings.auth_allowed_origins}
-    hosts = {urlsplit(o).netloc for o in origins}
-
-    @app.middleware('http')
-    async def protect_gacha(request, call_next):
-        if not (request.url.path == '/api/nte/gacha' or request.url.path.startswith('/api/nte/gacha/')):
-            return await call_next(request)
-        origin = request.headers.get('origin')
-        allowed = request.headers.get('host', '') in hosts and (not origin or origin in origins)
-        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
-            allowed = allowed and request.headers.get('x-game-assistant') == '1'
-        if not allowed:
-            response = JSONResponse({'detail': '请从本机游戏助手页面操作抽卡记录'}, status_code=403)
-        else:
-            response = await call_next(request)
-        response.headers['Cache-Control'] = 'no-store'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Referrer-Policy'] = 'no-referrer'
-        return response
 
     @app.exception_handler(GachaError)
     async def error_handler(request, error):

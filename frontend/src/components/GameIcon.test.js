@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { nextTick, reactive } from 'vue'
 import { loadVue, mount, nodes, content } from '../test-utils/vue.js'
 import { gameStyle } from '../dashboard.js'
@@ -13,6 +13,10 @@ test('each supported game uses a locally bundled icon with recorded provenance',
     assert.match(src, /^\/game-icons\//)
     assert.ok(readFileSync(new URL(`../../public${src}`, import.meta.url)).length > 500)
     assert.equal(sources.find(item => item.game_id === id).file, src.split('/').at(-1))
+    assert.equal(sources.find(item => item.game_id === id).license, 'GPL-3.0-only')
+  }
+  for (const file of ['nte.jpg', 'wuthering_waves.jpg', 'league_of_legends.svg']) {
+    assert.equal(existsSync(new URL(`../../public/game-icons/${file}`, import.meta.url)), false)
   }
 })
 test('icon failure falls back to game mark and a changed game retries its own icon', async (t) => {

@@ -9,6 +9,7 @@ from game_assistant.models import Capability, GameEvent, ProgressItem
 from game_assistant.models import CalabashData, ExplorationData
 
 # 实测响应形状（2026-09-13），见 endpoints.py 注释
+# 账号 UID 和昵称为合成测试数据；仅保留已校准的响应字段结构。
 ROLE_LIST_RAW = {"code": 200, "msg": "success", "data": [{
     "roleId": "100000001", "serverId": "76402e5b20be2c39f095a152090afddc",
     "roleName": "测试漂泊者", "gameLevel": "80", "activeDay": 534,

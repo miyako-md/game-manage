@@ -1,26 +1,23 @@
 [
   {
     "game_id": "wuthering_waves",
-    "source_page": "https://apps.apple.com/cn/app/id6450693428",
-    "asset_url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/64/4a/65/644a6596-63ef-25ea-9d0a-86a19f853d87/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/512x512bb.jpg",
-    "file": "wuthering_waves.jpg",
-    "retrieved_at": "2026-09-15",
-    "publisher": "Guangzhou Kuro Binaria Technology Co., Ltd"
+    "file": "wuthering_waves-mark.svg",
+    "creator": "game-manage contributors",
+    "license": "GPL-3.0-only",
+    "kind": "original text identifier; not official game artwork"
   },
   {
     "game_id": "nte",
-    "source_page": "https://apps.apple.com/cn/app/id6514281568",
-    "asset_url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/fe/b6/f8/feb6f827-f3a8-131d-c41b-d6e753051644/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/512x512bb.jpg",
-    "file": "nte.jpg",
-    "retrieved_at": "2026-09-15",
-    "publisher": "Perfect World Interactive Entertainment Co., Ltd"
+    "file": "nte-mark.svg",
+    "creator": "game-manage contributors",
+    "license": "GPL-3.0-only",
+    "kind": "original text identifier; not official game artwork"
   },
   {
     "game_id": "league_of_legends",
-    "source_page": "https://www.leagueoflegends.com/en-us/",
-    "asset_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/d3b7bd9decb1e1672dcb80be4f8bc1aa05490dc1-110x70.svg?accountingTag=LoL",
-    "file": "league_of_legends.svg",
-    "retrieved_at": "2026-09-15",
-    "publisher": "Riot Games"
+    "file": "league_of_legends-mark.svg",
+    "creator": "game-manage contributors",
+    "license": "GPL-3.0-only",
+    "kind": "original text identifier; not official game artwork"
   }
 ]

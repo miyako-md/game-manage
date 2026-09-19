@@ -29,7 +29,7 @@ def _app_with(tmp_path, snapshots=None):
         store.save(gid, cap, payload)
     client = TestClient(create_app(
         registry=FakeRegistry(DummyAdapter()), store=store,
-        settings=Settings(notify_send_key="", db_path=str(tmp_path / "unused.db"))))
+        settings=Settings(notify_send_key="", db_path=str(tmp_path / "unused.db"))), base_url="http://127.0.0.1:8010")
     return client, store
 
 
@@ -70,7 +70,7 @@ def test_status_notify_enabled_with_configured_settings(tmp_path):
     # notifier 并同时挂到 state 与 scheduler，/api/status 不得恒报"未配置"。
     settings = Settings(notify_send_key="SK", db_path=str(tmp_path / "s.db"))
     client = TestClient(create_app(registry=FakeRegistry(DummyAdapter()),
-                                   settings=settings, start_scheduler=False))
+                                   settings=settings, start_scheduler=False), base_url="http://127.0.0.1:8010")
     notify = client.get("/api/status").json()["notify"]
     assert notify["enabled"] is True
     assert notify["provider"] == "serverchan"
@@ -106,7 +106,7 @@ class DetailAdapter(DummyAdapter):
 def _client_with(adapter, tmp_path):
     return TestClient(create_app(
         registry=FakeRegistry(adapter), store=SnapshotStore(str(tmp_path / "t.db")),
-        settings=Settings(notify_send_key="", db_path=str(tmp_path / "unused.db"))))
+        settings=Settings(notify_send_key="", db_path=str(tmp_path / "unused.db"))), base_url="http://127.0.0.1:8010")
 
 
 def test_match_detail_unregistered_game(tmp_path):

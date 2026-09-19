@@ -1,7 +1,6 @@
 # 首次使用复制为 config.toml；已有配置不要覆盖。真实配置不提交Git。
 # 鸣潮、异环均在看板「社区账号」短信登录，无需填写token或抓包字段。
-app_host = "127.0.0.1"
-app_port = 8010
+# 一键启动固定监听 127.0.0.1:8010；本配置不控制监听地址或端口。
 db_path = "data/assistant.db"
 
 wuwa_enabled = true

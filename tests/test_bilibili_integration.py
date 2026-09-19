@@ -23,7 +23,7 @@ def test_bilibili_news_merges_without_overwriting_existing_news_or_private_snaps
     now = datetime.now(timezone.utc)
     row = classify_dynamic(post('9月15日版本更新公告', published=now.timestamp()), UID, now)
     app.state.bilibili.store.save_rows('nte', UID, [row])
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://127.0.0.1:8010") as c:
         assert 'news' in c.get('/api/games').json()[0]['capabilities']
         rows = c.get('/api/games/nte/snapshot/news').json()['payload']
         assert len(rows) == 2 and rows[0]['source'] == 'bilibili'
@@ -54,7 +54,7 @@ def test_mobile_calendar_primary_and_community_fallback_leave_native_storage_int
     from tests.test_public_content import notice
     row=notice('《异环》1.3版本更新公告\n●「环期赠礼」签到活动\n活动时间：8月13日版本更新后-9月24日05:59',published=datetime.now(timezone.utc).isoformat())
     row.update(source_uid=UID, reason='accepted', reason_text='accepted')
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://127.0.0.1:8010") as c:
         fallback=c.get('/api/games/nte/snapshot/events').json()
         assert fallback['primary_source']=='community' and len(fallback['payload'])==1
         app.state.bilibili.store.save_rows('nte',UID,[row])
@@ -75,7 +75,7 @@ def test_lol_catalog_and_snapshot_are_not_changed_even_with_a_configured_bili_ui
     native=[{'title':'LOL资讯','url':'https://lol.qq.com/news'}]
     store.save('league_of_legends','news',json.dumps(native))
     app=create_app(registry=FakeRegistry(Lol()),store=store,settings=settings,start_scheduler=False)
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://127.0.0.1:8010") as c:
         assert set(c.get('/api/games').json()[0]['capabilities'])=={'news','announcement'}
         result=c.get('/api/games/league_of_legends/snapshot/news').json()
         assert result['payload']==native and 'primary_source' not in result

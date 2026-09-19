@@ -6,7 +6,8 @@ from game_assistant.adapters.wuthering_waves.rolebox_client import (
     RoleBoxClient, RoleBoxError, USER_AGENT,
 )
 
-# 头三件套样例（2026-09-13 实测；devCode 格式 = "客户端公网IP, 空格+完整UA"）
+# 头格式源于接口校准；以下身份、设备 UUID 和 IP 均为合成测试数据。
+# devCode 格式 = "客户端公网IP, 空格+完整UA"；192.0.2.10 为文档示例地址。
 B_AT = "0123456789abcdef0123456789abcdef"
 DEV_CODE = ("192.0.2.10, Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) "
             "AppleWebKit/605.1.15 (KHTML, like Gecko)  KuroGameBox/3.3.1")

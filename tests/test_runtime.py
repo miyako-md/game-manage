@@ -17,6 +17,6 @@ def test_sandbox_ignores_credentials_and_disables_upstream(tmp_path, monkeypatch
     assert app.state.registry.all() == []
     assert not (tmp_path / "do-not-touch.db").exists()
     assert (tmp_path / "sandbox" / "assistant.db").exists()
-    with TestClient(app) as client:
+    with TestClient(app, base_url="http://127.0.0.1:8010") as client:
         assert client.get("/api/health").status_code == 200
         assert client.get("/api/games").json() == []

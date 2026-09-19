@@ -54,6 +54,6 @@ def test_refresh_endpoint_invalidates_adapter_cache_before_collecting(tmp_path):
     app = create_app(registry=FakeRegistry(a), store=SnapshotStore(':memory:'),
         settings=Settings(db_path=str(tmp_path/'test.db')), start_scheduler=False)
     a._home_cache = a._characters_cache = ('old',)
-    with TestClient(app) as c:
-        result = c.post('/api/games/nte/refresh').json()
+    with TestClient(app, base_url="http://127.0.0.1:8010") as c:
+        result = c.post('/api/games/nte/refresh', headers={'X-Game-Assistant': '1'}).json()
     assert result['results']['stamina']['ok']

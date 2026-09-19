@@ -11,8 +11,8 @@ def test_refresh_endpoint(tmp_path):
     registry = build_dummy_registry()
     sched = PollingScheduler(registry, store, Settings(), FakeNotify())
     client = TestClient(create_app(registry=registry, store=store,
-                                   scheduler=sched, notifier=FakeNotify()))
-    resp = client.post("/api/games/dummy/refresh")
+                                   scheduler=sched, notifier=FakeNotify()), base_url="http://127.0.0.1:8010")
+    resp = client.post("/api/games/dummy/refresh", headers={'X-Game-Assistant': '1'})
     assert resp.status_code == 200
     results = resp.json()["results"]
     assert results["stamina"]["ok"] is True
@@ -25,8 +25,8 @@ def test_refresh_endpoint(tmp_path):
 def test_refresh_unknown_game(tmp_path):
     store = SnapshotStore(str(tmp_path / "t.db"))
     client = TestClient(create_app(registry=build_dummy_registry(), store=store,
-                                   scheduler=None, notifier=None))
-    assert client.post("/api/games/nope/refresh").status_code == 404
+                                   scheduler=None, notifier=None), base_url="http://127.0.0.1:8010")
+    assert client.post("/api/games/nope/refresh", headers={'X-Game-Assistant': '1'}).status_code == 404
 
 
 def build_dummy_registry():

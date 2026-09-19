@@ -6,6 +6,7 @@ from game_assistant.adapters.wuthering_waves.role import (
 )
 
 # 实测 /gamer/role/list 响应形状（2026-09-13）：data 为数组，gameLevel 是字符串
+# 账号 UID 和昵称为合成测试数据；仅保留已校准的响应字段结构。
 ROLE_LIST_RAW = {"code": 200, "msg": "success", "data": [{
     "roleId": "100000001", "serverId": "76402e5b20be2c39f095a152090afddc",
     "roleName": "测试漂泊者", "gameLevel": "80", "activeDay": 534,
