@@ -1,4 +1,3 @@
-import json
 from types import SimpleNamespace
 
 from fastapi import FastAPI

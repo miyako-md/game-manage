@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import pytest
 
 from game_assistant.models import (
-    AccountInfo, AnnouncementItem, CalabashData, Capability, CountryGroup,
+    CalabashData, Capability, CountryGroup,
     DetectionSummary, ExplorationData, AreaSummary,
     MatchSummary, ProgressItem, RoleEntry, StaminaInfo,
 )

@@ -1,4 +1,3 @@
-import httpx
 import respx
 from game_assistant.adapters.neverness.adapter import NteAdapter
 from game_assistant.config import Settings

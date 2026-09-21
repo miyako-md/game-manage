@@ -41,7 +41,7 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
     app.state.auth = auth_service
     auth_service.attach(app.state.registry, store)
     from game_assistant.auth.routes import install_auth_routes
-    install_auth_routes(app, auth_service, settings)
+    install_auth_routes(app, auth_service)
     from game_assistant.nte_gacha_routes import install_nte_gacha_routes
     install_nte_gacha_routes(app, settings)
     from game_assistant.adapters.wuthering_waves.routes import install_wuwa_routes
