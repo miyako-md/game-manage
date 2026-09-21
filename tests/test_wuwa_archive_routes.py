@@ -1,4 +1,3 @@
-import importlib.util
 import json
 from types import SimpleNamespace
 
@@ -6,13 +5,12 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from game_assistant.snapshots import SnapshotStore
+from game_assistant.wuwa_archive_routes import install_wuwa_archive_routes
 from tests.test_wuwa_routes import Auth
 from tests.test_wuwa_gacha import record
 
 
 def make_client(tmp_path):
-    assert importlib.util.find_spec('game_assistant.wuwa_archive_routes'), 'archive routes missing'
-    from game_assistant.wuwa_archive_routes import install_wuwa_archive_routes
     app = FastAPI()
     adapter = SimpleNamespace(credentials_configured=True, _settings=SimpleNamespace(
         wuwa_user_id='community', wuwa_role_id='100', wuwa_server_id='S'))

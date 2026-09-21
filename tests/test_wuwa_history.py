@@ -16,7 +16,6 @@ def combat(account='A', end='2026-09-30T12:00:00.100+00:00', star=0, state='ok')
 
 def test_history_success_only_dedup_jitter_and_seasons(tmp_path):
     store = SnapshotStore(str(tmp_path / 'test.db'))
-    assert hasattr(store, 'wuwa_history'), 'successful snapshots need a history archive'
     for payload in [combat(), combat(end='2026-09-30T12:00:00.900+00:00'),
                     combat(star=9, state='stale'), combat(star=9, state='error')]:
         store.save('wuthering_waves', 'combat', json.dumps(payload))
@@ -29,7 +28,6 @@ def test_history_success_only_dedup_jitter_and_seasons(tmp_path):
 
 def test_roles_account_isolation_timestamp_dedup_and_null_delta(tmp_path):
     store = SnapshotStore(str(tmp_path / 'test.db'))
-    assert hasattr(store, 'wuwa_history')
     row = {'role_id': '1501', 'level': None, 'extra': {'account_role_id': 'A',
            'server_id': 'S', 'provenance': {'fetched_at': 'first'}}}
     for account, level in [('A', None), ('B', 80), ('A', 0), ('A', 1)]:
@@ -49,7 +47,6 @@ def test_roles_account_isolation_timestamp_dedup_and_null_delta(tmp_path):
 
 def test_backfill_only_available_matching_snapshots(tmp_path):
     store = SnapshotStore(str(tmp_path / 'test.db'))
-    assert hasattr(store, 'wuwa_history')
     assert store.wuwa_history.backfill(store, 'A', 'S')['inserted'] == 0
     store.save('wuthering_waves', 'combat', json.dumps(combat('B')))
     result = store.wuwa_history.backfill(store, 'A', 'S')

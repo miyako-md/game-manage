@@ -39,20 +39,11 @@ RAW = {"status": 1, "msg": "OK", "data": {
 NEWS_LIST_BASE = "https://apps.game.qq.com/cmc/zmMcnTargetContentList"
 
 
-def test_parse_news_json_naive_dates_become_beijing_aware():
-    # sIdxTime 为北京时间（UTC+8）：解析出的 naive datetime 须补 tzinfo → aware
-    # （与 reminder.py 对 naive end_at 的归一化口径一致）
+def test_parse_news_json_calibrated():
     items = parse_news_json(RAW, "公告")
     for it in items:
         assert it.published_at is not None
-        assert it.published_at.tzinfo is not None
         assert it.published_at.utcoffset() == timedelta(hours=8)
-    assert items[0].published_at == datetime(2026, 9, 9, 19, 40, 48,
-                                             tzinfo=BEIJING_TZ)
-
-
-def test_parse_news_json_calibrated():
-    items = parse_news_json(RAW, "公告")
     assert len(items) == 3
     assert items[0].title == "26.18版本更新公告"
     assert items[0].published_at == datetime(2026, 9, 9, 19, 40, 48, tzinfo=BEIJING_TZ)

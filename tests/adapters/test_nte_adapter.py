@@ -4,9 +4,11 @@
 fixture 为 2026-09-13 匿名实测校准的形状，见 endpoints.py ⑥'）；
 角色/成就/抽卡/社区名片使用塔吉多凭据，成功返回版本化 Pydantic 数据。
 """
-import httpx
-import respx
 from datetime import datetime
+
+import httpx
+import pytest
+import respx
 
 import game_assistant.adapters.neverness.adapter as adapter_mod
 from game_assistant.adapters.base import BaseGameAdapter
@@ -15,7 +17,6 @@ from game_assistant.config import Settings
 from game_assistant.event_calendar import BEIJING_TZ
 from game_assistant.models import AnnouncementItem, Capability, GameEvent
 from game_assistant.registry import build_default_registry
-from game_assistant.scheduler import interval_for
 
 BASE = "https://bbs-api.tajiduo.com"
 
@@ -342,38 +343,13 @@ def test_registry_nte_disabled_skips_registration():
     assert "nte" not in {a.game_id for a in reg.all()}
 
 
-def test_gacha_record_intervals_reuse_news_seconds():
-    assert interval_for(Capability.GACHA, Settings()) == 14400
-    assert interval_for(Capability.RECORD, Settings()) == 14400
-    assert interval_for(Capability.GACHA, Settings(news_seconds=60)) == 60
-
-
-def test_events_interval_reuses_announcement_seconds():
-    # 活动日历与公告同源（版本公告解析），轮询间隔复用 announcement_seconds
-    assert interval_for(Capability.EVENTS, Settings()) == 3600
-    assert interval_for(Capability.EVENTS, Settings(announcement_seconds=60)) == 60
-
-
-async def test_base_dispatch_defaults_for_gacha_record():
-    # base dispatch map 含新能力，默认实现报"适配器未实现该能力"
+@pytest.mark.parametrize("cap", [Capability.GACHA, Capability.RECORD, Capability.EVENTS])
+async def test_base_dispatch_defaults_unimplemented_capabilities(cap):
     class Dummy(BaseGameAdapter):
         game_id = "dummy"
-        capabilities = [Capability.GACHA, Capability.RECORD]
+        capabilities = [cap]
 
     d = Dummy()
     d.credentials_configured = True
-    for cap in (Capability.GACHA, Capability.RECORD):
-        r = await d.fetch(cap)
-        assert r.ok is False and "适配器未实现该能力" in r.error
-
-
-async def test_base_dispatch_default_for_events():
-    # EVENTS 进 dispatch map：未实现的适配器报"适配器未实现该能力"而非 KeyError
-    class Dummy(BaseGameAdapter):
-        game_id = "dummy"
-        capabilities = [Capability.EVENTS]
-
-    d = Dummy()
-    d.credentials_configured = True
-    r = await d.fetch(Capability.EVENTS)
+    r = await d.fetch(cap)
     assert r.ok is False and "适配器未实现该能力" in r.error

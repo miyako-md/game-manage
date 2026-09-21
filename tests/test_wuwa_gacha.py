@@ -1,15 +1,13 @@
-import importlib.util
 import json
 
 import httpx
 import pytest
 
+from game_assistant import wuwa_gacha
 from game_assistant.snapshots import SnapshotStore
 
 
 def module():
-    assert importlib.util.find_spec('game_assistant.wuwa_gacha'), 'gacha ingestion is missing'
-    from game_assistant import wuwa_gacha
     return wuwa_gacha
 
 

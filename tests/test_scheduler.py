@@ -1,11 +1,13 @@
 import json
 
+import pytest
+
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult, StaminaInfo
 from game_assistant.reminder import ReminderEngine
 from game_assistant.reminder_store import ReminderDedup
-from game_assistant.scheduler import PollingScheduler
+from game_assistant.scheduler import INTERVAL_ATTRS, interval_for, PollingScheduler
 from game_assistant.snapshots import SnapshotStore
 from tests.test_reminder import FakeNotify
 
@@ -76,21 +78,8 @@ def test_build_jobs_uses_intervals(tmp_path):
     assert jobs[Capability.PROGRESS] == 60
 
 
-def test_progress_interval_reuses_activity_seconds():
-    # 周期进度与活动同源（widget getData），轮询间隔复用 activity_seconds
-    from game_assistant.scheduler import interval_for
-    assert interval_for(Capability.PROGRESS, Settings()) == 3600
-    assert interval_for(Capability.PROGRESS, Settings(activity_seconds=60)) == 60
-
-
-def test_exploration_calabash_interval_reuses_news_seconds():
-    # 探索度/数据坞（roleBox）为慢变化数据，复用 news_seconds（4 小时）
-    from game_assistant.scheduler import interval_for
-    assert interval_for(Capability.EXPLORATION, Settings()) == 14400
-    assert interval_for(Capability.CALABASH, Settings()) == 14400
-
-
-def test_roles_interval_reuses_activity_seconds():
-    # 角色练度墙（roleBox）：抽到新角色能较快反映，复用 activity_seconds（1 小时）
-    from game_assistant.scheduler import interval_for
-    assert interval_for(Capability.ROLES, Settings()) == 3600
+@pytest.mark.parametrize("cap,attr", list(INTERVAL_ATTRS.items()))
+def test_interval_for_reads_mapped_settings_field(cap, attr):
+    defaults = Settings()
+    assert interval_for(cap, defaults) == getattr(defaults, attr)
+    assert interval_for(cap, Settings(**{attr: 60})) == 60

@@ -40,8 +40,6 @@ def test_ds_sign_deterministic():
     # 固定 ts/nonce → 可预期 md5（ts + nonce + appversion + 盐，
     # 期望值实现前用 hashlib 独立计算，防实现自证）
     assert ds_sign(1700000000, "ab12cd34") == "17d853a80aaeb6cdd9e7274756890cb7"
-    # 同参数多次调用结果一致
-    assert ds_sign(1700000000, "ab12cd34") == ds_sign(1700000000, "ab12cd34")
 
 
 def test_make_ds_header_format():
