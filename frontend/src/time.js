@@ -4,6 +4,9 @@ export function displayBeijing(value) {
   const formatted = formatBeijingDateTime(value)
   return formatted === '未知' ? '未提供' : formatted
 }
+export function fetchedLabel(value) {
+  return value ? displayBeijing(value) : null
+}
 export function monthDay(value) {
   const parsed = parseBeijingTime(value)
   return parsed == null ? '' : formatBeijingDateTime(parsed).slice(5, 10)

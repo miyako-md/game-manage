@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameIcon from './GameIcon.vue'
 import { beijingDayStart, calendarRange, collectCalendarEvents, eventGeometry, eventStatus, formatBeijingDateTime, groupCalendarEvents, safeSourceUrl, shiftCalendarAnchor } from '../calendar.js'
+import { gameStyle } from '../dashboard.js'
 
 const props = defineProps({
   games: { type: Array, default: () => [] },
@@ -44,8 +45,9 @@ const missingGames = computed(() => filteredGames.value.filter(game => (!Array.i
 const failedReads = computed(() => filteredGames.value.filter(game => props.readErrors[game.game_id]).map(game => ({
   id: game.game_id, name: game.display_name, error: props.readErrors[game.game_id], retained: Array.isArray(props.snapshots[game.game_id]?.events?.payload),
 })))
-const gameColors = { wuthering_waves: '#d8bb84', nte: '#b6a3d4', league_of_legends: '#87b9ce', lol: '#87b9ce' }
-function gameAccent(id) { return gameColors[id] || '#d8bb84' }
+function gameAccent(id) {
+  return gameStyle(id === 'lol' ? 'league_of_legends' : id).color
+}
 function shift(direction) { anchor.value = shiftCalendarAnchor(anchor.value, mode.value, direction) }
 function goToday() { now.value = Date.now(); anchor.value = now.value }
 function setMode(value) { mode.value = value }

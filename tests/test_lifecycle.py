@@ -4,6 +4,7 @@ from game_assistant.api import create_app
 from game_assistant.config import Settings
 from game_assistant.scheduler import PollingScheduler
 from game_assistant.snapshots import SnapshotStore
+from tests.test_reminder import FakeNotify
 
 
 def test_refresh_endpoint(tmp_path):
@@ -35,10 +36,3 @@ def build_dummy_registry():
     reg = GameRegistry()
     reg.register(DummyAdapter())
     return reg
-
-
-class FakeNotify:
-    name = "fake"
-
-    async def send(self, title, body):
-        return True

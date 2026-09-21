@@ -246,13 +246,17 @@ def parse_gacha(raw: Any, names: dict[str, str] | None = None, expected_role_id:
 
 
 def _http_url(value: Any) -> str | None:
-    if not isinstance(value, str) or any(ord(char) < 32 for char in value):
+    if not isinstance(value, str) or any(char.isspace() or ord(char) < 32 for char in value) or "\\" in value:
         return None
     try:
         url = urlsplit(value)
-        return value if url.scheme in ("http", "https") and url.hostname and not url.username and not url.password else None
+        if (url.scheme in ("http", "https") and url.hostname
+                and not url.username and not url.password):
+            _ = url.port
+            return value
     except ValueError:
-        return None
+        pass
+    return None
 
 
 def parse_record(raw: Any, expected_role_id: str = "") -> NteRecord:

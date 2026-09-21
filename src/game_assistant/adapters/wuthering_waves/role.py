@@ -1,7 +1,7 @@
-import json as _j
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.models import AccountInfo, StaminaInfo
+from .widget import _data
 
 REGEN_MINUTES_PER_POINT = 6
 # 北京时间（UTC+8）：库街区服务器按中国时区运营，后续展示换算可用
@@ -36,15 +36,12 @@ def parse_role_list(raw: dict) -> AccountInfo:
 def parse_widget_energy(raw: dict, now: datetime) -> StaminaInfo:
     """POST /gamer/widget/game3/getData 响应 → 体力（结晶波片）。
 
-    data 可能是 dict 或 JSON 字符串（实测见过字符串形状，做 json.loads 兜底）；
+    data 可能是 dict 或 JSON 字符串（实测见过字符串形状，走 widget._data）；
     data.energyData = {name/cur/total/refreshTimeStamp/expireTimeStamp/status}。
     refreshTimeStamp 语义实测不确定（样例恒为 0），满时间统一按
     6 分钟/点公式推算，不使用 refreshTimeStamp。
     """
-    data = raw.get("data")
-    if isinstance(data, str):
-        data = _j.loads(data)
-    energy = (data or {}).get("energyData") or {}
+    energy = (_data(raw) or {}).get("energyData") or {}
     current = _int_or_none(energy.get("cur")) or 0
     maximum = _int_or_none(energy.get("total")) or 0
     expected_full_at = None

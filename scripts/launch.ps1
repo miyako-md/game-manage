@@ -31,12 +31,11 @@ try {
         }
     }
     if ($needsBuild) {
-        $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
-        if (-not $npm) { throw 'Node.js/npm is required to build the dashboard. Install Node.js, then retry.' }
+        $npm = Resolve-NpmCmd
         Push-Location -LiteralPath $frontend
         try {
             Write-Host 'Building dashboard...'
-            & $npm.Source run build
+            & $npm run build
             if ($LASTEXITCODE -ne 0) { throw 'Dashboard build failed. Backend was not restarted.' }
         } finally { Pop-Location }
     }

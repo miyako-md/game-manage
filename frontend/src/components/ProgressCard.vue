@@ -1,20 +1,10 @@
 <script setup>
-import { displayBeijing, resetLabel } from '../time.js'
+import { fetchedLabel, resetLabel } from '../time.js'
 import { computed } from 'vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
 })
-
-function toLocal(value) {
-  if (!value) return null
-  return displayBeijing(value)
-}
-
-// refresh_at 重置提示：负数=已可重置，同日=今日重置，否则 X天后重置
-function refreshText(value) {
-  return resetLabel(value)
-}
 
 const rows = computed(() => {
   const payload = props.snap?.payload
@@ -31,12 +21,12 @@ const rows = computed(() => {
       pct,
       curText: hasTotal ? `${it.cur ?? 0}/${total}` : `${it.cur ?? 0}`,
       pctText: hasTotal ? `${pct}%` : null,
-      refresh: refreshText(it.refresh_at),
+      refresh: resetLabel(it.refresh_at),
     }
   })
 })
 
-const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
+const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 </script>
 
 <template>

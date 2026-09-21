@@ -1,5 +1,5 @@
 <script setup>
-import { displayBeijing } from '../time.js'
+import { fetchedLabel } from '../time.js'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -8,13 +8,8 @@ const props = defineProps({
 
 const payload = computed(() => props.snap?.payload ?? null)
 
-function toLocal(value) {
-  if (!value) return null
-  return displayBeijing(value)
-}
-
-const expectedFullAt = computed(() => toLocal(payload.value?.expected_full_at))
-const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
+const expectedFullAt = computed(() => fetchedLabel(payload.value?.expected_full_at))
+const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 </script>
 
 <template>

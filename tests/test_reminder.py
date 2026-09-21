@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.config import Settings
+from game_assistant.event_calendar import BEIJING_TZ
 from game_assistant.models import Capability, FetchResult, GameEvent, StaminaInfo
 from game_assistant.reminder import ReminderEngine
 from game_assistant.reminder_store import ReminderDedup
@@ -56,7 +57,7 @@ async def test_fail_threshold_triggers_once(tmp_path):
     assert len(eng.notifier.sent) == 1
     assert "连续失败" in eng.notifier.sent[0][0]
     # 达到阈值后每次失败都会尝试推送，但 dedup key 含日期 → 同日只发一条
-    today = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+    today = datetime.now(BEIJING_TZ).strftime("%Y-%m-%d")
     assert eng.dedup.already_sent(f"fetch_fail:lol:account:{today}") is True
 
 

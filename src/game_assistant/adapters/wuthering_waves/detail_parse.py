@@ -39,10 +39,14 @@ def normalize(value):
     return result
 
 
-def parse_tower(raw: dict, now: datetime) -> dict:
-    remaining = raw.get('seasonEndTime')
-    if isinstance(remaining, bool) or not isinstance(remaining, (int, float)) or not 0 < remaining <= 366 * 86400000:
+def season_remaining_ms(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 < value <= 366 * 86400000:
         raise ValueError('深境区周期数据已过期或缺失')
+    return value
+
+
+def parse_tower(raw: dict, now: datetime) -> dict:
+    remaining = season_remaining_ms(raw.get('seasonEndTime'))
     if not isinstance(raw.get('difficultyList'), list):
         raise ValueError('深塔分区数据缺失')
     return {**normalize(raw), 'season_end_at': (now + timedelta(milliseconds=remaining)).isoformat()}

@@ -1,4 +1,10 @@
 # Dependency synchronization shared by the Windows launcher. ASCII / PS 5.1.
+function Resolve-NpmCmd {
+    $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
+    if (-not $npm) { throw 'Node.js/npm is required. Install Node.js 22.12 or newer, then retry.' }
+    return $npm.Source
+}
+
 function Ensure-FrontendDependencies {
     param([Parameter(Mandatory=$true)][string]$Frontend, [string]$NpmPath)
 
@@ -15,11 +21,7 @@ function Ensure-FrontendDependencies {
         if ((Get-Content -LiteralPath $stamp -Raw).Trim() -eq $fingerprint) { return $false }
     }
 
-    if (-not $NpmPath) {
-        $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
-        if (-not $npm) { throw 'Node.js/npm is required. Install Node.js 22.12 or newer, then retry.' }
-        $NpmPath = $npm.Source
-    }
+    if (-not $NpmPath) { $NpmPath = Resolve-NpmCmd }
     # npm ci can leave a partial node_modules on failure. Never reuse its old stamp.
     if (Test-Path -LiteralPath $stamp) { Remove-Item -LiteralPath $stamp -Force }
     Push-Location -LiteralPath $Frontend

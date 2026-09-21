@@ -1,6 +1,6 @@
 <script setup>
 import { displayBeijing } from '../time.js'
-import { computed, reactive } from 'vue'
+import { computed } from 'vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
@@ -17,12 +17,6 @@ const ratio = (current, total) => `${display(current)} / ${display(total)}`
 const measurable = (current, total) => Number.isFinite(current) && current >= 0 && Number.isFinite(total) && total > 0
 const percent = (current, total) => measurable(current, total) ? `${Math.min(100, Math.round(current / total * 100))}%` : null
 const exceedsTarget = (current, total) => measurable(current, total) && current > total
-const failedImages = reactive(new Set())
-
-function imageFailed(event) {
-  const url = safeUrl(event.currentTarget?.src)
-  if (url) failedImages.add(url)
-}
 
 function safeUrl(value) {
   if (typeof value !== 'string' || !/^https?:\/\//i.test(value)) return null
@@ -30,18 +24,6 @@ function safeUrl(value) {
     const url = new URL(value)
     return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : null
   } catch { return null }
-}
-
-const beijingDateTime = new Intl.DateTimeFormat('zh-CN', {
-  timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
-  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-})
-function obtainedAt(value) {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?$/.test(value)) return '未提供'
-  // The source's unzoned fallback dates are Beijing time, independent of the browser's locale.
-  const normalized = value.replace(' ', 'T')
-  const date = new Date(/[Zz]|[+-]\d{2}:\d{2}$/.test(normalized) ? normalized : `${normalized}+08:00`)
-  return Number.isNaN(date.getTime()) ? '未提供' : beijingDateTime.format(date)
 }
 
 const fetchedAt = computed(() => {
@@ -61,12 +43,6 @@ const staminaRows = computed(() => [
   { name: '都市活力', current: data.value.city_current, total: data.value.city_maximum },
   { name: '日常活跃', current: data.value.daily_activity, total: 100 },
 ])
-const roles = computed(() => list(data.value.entries))
-const roleStats = computed(() => ({
-  total: roles.value.length,
-  s: roles.value.filter((role) => role.quality === 'S').length,
-  a: roles.value.filter((role) => role.quality === 'A').length,
-}))
 </script>
 
 <template>
@@ -102,42 +78,6 @@ const roleStats = computed(() => ({
       </ul>
     </template>
 
-    <template v-else-if="capability === 'roles'">
-      <p v-if="roles.length === 0" class="empty">暂无数据</p>
-      <template v-else>
-        <p class="muted">角色总数 {{ roleStats.total }} · S级 {{ roleStats.s }} · A级 {{ roleStats.a }}</p>
-        <ul class="role-grid">
-          <li v-for="(role, i) in roles" :key="role.id ?? i" class="role-card">
-            <div class="role-overview">
-              <img v-if="safeUrl(role.icon_url) && !failedImages.has(safeUrl(role.icon_url))" :key="safeUrl(role.icon_url)" :src="safeUrl(role.icon_url)" :alt="role.name || '角色'" loading="lazy" class="avatar" @error="imageFailed" />
-              <span v-else class="avatar avatar-empty" aria-hidden="true">{{ (role.name || '?').slice(0, 1) }}</span>
-              <div class="role-heading"><strong>{{ display(role.name) }}</strong><span>{{ display(role.quality) }} · {{ display(role.element) }} · Lv{{ display(role.level) }}</span></div>
-            </div>
-            <p class="role-meta">觉醒 {{ display(role.awaken_level) }} · 混频 {{ display(role.mix_level) }}</p>
-            <p class="muted">羁遇累计经验 {{ display(role.affinity_exp) }}</p>
-            <details>
-              <summary>{{ role.name || '角色' }}详情</summary>
-              <div class="detail-body">
-                <h4>弧盘</h4>
-                <template v-if="role.weapon">
-                  <strong>{{ display(role.weapon.name) }}</strong>
-                  <p class="muted">{{ display(role.weapon.quality) }} · Lv{{ display(role.weapon.level) }} · 混频 {{ display(role.weapon.mix_level) }}</p>
-                </template>
-                <p v-else class="muted">暂无数据</p>
-                <template v-for="group in [{ name: '属性', rows: role.properties, value: 'value' }, { name: '战技', rows: role.skills, value: 'level' }, { name: '城区技能', rows: role.city_skills, value: 'level' }]" :key="group.name">
-                  <h4>{{ group.name }}</h4>
-                  <dl v-if="list(group.rows).length" class="detail-rows">
-                    <div v-for="(entry, index) in group.rows" :key="index"><dt>{{ display(entry.name) }}</dt><dd>{{ group.value === 'level' ? 'Lv' : '' }}{{ display(entry[group.value]) }}</dd></div>
-                  </dl>
-                  <p v-else class="muted">暂无数据</p>
-                </template>
-              </div>
-            </details>
-          </li>
-        </ul>
-      </template>
-    </template>
-
     <template v-else-if="capability === 'progress'">
       <div class="row-head"><span>已达成</span><strong>{{ ratio(data.completed, data.total) }}</strong></div>
       <progress v-if="measurable(data.completed, data.total)" :value="data.completed" :max="data.total" aria-label="成就总进度" />
@@ -163,33 +103,6 @@ const roleStats = computed(() => ({
           </ul>
         </li>
       </ul>
-    </template>
-
-    <template v-else-if="capability === 'gacha'">
-      <p class="notice">社区统计窗口；仅列已出S明细，不含当前垫抽，不代表完整历史。</p>
-      <dl class="metric-grid compact">
-        <div class="metric"><dt>统计抽数</dt><dd>{{ display(data.total_draws) }}</dd></div>
-        <div class="metric"><dt>出S数量</dt><dd>{{ display(data.total_s) }}</dd></div>
-      </dl>
-      <p v-if="!list(data.pools).length" class="empty">暂无卡池统计</p>
-      <div v-for="(pool, i) in list(data.pools)" :key="i" class="pool">
-        <h4>{{ display(pool.name) }}</h4>
-        <dl class="metric-grid compact">
-          <div class="metric"><dt>统计抽数</dt><dd>{{ display(pool.total_draws) }}</dd></div>
-          <div class="metric"><dt>出S数量</dt><dd>{{ display(pool.s_count) }}</dd></div>
-          <div class="metric"><dt>平均出S抽数</dt><dd>{{ display(pool.average) }}</dd></div>
-        </dl>
-        <details v-if="list(pool.details).length">
-          <summary>{{ pool.name || '卡池' }}已出S明细（{{ pool.details.length }}）</summary>
-          <ul class="draw-list">
-            <li v-for="(entry, index) in pool.details" :key="index">
-              <div class="row-head"><strong>{{ entry.name || `角色/弧盘 ${display(entry.item_id)}` }}</strong><span>第 {{ display(entry.pity) }} 抽出S</span></div>
-              <p class="muted">获得时间（北京时间） {{ obtainedAt(entry.obtained_at) }}</p>
-            </li>
-          </ul>
-        </details>
-        <p v-else class="muted">暂无已出S明细</p>
-      </div>
     </template>
 
     <template v-else-if="capability === 'record'">

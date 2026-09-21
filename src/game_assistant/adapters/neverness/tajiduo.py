@@ -9,25 +9,9 @@ data.posts，post 键 subject/createTime（毫秒）/postId（int）。
 解析函数对容器与键名仍做多级回退（data.list / data.posts / data /
 顶层 posts / list；subject/sTitle/title/postTitle 等），保留对上游改版的防御。
 """
-from datetime import datetime, timezone
-
 from game_assistant.adapters.neverness.endpoints import COMMUNITY_ID
+from game_assistant.event_calendar import parse_ms_or_iso as _dt
 from game_assistant.models import AnnouncementItem
-
-
-def _dt(*vals):
-    # 毫秒整数时间戳（int 或位数 >= 12 的纯数字字符串）优先，ISO 字符串其次
-    # （口径与 wuthering_waves/announcements._dt 一致，Phase 2 校准时复核）
-    for v in vals:
-        if v:
-            if isinstance(v, int) or (isinstance(v, str) and v.isdigit()
-                                      and len(v) >= 12):
-                return datetime.fromtimestamp(int(v) / 1000, tz=timezone.utc)
-            try:
-                return datetime.fromisoformat(str(v))
-            except ValueError:
-                continue
-    return None
 
 
 def _extract_rows(raw) -> list:

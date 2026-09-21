@@ -7,11 +7,11 @@ import time
 import uuid
 from copy import deepcopy
 
+from game_assistant.auth.providers import WuwaLoginProvider
 from game_assistant.auth.store import CredentialStoreError
 from game_assistant.models import Capability, FetchResult
 
 GAMES = ('wuthering_waves', 'nte')
-CAPTCHA_ID = 'ec4aa4174277d822d73f2442a165a2cd'
 FIELDS = {
     'wuthering_waves': {'token': 'wuwa_token', 'user_id': 'wuwa_user_id',
         'token_source': 'wuwa_token_source',
@@ -137,7 +137,7 @@ class LoginService:
             self._sessions[sid] = {'game': game, 'context': context,
                 'expires': self.clock() + 600, 'attempts': 0, 'mobile': None, 'sent': False}
             return {'session_id': sid, 'expires_in': 600,
-                    'captcha_id': CAPTCHA_ID if game == GAMES[0] else None}
+                    'captcha_id': WuwaLoginProvider.captcha_id if game == GAMES[0] else None}
 
     def _session(self, game, sid):
         session = self._sessions.get(sid)

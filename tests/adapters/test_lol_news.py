@@ -4,7 +4,7 @@ fixture 为 Task 7 Step 5 在线校准真实样本（2026-09-13 实测
 apps.game.qq.com/cmc/zmMcnTargetContentList?target=24，即"公告"tab），见 endpoints.py 注释。
 """
 import ssl
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import httpx
 import pytest
@@ -16,6 +16,7 @@ from game_assistant.adapters.league_of_legends.endpoints import (
 from game_assistant.adapters.league_of_legends.lol_news import (
     LoLNewsClient, LoLNewsError, parse_news_json,
 )
+from game_assistant.event_calendar import BEIJING_TZ
 
 # 校准真实样本（截取自 target=24 公告分类，字段原样保留）
 RAW = {"status": 1, "msg": "OK", "data": {
@@ -36,8 +37,6 @@ RAW = {"status": 1, "msg": "OK", "data": {
 
 # respx 路由按无 query 的基础 URL 匹配（NEWS_LIST_URL 带 {page} 占位模板）
 NEWS_LIST_BASE = "https://apps.game.qq.com/cmc/zmMcnTargetContentList"
-
-BEIJING_TZ = timezone(timedelta(hours=8))
 
 
 def test_parse_news_json_naive_dates_become_beijing_aware():

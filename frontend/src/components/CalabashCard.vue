@@ -1,15 +1,10 @@
 <script setup>
-import { displayBeijing } from '../time.js'
+import { fetchedLabel } from '../time.js'
 import { computed } from 'vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
 })
-
-function toLocal(value) {
-  if (!value) return null
-  return displayBeijing(value)
-}
 
 const payload = computed(() => props.snap?.payload ?? null)
 
@@ -25,7 +20,7 @@ const rows = computed(() => {
   ]
 })
 
-const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
+const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 </script>
 
 <template>

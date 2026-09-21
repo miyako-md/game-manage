@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { displayBeijing, monthDay } from '../time.js'
+import { fetchedLabel, monthDay } from '../time.js'
 import { getMatchDetail } from '../api.js'
 import MatchDetailPanel from './MatchDetailPanel.vue'
 
@@ -8,11 +8,6 @@ const props = defineProps({
   snap: { type: Object, default: null },
   gameId: { type: String, default: '' },
 })
-
-function toLocal(value) {
-  if (!value) return null
-  return displayBeijing(value)
-}
 
 // start_at 仅显示月-日
 function fmtMonthDay(value) {
@@ -35,7 +30,7 @@ function winBadge(win) {
   return { text: '-', cls: 'badge-muted' }
 }
 
-const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
+const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 
 const rows = computed(() => {
   const payload = props.snap?.payload

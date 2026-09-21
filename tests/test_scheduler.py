@@ -7,15 +7,7 @@ from game_assistant.reminder import ReminderEngine
 from game_assistant.reminder_store import ReminderDedup
 from game_assistant.scheduler import PollingScheduler
 from game_assistant.snapshots import SnapshotStore
-
-
-class FakeNotify:
-    name = "fake"
-    sent = []
-
-    async def send(self, title, body):
-        FakeNotify.sent.append((title, body))
-        return True
+from tests.test_reminder import FakeNotify
 
 
 class WuwaLike(BaseGameAdapter):
