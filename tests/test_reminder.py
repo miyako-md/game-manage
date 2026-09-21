@@ -146,7 +146,7 @@ async def test_notifier_off_does_not_mark_sent(tmp_path):
     assert eng.notifier.sent == []
     # SendKey 未配置（send 返回 False）→ 不 mark_sent，配置后同 key 可再发
     assert eng.dedup.already_sent(
-        f"stamina_full:wuwa:{datetime.now(timezone.utc).strftime('%Y-%m-%d')}") is False
+        f"stamina_full:wuwa:{datetime.now(BEIJING_TZ).strftime('%Y-%m-%d')}") is False
 
 
 async def test_deliver_dedup(tmp_path):
