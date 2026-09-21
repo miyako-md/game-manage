@@ -11,7 +11,7 @@ let timer, stopped = false, wasRunning = false
 async function request(path, options = {}) {
   const r = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', 'X-Game-Assistant': '1' } })
   const data = await r.json()
-  if (!r.ok) throw new Error(data.detail || '操作失败，请稍后重试')
+  if (!r.ok) throw new Error((data && data.detail) || '操作失败，请稍后重试')
   return data
 }
 async function load() {
