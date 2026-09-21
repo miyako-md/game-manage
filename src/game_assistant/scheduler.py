@@ -1,9 +1,11 @@
 import asyncio
+import json
 import logging
 from typing import Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from pydantic import BaseModel
 
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
@@ -44,12 +46,10 @@ def interval_for(capability: Capability, settings: Settings) -> int:
 
 def _serialize(payload: Any) -> str:
     if isinstance(payload, list):
-        import json
-        return json.dumps([p.model_dump(mode="json") if hasattr(p, "model_dump")
+        return json.dumps([p.model_dump(mode="json") if isinstance(p, BaseModel)
                            else p for p in payload], ensure_ascii=False)
-    if hasattr(payload, "model_dump_json"):
+    if isinstance(payload, BaseModel):
         return payload.model_dump_json()
-    import json
     return json.dumps(payload, ensure_ascii=False)
 
 

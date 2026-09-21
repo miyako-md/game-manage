@@ -9,6 +9,8 @@ from game_assistant.reminder_store import ReminderDedup
 
 class FakeNotify:
     name = "fake"
+    send_key = ""
+    provider = None
 
     def __init__(self):
         self.sent = []
