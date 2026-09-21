@@ -10,13 +10,14 @@
 """
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 import httpx
 
 from game_assistant.adapters.league_of_legends.endpoints import (
     NEWS_CATEGORY_IDS, NEWS_LIST_URL,
 )
+from game_assistant.event_calendar import BEIJING_TZ
 from game_assistant.models import AnnouncementItem
 
 _HEADERS = {
@@ -116,8 +117,7 @@ def _dt(*vals):
                 continue
             # sIdxTime 为北京时间（UTC+8），来源解析可能产出 naive datetime：
             # 补 tzinfo → aware（与 reminder.py 对 naive end_at 的归一化口径一致）
-            return dt if dt.tzinfo else dt.replace(
-                tzinfo=timezone(timedelta(hours=8)))
+            return dt if dt.tzinfo else dt.replace(tzinfo=BEIJING_TZ)
     return None
 
 

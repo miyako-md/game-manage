@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { displayBeijing } from '../time.js'
 import { safeUrl } from '../calendar.js'
+import { displayRoleValue } from '../nte-roles.js'
 
 const props = defineProps({
   capability: { type: String, required: true },
@@ -13,7 +14,7 @@ const ownership = ref('all')
 const failedImages = reactive(new Set())
 const titles = { realestate: '房产详情', vehicles: '载具详情', teams: '官方配队推荐' }
 const list = value => Array.isArray(value) ? value : []
-const display = value => value === null || value === undefined || value === '' ? '未知' : value
+const display = (value) => displayRoleValue(value, '未知', { numbers: false })
 const state = value => value === true ? '已拥有' : value === false ? '未拥有' : '拥有状态未知'
 const payload = computed(() => props.snap?.payload ?? null)
 const legacy = computed(() => payload.value !== null && payload.value.schema_version !== 1)

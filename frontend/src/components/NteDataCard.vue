@@ -1,6 +1,7 @@
 <script setup>
 import { displayBeijing } from '../time.js'
 import { safeUrl } from '../calendar.js'
+import { displayRoleValue } from '../nte-roles.js'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -13,7 +14,7 @@ const payload = computed(() => props.snap?.payload ?? null)
 const legacy = computed(() => payload.value !== null && payload.value.schema_version !== 1)
 const data = computed(() => legacy.value ? {} : payload.value ?? {})
 const list = (value) => Array.isArray(value) ? value : []
-const display = (value) => value === null || value === undefined || value === '' || (typeof value === 'number' && !Number.isFinite(value)) ? '未知' : value
+const display = (value) => displayRoleValue(value, '未知')
 const ratio = (current, total) => `${display(current)} / ${display(total)}`
 const measurable = (current, total) => Number.isFinite(current) && current >= 0 && Number.isFinite(total) && total > 0
 const percent = (current, total) => measurable(current, total) ? `${Math.min(100, Math.round(current / total * 100))}%` : null
