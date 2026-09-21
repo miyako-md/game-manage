@@ -190,7 +190,8 @@ class LoginService:
             try:
                 backup = self.snapshots.export_private(game)
                 self.snapshots.clear_private(game)
-            except Exception:
+            except Exception as error:
+                logger.warning("旧账号快照清理失败 (%s)", type(error).__name__)
                 raise LoginError('旧账号快照清理失败，原登录状态已保留，请稍后重试', 500) from None
         try:
             self.store.save(accounts)

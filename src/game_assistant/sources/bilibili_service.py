@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import math
 import time
 from collections import Counter
@@ -9,6 +10,8 @@ from urllib.parse import unquote
 from game_assistant.auth.store import CredentialStore
 from .bilibili import BilibiliClient, SourceError, collect_pages
 from .bilibili_store import BilibiliStore
+
+logger = logging.getLogger(__name__)
 
 class BilibiliService:
     def __init__(self, settings, sources, client_factory=BilibiliClient):
@@ -77,6 +80,9 @@ class BilibiliService:
             self.store.set_state(game, uid, status='error', message='采集中断，已保存部分记录，回补未完成')
             raise
         except Exception as error:
+            # Status text stays fixed. The exception type is enough to diagnose;
+            # response bodies can contain request details.
+            logger.warning("B站采集失败 (%s)", type(error).__name__)
             failures = previous.get('failures', 0) + 1
             message = str(error) if isinstance(error, SourceError) else 'B站数据处理失败，已保留成功记录'
             self.store.set_state(game, uid, status='error', message=message, failures=failures,
