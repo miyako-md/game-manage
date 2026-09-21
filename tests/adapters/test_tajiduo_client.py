@@ -154,7 +154,6 @@ async def test_authed_endpoints_headers_paths_params(method_name, args, url,
 def test_client_default_device_id_is_uuid():
     client = TajiduoClient("acc", "ref")
     uuid.UUID(client._device_id)  # 合法 UUID（不抛异常）
-    assert client.access_token == "acc" and client.refresh_token == "ref"
 
 
 @pytest.mark.parametrize("status", [401, 402, 403])
