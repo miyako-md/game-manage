@@ -20,6 +20,15 @@ def test_find_from_process_malformed():
     assert find_credentials_from(procs) is None
 
 
+def test_find_does_not_join_port_and_token_from_different_processes():
+    procs = [
+        ("LeagueClientUx.exe", ["--app-port=111"]),
+        ("LeagueClientUx.exe", ["--remoting-auth-token=from-other"]),
+        ("LeagueClientUx.exe", ["--app-port=222", "--remoting-auth-token=own"]),
+    ]
+    assert find_credentials_from(procs) == ("222", "own")
+
+
 def test_lockfile(tmp_path, monkeypatch):
     lf = tmp_path / "lockfile"
     lf.write_text("1234:54321:abcTOKEN:https", encoding="utf-8")
