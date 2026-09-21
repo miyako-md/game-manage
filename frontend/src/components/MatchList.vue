@@ -9,11 +9,6 @@ const props = defineProps({
   gameId: { type: String, default: '' },
 })
 
-// start_at 仅显示月-日
-function fmtMonthDay(value) {
-  return monthDay(value)
-}
-
 function fmtDuration(seconds) {
   if (seconds == null) return '-'
   return `${Math.round(seconds / 60)}分钟`
@@ -38,7 +33,7 @@ const rows = computed(() => {
   return items.map((it) => ({
     ...it,
     badge: winBadge(it.win),
-    dateText: fmtMonthDay(it.start_at),
+    dateText: monthDay(it.start_at),
     durationText: fmtDuration(it.duration_seconds),
     kda: kdaText(it),
   }))
