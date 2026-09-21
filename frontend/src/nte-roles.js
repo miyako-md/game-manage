@@ -2,7 +2,6 @@ import { finiteValue } from './dashboard.js'
 
 export const roleId = role => role?.id === null || role?.id === undefined ? '' : String(role.id).trim()
 export const displayRoleValue = value => value === null || value === undefined || value === '' || (typeof value === 'number' && !Number.isFinite(value)) ? '未提供' : value
-const numeric = finiteValue
 
 export function filterRoles(entries, { search = '', quality = '', element = '', favoritesOnly = false, favorites = [], sort = 'level', direction = 'desc' } = {}) {
   const favoriteIds = new Set(favorites), query = search.trim().toLocaleLowerCase()
@@ -10,8 +9,8 @@ export function filterRoles(entries, { search = '', quality = '', element = '', 
   return (Array.isArray(entries) ? entries : []).filter(role => role && typeof role === 'object')
     .filter(role => (!query || String(role.name ?? '').toLocaleLowerCase().includes(query)) && (!quality || role.quality === quality) && (!element || role.element === element) && (!favoritesOnly || favoriteIds.has(roleId(role))))
     .sort((a, b) => {
-      const x = field === 'name' ? (a.name || null) : numeric(a[field])
-      const y = field === 'name' ? (b.name || null) : numeric(b[field])
+      const x = field === 'name' ? (a.name || null) : finiteValue(a[field])
+      const y = field === 'name' ? (b.name || null) : finiteValue(b[field])
       if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1
       const order = field === 'name' ? String(x).localeCompare(String(y), 'zh-CN') : x - y
       return direction === 'asc' ? order : -order
