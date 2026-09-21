@@ -150,6 +150,10 @@ function Start-LocalRuntime {
         $verified = Get-VerifiedProcess (Read-State)
         if ($verified) { $verified.Kill(); $null = $verified.WaitForExit(5000) }
         Clear-RuntimeRecord
+    } elseif (-not $launcher.HasExited) {
+        # No handshake was written, so this is still the process we started.
+        $launcher.Kill()
+        $null = $launcher.WaitForExit(5000)
     }
     throw "Startup health/identity check failed. Logs: $script:RuntimeDir"
 }
