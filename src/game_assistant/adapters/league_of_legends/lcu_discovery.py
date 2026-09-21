@@ -7,6 +7,8 @@ import logging
 from collections.abc import Iterable
 from pathlib import Path
 
+import psutil
+
 logger = logging.getLogger(__name__)
 
 LOCKFILE_CANDIDATES = [
@@ -56,11 +58,6 @@ def find_lockfile_credentials(
 
 
 def discover_lcu_credentials() -> tuple[str, str] | None:
-    try:
-        import psutil
-    except ImportError:
-        logger.warning("psutil 未安装，无法扫描 LCU 进程")
-        return None
     procs = []
     for proc in psutil.process_iter(["name", "cmdline"]):
         try:

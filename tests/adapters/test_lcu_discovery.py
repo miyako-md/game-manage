@@ -1,5 +1,3 @@
-import sys
-
 from game_assistant.adapters.league_of_legends.lcu_discovery import (
     discover_lcu_credentials, find_credentials_from, find_lockfile_credentials,
 )
@@ -48,8 +46,6 @@ class _FakeProc:
 
 
 class _FakePsutil:
-    """monkeypatch sys.modules["psutil"] 用的假模块：discover 内部 import psutil
-    会被拦截，从而验证真实的进程扫描路径。"""
 
     class NoSuchProcess(Exception):
         pass
@@ -68,6 +64,6 @@ class _FakePsutil:
 
 
 def test_discover_uses_psutil_process_scan(monkeypatch):
-    # 主路径：进程扫描发现凭据（lockfile 常为 0 字节的国服 WeGame 场景）
-    monkeypatch.setitem(sys.modules, "psutil", _FakePsutil())
+    import game_assistant.adapters.league_of_legends.lcu_discovery as discovery
+    monkeypatch.setattr(discovery, "psutil", _FakePsutil())
     assert discover_lcu_credentials() == ("54321", "abcTOKEN")
