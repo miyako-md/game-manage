@@ -3,7 +3,6 @@
 fixture 为 Task 7 Step 5 在线校准真实样本（2026-09-13 实测
 apps.game.qq.com/cmc/zmMcnTargetContentList?target=24，即"公告"tab），见 endpoints.py 注释。
 """
-import ssl
 from datetime import datetime, timedelta
 
 import httpx
@@ -193,8 +192,17 @@ async def test_fetch_news_unknown_category_raises():
             await client.fetch_news("不存在的分类")
 
 
-def test_ssl_verification_enabled():
-    # 公网请求必须走正常 SSL 校验，与 LcuClient 的 verify=False 完全隔离
-    client = LoLNewsClient()  # 未发请求，无连接需释放
-    ctx = client._client._transport._pool._ssl_context
-    assert ctx.verify_mode == ssl.CERT_REQUIRED
+def test_ssl_verification_enabled(monkeypatch):
+    # 公网请求必须保持 httpx 默认证书校验（不得向构造器传关闭校验的参数），
+    # 与 LcuClient 的内网自签配置完全隔离；断言公开构造参数而非 httpx 私有结构
+    captured = {}
+    real_client = httpx.AsyncClient
+
+    class AsyncClientSpy(real_client):
+        def __init__(self, *args, **kwargs):
+            captured.update(kwargs)
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(httpx, "AsyncClient", AsyncClientSpy)
+    LoLNewsClient()  # 未发请求，无连接需释放
+    assert captured.get("verify", True) is not False
