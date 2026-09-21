@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { displayBeijing } from '../time.js'
+import { safeUrl } from '../calendar.js'
 
 const props = defineProps({ snap: { type: Object, default: null }, roles: { type: Array, default: () => [] } })
 const legacy = computed(() => props.snap?.payload && props.snap.payload.schema_version !== 1)
@@ -22,8 +23,8 @@ function icon(entry) {
   const cdn = 'https://webstatic.tajiduo.com/bbs/yh-game-records-web-source/character'
   const official = /^fork_[a-zA-Z0-9_-]+$/.test(id) ? `${cdn}/fork/${id}.png` : /^\d+$/.test(id) ? `${cdn}/tall/${id}.PNG` : null
   for (const raw of [roleIcons.value.get(id), official]) {
-    if (typeof raw !== 'string' || !/^https?:\/\//i.test(raw) || failedImages.has(raw)) continue
-    try { const url = new URL(raw); if (!url.username && !url.password) return raw } catch { /* Try the official asset or text fallback. */ }
+    const url = safeUrl(raw)
+    if (url && !failedImages.has(raw) && !failedImages.has(url)) return url
   }
   return null
 }

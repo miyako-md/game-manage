@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
-import { parseBeijingTime } from './calendar.js'
+import { parseBeijingTime, safeUrl } from './calendar.js'
+export { safeUrl }
 
 const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams'])
 export const GAME_STYLE = {
@@ -16,10 +17,6 @@ export function formatTime(value, options = {}) {
     timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...options,
   }).format(new Date(ts))
 }
-export function safeUrl(value) {
-  try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) ? url.href : null } catch { return null }
-}
-
 export function summaryFor(game, snapshots = {}) {
   const validPayload = (cap) => {
     const p = snapshots[cap]?.payload

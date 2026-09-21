@@ -100,7 +100,16 @@ export function groupCalendarEvents(events) {
   return [...groups.values()]
 }
 
+export function safeUrl(value) {
+  if (typeof value !== 'string' || !/^https?:\/\//i.test(value) || /[\s\\\u0000-\u001f]/.test(value)) return null
+  try {
+    const url = new URL(value)
+    return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : null
+  } catch {
+    return null
+  }
+}
+
 export function safeSourceUrl(value) {
-  if (typeof value !== 'string') return null
-  try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) ? url.href : null } catch { return null }
+  return safeUrl(value)
 }

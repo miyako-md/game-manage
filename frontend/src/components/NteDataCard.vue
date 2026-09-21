@@ -1,5 +1,6 @@
 <script setup>
 import { displayBeijing } from '../time.js'
+import { safeUrl } from '../calendar.js'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -17,14 +18,6 @@ const ratio = (current, total) => `${display(current)} / ${display(total)}`
 const measurable = (current, total) => Number.isFinite(current) && current >= 0 && Number.isFinite(total) && total > 0
 const percent = (current, total) => measurable(current, total) ? `${Math.min(100, Math.round(current / total * 100))}%` : null
 const exceedsTarget = (current, total) => measurable(current, total) && current > total
-
-function safeUrl(value) {
-  if (typeof value !== 'string' || !/^https?:\/\//i.test(value)) return null
-  try {
-    const url = new URL(value)
-    return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : null
-  } catch { return null }
-}
 
 const fetchedAt = computed(() => {
   const readAt = props.capability === 'stamina' ? data.value.updated_at || props.snap?.fetched_at : props.snap?.fetched_at

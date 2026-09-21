@@ -10,8 +10,6 @@ import base64
 import hashlib
 import ipaddress
 import json
-import secrets
-import string
 import time
 import uuid
 from typing import Any
@@ -20,6 +18,7 @@ import httpx
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
+from game_assistant.adapters.neverness.tajiduo_client import make_ds_header
 from game_assistant.adapters.wuthering_waves.rolebox_client import USER_AGENT
 
 WUWA_CAPTCHA_ID = "ec4aa4174277d822d73f2442a165a2cd"
@@ -182,12 +181,9 @@ class NteLoginProvider:
                               data=signed, result_key="result", failure="老虎登录验证失败，请检查短信验证码或稍后重试")
 
     def _tajiduo_headers(self, context: dict, token: str = "") -> dict:
-        timestamp = str(int(time.time()))
-        nonce = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
-        digest = hashlib.md5(f"{timestamp}{nonce}1.2.4pUds3dfMkl".encode()).hexdigest()
         return {"User-Agent": "okhttp/4.12.0", "platform": "android",
                 "deviceid": _required(context, "device_id"), "appversion": "1.2.4", "uid": "0",
-                "authorization": token, "ds": f"{timestamp},{nonce},{digest}"}
+                "authorization": token, "ds": make_ds_header()}
 
     async def send_sms(self, context: dict, mobile: str, captcha: dict | None = None) -> None:
         fields = self._laohu_fields(context)

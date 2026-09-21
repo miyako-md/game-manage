@@ -11,7 +11,7 @@ aclose / async with 收尾；适配器每次拉取新建）：
   报"会话已失效"。
 """
 import hashlib
-import random
+import secrets
 import string
 import time
 import uuid
@@ -34,7 +34,7 @@ _WEB_HEADERS = {
                    "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"),
 }
 
-_NONCE_CHARS = string.ascii_lowercase + string.digits
+_NONCE_CHARS = string.ascii_letters + string.digits
 
 
 class TajiduoError(Exception):
@@ -54,7 +54,7 @@ def ds_sign(ts: int, nonce: str, appversion: str = APP_VERSION) -> str:
 def make_ds_header(appversion: str = APP_VERSION) -> str:
     """按当前时间与随机 nonce 生成 ds 头值："{ts},{nonce},{md5hex}"。"""
     ts = int(time.time())
-    nonce = "".join(random.choices(_NONCE_CHARS, k=8))
+    nonce = "".join(secrets.choice(_NONCE_CHARS) for _ in range(8))
     return f"{ts},{nonce},{ds_sign(ts, nonce, appversion)}"
 
 
