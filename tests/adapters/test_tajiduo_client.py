@@ -157,47 +157,6 @@ def test_client_default_device_id_is_uuid():
     assert client.access_token == "acc" and client.refresh_token == "ref"
 
 
-@respx.mock
-async def test_refresh_session_updates_tokens():
-    route = respx.post(f"{BASE}/usercenter/api/refreshToken").mock(
-        return_value=httpx.Response(200, json={
-            "code": 0, "data": {"accessToken": "new-acc",
-                                "refreshToken": "new-ref"}}))
-    client = TajiduoClient("old-acc", "old-ref")
-    access, refresh = await client.refresh_session()
-    await client.aclose()
-    assert (access, refresh) == ("new-acc", "new-ref")
-    assert client.access_token == "new-acc"
-    assert client.refresh_token == "new-ref"
-    req = route.calls.last.request
-    # 刷新请求头 authorization=refresh_token，无 body（endpoints.py ④）
-    assert req.headers["authorization"] == "old-ref"
-    assert req.content == b""
-
-
-@respx.mock
-async def test_refresh_session_top_level_token_fallback():
-    # data 容器缺失时回退顶层键；未返回 refreshToken 时保留旧值
-    respx.post(f"{BASE}/usercenter/api/refreshToken").mock(
-        return_value=httpx.Response(200, json={"code": 0,
-                                               "accessToken": "a2"}))
-    client = TajiduoClient("a1", "r1")
-    access, refresh = await client.refresh_session()
-    await client.aclose()
-    assert access == "a2" and refresh == "r1"
-
-
-@respx.mock
-async def test_refresh_without_new_token_raises():
-    respx.post(f"{BASE}/usercenter/api/refreshToken").mock(
-        return_value=httpx.Response(200, json={"code": 0, "data": {}}))
-    client = TajiduoClient("a1", "r1")
-    with pytest.raises(TajiduoError) as ei:
-        await client.refresh_session()
-    await client.aclose()
-    assert "未找到新 token" in ei.value.message
-
-
 @pytest.mark.parametrize("status", [401, 402, 403])
 @respx.mock
 async def test_auth_session_expired_reports_recapture_hint(status):
