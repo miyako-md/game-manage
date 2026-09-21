@@ -4,9 +4,9 @@ import logging
 import re
 from datetime import datetime, timedelta, timezone
 
-logger = logging.getLogger(__name__)
+from game_assistant.event_calendar import BEIJING_TZ as BJ
 
-BJ = timezone(timedelta(hours=8))
+logger = logging.getLogger(__name__)
 RULE_VERSION = 4
 REASONS = {'accepted': '有明确日期的游戏内通知', 'video': '视频或转发视频',
            'lottery': '抽奖或开奖', 'promotion': '宣传展示或社区内容',

@@ -1,11 +1,13 @@
 """Normalize the documented NTE endpoint schemas without recursive key guessing."""
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 import json
 import math
 import re
 from typing import Any
 from urllib.parse import urlsplit
+
+from game_assistant.event_calendar import BEIJING_TZ as _BEIJING
 
 from .data_models import (
     NteAccount, NteArea, NteCountEntry, NteExploration, NteGacha,
@@ -14,7 +16,6 @@ from .data_models import (
 )
 
 _ERROR = "异环数据格式无效，请刷新重试"
-_BEIJING = timezone(timedelta(hours=8))
 _QUALITY = dict(zip(
     ("ITEM_QUALITY_ORANGE", "ITEM_QUALITY_PURPLE", "ITEM_QUALITY_BLUE", "ITEM_QUALITY_GREEN", "ITEM_QUALITY_WHITE"),
     ("S", "A", "B", "C", "N"),

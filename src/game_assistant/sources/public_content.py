@@ -4,10 +4,11 @@ No network or private account state; native snapshots remain untouched.
 """
 import re
 import unicodedata
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
+
+from game_assistant.event_calendar import BEIJING_TZ as BJ
 
 MOBILE_GAMES = {'nte', 'wuthering_waves'}
-BJ = timezone(timedelta(hours=8))
 VERSION = re.compile(r'(\d+\.\d+)\s*版本')
 DATE = re.compile(r'(?<![\d.])(?:(20\d{2})[年/.-])?(\d{1,2})(?:月|/|-)(\d{1,2})(?:日)?\s*(?:(\d{1,2})[:：](\d{2})(?::(\d{2}))?)?')
 RELATIVE = re.compile(r'(?:版本)?更新后|维护(?:完成|结束)?后')

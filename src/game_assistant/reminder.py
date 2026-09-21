@@ -4,13 +4,12 @@ import hashlib
 import logging
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from game_assistant.config import Settings
+from game_assistant.event_calendar import BEIJING_TZ
 from game_assistant.models import Capability, FetchResult, GameEvent, StaminaInfo
 from game_assistant.reminder_store import ReminderDedup
-
-BEIJING_TZ = timezone(timedelta(hours=8))
 
 logger = logging.getLogger(__name__)
 

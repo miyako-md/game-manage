@@ -1,18 +1,11 @@
 <script setup>
 import { computed } from 'vue'
-import { stamp, value, list } from '../wuwa-display.js'
+import { fieldLabels, stamp, value, list } from '../wuwa-display.js'
 import WuwaStatus from './WuwaStatus.vue'
 import WuwaFields from './WuwaFields.vue'
 const props = defineProps({ snap: { default: null } })
 const profile = computed(() => props.snap?.payload?.extra?.profile || {})
-const metrics = {
-  world_level: '世界等级',
-  active_days: '活跃天数',
-  achievement_count: '成就数',
-  achievement_star: '成就星数',
-  big_count: '大型信标',
-  small_count: '小型信标',
-}
+const metrics = Object.fromEntries(['world_level', 'active_days', 'achievement_count', 'achievement_star', 'big_count', 'small_count'].map((key) => [key, fieldLabels[key]]))
 const collections = {
   box_list: '奇藏箱（基础统计）',
   treasure_box_list: '奇藏箱（分类统计）',
