@@ -7,6 +7,8 @@ test('display uses Beijing for UTC timestamps across midnight and preserves miss
   assert.equal(monthDay('2026-09-14T17:20:00Z'), '09-15')
   assert.equal(displayBeijing(null), '未提供')
   assert.equal(displayBeijing('bad'), '未提供')
+  assert.equal(displayBeijing(1e30), '未提供')
+  assert.equal(monthDay(1e30), '')
 })
 test('reset label distinguishes passed, later today, tomorrow, and unknown without rounding errors', () => {
   const now = Date.parse('2026-09-14T12:00:00Z')

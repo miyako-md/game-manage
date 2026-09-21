@@ -21,7 +21,9 @@ export function parseBeijingTime(value) {
 export function formatBeijingDateTime(value) {
   const time = parseBeijingTime(value)
   if (time === null) return '未知'
-  return new Date(time + BEIJING_OFFSET).toISOString().slice(0, 16).replace('T', ' ')
+  const date = new Date(time + BEIJING_OFFSET)
+  if (!Number.isFinite(date.getTime())) return '未知'
+  return date.toISOString().slice(0, 16).replace('T', ' ')
 }
 
 export function beijingDayStart(value = Date.now()) {
