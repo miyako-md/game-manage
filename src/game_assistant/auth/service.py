@@ -1,11 +1,14 @@
 """Bounded login sessions and one-account-per-game credential lifecycle."""
 import asyncio
 import hashlib
+import logging
 import re
 import secrets
 import time
 import uuid
 from copy import deepcopy
+
+logger = logging.getLogger(__name__)
 
 from game_assistant.auth.providers import WuwaLoginProvider
 from game_assistant.auth.store import CredentialStoreError
@@ -132,6 +135,7 @@ class LoginService:
             try:
                 context = await self.providers[game].start_context()
             except Exception:
+                logger.warning("无法初始化登录", extra={'game': game}, exc_info=True)
                 raise LoginError('无法初始化登录，请检查网络后重试', 502) from None
             sid = secrets.token_urlsafe(32)
             self._sessions[sid] = {'game': game, 'context': context,
@@ -173,6 +177,7 @@ class LoginService:
             except AuthError as error:
                 raise LoginError(error.message) from None
             except Exception:
+                logger.warning("短信发送失败", extra={'game': game}, exc_info=True)
                 raise LoginError('短信发送失败，请稍后重试', 502) from None
             session['sent'] = True
             return {'ok': True, 'retry_after': 60}
@@ -213,6 +218,7 @@ class LoginService:
             except AuthError as error:
                 raise LoginError(error.message) from None
             except Exception:
+                logger.warning("登录失败", extra={'game': game}, exc_info=True)
                 raise LoginError('登录失败，请检查网络后重试', 502) from None
             if session['expires'] <= self.clock():
                 raise LoginError('登录会话已过期，请重新开始登录', 410)
@@ -243,6 +249,7 @@ class LoginService:
         except LoginError:
             raise
         except Exception:
+            logger.warning("登录状态刷新失败", extra={'game': game}, exc_info=True)
             raise LoginError('登录状态刷新失败，请稍后重试', 502) from None
 
     async def fetch(self, game, capability, action):

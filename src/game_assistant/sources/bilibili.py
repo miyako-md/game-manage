@@ -1,7 +1,10 @@
 """Bilibili official notices: conservative classification and bounded backfill."""
 import asyncio
+import logging
 import re
 from datetime import datetime, timedelta, timezone
+
+logger = logging.getLogger(__name__)
 
 BJ = timezone(timedelta(hours=8))
 RULE_VERSION = 4
@@ -152,7 +155,7 @@ class BilibiliClient:
                         detail = await asyncio.wait_for(opus.Opus(int(item['id_str']), credential=self.credential).get_info(), timeout=25)
                         item['_full_text'] = opus_text(detail, self.uid, item['id_str'])
                     except Exception:
-                        pass  # Keep the incomplete decision visible in the audit.
+                        logger.info("opus 全文补全失败，保留摘要")
             return data
         except Exception as exc:
             # Never log request headers, cookies, or SDK exception text.
