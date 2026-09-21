@@ -10,7 +10,6 @@ const payload = computed(() => props.snap?.payload ?? null)
 
 const roles = computed(() => (Array.isArray(payload.value) ? payload.value : []))
 
-// 顶部统计条：角色总数 / 满级 / 6链 / 五星
 const stats = computed(() => ({
   total: roles.value.length,
   full: roles.value.filter((r) => r.level === 90).length,

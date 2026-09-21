@@ -8,7 +8,6 @@ const props = defineProps({
 
 const payload = computed(() => props.snap?.payload ?? null)
 
-// 简表行：null 显示 "—"；base_catch 自带 "%"，原样展示
 const rows = computed(() => {
   const p = payload.value
   return [

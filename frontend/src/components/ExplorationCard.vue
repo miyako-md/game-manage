@@ -17,7 +17,6 @@ const detectionText = computed(() => {
   return parts.length > 0 ? `（${parts.join(' / ')}）` : null
 })
 
-// 国家分组（实测 4 组）：组名 + countryProgress% 进度条 + 组内地区小字
 const groups = computed(() => {
   const list = payload.value?.country_groups
   return (Array.isArray(list) ? list : []).map((g) => {

@@ -91,7 +91,6 @@ async def test_get_post_detail_ok():
         return_value=httpx.Response(200, json=POST_DETAIL_RAW))
     client = KuroClient(token="tok", user_id="1")
     detail = await client.get_post_detail("1539678546104307712")
-    # 返回 data.postDetail 本体（dict）
     assert detail["postTitle"] == "「蜃云灯影，凡尘剑心」3.6版本内容说明"
     assert "postH5Content" in detail
     body = route.calls.last.request.content.decode()

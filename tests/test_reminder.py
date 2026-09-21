@@ -34,7 +34,7 @@ async def test_stamina_full_notifies_once_per_day(tmp_path):
     r = FetchResult(ok=True, payload=StaminaInfo(
         current=240, maximum=240, updated_at=datetime.now(timezone.utc)))
     await eng.handle_poll("wuwa", "鸣潮", Capability.STAMINA, r)
-    await eng.handle_poll("wuwa", "鸣潮", Capability.STAMINA, r)  # 同日第二次
+    await eng.handle_poll("wuwa", "鸣潮", Capability.STAMINA, r)
     assert len(eng.notifier.sent) == 1
     assert "体力已满" in eng.notifier.sent[0][0]
 

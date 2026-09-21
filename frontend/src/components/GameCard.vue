@@ -59,7 +59,6 @@ const CAP_COMPONENTS = {
   roles: RoleWallCard,
 }
 
-// capability -> 快照对象（{payload, fetched_at, stale}），拉取失败时为 null
 const localSnaps = ref({})
 const snaps = computed(() => props.externalSnapshots ?? localSnaps.value)
 const refreshing = ref(false)
