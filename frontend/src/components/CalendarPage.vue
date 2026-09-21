@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameIcon from './GameIcon.vue'
-import { beijingDayStart, calendarRange, collectCalendarEvents, eventGeometry, eventStatus, formatBeijingDateTime, groupCalendarEvents, safeSourceUrl, shiftCalendarAnchor } from '../calendar.js'
+import { beijingDayStart, calendarRange, collectCalendarEvents, eventGeometry, eventStatus, formatBeijingDateTime, groupCalendarEvents, safeUrl, shiftCalendarAnchor } from '../calendar.js'
 import { gameStyle } from '../dashboard.js'
 
 const props = defineProps({
@@ -38,7 +38,7 @@ const groups = computed(() => groupCalendarEvents(visibleEvents.value))
 const undated = computed(() => events.value.filter(event => event.geometry.kind === 'undated'))
 const invalid = computed(() => events.value.filter(event => event.geometry.kind === 'invalid'))
 const selected = computed(() => events.value.find(event => event.id === selectedId.value))
-const sourceUrl = computed(() => safeSourceUrl(selected.value?.source_url ?? selected.value?.source_post_id))
+const sourceUrl = computed(() => safeUrl(selected.value?.source_url ?? selected.value?.source_post_id))
 const filteredGames = computed(() => props.games.filter(game => !filter.value || game.game_id === filter.value))
 const staleGames = computed(() => filteredGames.value.filter(game => props.snapshots[game.game_id]?.events?.stale).map(game => game.display_name))
 const missingGames = computed(() => filteredGames.value.filter(game => (!Array.isArray(game.capabilities) || game.capabilities.includes('events')) && !Array.isArray(props.snapshots[game.game_id]?.events?.payload)).map(game => game.display_name))
