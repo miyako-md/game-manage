@@ -24,10 +24,10 @@ LOCKFILE_CANDIDATES = [
 def find_credentials_from(
     processes: Iterable[tuple[str, list[str] | None]],
 ) -> tuple[str, str] | None:
-    port = token = None
     for name, cmd in processes:
         if "LeagueClientUx" not in (name or "") or not cmd:
             continue
+        port = token = None
         for arg in cmd:
             if arg.startswith("--app-port="):
                 port = arg.split("=", 1)[1]
