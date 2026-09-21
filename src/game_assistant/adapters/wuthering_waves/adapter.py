@@ -47,7 +47,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
         self._rolebox_refresh_time = 0.0
         if settings.wuwa_token and settings.wuwa_user_id:
             self.credentials_configured = True
-            self._client = KuroClient(settings.wuwa_token, settings.wuwa_user_id,
+            self._client = KuroClient(settings.wuwa_token,
                                       did=settings.wuwa_did, source=settings.wuwa_token_source)
         else:
             self.credentials_configured = False

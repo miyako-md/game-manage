@@ -13,9 +13,8 @@ class KuroError(Exception):
 
 
 class KuroClient:
-    def __init__(self, token: str, user_id: str, did: str = '', source: str = 'h5'):
+    def __init__(self, token: str, did: str = '', source: str = 'h5'):
         self.token = token
-        self.user_id = user_id
         self.did = did
         self.source = source
 

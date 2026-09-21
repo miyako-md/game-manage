@@ -19,7 +19,7 @@ class LoginRequest(BaseModel):
     code: str = Field(min_length=4, max_length=8)
 
 
-def install_auth_routes(app, service, settings):
+def install_auth_routes(app, service):
     router = APIRouter(prefix='/api/auth')
 
     @app.middleware('http')

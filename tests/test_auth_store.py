@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 from game_assistant.auth.store import CredentialStore, CredentialStoreError

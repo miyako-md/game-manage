@@ -96,7 +96,7 @@ class LoginService:
                     adapter.credentials_configured = self._configured(game)
                     if game == 'wuthering_waves':
                         from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient
-                        adapter._client = (KuroClient(self.settings.wuwa_token, self.settings.wuwa_user_id,
+                        adapter._client = (KuroClient(self.settings.wuwa_token,
                                                       did=self.settings.wuwa_did,
                                                       source=self.settings.wuwa_token_source)
                                            if adapter.credentials_configured else None)
