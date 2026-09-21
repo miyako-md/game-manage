@@ -113,6 +113,40 @@ async def test_failed_save_keeps_live_account(tmp_path, monkeypatch):
     assert settings.nte_access_token == 'legacy-access'
 
 
+async def test_failed_save_restores_private_snapshots(tmp_path, monkeypatch):
+    from game_assistant.auth.store import CredentialStoreError
+    from game_assistant.snapshots import SnapshotStore
+    service, _, settings, _ = make_service(tmp_path)
+    snapshots = SnapshotStore(str(tmp_path / 'assistant.db'))
+    snapshots.save('nte', 'account', '{"nickname":"old"}')
+    snapshots.record_poll('nte', 'account', FetchResult(ok=False, error='旧错误', error_kind='source_error'))
+    service.snapshots = snapshots
+    def fail(_):
+        raise CredentialStoreError('本地凭据保存失败')
+    monkeypatch.setattr(service.store, 'save', fail)
+    with pytest.raises(LoginError):
+        await logged_in(service)
+    assert snapshots.get('nte', 'account')['payload'] == '{"nickname":"old"}'
+    assert snapshots.get_poll_status('nte', 'account')['error'] == '旧错误'
+    assert settings.nte_access_token == 'legacy-access'
+
+
+def test_saved_account_keeps_a_generated_device_id(tmp_path):
+    path = tmp_path / 'secrets.bin'
+    CredentialStore(path).save({'nte': {'access_token': 'kept', 'refresh_token': 'kept-r'}})
+    providers = {'nte': Provider(), 'wuthering_waves': Provider()}
+    LoginService(Settings(), CredentialStore(path), providers=providers)
+    device = CredentialStore(path).load()['nte']['device_id']
+    assert device.startswith('HT') and len(device) == 16
+    restarted = LoginService(Settings(), CredentialStore(path), providers=providers)
+    assert restarted.settings.nte_device_id == device
+    toml_only = tmp_path / 'toml.bin'
+    bare = LoginService(Settings(nte_access_token='toml', nte_refresh_token='toml-r'),
+                        CredentialStore(toml_only), providers=providers)
+    assert bare.settings.nte_device_id.startswith('HT')
+    assert CredentialStore(toml_only).load() == {}
+
+
 async def test_login_attempt_limit(tmp_path):
     service, provider, _, _ = make_service(tmp_path)
     from game_assistant.auth.providers import AuthError

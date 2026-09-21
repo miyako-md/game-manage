@@ -66,6 +66,14 @@ class LoginService:
             if game == 'nte' and not self._accounts[game].get('device_id') and any(
                     self._accounts[game].get(k) for k in ('access_token', 'refresh_token')):
                 self._accounts[game]['device_id'] = 'HT' + uuid.uuid4().hex[:14].upper()
+                # A record already on disk keeps this id. Tokens that exist only
+                # in config.toml stay there until a successful login writes them.
+                if game in self._saved:
+                    self._saved[game] = deepcopy(self._accounts[game])
+                    try:
+                        self.store.save(self._saved)
+                    except CredentialStoreError:
+                        logger.warning("异环设备号未能写入凭据文件")
             self._apply(game)
 
     def attach(self, registry, snapshots):
@@ -185,8 +193,10 @@ class LoginService:
     def _persist(self, game, account, clear_snapshots=False):
         accounts = deepcopy(self._saved)
         accounts[game] = account
+        backup = None
         if clear_snapshots and self.snapshots:
             try:
+                backup = self.snapshots.export_private(game)
                 self.snapshots.clear_private(game)
             except Exception as error:
                 logger.warning("旧账号快照清理失败 (%s)", type(error).__name__)
@@ -194,6 +204,8 @@ class LoginService:
         try:
             self.store.save(accounts)
         except CredentialStoreError as error:
+            if backup is not None:
+                self.snapshots.restore_private(game, backup)
             raise LoginError(str(error), 500) from None
         self._saved = accounts
         self._accounts[game] = account
