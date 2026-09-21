@@ -110,6 +110,3 @@ export function safeUrl(value) {
   }
 }
 
-export function safeSourceUrl(value) {
-  return safeUrl(value)
-}
