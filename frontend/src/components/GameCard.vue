@@ -9,7 +9,6 @@ import AccountCard from './AccountCard.vue'
 import AnnouncementList from './AnnouncementList.vue'
 import CalabashCard from './CalabashCard.vue'
 import ExplorationCard from './ExplorationCard.vue'
-import EventsCalendarCard from './EventsCalendarCard.vue'
 import MatchList from './MatchList.vue'
 import NteDataCard from './NteDataCard.vue'
 import NteAssetsPanel from './NteAssetsPanel.vue'
@@ -53,7 +52,6 @@ const CAP_COMPONENTS = {
   progress: ProgressCard,
   announcement: AnnouncementList,
   news: AnnouncementList,
-  events: EventsCalendarCard,
   match: MatchList,
   stats: StatsCard,
   exploration: ExplorationCard,
@@ -76,7 +74,7 @@ function capComponent(cap) {
   if (props.game.game_id === 'nte' && ['realestate', 'vehicles', 'teams'].includes(cap)) return NteAssetsPanel
   if (props.game.game_id === 'nte' && cap === 'roles') return NteRolesPanel
   if (props.game.game_id === 'nte' && cap === 'gacha') return NteGachaPanel
-  if (props.game.game_id === 'nte' && ['account', 'stamina', 'roles', 'progress', 'exploration', 'gacha', 'record'].includes(cap)) return NteDataCard
+  if (props.game.game_id === 'nte' && ['account', 'stamina', 'progress', 'exploration', 'record'].includes(cap)) return NteDataCard
   return CAP_COMPONENTS[cap] || null
 }
 
@@ -133,9 +131,6 @@ onBeforeUnmount(() => {
   generation += 1
   if (errorTimer) clearTimeout(errorTimer)
 })
-
-// 供 App.vue 的 60 秒定时器通过模板引用触发重拉快照
-defineExpose({ loadSnapshots })
 </script>
 
 <template>

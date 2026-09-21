@@ -138,26 +138,3 @@ def resolve_official_column_id(raw) -> str | None:
         if column_id:
             return str(column_id)
     return None
-
-
-def find_first(node, keys: tuple[str, ...]):
-    """深度优先在响应树中找第一个带指定键且值非空的节点值（防御式提取器）。
-
-    用于凭据链路（Phase 2 校准）：getGameRoles 响应中找首个 roleId（keys=
-    ("roleId", "role_id")）、getUserFullInfo 中找 uid 等。
-    """
-    if isinstance(node, dict):
-        for k in keys:
-            v = node.get(k)
-            if v:
-                return v
-        for v in node.values():
-            found = find_first(v, keys)
-            if found is not None:
-                return found
-    elif isinstance(node, list):
-        for v in node:
-            found = find_first(v, keys)
-            if found is not None:
-                return found
-    return None

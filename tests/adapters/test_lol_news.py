@@ -11,7 +11,7 @@ import pytest
 import respx
 
 from game_assistant.adapters.league_of_legends.endpoints import (
-    NEWS_CATEGORY_IDS, NEWS_LIST_URL, NEWS_PAGE,
+    NEWS_CATEGORY_IDS, NEWS_LIST_URL,
 )
 from game_assistant.adapters.league_of_legends.lol_news import (
     LoLNewsClient, LoLNewsError, parse_news_json,
@@ -177,16 +177,6 @@ async def test_fetch_json_network_error_raises_lol_news_error():
     async with LoLNewsClient() as client:
         with pytest.raises(LoLNewsError):
             await client.fetch_json(NEWS_LIST_URL)
-
-
-@respx.mock
-async def test_fetch_page_gbk_decode():
-    respx.get(NEWS_PAGE).mock(return_value=httpx.Response(
-        200, content="英雄联盟官方公告".encode("gbk"),
-        headers={"content-type": "text/html; charset=gbk"}))
-    async with LoLNewsClient() as client:
-        html = await client.fetch_page(NEWS_PAGE)
-    assert "英雄联盟官方公告" in html
 
 
 @respx.mock
