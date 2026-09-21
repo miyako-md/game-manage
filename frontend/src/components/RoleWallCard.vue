@@ -1,21 +1,15 @@
 <script setup>
-import { displayBeijing } from '../time.js'
+import { fetchedLabel } from '../time.js'
 import { computed } from 'vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
 })
 
-function toLocal(value) {
-  if (!value) return null
-  return displayBeijing(value)
-}
-
 const payload = computed(() => props.snap?.payload ?? null)
 
 const roles = computed(() => (Array.isArray(payload.value) ? payload.value : []))
 
-// 顶部统计条：角色总数 / 满级 / 6链 / 五星
 const stats = computed(() => ({
   total: roles.value.length,
   full: roles.value.filter((r) => r.level === 90).length,
@@ -23,7 +17,7 @@ const stats = computed(() => ({
   five: roles.value.filter((r) => r.star_level === 5).length,
 }))
 
-const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
+const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 </script>
 
 <template>

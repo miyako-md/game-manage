@@ -11,7 +11,7 @@ aclose / async with 收尾；适配器每次拉取新建）：
   报"会话已失效"。
 """
 import hashlib
-import random
+import secrets
 import string
 import time
 import uuid
@@ -21,7 +21,7 @@ import httpx
 from game_assistant.adapters.neverness.endpoints import (
     APP_VERSION, GACHA, GET_ALL_COMMUNITY, GET_GAME_RECORD_CARD,
     GET_GAME_ROLES, GET_POST_FULL, GET_USER_FULL_INFO, ACHIEVE_PROGRESS,
-    AREA_PROGRESS, CHARACTERS, OFFICIAL_POST_LIST, REALESTATE, REFRESH_TOKEN,
+    AREA_PROGRESS, CHARACTERS, OFFICIAL_POST_LIST, REALESTATE,
     ROLE_HOME, VEHICLES, TEAMS,
 )
 
@@ -34,7 +34,7 @@ _WEB_HEADERS = {
                    "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"),
 }
 
-_NONCE_CHARS = string.ascii_lowercase + string.digits
+_NONCE_CHARS = string.ascii_letters + string.digits
 
 
 class TajiduoError(Exception):
@@ -54,7 +54,7 @@ def ds_sign(ts: int, nonce: str, appversion: str = APP_VERSION) -> str:
 def make_ds_header(appversion: str = APP_VERSION) -> str:
     """按当前时间与随机 nonce 生成 ds 头值："{ts},{nonce},{md5hex}"。"""
     ts = int(time.time())
-    nonce = "".join(random.choices(_NONCE_CHARS, k=8))
+    nonce = "".join(secrets.choice(_NONCE_CHARS) for _ in range(8))
     return f"{ts},{nonce},{ds_sign(ts, nonce, appversion)}"
 
 
@@ -132,8 +132,8 @@ class TajiduoWebClient:
 class TajiduoClient:
     """鉴权客户端（endpoints.py ③④⑦）：APP 形态头 + DS 签名。
 
-    access_token 为空时 authorization 头为空串（仅 refresh_session 可用），
-    由适配器 credentials_configured 门控。
+    access_token 为空时 authorization 头为空串，由适配器 credentials_configured 门控。
+    续期走 NteLoginProvider.renew（endpoints.py ④），客户端不自带续期路径。
     """
 
     def __init__(self, access_token: str, refresh_token: str,
@@ -166,27 +166,6 @@ class TajiduoClient:
                        params: dict | None = None) -> dict:
         return await _request_json(self._client, method, url, params=params,
                                    headers=self._headers(), authorized=True)
-
-    async def refresh_session(self) -> tuple[str, str]:
-        """用 refresh_token 换新 access/refresh 对并更新内部状态（endpoints.py ④）。
-
-        响应形状未校准：新 token 优先取 data.*，回退顶层；键名 accessToken/
-        access_token、refreshToken/refresh_token 双兼容。返回 (access, refresh)。
-        """
-        # 刷新请求的 authorization 头是 refresh_token（endpoints.py ④），
-        # 覆盖默认头中的 access_token
-        headers = {**self._headers(), "authorization": self._refresh_token}
-        data = await _request_json(self._client, "POST", REFRESH_TOKEN,
-                                   headers=headers, authorized=True)
-        payload = data.get("data") if isinstance(data.get("data"), dict) else data
-        new_access = payload.get("accessToken") or payload.get("access_token")
-        new_refresh = payload.get("refreshToken") or payload.get("refresh_token")
-        if not new_access:
-            raise TajiduoError("刷新响应中未找到新 token")
-        self._access_token = new_access
-        if new_refresh:
-            self._refresh_token = new_refresh
-        return self._access_token, self._refresh_token
 
     async def get_user_full_info(self) -> dict:
         return await self._request("GET", GET_USER_FULL_INFO)

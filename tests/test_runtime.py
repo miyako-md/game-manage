@@ -1,5 +1,3 @@
-import importlib.util
-
 from fastapi.testclient import TestClient
 
 
@@ -7,7 +5,6 @@ def test_sandbox_ignores_credentials_and_disables_upstream(tmp_path, monkeypatch
     monkeypatch.setenv("GA_WUWA_TOKEN", "test-secret-must-not-load")
     monkeypatch.setenv("GA_NOTIFY_SEND_KEY", "test-notify-must-not-load")
     monkeypatch.setenv("GA_DB_PATH", str(tmp_path / "do-not-touch.db"))
-    assert importlib.util.find_spec("game_assistant.runtime"), "runtime runner missing"
     from game_assistant.runtime import build_app
 
     app = build_app(tmp_path / "sandbox")

@@ -1,60 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { createRenderer, nextTick, h, reactive } from 'vue'
-import { compileScript, parse } from '@vue/compiler-sfc'
+import { nextTick, reactive } from 'vue'
 import { calendarRange } from '../calendar.js'
+import { loadVue, mount, content, nodes } from '../test-utils/vue.js'
 
-const modules = new Map()
-async function loadVue(url) {
-  if (modules.has(url.href)) return modules.get(url.href)
-  const { descriptor } = parse(readFileSync(url, 'utf8'))
-  let code = compileScript(descriptor, { id: url.pathname, inlineTemplate: true, templateOptions: { compilerOptions: { hoistStatic: false } } }).content
-  const imports = [...code.matchAll(/from ['"]([^'"]+)['"]/g)]
-  for (const match of imports) {
-    const name = match[1]
-    if (name.endsWith('.vue')) {
-      const child = new URL(name, url)
-      await loadVue(child)
-      code = code.replaceAll(`'${name}'`, `'${modules.get(child.href + ':url')}'`)
-    } else {
-      code = code.replaceAll(`'${name}'`, `'${name.startsWith('.') ? new URL(name, url).href : import.meta.resolve(name)}'`)
-      code = code.replaceAll(`"${name}"`, `"${name.startsWith('.') ? new URL(name, url).href : import.meta.resolve(name)}"`)
-    }
-  }
-  const encoded = `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`
-  modules.set(url.href + ':url', encoded)
-  const component = (await import(encoded)).default
-  modules.set(url.href, component)
-  return component
-}
-function mount(t, component, props) {
-  const node = (type, text = '') => ({ type, text, props: {}, style: {}, children: [], parent: null,
-    addEventListener() {}, get options() { return this.children.filter(child => child.type === 'option') },
-  })
-  const renderer = createRenderer({
-    createElement: (type) => node(type), createText: (text) => node('#text', text),
-    createComment: () => node('#comment'), setText: (n, text) => { n.text = text },
-    setElementText: (n, text) => { n.text = text; n.children = [] },
-    patchProp: (n, key, _old, value) => { n.props[key] = value },
-    insert(n, parent, anchor) {
-      if (n.parent) n.parent.children.splice(n.parent.children.indexOf(n), 1)
-      const index = anchor ? parent.children.indexOf(anchor) : -1
-      parent.children.splice(index < 0 ? parent.children.length : index, 0, n)
-      n.parent = parent
-    },
-    remove(n) { n.parent?.children.splice(n.parent.children.indexOf(n), 1) },
-    parentNode: (n) => n.parent,
-    nextSibling: (n) => n.parent?.children[n.parent.children.indexOf(n) + 1],
-  })
-  const root = node('root')
-  const app = renderer.createApp({ render: () => h(component, props) })
-  app.mount(root)
-  t.after(() => app.unmount())
-  return root
-}
-const content = (n) => [n.text, ...n.children.map(content)].filter(Boolean).join(' ').replace(/\s+/g, ' ')
-const nodes = (n, type) => [...(n.type === type ? [n] : []), ...n.children.flatMap((child) => nodes(child, type))]
 const CalendarPage = await loadVue(new URL('./CalendarPage.vue', import.meta.url))
 const games = [{ game_id: 'nte', display_name: '异环' }, { game_id: 'lol', display_name: '英雄联盟' }]
 const snapshots = { nte: { events: { payload: [{ name: '待定的活动', category: '限时活动', source_title: '版本公告', source_post_id: '123', end_at: null }], fetched_at: '2026-09-14T10:00:00+08:00', stale: true } } }

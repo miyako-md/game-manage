@@ -1,15 +1,10 @@
 <script setup>
-import { displayBeijing } from '../time.js'
+import { fetchedLabel } from '../time.js'
 import { computed } from 'vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
 })
-
-function toLocal(value) {
-  if (!value) return null
-  return displayBeijing(value)
-}
 
 const payload = computed(() => props.snap?.payload ?? null)
 
@@ -22,7 +17,6 @@ const detectionText = computed(() => {
   return parts.length > 0 ? `（${parts.join(' / ')}）` : null
 })
 
-// 国家分组（实测 4 组）：组名 + countryProgress% 进度条 + 组内地区小字
 const groups = computed(() => {
   const list = payload.value?.country_groups
   return (Array.isArray(list) ? list : []).map((g) => {
@@ -44,7 +38,7 @@ const groups = computed(() => {
 const hasData = computed(() =>
   groups.value.length > 0 || (detections.value && detections.value.total != null))
 
-const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
+const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 </script>
 
 <template>

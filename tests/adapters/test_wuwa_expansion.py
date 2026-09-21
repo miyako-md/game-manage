@@ -1,15 +1,38 @@
+import json
 from datetime import datetime, timezone
 
+import httpx
 import pytest
+import respx
 
 from game_assistant.adapters.wuthering_waves import detail_parse
 from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
-from game_assistant.adapters.wuthering_waves.rolebox_client import RoleBoxError
-from game_assistant.config import Settings
-from unittest.mock import AsyncMock
-import httpx
-import respx
 from game_assistant.adapters.wuthering_waves.rolebox_client import RoleBoxClient
+from game_assistant.config import Settings
+
+ROLEBOX = 'https://api.kurobbs.com/aki/roleBox/akiBox'
+RESOURCE = 'https://api.kurobbs.com/aki/resource'
+ROLE_LIST = 'https://api.kurobbs.com/gamer/role/list'
+REFRESH_ACK = httpx.Response(200, json={'code': 200, 'data': True})
+
+
+def make_adapter() -> WutheringWavesAdapter:
+    return WutheringWavesAdapter(Settings(wuwa_token='t', wuwa_user_id='u',
+        wuwa_role_id='account', wuwa_server_id='server', wuwa_b_at='b',
+        wuwa_did='d', wuwa_dev_code='c'))
+
+
+def wire(data: dict) -> httpx.Response:
+    """roleBox 线上形状：data 是 JSON 字符串，客户端内二次解析。"""
+    return httpx.Response(200, json={'code': 200, 'data': json.dumps(data)})
+
+
+def wire_error(msg: str = 'offline', code: int = 500) -> httpx.Response:
+    return httpx.Response(200, json={'code': code, 'msg': msg})
+
+
+def mock_refresh():
+    return respx.post(ROLEBOX + '/refreshData').mock(return_value=REFRESH_ACK)
 
 
 def test_account_collections_and_missing_zero_are_preserved():
@@ -61,37 +84,34 @@ def test_latest_month_selection_validates_period_without_reordering(periods, exp
     assert [row['period'] for row in rows] == periods
 
 
+@respx.mock
 @pytest.mark.asyncio
-async def test_default_resources_request_latest_available_month(monkeypatch):
-    adapter, client = adapter_with_client(monkeypatch)
-    client.period_list.return_value = {'months': [
+async def test_default_resources_request_latest_available_month():
+    adapter = make_adapter()
+    respx.get(RESOURCE + '/period/list').mock(return_value=wire({'months': [
         {'index': 202607, 'title': '7月'}, {'index': 202609, 'title': '9月'},
-        {'index': 202608, 'title': '8月'}]}
-    client.resource_report.return_value = {'totalStar': 0}
+        {'index': 202608, 'title': '8月'}]}))
+    month = respx.post(RESOURCE + '/month').mock(return_value=wire({'totalStar': 0}))
     result = await adapter.fetch_resources()
     assert result.ok and result.payload.current['period'] == '202609'
     assert [row['period'] for row in result.payload.periods['month']] == ['202607', '202609', '202608']
-    client.resource_report.assert_awaited_once_with('account', 'server', 'month', '202609')
+    assert len(month.calls) == 1
+    assert b'period=202609' in month.calls[0].request.content
 
 
-def adapter_with_client(monkeypatch):
-    adapter = WutheringWavesAdapter(Settings(wuwa_token='t', wuwa_user_id='u',
-        wuwa_role_id='account', wuwa_server_id='server', wuwa_b_at='b', wuwa_did='d', wuwa_dev_code='c'))
-    client = AsyncMock()
-    client.__aenter__.return_value = client
-    monkeypatch.setattr(adapter, '_get_rolebox', lambda: client)
-    return adapter, client
-
-
+@respx.mock
 @pytest.mark.asyncio
-async def test_combat_failure_keeps_successful_siblings_and_previous_source(monkeypatch):
-    adapter, client = adapter_with_client(monkeypatch)
-    client.tower_detail.return_value = {'seasonEndTime': 60000, 'difficultyList': []}
-    client.challenge_details.return_value = {'challengeList': [{'star': 0}]}
-    client.slash_detail.return_value = {'isUnlock': False}
+async def test_combat_failure_keeps_successful_siblings_and_previous_source():
+    adapter = make_adapter()
+    mock_refresh()
+    respx.post(ROLEBOX + '/towerDataDetail').mock(return_value=wire(
+        {'seasonEndTime': 60000, 'difficultyList': []}))
+    challenge = respx.post(ROLEBOX + '/challengeDetails').mock(return_value=wire(
+        {'challengeList': [{'star': 0}]}))
+    respx.post(ROLEBOX + '/slashDetail').mock(return_value=wire({'isUnlock': False}))
     first = await adapter.fetch_combat()
     assert first.ok
-    client.challenge_details.side_effect = RoleBoxError('offline')
+    challenge.mock(return_value=wire_error())
     second = await adapter.fetch_combat()
     assert second.ok
     assert second.payload.hologram.state == 'stale'
@@ -102,17 +122,21 @@ async def test_combat_failure_keeps_successful_siblings_and_previous_source(monk
     assert third.payload.hologram.data is None
 
 
+@respx.mock
 @pytest.mark.asyncio
-async def test_restart_restores_combat_and_resource_source_data(monkeypatch, tmp_path):
+async def test_restart_restores_combat_and_resource_source_data(tmp_path):
     from types import SimpleNamespace
     from game_assistant.snapshots import SnapshotStore
     store = SnapshotStore(str(tmp_path / 'snapshots.db'))
-    adapter, client = adapter_with_client(monkeypatch)
-    client.tower_detail.return_value = {'seasonEndTime': 60000, 'difficultyList': []}
-    client.challenge_details.return_value = {'challengeInfo': {'1': [{'difficulty': 6}]}}
-    client.slash_detail.return_value = {'isUnlock': False}
-    client.period_list.return_value = {'months': [{'index': 9}]}
-    client.resource_report.return_value = {'totalStar': 0, 'totalCoin': 12}
+    adapter = make_adapter()
+    mock_refresh()
+    respx.post(ROLEBOX + '/towerDataDetail').mock(return_value=wire(
+        {'seasonEndTime': 60000, 'difficultyList': []}))
+    challenge = respx.post(ROLEBOX + '/challengeDetails').mock(return_value=wire(
+        {'challengeInfo': {'1': [{'difficulty': 6}]}}))
+    respx.post(ROLEBOX + '/slashDetail').mock(return_value=wire({'isUnlock': False}))
+    periods = respx.get(RESOURCE + '/period/list').mock(return_value=wire({'months': [{'index': 9}]}))
+    month = respx.post(RESOURCE + '/month').mock(return_value=wire({'totalStar': 0, 'totalCoin': 12}))
     combat = await adapter.fetch_combat()
     resources = await adapter.fetch_resources()
     assert combat.ok and resources.ok
@@ -120,13 +144,11 @@ async def test_restart_restores_combat_and_resource_source_data(monkeypatch, tmp
     store.save(adapter.game_id, 'resources', resources.payload.model_dump_json())
     assert isinstance(store.get(adapter.game_id, 'combat')['payload'], str)
 
-    restarted, source = adapter_with_client(monkeypatch)
+    restarted = make_adapter()
     restarted._auth = SimpleNamespace(snapshots=store)
-    source.tower_detail.return_value = client.tower_detail.return_value
-    source.slash_detail.return_value = client.slash_detail.return_value
-    source.challenge_details.side_effect = RoleBoxError('offline')
-    source.period_list.return_value = {'months': [{'index': 10}]}
-    source.resource_report.side_effect = RoleBoxError('offline')
+    challenge.mock(return_value=wire_error())
+    periods.mock(return_value=wire({'months': [{'index': 10}]}))
+    month.mock(return_value=wire_error())
     restored_combat = await restarted.fetch_combat()
     restored_resources = await restarted.fetch_resources()
     assert restored_combat.ok and restored_resources.ok
@@ -145,12 +167,12 @@ async def test_restart_restores_combat_and_resource_source_data(monkeypatch, tmp
     '{"role_id":"account","server_id":"foreign"}',
     '{"role_id":"account"}',
 ])
-def test_persisted_restore_rejects_malformed_or_foreign_identity(monkeypatch, tmp_path, persisted):
+def test_persisted_restore_rejects_malformed_or_foreign_identity(tmp_path, persisted):
     import sqlite3
     from types import SimpleNamespace
     from game_assistant.snapshots import SnapshotStore
     store = SnapshotStore(str(tmp_path / 'snapshots.db'))
-    adapter, _ = adapter_with_client(monkeypatch)
+    adapter = make_adapter()
     adapter._auth = SimpleNamespace(snapshots=store)
     for capability in ('combat', 'resources'):
         store.save(adapter.game_id, capability, '{}')
@@ -162,63 +184,76 @@ def test_persisted_restore_rejects_malformed_or_foreign_identity(monkeypatch, tm
         assert adapter._previous_payload(capability, 'account', 'server') == {}
 
 
+@respx.mock
 @pytest.mark.asyncio
-async def test_empty_activity_and_resource_responses_are_not_success(monkeypatch):
-    adapter, client = adapter_with_client(monkeypatch)
-    client.more_activity.return_value = {}
+async def test_empty_activity_and_resource_responses_are_not_success():
+    adapter = make_adapter()
+    respx.post(ROLEBOX + '/moreActivity').mock(return_value=wire({}))
     assert not (await adapter.fetch_activities()).ok
-    client.period_list.return_value = {}
+    periods = respx.get(RESOURCE + '/period/list').mock(return_value=wire({}))
     assert not (await adapter.fetch_resources()).ok
-    client.period_list.return_value = {'months': [{'index': 1}]}
-    client.resource_report.return_value = {}
+    periods.mock(return_value=wire({'months': [{'index': 1}]}))
+    respx.post(RESOURCE + '/month').mock(return_value=wire({}))
     assert not (await adapter.fetch_resource_detail('month', '1')).ok
 
 
+@respx.mock
 @pytest.mark.asyncio
-async def test_invalid_base_collections_do_not_publish_empty_profile(monkeypatch):
-    adapter, client = adapter_with_client(monkeypatch)
-    adapter._client.role_list = AsyncMock(return_value={'data': [{'roleId': 'account', 'roleName': '漂泊者'}]})
-    client.base_data.return_value = {'boxList': 'broken'}
+async def test_invalid_base_collections_do_not_publish_empty_profile():
+    adapter = make_adapter()
+    respx.post(ROLE_LIST).mock(return_value=httpx.Response(200, json={'code': 200,
+        'data': [{'roleId': 'account', 'roleName': '漂泊者'}]}))
+    mock_refresh()
+    respx.post(ROLEBOX + '/baseData').mock(return_value=wire({'boxList': 'broken'}))
     assert not (await adapter.fetch_account()).ok
 
 
+@respx.mock
 @pytest.mark.asyncio
-async def test_owned_character_and_role_enhancement(monkeypatch):
-    adapter, client = adapter_with_client(monkeypatch)
-    client.role_data.return_value = {'roleList': [{'roleId': 1501, 'level': 0,
-        'roleSkin': {'skinId': 0}, 'weaponData': {'weaponName': '真实武器'}}]}
-    client.role_detail.return_value = {'roleAttributeList': [], 'skillList': [], 'weaponData': {'level': 0}}
+async def test_owned_character_and_role_enhancement():
+    adapter = make_adapter()
+    respx.post(ROLEBOX + '/roleData').mock(return_value=wire({'roleList': [{'roleId': 1501,
+        'level': 0, 'roleSkin': {'skinId': 0}, 'weaponData': {'weaponName': '真实武器'}}]}))
+    detail = respx.post(ROLEBOX + '/getRoleDetail').mock(return_value=wire(
+        {'roleAttributeList': [], 'skillList': [], 'weaponData': {'level': 0}}))
     result = await adapter.fetch_roles()
     assert result.payload[0].extra['role_skin'] == {'skin_id': 0}
     invalid = await adapter.fetch_role_detail('1502')
     assert not invalid.ok and invalid.error_kind == 'not_found'
-    client.role_detail.assert_not_called()
+    assert not detail.called
     valid = await adapter.fetch_role_detail('1501')
     assert valid.payload['character_id'] == '1501'
     assert valid.payload['data']['weapon_data']['level'] == 0
 
 
+@respx.mock
 @pytest.mark.asyncio
-async def test_resource_period_is_allowlisted_before_network(monkeypatch):
-    adapter, client = adapter_with_client(monkeypatch)
-    client.period_list.return_value = {'months': [{'index': 9, 'title': '九月'}]}
+async def test_resource_period_is_allowlisted_before_network():
+    adapter = make_adapter()
+    respx.get(RESOURCE + '/period/list').mock(return_value=wire(
+        {'months': [{'index': 9, 'title': '九月'}]}))
+    month = respx.post(RESOURCE + '/month').mock(return_value=wire(
+        {'totalStar': 0, 'totalCoin': None}))
     invalid = await adapter.fetch_resource_detail('month', '8')
     assert not invalid.ok and invalid.error_kind == 'not_found'
-    client.resource_report.assert_not_called()
-    client.resource_report.return_value = {'totalStar': 0, 'totalCoin': None}
+    assert not month.called
     result = await adapter.fetch_resources()
     assert result.payload.current['data'] == {'total_star': 0, 'total_coin': None}
-    client.resource_report.side_effect = RoleBoxError('offline')
+    month.mock(return_value=wire_error())
     failed = await adapter.fetch_resources()
     assert failed.payload.current['data']['total_star'] == 0
     assert failed.payload.current['state'] == 'stale'
 
 
+@respx.mock
 @pytest.mark.asyncio
-async def test_account_adds_base_collections_without_dropping_summary(monkeypatch):
-    adapter, client = adapter_with_client(monkeypatch)
-    adapter._client.role_list = AsyncMock(return_value={'data': [{'roleId': 'account', 'roleName': '漂泊者'}]})
-    client.base_data.return_value = {'boxList': [{'num': 0}], 'worldLevel': 8}
+async def test_account_adds_base_collections_without_dropping_summary():
+    adapter = make_adapter()
+    respx.post(ROLE_LIST).mock(return_value=httpx.Response(200, json={'code': 200,
+        'data': [{'roleId': 'account', 'roleName': '漂泊者'}]}))
+    mock_refresh()
+    respx.post(ROLEBOX + '/baseData').mock(return_value=wire(
+        {'boxList': [{'num': 0}], 'worldLevel': 8}))
     result = await adapter.fetch_account()
     assert result.payload.nickname == '漂泊者'
     assert result.payload.extra['profile']['box_list'] == [{'num': 0}]

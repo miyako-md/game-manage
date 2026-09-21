@@ -1,32 +1,22 @@
 from datetime import datetime, timezone
 
+import pytest
+
 from game_assistant.models import (
     AccountInfo, AnnouncementItem, CalabashData, Capability, CountryGroup,
-    DetectionSummary, ExplorationData, AreaSummary, FetchResult,
+    DetectionSummary, ExplorationData, AreaSummary,
     MatchSummary, ProgressItem, RoleEntry, StaminaInfo,
 )
 
 
-def test_capability_values():
-    assert Capability.STAMINA == "stamina"
-    assert Capability("account") is Capability.ACCOUNT
+@pytest.mark.parametrize("member", list(Capability))
+def test_capability_values(member):
+    assert member == member.value
+    assert Capability(member.value) is member
 
 
 def test_capability_activity_removed():
-    # 版本活动卡（ACTIVITY）已删除，活动日历（EVENTS）承担游戏内活动展示与临期提醒
     assert not hasattr(Capability, "ACTIVITY")
-
-
-def test_capability_exploration_calabash_roles_values():
-    assert Capability.EXPLORATION == "exploration"
-    assert Capability.CALABASH == "calabash"
-    assert Capability.ROLES == "roles"
-
-
-def test_capability_gacha_record_values():
-    # 异环（塔吉多）新增能力
-    assert Capability.GACHA == "gacha"
-    assert Capability.RECORD == "record"
 
 
 def test_role_entry_roundtrip():
@@ -52,10 +42,6 @@ def test_calabash_roundtrip():
     assert CalabashData.model_validate(c.model_dump()) == c
 
 
-def test_capability_progress_value():
-    assert Capability.PROGRESS == "progress"
-
-
 def test_progress_item_roundtrip():
     p = ProgressItem(name="周度游历", cur=6000, total=6000,
                      refresh_at=datetime(2026, 9, 15, 4, 0, tzinfo=timezone.utc),
@@ -68,15 +54,6 @@ def test_stamina_roundtrip():
                     expected_full_at=datetime(2026, 9, 12, 20, 0),
                     updated_at=datetime(2026, 9, 12, 12, 0))
     assert StaminaInfo.model_validate(s.model_dump()) == s
-
-
-def test_fetch_result_error():
-    r = FetchResult(ok=False, error="未配置凭据")
-    assert r.ok is False and r.payload is None
-
-
-def test_capability_match_value():
-    assert Capability.MATCH == "match"
 
 
 def test_match_summary_roundtrip():

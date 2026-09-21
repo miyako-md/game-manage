@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { displayBeijing } from '../time.js'
+import { safeUrl } from '../calendar.js'
 import { filterRoles, comparisonGroups, favoritesKey, loadFavorites, saveFavorites, roleId, displayRoleValue as display } from '../nte-roles.js'
 
 const props = defineProps({ snap: { type: Object, default: null }, accountId: { type: String, default: '' } })
@@ -33,10 +34,6 @@ function toggleCompare(role) {
   const key = keyOf(role)
   if (selected.value.includes(key)) selected.value = selected.value.filter(value => value !== key)
   else if (selected.value.length < 4) selected.value = [...selected.value, key]
-}
-function safeUrl(value) {
-  if (typeof value !== 'string' || !/^https?:\/\//i.test(value)) return null
-  try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password ? url.href : null } catch { return null }
 }
 function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if (url) failedImages.add(url) }
 </script>

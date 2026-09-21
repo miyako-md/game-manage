@@ -1,9 +1,8 @@
-import logging
-
 from game_assistant.adapters.base import BaseGameAdapter
+from game_assistant.adapters.league_of_legends.adapter import LeagueOfLegendsAdapter
+from game_assistant.adapters.neverness.adapter import NteAdapter
+from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
 from game_assistant.config import Settings
-
-logger = logging.getLogger(__name__)
 
 
 class GameRegistry:
@@ -27,27 +26,9 @@ class GameRegistry:
 def build_default_registry(settings: Settings) -> GameRegistry:
     registry = GameRegistry()
     if settings.wuwa_enabled:
-        try:
-            from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
-        except ImportError:
-            logger.warning(
-                "鸣潮适配器导入失败，跳过注册（检查依赖完整性）", exc_info=True)
-        else:
-            registry.register(WutheringWavesAdapter(settings))
+        registry.register(WutheringWavesAdapter(settings))
     if settings.lol_enabled:
-        try:
-            from game_assistant.adapters.league_of_legends.adapter import LeagueOfLegendsAdapter
-        except ImportError:
-            logger.warning(
-                "英雄联盟适配器导入失败，跳过注册（排查适配器模块导入错误）", exc_info=True)
-        else:
-            registry.register(LeagueOfLegendsAdapter(settings))
+        registry.register(LeagueOfLegendsAdapter(settings))
     if settings.nte_enabled:
-        try:
-            from game_assistant.adapters.neverness.adapter import NteAdapter
-        except ImportError:
-            logger.warning(
-                "异环适配器导入失败，跳过注册（检查依赖完整性）", exc_info=True)
-        else:
-            registry.register(NteAdapter(settings))
+        registry.register(NteAdapter(settings))
     return registry

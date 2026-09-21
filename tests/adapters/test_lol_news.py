@@ -3,19 +3,19 @@
 fixture 为 Task 7 Step 5 在线校准真实样本（2026-09-13 实测
 apps.game.qq.com/cmc/zmMcnTargetContentList?target=24，即"公告"tab），见 endpoints.py 注释。
 """
-import ssl
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import httpx
 import pytest
 import respx
 
 from game_assistant.adapters.league_of_legends.endpoints import (
-    NEWS_CATEGORY_IDS, NEWS_LIST_URL, NEWS_PAGE,
+    NEWS_CATEGORY_IDS, NEWS_LIST_URL,
 )
 from game_assistant.adapters.league_of_legends.lol_news import (
     LoLNewsClient, LoLNewsError, parse_news_json,
 )
+from game_assistant.event_calendar import BEIJING_TZ
 
 # 校准真实样本（截取自 target=24 公告分类，字段原样保留）
 RAW = {"status": 1, "msg": "OK", "data": {
@@ -37,23 +37,12 @@ RAW = {"status": 1, "msg": "OK", "data": {
 # respx 路由按无 query 的基础 URL 匹配（NEWS_LIST_URL 带 {page} 占位模板）
 NEWS_LIST_BASE = "https://apps.game.qq.com/cmc/zmMcnTargetContentList"
 
-BEIJING_TZ = timezone(timedelta(hours=8))
-
-
-def test_parse_news_json_naive_dates_become_beijing_aware():
-    # sIdxTime 为北京时间（UTC+8）：解析出的 naive datetime 须补 tzinfo → aware
-    # （与 reminder.py 对 naive end_at 的归一化口径一致）
-    items = parse_news_json(RAW, "公告")
-    for it in items:
-        assert it.published_at is not None
-        assert it.published_at.tzinfo is not None
-        assert it.published_at.utcoffset() == timedelta(hours=8)
-    assert items[0].published_at == datetime(2026, 9, 9, 19, 40, 48,
-                                             tzinfo=BEIJING_TZ)
-
 
 def test_parse_news_json_calibrated():
     items = parse_news_json(RAW, "公告")
+    for it in items:
+        assert it.published_at is not None
+        assert it.published_at.utcoffset() == timedelta(hours=8)
     assert len(items) == 3
     assert items[0].title == "26.18版本更新公告"
     assert items[0].published_at == datetime(2026, 9, 9, 19, 40, 48, tzinfo=BEIJING_TZ)
@@ -180,16 +169,6 @@ async def test_fetch_json_network_error_raises_lol_news_error():
 
 
 @respx.mock
-async def test_fetch_page_gbk_decode():
-    respx.get(NEWS_PAGE).mock(return_value=httpx.Response(
-        200, content="英雄联盟官方公告".encode("gbk"),
-        headers={"content-type": "text/html; charset=gbk"}))
-    async with LoLNewsClient() as client:
-        html = await client.fetch_page(NEWS_PAGE)
-    assert "英雄联盟官方公告" in html
-
-
-@respx.mock
 async def test_fetch_news_builds_category_url():
     route = respx.get(NEWS_LIST_BASE).mock(
         return_value=httpx.Response(200, json=RAW))
@@ -213,8 +192,17 @@ async def test_fetch_news_unknown_category_raises():
             await client.fetch_news("不存在的分类")
 
 
-def test_ssl_verification_enabled():
-    # 公网请求必须走正常 SSL 校验，与 LcuClient 的 verify=False 完全隔离
-    client = LoLNewsClient()  # 未发请求，无连接需释放
-    ctx = client._client._transport._pool._ssl_context
-    assert ctx.verify_mode == ssl.CERT_REQUIRED
+def test_ssl_verification_enabled(monkeypatch):
+    # 公网请求必须保持 httpx 默认证书校验（不得向构造器传关闭校验的参数），
+    # 与 LcuClient 的内网自签配置完全隔离；断言公开构造参数而非 httpx 私有结构
+    captured = {}
+    real_client = httpx.AsyncClient
+
+    class AsyncClientSpy(real_client):
+        def __init__(self, *args, **kwargs):
+            captured.update(kwargs)
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(httpx, "AsyncClient", AsyncClientSpy)
+    LoLNewsClient()  # 未发请求，无连接需释放
+    assert captured.get("verify", True) is not False

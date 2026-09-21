@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 from game_assistant.adapters.league_of_legends.endpoints import (
-    NEWS_CATEGORY_IDS, NEWS_LIST_URL, NEWS_PAGE,
+    NEWS_CATEGORY_IDS, NEWS_LIST_URL,
 )
 from game_assistant.models import AnnouncementItem
 
@@ -62,16 +62,6 @@ class LoLNewsClient:
         if not isinstance(data, dict):
             raise LoLNewsError("响应结构异常")
         return data
-
-    async def fetch_page(self, url: str) -> str:
-        """官网页面为 GBK 编码，按字节解码避免 charset 误判乱码。"""
-        try:
-            resp = await self._client.get(url)
-        except httpx.HTTPError as e:
-            raise LoLNewsError(f"网络错误: {type(e).__name__}") from e
-        if resp.status_code != 200:
-            raise LoLNewsError(f"HTTP {resp.status_code}")
-        return resp.content.decode("gbk", errors="replace")
 
     async def fetch_news(self, category: str = "公告", page: int = 1,
                          num: int = 16) -> dict:

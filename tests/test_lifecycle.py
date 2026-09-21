@@ -4,6 +4,7 @@ from game_assistant.api import create_app
 from game_assistant.config import Settings
 from game_assistant.scheduler import PollingScheduler
 from game_assistant.snapshots import SnapshotStore
+from tests.test_reminder import FakeNotify
 
 
 def test_refresh_endpoint(tmp_path):
@@ -16,9 +17,6 @@ def test_refresh_endpoint(tmp_path):
     assert resp.status_code == 200
     results = resp.json()["results"]
     assert results["stamina"]["ok"] is True
-    # 简报原断言为 payload is not None，但 DummyAdapter.fetch_stamina 返回
-    # payload=None，poll_once 存入 "null"，接口解码后 payload 恒为 None；
-    # 故以 fetched_at 验证"快照已存在"这一本意。
     assert client.get("/api/games/dummy/snapshot/stamina").json()["fetched_at"] is not None
 
 
@@ -35,10 +33,3 @@ def build_dummy_registry():
     reg = GameRegistry()
     reg.register(DummyAdapter())
     return reg
-
-
-class FakeNotify:
-    name = "fake"
-
-    async def send(self, title, body):
-        return True

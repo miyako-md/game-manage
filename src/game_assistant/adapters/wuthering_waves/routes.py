@@ -19,10 +19,9 @@ def install_wuwa_routes(app):
             raise HTTPException(401, '请先登录鸣潮账号')
         auth = app.state.auth
         generation = auth.account_generation(game)
-        settings = getattr(adapter, '_settings', None)
+        settings = adapter._settings
         def identity():
-            return tuple(getattr(settings, field, None) for field in
-                         ('wuwa_user_id', 'wuwa_role_id', 'wuwa_server_id'))
+            return (settings.wuwa_user_id, settings.wuwa_role_id, settings.wuwa_server_id)
         original_identity = identity()
         result = await auth.fetch(game, capability, lambda: getattr(adapter, method)(*args))
         if (generation != auth.account_generation(game) or original_identity != identity()

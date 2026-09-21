@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  detail: { type: Object, default: null }, // MatchDetail payload
+  detail: { type: Object, default: null },
   loading: { type: Boolean, default: false },
   error: { type: String, default: '' },
 })

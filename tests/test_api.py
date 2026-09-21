@@ -66,17 +66,12 @@ def test_status_notify_disabled(tmp_path):
 
 
 def test_status_notify_enabled_with_configured_settings(tmp_path):
-    # main.py 走默认路径（不注入 notifier）时，create_app 应自行解析出真实
-    # notifier 并同时挂到 state 与 scheduler，/api/status 不得恒报"未配置"。
     settings = Settings(notify_send_key="SK", db_path=str(tmp_path / "s.db"))
     client = TestClient(create_app(registry=FakeRegistry(DummyAdapter()),
                                    settings=settings, start_scheduler=False), base_url="http://127.0.0.1:8010")
     notify = client.get("/api/status").json()["notify"]
     assert notify["enabled"] is True
     assert notify["provider"] == "serverchan"
-
-
-# ---- 对局详情按需路由（2026-09-13 新增）----
 
 
 class DetailAdapter(DummyAdapter):

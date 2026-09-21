@@ -19,6 +19,7 @@ roleData data 实测形状：
 """
 import json as _json
 from .detail_parse import normalize
+from .role import _int_or_none
 from collections import Counter
 
 from game_assistant.models import (
@@ -45,13 +46,6 @@ def _data(raw) -> dict:
                 return {}
         return inner if isinstance(inner, dict) else {}
     return raw
-
-
-def _int_or_none(v):
-    try:
-        return int(v)
-    except (TypeError, ValueError):
-        return None
 
 
 def _float_or_none(v):

@@ -1,6 +1,8 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { displayBeijing } from '../time.js'
+import { safeUrl } from '../calendar.js'
+import { finiteValue } from '../dashboard.js'
 
 const props = defineProps({ snap: { type: Object, default: null }, roles: { type: Array, default: () => [] } })
 const legacy = computed(() => props.snap?.payload && props.snap.payload.schema_version !== 1)
@@ -9,7 +11,7 @@ const selected = ref(0), failedImages = reactive(new Set())
 watch(pools, value => { if (!value[selected.value]) selected.value = 0 })
 const current = computed(() => pools.value[selected.value])
 const entries = computed(() => Array.isArray(current.value?.details) ? current.value.details : [])
-const known = value => typeof value === 'number' && Number.isFinite(value) && value >= 0
+const known = value => finiteValue(value) !== null && value >= 0
 const show = value => known(value) ? value : '未知'
 const average = value => known(value) ? Number(value.toFixed(1)) : '未知'
 const scale = computed(() => known(current.value?.guarantee) && current.value.guarantee > 0 ? current.value.guarantee : null)
@@ -22,8 +24,8 @@ function icon(entry) {
   const cdn = 'https://webstatic.tajiduo.com/bbs/yh-game-records-web-source/character'
   const official = /^fork_[a-zA-Z0-9_-]+$/.test(id) ? `${cdn}/fork/${id}.png` : /^\d+$/.test(id) ? `${cdn}/tall/${id}.PNG` : null
   for (const raw of [roleIcons.value.get(id), official]) {
-    if (typeof raw !== 'string' || !/^https?:\/\//i.test(raw) || failedImages.has(raw)) continue
-    try { const url = new URL(raw); if (!url.username && !url.password) return raw } catch { /* Try the official asset or text fallback. */ }
+    const url = safeUrl(raw)
+    if (url && !failedImages.has(raw) && !failedImages.has(url)) return url
   }
   return null
 }

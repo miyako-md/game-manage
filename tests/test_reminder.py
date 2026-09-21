@@ -1,6 +1,8 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.config import Settings
+from game_assistant.event_calendar import BEIJING_TZ
 from game_assistant.models import Capability, FetchResult, GameEvent, StaminaInfo
 from game_assistant.reminder import ReminderEngine
 from game_assistant.reminder_store import ReminderDedup
@@ -8,6 +10,8 @@ from game_assistant.reminder_store import ReminderDedup
 
 class FakeNotify:
     name = "fake"
+    send_key = ""
+    provider = None
 
     def __init__(self):
         self.sent = []
@@ -33,7 +37,7 @@ async def test_stamina_full_notifies_once_per_day(tmp_path):
     r = FetchResult(ok=True, payload=StaminaInfo(
         current=240, maximum=240, updated_at=datetime.now(timezone.utc)))
     await eng.handle_poll("wuwa", "鸣潮", Capability.STAMINA, r)
-    await eng.handle_poll("wuwa", "鸣潮", Capability.STAMINA, r)  # 同日第二次
+    await eng.handle_poll("wuwa", "鸣潮", Capability.STAMINA, r)
     assert len(eng.notifier.sent) == 1
     assert "体力已满" in eng.notifier.sent[0][0]
 
@@ -56,7 +60,7 @@ async def test_fail_threshold_triggers_once(tmp_path):
     assert len(eng.notifier.sent) == 1
     assert "连续失败" in eng.notifier.sent[0][0]
     # 达到阈值后每次失败都会尝试推送，但 dedup key 含日期 → 同日只发一条
-    today = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+    today = datetime.now(BEIJING_TZ).strftime("%Y-%m-%d")
     assert eng.dedup.already_sent(f"fetch_fail:lol:account:{today}") is True
 
 
@@ -71,17 +75,18 @@ async def test_success_resets_fail_counter(tmp_path):
     assert eng.notifier.sent == []
 
 
-async def test_event_naive_end_at_treated_as_beijing_time(tmp_path):
+async def test_event_naive_end_at_is_skipped_with_warning(tmp_path, caplog):
     eng, s = _engine(tmp_path)
-    # 解析层产出 aware UTC+8，naive 理论上不出现；防御归一化后不抛 TypeError。
-    # naive_end 被当作北京时间，绝对时间比 UTC now 多 2 天 4 小时 → 向上取整为 3 天。
+    # 解析层契约是 aware UTC+8；naive 视为契约破坏：记警告并跳过，不贴北京时区。
     naive_end = (datetime.now(timezone.utc)
                  + timedelta(days=2, hours=12)).replace(tzinfo=None)
     r = FetchResult(ok=True, payload=[GameEvent(
         name="naive 活动计时", end_at=naive_end)])
-    await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, r)
-    assert len(eng.notifier.sent) == 1
-    assert "naive 活动计时" in eng.notifier.sent[0][1] and "还剩 3 天" in eng.notifier.sent[0][1]
+    with caplog.at_level(logging.WARNING, logger="game_assistant.reminder"):
+        await eng.handle_poll("wuwa", "鸣潮", Capability.EVENTS, r)
+    assert eng.notifier.sent == []
+    assert any("naive 活动计时" in record.getMessage()
+               for record in caplog.records)
 
 
 async def test_event_expiry_within_days_notifies_once(tmp_path):

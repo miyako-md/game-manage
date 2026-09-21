@@ -1,9 +1,11 @@
 import asyncio
+import json
 import logging
 from typing import Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from pydantic import BaseModel
 
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
@@ -44,12 +46,10 @@ def interval_for(capability: Capability, settings: Settings) -> int:
 
 def _serialize(payload: Any) -> str:
     if isinstance(payload, list):
-        import json
-        return json.dumps([p.model_dump(mode="json") if hasattr(p, "model_dump")
+        return json.dumps([p.model_dump(mode="json") if isinstance(p, BaseModel)
                            else p for p in payload], ensure_ascii=False)
-    if hasattr(payload, "model_dump_json"):
+    if isinstance(payload, BaseModel):
         return payload.model_dump_json()
-    import json
     return json.dumps(payload, ensure_ascii=False)
 
 
@@ -86,6 +86,7 @@ class PollingScheduler:
         try:
             result = await adapter.fetch(capability)
         except Exception:
+            logger.warning("拉取失败 %s/%s", game_id, capability.value, exc_info=True)
             result = FetchResult(ok=False, error='数据源请求失败，请稍后重试', error_kind='source_error')
         if original_generation != generation(game_id):
             return FetchResult(ok=False, error='账号已切换，请重新刷新', error_kind='account_changed')

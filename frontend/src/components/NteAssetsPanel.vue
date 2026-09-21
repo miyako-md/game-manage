@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { displayBeijing } from '../time.js'
+import { safeUrl } from '../calendar.js'
 
 const props = defineProps({
   capability: { type: String, required: true },
@@ -34,13 +35,6 @@ const filtered = computed(() => {
   })
 })
 
-function safeUrl(value) {
-  if (typeof value !== 'string' || !/^https?:\/\//i.test(value) || /[\s\\\u0000-\u001f]/.test(value)) return null
-  try {
-    const url = new URL(value)
-    return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : null
-  } catch { return null }
-}
 function imageUrl(value) {
   const url = safeUrl(value)
   return url && !failedImages.has(url) ? url : null

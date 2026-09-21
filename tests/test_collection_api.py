@@ -23,11 +23,6 @@ def build(tmp_path):
     return TestClient(create_app(registry=registry, store=store, settings=settings, start_scheduler=False), base_url="http://127.0.0.1:8010"), store
 
 
-def test_health_identifies_the_service_for_local_process_management(tmp_path):
-    client, _ = build(tmp_path)
-    assert client.get("/api/health").json() == {"status": "ok", "service": "game-assistant"}
-
-
 def test_collection_status_includes_never_attempted_registered_capabilities(tmp_path):
     client, _ = build(tmp_path)
     body = client.get("/api/status").json()

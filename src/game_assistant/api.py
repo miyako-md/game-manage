@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException
 
+from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.config import Settings
 from game_assistant.models import Capability
 from game_assistant.notify.base import build_notifier
@@ -149,8 +150,8 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
     @app.get("/api/status")
     async def status() -> dict:
         notifier = app.state.notifier
-        enabled = bool(notifier and getattr(notifier, "send_key", "") )
-        provider = getattr(notifier, "provider", None)
+        enabled = bool(notifier and notifier.send_key)
+        provider = None if notifier is None else notifier.provider
         return {"notify": {"enabled": enabled, "provider": provider},
                 "collection": [poll_status(adapter.game_id, cap.value)
                                for adapter in app.state.registry.all()
@@ -178,13 +179,12 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
 
     @app.get("/api/games/{game_id}/match/{match_id}/detail")
     async def match_detail(game_id: str, match_id: str) -> dict:
-        # 对局详情按需实时拉取（不写快照）；仅支持实现了 fetch_match_detail
-        # 的适配器（LoL），其余 404
+        # 对局详情按需实时拉取（不写快照）；仅 LoL 覆盖基类默认实现
         try:
             adapter = app.state.registry.get(game_id)
         except KeyError:
             raise HTTPException(status_code=404, detail="未注册的游戏")
-        if not hasattr(adapter, "fetch_match_detail"):
+        if type(adapter).fetch_match_detail is BaseGameAdapter.fetch_match_detail:
             raise HTTPException(status_code=404, detail="该游戏不支持对局详情")
         result = await adapter.fetch_match_detail(match_id)
         if result.ok:

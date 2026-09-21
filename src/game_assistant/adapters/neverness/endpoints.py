@@ -50,7 +50,6 @@ OFFICIAL_POST_LIST = f"{BASE}/bbs/wapi/getOfficialPostList"
 GET_POST_FULL = f"{BASE}/bbs/wapi/getPostFull"
 
 # ④⑦ usercenter / apihub（鉴权客户端）
-REFRESH_TOKEN = f"{BASE}/usercenter/api/refreshToken"
 GET_USER_FULL_INFO = f"{BASE}/usercenter/api/getUserFullInfo"
 GET_GAME_ROLES = f"{BASE}/usercenter/api/v2/getGameRoles"
 GET_GAME_RECORD_CARD = f"{BASE}/apihub/api/getGameRecordCard"

@@ -5,12 +5,11 @@ House, Vehicle and TeamRecommendation). Unknown ownership is not false.
 """
 import json
 from typing import Any
-from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field
 
 from .data_models import NtePayload
-from .parse import _ERROR, _count, _id, _object, _rows, _text, _unwrap
+from .parse import _ERROR, _count, _http_url, _id, _object, _rows, _text, _unwrap
 
 
 class NteFurniture(BaseModel):
@@ -99,19 +98,7 @@ def _residents(value: Any) -> list[str]:
 
 
 def _safe_url(value: Any) -> str | None:
-    value = _text(value)
-    if not value or any(char.isspace() or ord(char) < 32 for char in value) or "\\" in value:
-        return None
-    try:
-        url = urlsplit(value)
-        if (url.scheme in ("http", "https") and url.hostname
-                and not url.username and not url.password):
-            # Accessing port validates malformed and out-of-range ports.
-            _ = url.port
-            return value
-    except ValueError:
-        pass
-    return None
+    return _http_url(_text(value))
 
 
 def parse_realestate(raw: Any) -> NteRealestate:

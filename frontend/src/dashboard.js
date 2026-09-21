@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
-import { parseBeijingTime } from './calendar.js'
+import { parseBeijingTime, safeUrl } from './calendar.js'
+export { safeUrl }
 
 const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams'])
 export const GAME_STYLE = {
@@ -9,20 +10,13 @@ export const GAME_STYLE = {
 }
 export const gameStyle = (id) => GAME_STYLE[id] || { mark: '游', color: '#d8bb84', english: 'MY GAME', resource: '体力' }
 export const finiteValue = (value) => typeof value === 'number' && Number.isFinite(value) ? value : null
-export function timestamp(value) {
-  return parseBeijingTime(value)
-}
 export function formatTime(value, options = {}) {
-  const ts = typeof value === 'number' ? value : timestamp(value)
+  const ts = typeof value === 'number' ? value : parseBeijingTime(value)
   if (ts == null || !Number.isFinite(ts)) return '未提供'
   return new Intl.DateTimeFormat('zh-CN', {
     timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...options,
   }).format(new Date(ts))
 }
-export function safeUrl(value) {
-  try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) ? url.href : null } catch { return null }
-}
-
 export function summaryFor(game, snapshots = {}) {
   const validPayload = (cap) => {
     const p = snapshots[cap]?.payload
@@ -51,7 +45,7 @@ export function upcomingEvents(games, snapshots, now = Date.now()) {
     if (!Array.isArray(snap?.payload)) return []
     return snap.payload.flatMap((ev, index) => {
       if (!ev || typeof ev !== 'object') return []
-      const end = timestamp(ev.end_at), start = timestamp(ev.start_at)
+      const end = parseBeijingTime(ev.end_at), start = parseBeijingTime(ev.start_at)
       if (end == null || end <= now || (ev.start_at && start == null) || (start != null && start > end)) return []
       return [{ ...ev, id: `${game.game_id}:${index}`, gameId: game.game_id, gameName: game.display_name,
         endTime: end, remainingDays: Math.ceil((end - now) / 86400000), upcoming: start != null && start > now, stale: !!snap.stale }]
@@ -67,7 +61,7 @@ export function recentNews(games, snapshots) {
     if (!Array.isArray(snap?.payload)) return []
     return snap.payload.filter(row => row && typeof row.title === 'string').map(row => ({ ...row,
       gameName: game.display_name, gameId: game.game_id, capability: cap, primary, stale: !!snap.stale || !!row.source_stale,
-      url: safeUrl(row.url), publishedTime: timestamp(row.published_at) || 0 }))
+      url: safeUrl(row.url), publishedTime: parseBeijingTime(row.published_at) || 0 }))
   })})
   const selected = new Map()
   for (const row of rows) {
@@ -104,9 +98,9 @@ export function createDashboard(api) {
     for (const row of rows) {
       if (!row?.game_id || !row?.capability) continue
       const key = `${row.game_id}:${row.capability}`, previous = merged.get(key)
-      const observed = timestamp(row.observed_at), previousObserved = timestamp(previous?.observed_at)
+      const observed = parseBeijingTime(row.observed_at), previousObserved = parseBeijingTime(previous?.observed_at)
       const latest = observed != null ? previousObserved == null || observed >= previousObserved
-        : previousObserved == null && (timestamp(row.last_attempt_at) || 0) >= (timestamp(previous?.last_attempt_at) || 0)
+        : previousObserved == null && (parseBeijingTime(row.last_attempt_at) || 0) >= (parseBeijingTime(previous?.last_attempt_at) || 0)
       if (!previous || latest) merged.set(key, row)
     }
     state.collection = [...merged.values()]

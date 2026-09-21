@@ -26,8 +26,6 @@ class Settings(BaseSettings):
     wuwa_token: str = ""
     wuwa_token_source: str = "h5"  # legacy web token; SDK login persists ios
     wuwa_user_id: str = ""
-    # 库街区 APP 端 token：预留字段，当前功能未消费（保留）
-    wuwa_app_token: str = ""
     # roleBox会话由页面短信登录自动取得；以下字段保留旧手填配置兼容。
     # 会话供体力、进度、角色、探索度和数据坞等能力使用。
     wuwa_b_at: str = ""

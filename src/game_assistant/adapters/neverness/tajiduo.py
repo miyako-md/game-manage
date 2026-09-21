@@ -9,25 +9,9 @@ data.posts，post 键 subject/createTime（毫秒）/postId（int）。
 解析函数对容器与键名仍做多级回退（data.list / data.posts / data /
 顶层 posts / list；subject/sTitle/title/postTitle 等），保留对上游改版的防御。
 """
-from datetime import datetime, timezone
-
 from game_assistant.adapters.neverness.endpoints import COMMUNITY_ID
+from game_assistant.event_calendar import parse_ms_or_iso as _dt
 from game_assistant.models import AnnouncementItem
-
-
-def _dt(*vals):
-    # 毫秒整数时间戳（int 或位数 >= 12 的纯数字字符串）优先，ISO 字符串其次
-    # （口径与 wuthering_waves/announcements._dt 一致，Phase 2 校准时复核）
-    for v in vals:
-        if v:
-            if isinstance(v, int) or (isinstance(v, str) and v.isdigit()
-                                      and len(v) >= 12):
-                return datetime.fromtimestamp(int(v) / 1000, tz=timezone.utc)
-            try:
-                return datetime.fromisoformat(str(v))
-            except ValueError:
-                continue
-    return None
 
 
 def _extract_rows(raw) -> list:
@@ -137,27 +121,4 @@ def resolve_official_column_id(raw) -> str | None:
         column_id = node.get("columnId") or node.get("id")
         if column_id:
             return str(column_id)
-    return None
-
-
-def find_first(node, keys: tuple[str, ...]):
-    """深度优先在响应树中找第一个带指定键且值非空的节点值（防御式提取器）。
-
-    用于凭据链路（Phase 2 校准）：getGameRoles 响应中找首个 roleId（keys=
-    ("roleId", "role_id")）、getUserFullInfo 中找 uid 等。
-    """
-    if isinstance(node, dict):
-        for k in keys:
-            v = node.get(k)
-            if v:
-                return v
-        for v in node.values():
-            found = find_first(v, keys)
-            if found is not None:
-                return found
-    elif isinstance(node, list):
-        for v in node:
-            found = find_first(v, keys)
-            if found is not None:
-                return found
     return None

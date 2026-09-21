@@ -28,9 +28,9 @@ def install_wuwa_archive_routes(app):
             adapter = app.state.registry.get(GAME)
         except KeyError:
             raise HTTPException(404, '鸣潮未启用') from None
-        settings = getattr(adapter, '_settings', None)
-        account = getattr(settings, 'wuwa_role_id', None)
-        server = getattr(settings, 'wuwa_server_id', None)
+        settings = adapter._settings
+        account = settings.wuwa_role_id
+        server = settings.wuwa_server_id
         if not adapter.credentials_configured or not account or not server:
             raise HTTPException(401, '请先登录有角色与区服信息的鸣潮账号')
         return str(account), str(server), app.state.auth.account_generation(GAME)

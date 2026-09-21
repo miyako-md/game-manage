@@ -99,3 +99,6 @@ class BaseGameAdapter(ABC):
 
     async def fetch_record(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_match_detail(self, match_id: str) -> FetchResult:
+        return FetchResult(ok=False, error="该游戏不支持对局详情")

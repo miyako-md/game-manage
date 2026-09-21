@@ -27,6 +27,7 @@ def make_client():
     from types import SimpleNamespace
     app = FastAPI()
     adapter = SimpleNamespace(credentials_configured=True,
+        _settings=SimpleNamespace(wuwa_user_id='u', wuwa_role_id='1501', wuwa_server_id='s'),
         fetch_role_detail=AsyncMock(return_value=FetchResult(ok=True, payload={'character_id': '1501'})),
         fetch_resource_detail=AsyncMock(return_value=FetchResult(ok=False, error='无此周期', error_kind='not_found')))
     app.state.registry = SimpleNamespace(get=lambda game: adapter)

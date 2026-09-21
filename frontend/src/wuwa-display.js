@@ -1,4 +1,5 @@
 import { displayBeijing } from './time.js'
+import { safeUrl } from './calendar.js'
 export const value = (v) =>
   v === null || v === undefined || v === ''
     ? '未知'
@@ -19,18 +20,7 @@ export function stamp(v) {
   const formatted = displayBeijing(v)
   return formatted === '未提供' ? '未知' : formatted
 }
-export function safeImage(url) {
-  try {
-    const u = new URL(url)
-    return ['https:', 'http:'].includes(u.protocol) &&
-      !u.username &&
-      !u.password
-      ? u.href
-      : null
-  } catch {
-    return null
-  }
-}
+export { safeUrl as safeImage }
 export const fieldLabels = {
   weapon_type_name: '武器类型',
   is_main_role: '当前主角',

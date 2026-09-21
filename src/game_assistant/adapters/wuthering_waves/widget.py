@@ -9,6 +9,7 @@ import json as _json
 from datetime import datetime, timedelta, timezone
 
 from game_assistant.models import ProgressItem
+from .detail_parse import season_remaining_ms
 
 # 周期进度固定 key（energyData 除外：体力单独走 stamina 能力，不重复展示）
 PROGRESS_KEYS = ["towerData", "slashTowerData", "weeklyData", "weeklyRougeData",
@@ -85,9 +86,7 @@ def parse_periodic_tower(data: dict, now: datetime) -> ProgressItem:
     A negative duration was observed with last season's full-star record before
     refreshData. Never relabel that stale record as current-season progress.
     """
-    remaining = data.get('seasonEndTime')
-    if isinstance(remaining, bool) or not isinstance(remaining, (int, float)) or not 0 < remaining <= 366 * 86400000:
-        raise ValueError('深境区周期数据已过期或缺失')
+    remaining = season_remaining_ms(data.get('seasonEndTime'))
     zone = next((z for z in data.get('difficultyList', []) if str(z.get('difficulty')) == '3'), None)
     if zone is None or not zone.get('towerAreaList'):
         raise ValueError('未返回深境区本期进度')

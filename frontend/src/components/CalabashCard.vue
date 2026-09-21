@@ -1,19 +1,13 @@
 <script setup>
-import { displayBeijing } from '../time.js'
+import { fetchedLabel } from '../time.js'
 import { computed } from 'vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
 })
 
-function toLocal(value) {
-  if (!value) return null
-  return displayBeijing(value)
-}
-
 const payload = computed(() => props.snap?.payload ?? null)
 
-// 简表行：null 显示 "—"；base_catch 自带 "%"，原样展示
 const rows = computed(() => {
   const p = payload.value
   return [
@@ -25,7 +19,7 @@ const rows = computed(() => {
   ]
 })
 
-const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
+const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 </script>
 
 <template>

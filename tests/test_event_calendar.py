@@ -223,9 +223,6 @@ async def test_find_version_post_tolerates_missing_time():
     assert got2 is not None and got2["postId"] == "8"
 
 
-# ---------- 手填活动（config [[nte_events]]，可靠主路径） ----------
-
-
 async def test_parse_manual_events_ok():
     events = parse_manual_events([
         {"name": "第二索拉·诡影迷踪", "category": "休闲活动",

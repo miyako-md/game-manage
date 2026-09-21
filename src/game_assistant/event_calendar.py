@@ -23,6 +23,21 @@ logger = logging.getLogger(__name__)
 
 BEIJING_TZ = timezone(timedelta(hours=8))
 
+
+def parse_ms_or_iso(*vals) -> datetime | None:
+    """int or 12+ digit string is unix milliseconds; otherwise fromisoformat."""
+    for v in vals:
+        if v:
+            if isinstance(v, int) or (isinstance(v, str) and v.isdigit()
+                                      and len(v) >= 12):
+                return datetime.fromtimestamp(int(v) / 1000, tz=timezone.utc)
+            try:
+                return datetime.fromisoformat(str(v))
+            except ValueError:
+                continue
+    return None
+
+
 # 手填条目（config [[nte_events]]）的时间写法："YYYY-MM-DD HH:MM"
 MANUAL_DT_FMT = "%Y-%m-%d %H:%M"
 

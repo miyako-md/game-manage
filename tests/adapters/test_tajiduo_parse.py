@@ -9,7 +9,7 @@ posts / list / 顶层本身数组；sTitle/title/postTitle 等），防上游改
 from datetime import datetime, timezone
 
 from game_assistant.adapters.neverness.tajiduo import (
-    find_first, parse_official_posts, resolve_official_column_id,
+    parse_official_posts, resolve_official_column_id,
 )
 
 MS = 1789182000000  # 2026-09-12 前后（毫秒时间戳样例）
@@ -149,12 +149,3 @@ def test_resolve_official_column_id_not_found():
          "columns": [{"columnId": 9, "name": "官方资讯"}]}]}}) is None
     assert resolve_official_column_id({"code": 0}) is None
     assert resolve_official_column_id(None) is None
-
-
-def test_find_first_defensive_extractor():
-    roles = {"code": 0, "data": {"list": [{"roleId": "77", "serverId": "s"}]}}
-    assert find_first(roles, ("roleId", "role_id")) == "77"
-    assert find_first(roles, ("uid",)) is None
-    info = {"code": 0, "data": {"user": {"uid": "900001"}}}
-    assert find_first(info, ("uid", "gameUid")) == "900001"
-    assert find_first(None, ("uid",)) is None

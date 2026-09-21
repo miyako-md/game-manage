@@ -1,15 +1,12 @@
 """Serving a SPA must not turn missing assets/API routes into successful HTML."""
-import importlib.util
-
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from game_assistant.web_ui import install_web_ui
 
 
 @pytest.fixture
 def ui(tmp_path):
-    assert importlib.util.find_spec("game_assistant.web_ui"), "web UI installer missing"
-    from game_assistant.web_ui import install_web_ui
 
     dist = tmp_path / "dist"
     (dist / "assets").mkdir(parents=True)
@@ -72,9 +69,6 @@ def test_static_head_response(ui):
 
 
 def test_missing_dist_keeps_api_available(tmp_path):
-    assert importlib.util.find_spec("game_assistant.web_ui"), "web UI installer missing"
-    from game_assistant.web_ui import install_web_ui
-
     app = FastAPI()
 
     @app.get("/api/health")

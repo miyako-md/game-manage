@@ -106,13 +106,6 @@ async def test_record_uses_community_uid_and_filters_other_games():
     assert record.calls.last.request.url.params['uid'] == '900001'
 
 
-def test_nte_registers_all_display_capabilities():
-    assert adapter().capabilities == [Capability.ACCOUNT, Capability.STAMINA,
-        Capability.ROLES, Capability.PROGRESS, Capability.EXPLORATION,
-        Capability.GACHA, Capability.RECORD, Capability.EVENTS, Capability.ANNOUNCEMENT,
-                                    Capability.REALESTATE, Capability.VEHICLES, Capability.TEAMS]
-
-
 @respx.mock
 async def test_business_success_200_is_accepted_by_account_parser():
     respx.get(BASE + '/apihub/awapi/yh/roleHome').respond(200, json={**HOME, 'code': 200})

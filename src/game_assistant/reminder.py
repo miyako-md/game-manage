@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -10,6 +11,8 @@ from game_assistant.models import Capability, FetchResult, GameEvent, StaminaInf
 from game_assistant.reminder_store import ReminderDedup
 
 BEIJING_TZ = timezone(timedelta(hours=8))
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -100,13 +103,15 @@ class ReminderEngine:
         for ev in events:
             if ev.end_at is None:
                 continue
-            # 解析层产出 aware UTC+8，naive 理论上不会出现；保留归一化防御
-            end = (ev.end_at if ev.end_at.tzinfo else ev.end_at.replace(
-                tzinfo=BEIJING_TZ)).astimezone(BEIJING_TZ)
-            if ev.start_at is not None:
-                start = ev.start_at if ev.start_at.tzinfo else ev.start_at.replace(tzinfo=BEIJING_TZ)
-                if start >= end:
-                    continue
+            # 解析层契约是 aware UTC+8；naive 视为契约破坏：记警告并跳过，
+            # 不给未知时区的时间贴北京标签（会错算绝对时刻）
+            if ev.end_at.tzinfo is None or (
+                    ev.start_at is not None and ev.start_at.tzinfo is None):
+                logger.warning("活动「%s」时间戳缺时区，跳过临期提醒", ev.name)
+                continue
+            end = ev.end_at.astimezone(BEIJING_TZ)
+            if ev.start_at is not None and ev.start_at >= end:
+                continue
             seconds = (end - now).total_seconds()
             if not (0 < seconds <= settings.activity_remind_days * 86400):
                 continue
