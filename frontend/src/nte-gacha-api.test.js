@@ -18,3 +18,8 @@ test('import preview writes only to local ledger with required header and report
   }
   await assert.rejects(previewLedger({ document: {}, latest_confirmed: false }), /角色身份/)
 })
+test('a null error body stays on the fixed ledger message', async t => {
+  const old = globalThis.fetch; t.after(() => { globalThis.fetch = old })
+  globalThis.fetch = async () => new Response('null', { status: 500, headers: { 'content-type': 'application/json' } })
+  await assert.rejects(previewLedger({}), /账本请求失败/)
+})
