@@ -5,15 +5,12 @@ SSL 约束（LOLhelper 原文）：LCU 是 127.0.0.1 本机进程，证书为 Ri
 任何公网请求一律走系统默认校验，不得复用这里的配置。
 """
 import base64
-import logging
 
 import httpx
 
 from game_assistant.adapters.league_of_legends.endpoints import (
     GAME_DETAIL, MATCH_HISTORY, RANKED_STATS, SUMMONER_CURRENT,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class LcuError(Exception):

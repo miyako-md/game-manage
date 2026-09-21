@@ -102,8 +102,6 @@ async def test_fetch_news_ok():
     assert route.calls.last.request.url.params["target"] == "23"  # 综合分类
 
 
-# ---- 生涯统计 + 对局详情（2026-09-13 新增）----
-
 HISTORY_GAME = {
     "gameId": 111, "queueId": 450, "gameMode": "ARAM",
     "gameCreation": 1788525600000, "gameDuration": 1234,

@@ -1,5 +1,4 @@
 import sys
-from pathlib import Path
 
 from game_assistant.adapters.league_of_legends.lcu_discovery import (
     discover_lcu_credentials, find_credentials_from, find_lockfile_credentials,

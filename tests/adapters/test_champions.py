@@ -44,8 +44,7 @@ async def test_fetch_parses_and_skips_placeholder(tmp_path):
             "rcp-be-lol-game-data/global/default/v1/champion-icons/157.png")
 
 
-@respx.mock
-async def test_name_for(tmp_path):
+def test_name_for():
     catalog = {1: {"name": "黑暗之女", "icon": None}}
     assert ChampionCatalog.name_for(catalog, 1) == "黑暗之女"
     assert ChampionCatalog.name_for(catalog, 999) is None

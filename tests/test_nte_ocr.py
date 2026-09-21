@@ -11,9 +11,6 @@ import respx
 
 from game_assistant import nte_ocr
 
-# ---------- 参数解析 ----------
-
-
 def test_parse_args_news_page_and_inputs():
     ns = nte_ocr.parse_args().parse_args(
         ["--news-page", "https://p.example/news/1", "https://i.example/a.jpg",
@@ -32,9 +29,6 @@ def test_parse_args_no_args_allowed():
     # 空参数不抛 SystemExit：main 里自行打印帮助并返回 2
     ns = nte_ocr.parse_args().parse_args([])
     assert ns.news_page is None and ns.inputs == []
-
-
-# ---------- 图片 URL 提取 ----------
 
 
 def test_extract_image_urls_src_and_data_src():
@@ -76,9 +70,6 @@ def test_main_news_page_mode_prints_urls(capsys):
         200, text='<img src="/i/a.jpg">'))
     assert nte_ocr.main(["--news-page", "https://p.example/n"]) == 0
     assert "https://p.example/i/a.jpg" in capsys.readouterr().out
-
-
-# ---------- OCR 依赖与主流程 ----------
 
 
 def test_main_missing_rapidocr_friendly_error(monkeypatch, capsys):

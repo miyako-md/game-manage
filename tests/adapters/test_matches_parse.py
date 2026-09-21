@@ -60,8 +60,6 @@ def test_damage_extracted():
     assert m.damage == 21450
 
 
-# ---- parse_match_detail（detail 即 game 本体，2026-09-13 国服实测形状）----
-
 CATALOG = {157: {"name": "疾风剑豪", "icon": None},
            160: {"name": "无双剑姬", "icon": None},
            22: {"name": "寒冰射手", "icon": None}}
@@ -144,7 +142,6 @@ def test_parse_match_detail_empty_raw():
     assert d.match_id == "None" and d.teams == []
 
 
-# ---- compute_stats（近 20 场口径）----
 
 
 def _summary(n, *, win=True, kills=2, deaths=1, assists=3, damage=1000,

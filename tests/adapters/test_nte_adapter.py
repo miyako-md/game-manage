@@ -184,8 +184,6 @@ async def test_fetch_events_no_version_post_preserves_previous_calendar():
     assert detail_route.calls.call_count == 0
 
 
-# ---------- 手填活动（config [[nte_events]]，可靠主路径） ----------
-
 MANUAL_EVENTS = [
     {"name": "第二索拉·诡影迷踪", "category": "休闲活动",
      "start": "2026-08-27 04:00", "end": "2026-09-14 03:59"},
