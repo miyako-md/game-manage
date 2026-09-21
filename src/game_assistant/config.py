@@ -5,8 +5,6 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    app_host: str = "127.0.0.1"
-    app_port: int = 8010  # 8000 被 Windows HTTP.sys 系统服务永久占用
     db_path: str = "data/assistant.db"
     stamina_seconds: int = 300
     activity_seconds: int = 3600
