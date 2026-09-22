@@ -15,6 +15,11 @@ export const getLedgerRules = () => request('rules')
 export const saveLedgerRule = body => request('rules', body)
 export const exportLedger = (pool = '', offset = null, limit = 2000) => request(`export?${new URLSearchParams({ pool_id: pool, ...(offset == null ? {} : { offset, limit }) })}`)
 
+const ledgerDateFormatter = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+})
+
 export function pityLabel(pity = {}) {
   if (pity.status === 'exact' && Number.isInteger(pity.count)) return `${pity.count} 抽`
   if (pity.status === 'lower_bound' && Number.isInteger(pity.count)) return `至少 ${pity.count} 抽`
@@ -25,8 +30,7 @@ export function ledgerDate(value) {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) return value
   const time = typeof value === 'number' ? value * (value < 1e12 ? 1000 : 1) : value
   const date = new Date(time)
-  return Number.isNaN(date.getTime()) ? '未提供' : new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai',
-    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(date)
+  return Number.isNaN(date.getTime()) ? '未提供' : ledgerDateFormatter.format(date)
 }
 export const poolLabel = value => ({ Lottery_Permanent: '常驻棋盘', Lottery_LimitedCharacter: '限定角色棋盘', Arc_MiracleBox: '弧盘研募', Gashapon_MysteryBox: '神秘盲盒' })[value] || value
 export const requirementLabel = value => ({
