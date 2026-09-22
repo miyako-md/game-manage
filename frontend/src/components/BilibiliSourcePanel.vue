@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { formatTime, safeUrl } from '../dashboard.js'
+import { formatTime } from '../dashboard.js'
+import { safeUrl } from '../calendar.js'
 const props = defineProps({ gameId: { type: String, default: '' } })
 const emit = defineEmits(['collected'])
 const sources = ref([]), rows = ref([]), error = ref(''), login = ref(false), showLogin = ref(false)

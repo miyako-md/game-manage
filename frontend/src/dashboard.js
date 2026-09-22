@@ -1,6 +1,5 @@
 import { reactive } from 'vue'
 import { parseBeijingTime, safeUrl } from './calendar.js'
-export { safeUrl }
 
 const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams'])
 export const GAME_STYLE = {
