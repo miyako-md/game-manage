@@ -143,14 +143,6 @@ class TajiduoClient:
         self._device_id = device_id or str(uuid.uuid4())
         self._client = httpx.AsyncClient(timeout=15)
 
-    @property
-    def access_token(self) -> str:
-        return self._access_token
-
-    @property
-    def refresh_token(self) -> str:
-        return self._refresh_token
-
     def _headers(self) -> dict:
         return {
             "User-Agent": "okhttp/4.12.0",

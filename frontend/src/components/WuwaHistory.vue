@@ -159,7 +159,7 @@ watch(
             /><WuwaRoleDetail
               v-else-if="kind === 'role_detail'"
               :data="item.payload?.data || item.payload"
-            /><WuwaFields v-else :data="item.payload" :role-names="roleNames" />
+            /><WuwaFields v-else :data="item.payload" />
           </details>
         </article>
       </div>

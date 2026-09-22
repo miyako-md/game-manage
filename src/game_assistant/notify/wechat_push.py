@@ -6,8 +6,6 @@ logger = logging.getLogger(__name__)
 
 
 class WeChatPushNotifier:
-    name = "wechat_push"
-
     def __init__(self, provider: str = "serverchan", send_key: str = ""):
         self.provider = provider
         self.send_key = send_key
