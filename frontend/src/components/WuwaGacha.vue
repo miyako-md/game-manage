@@ -75,18 +75,19 @@ async function importFile() {
   clearInput()
   outcome.value = null
   error.value = ''
-  busy.value = true
+  let records
   try {
     if (chosen.size > 2 * 1024 * 1024) throw new Error()
-    const records = JSON.parse(await chosen.text())
-    if (version !== fileGeneration) return
-    await perform({ records })
+    records = JSON.parse(await chosen.text())
   } catch {
     if (version !== fileGeneration) return
     error.value =
       '文件无法导入：请选择不超过 2 MiB、含当前账号标识的有效 JSON 文件'
     busy.value = false
+    return
   }
+  if (version !== fileGeneration) return
+  await perform({ records })
 }
 onMounted(() => load())
 watch(
