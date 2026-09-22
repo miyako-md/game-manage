@@ -45,3 +45,9 @@ class WeChatPushNotifier:
             # Exception messages/tracebacks may contain the credential URL.
             logger.warning("微信推送失败 (%s)", type(exc).__name__)
             return False
+
+
+def build_notifier(settings) -> WeChatPushNotifier:
+    return WeChatPushNotifier(provider=settings.notify_provider,
+                              send_key=settings.notify_send_key)
+
