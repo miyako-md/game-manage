@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.config import Settings
 from game_assistant.models import Capability
-from game_assistant.notify.base import build_notifier
+from game_assistant.notify.wechat_push import build_notifier
 from game_assistant.registry import build_default_registry
 from game_assistant.reminder import ReminderEngine
 from game_assistant.reminder_store import ReminderDedup
