@@ -15,7 +15,6 @@ import NteAssetsPanel from './NteAssetsPanel.vue'
 import NteRolesPanel from './NteRolesPanel.vue'
 import NteGachaPanel from './NteGachaPanel.vue'
 import ProgressCard from './ProgressCard.vue'
-import RoleWallCard from './RoleWallCard.vue'
 import StaminaCard from './StaminaCard.vue'
 import StatsCard from './StatsCard.vue'
 import WuwaDashboard from './WuwaDashboard.vue'
@@ -56,7 +55,6 @@ const CAP_COMPONENTS = {
   stats: StatsCard,
   exploration: ExplorationCard,
   calabash: CalabashCard,
-  roles: RoleWallCard,
 }
 
 const localSnaps = ref({})
