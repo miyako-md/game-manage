@@ -72,9 +72,9 @@ class NteAdapter(BaseGameAdapter):
         except ValueError:
             return FetchResult(ok=False, error='塔吉多数据格式已变化或角色不匹配，保留上次成功数据',
                                error_kind='invalid_data')
-        except Exception:
-            # 解析器异常不得穿透 fetch 破坏失效隔离
-            logger.warning("异环数据处理异常，保留上次成功数据")
+        except Exception as exc:
+            # 解析器异常不得穿透 fetch 破坏失效隔离。只记类型：异常文本可能带上游数据。
+            logger.warning("异环数据处理异常，保留上次成功数据 (%s)", type(exc).__name__)
             return FetchResult(ok=False, error="数据处理异常，请稍后重试", error_kind='invalid_data')
 
     async def fetch_announcement(self) -> FetchResult:
