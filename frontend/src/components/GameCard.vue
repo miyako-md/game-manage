@@ -1,6 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { getSnapshot, refreshGame } from '../api.js'
+import { computed, ref } from 'vue'
 import { gameStyle } from '../dashboard.js'
 import AppIcon from './AppIcon.vue'
 import GameIcon from './GameIcon.vue'
@@ -21,7 +20,7 @@ import WuwaDashboard from './WuwaDashboard.vue'
 
 const props = defineProps({
   game: { type: Object, required: true },
-  externalSnapshots: { type: Object, default: null },
+  externalSnapshots: { type: Object, required: true },
   externalRefreshing: { type: Boolean, default: false },
   externalError: { type: String, default: '' },
   initialSection: { type: String, default: 'all' },
@@ -57,16 +56,6 @@ const CAP_COMPONENTS = {
   calabash: CalabashCard,
 }
 
-const localSnaps = ref({})
-const snaps = computed(() => props.externalSnapshots ?? localSnaps.value)
-const refreshing = ref(false)
-const refreshError = ref('')
-const isRefreshing = computed(() => props.externalSnapshots !== null ? props.externalRefreshing : refreshing.value)
-const displayedError = computed(() => props.externalError || refreshError.value)
-let generation = 0
-let disposed = false
-let errorTimer = null
-
 function capComponent(cap) {
   if (props.game.game_id === 'nte' && ['realestate', 'vehicles', 'teams'].includes(cap)) return NteAssetsPanel
   if (props.game.game_id === 'nte' && cap === 'roles') return NteRolesPanel
@@ -74,66 +63,12 @@ function capComponent(cap) {
   if (props.game.game_id === 'nte' && ['account', 'stamina', 'progress', 'exploration', 'record'].includes(cap)) return NteDataCard
   return CAP_COMPONENTS[cap] || null
 }
-
-async function loadSnapshots() {
-  if (props.externalSnapshots !== null) return
-  const request = ++generation
-  const caps = props.game.capabilities || []
-  const results = await Promise.allSettled(
-    caps.map((cap) => getSnapshot(props.game.game_id, cap)),
-  )
-  if (disposed || request !== generation) return
-  const next = { ...localSnaps.value }
-  caps.forEach((cap, i) => {
-    if (results[i].status === 'fulfilled') next[cap] = results[i].value
-  })
-  localSnaps.value = next
-}
-
-function showError(message) {
-  refreshError.value = message
-  if (errorTimer) clearTimeout(errorTimer)
-  errorTimer = setTimeout(() => {
-    refreshError.value = ''
-  }, 10000)
-}
-
-async function onRefresh() {
-  if (props.externalSnapshots !== null) { emit('refresh'); return }
-  if (refreshing.value) return
-  refreshing.value = true
-  try {
-    const data = await refreshGame(props.game.game_id)
-    const failed = Object.entries(data?.results || {}).filter(
-      ([, r]) => !r || r.ok !== true,
-    )
-    if (failed.length > 0) {
-      showError(
-        '刷新失败：' +
-          failed.map(([, r]) => r?.error || '未知错误').join('；'),
-      )
-    }
-  } catch (e) {
-    showError('刷新失败：' + (e?.message || '请求异常'))
-  } finally {
-    refreshing.value = false
-    await loadSnapshots()
-  }
-}
-
-onMounted(loadSnapshots)
-
-onBeforeUnmount(() => {
-  disposed = true
-  generation += 1
-  if (errorTimer) clearTimeout(errorTimer)
-})
 </script>
 
 <template>
   <section class="game-card">
-    <div v-if="displayedError" class="error-bar" role="alert">
-      {{ displayedError }}
+    <div v-if="externalError" class="error-bar" role="alert">
+      {{ externalError }}
     </div>
 
     <header class="card-head">
@@ -147,26 +82,26 @@ onBeforeUnmount(() => {
       <button
         type="button"
         class="refresh-btn"
-        :disabled="isRefreshing"
-        @click="onRefresh"
+        :disabled="externalRefreshing"
+        @click="emit('refresh')"
       >
-        <AppIcon name="refresh" :size="15" :class="{ spinning: isRefreshing }" />{{ isRefreshing ? '刷新中…' : '刷新数据' }}
+        <AppIcon name="refresh" :size="15" :class="{ spinning: externalRefreshing }" />{{ externalRefreshing ? '刷新中…' : '刷新数据' }}
       </button>
     </header>
 
-    <SourceStatusPanel v-if="externalSnapshots !== null" :game="game" :collection="collectionStatus" />
+    <SourceStatusPanel :game="game" :collection="collectionStatus" />
     <div v-if="game.game_id !== 'wuthering_waves'" class="detail-navigation"><nav class="detail-tabs" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
-    <WuwaDashboard v-if="game.game_id === 'wuthering_waves'" :snaps="snaps" :configured="game.credentials_configured" :initial-section="initialSection" @calendar="emit('calendar')" />
+    <WuwaDashboard v-if="game.game_id === 'wuthering_waves'" :snaps="externalSnapshots" :configured="game.credentials_configured" :initial-section="initialSection" @calendar="emit('calendar')" />
     <div v-else class="cap-list">
       <template v-for="cap in visibleCaps" :key="cap">
         <component
           :is="capComponent(cap)"
           v-if="capComponent(cap)"
-          :snap="snaps[cap]"
+          :snap="externalSnapshots[cap]"
           :game-id="game.game_id"
           :capability="cap"
-          :account-id="game.game_id === 'nte' ? snaps.account?.payload?.role_id || '' : ''"
-          :roles="snaps.roles?.payload?.entries || []"
+          :account-id="game.game_id === 'nte' ? externalSnapshots.account?.payload?.role_id || '' : ''"
+          :roles="externalSnapshots.roles?.payload?.entries || []"
           :class="['detail-cap', `detail-cap-${cap}`]"
         />
         <div v-else class="cap-card cap-coming">敬请期待</div>
