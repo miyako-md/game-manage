@@ -8,12 +8,12 @@ import time
 import uuid
 from copy import deepcopy
 
-logger = logging.getLogger(__name__)
-
-from game_assistant.adapters.wuthering_waves.kuro_client import AUTH_EXPIRED_CODES
-from game_assistant.auth.providers import WuwaLoginProvider
+from game_assistant.adapters.wuthering_waves.kuro_client import AUTH_EXPIRED_CODES, KuroClient
+from game_assistant.auth.providers import AuthError, NteLoginProvider, WuwaLoginProvider
 from game_assistant.auth.store import CredentialStoreError
 from game_assistant.models import Capability, FetchResult
+
+logger = logging.getLogger(__name__)
 
 GAMES = ('wuthering_waves', 'nte')
 FIELDS = {
@@ -38,7 +38,6 @@ class LoginService:
     def __init__(self, settings, store, providers=None, clock=time.time):
         self.settings, self.store, self.clock = settings, store, clock
         if providers is None:
-            from .providers import WuwaLoginProvider, NteLoginProvider
             providers = {'wuthering_waves': WuwaLoginProvider(), 'nte': NteLoginProvider()}
         self.providers = providers
         self._locks = {g: asyncio.Lock() for g in GAMES}
@@ -104,7 +103,6 @@ class LoginService:
                 if adapter.game_id == game:
                     adapter.credentials_configured = self._configured(game)
                     if game == 'wuthering_waves':
-                        from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient
                         adapter._client = (KuroClient(self.settings.wuwa_token,
                                                       did=self.settings.wuwa_did,
                                                       source=self.settings.wuwa_token_source)
@@ -166,7 +164,6 @@ class LoginService:
     async def sms(self, game, sid, mobile, captcha=None):
         self._game(game)
         self._mobile(mobile)
-        from .providers import AuthError
         async with self._locks[game]:
             session = self._session(game, sid)
             if session['mobile'] and session['mobile'] != mobile:
@@ -221,7 +218,6 @@ class LoginService:
         self._mobile(mobile)
         if not re.fullmatch(r'\d{4,8}', code):
             raise LoginError('请输入 4 至 8 位短信验证码')
-        from .providers import AuthError
         async with self._locks[game]:
             session = self._session(game, sid)
             if not session['sent'] or session['mobile'] != mobile:
@@ -249,7 +245,6 @@ class LoginService:
             return {'ok': True, 'account': self.status()['accounts'][game]}
 
     async def _renew(self, game):
-        from .providers import AuthError
         try:
             updated = await self.providers[game].renew(deepcopy(self._accounts[game]))
             updated['_updated_at'] = self.clock()
