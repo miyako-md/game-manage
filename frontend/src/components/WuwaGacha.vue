@@ -75,6 +75,7 @@ async function importFile() {
   clearInput()
   outcome.value = null
   error.value = ''
+  busy.value = true
   let records
   try {
     if (chosen.size > 2 * 1024 * 1024) throw new Error()
