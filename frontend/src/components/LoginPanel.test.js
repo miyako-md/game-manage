@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRenderer, nextTick } from 'vue'
-import { compileScript, parse } from '@vue/compiler-sfc'
+import { compileScript, parse } from 'vue/compiler-sfc'
 
 // Run the real Vue setup/lifecycle without introducing a browser test dependency.
 const { descriptor } = parse(readFileSync(new URL('./LoginPanel.vue', import.meta.url), 'utf8'))
