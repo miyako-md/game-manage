@@ -93,3 +93,14 @@ test('segmented export continues from the server next offset rather than assumin
   button(root, '下载下一段').props.onClick(); await flush()
   assert.deepEqual(offsets, [0, 1234]); assert.match(content(root), /已到末尾/)
 })
+test('pool cards and record rows render the backend ledger fields', async t => {
+  api(t, url => url.includes('/summary')
+    ? { total_records: 1, pools: [{ pool_id: 'Lottery_LimitedCharacter', total_records: 1, total_pulls: 1, pity: { status: 'lower_bound', count: 1 }, warnings: [] }] }
+    : url.includes('/rules') ? { rules: [] }
+      : { total: 1, records: [{ uid: 'r1', pool_group_id: 'Lottery_LimitedCharacter', timestamp: '2026-09-12 10:00:00', reward_id: 'c1', reward_name: '', reward_rank: 'S', quantity: 1, result_type: 'dice' }] })
+  const root = mount(t, Panel, { accountId: '100001' }); await flush(); await flush()
+  const card = nodes(root, 'article').find(n => content(n).includes('当前垫抽'))
+  assert.match(content(card), /限定角色棋盘/); assert.match(content(card), /已导入 1 次计数抽取/)
+  const cells = nodes(root, 'td').map(content)
+  assert.deepEqual(cells, ['2026-09-12 10:00:00', '限定角色棋盘', 'c1', 'S', '1', '计数投掷'])
+})
