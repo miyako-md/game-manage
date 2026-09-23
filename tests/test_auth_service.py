@@ -10,11 +10,13 @@ from game_assistant.models import Capability, FetchResult
 
 class Provider:
     def __init__(self):
+        self.started = 0
         self.sent = 0
         self.renewed = 0
         self.logins = 0
 
     async def start_context(self):
+        self.started += 1
         return {'device_id': 'device-1'}
 
     async def send_sms(self, context, mobile, captcha=None):
@@ -197,12 +199,19 @@ async def test_server_reject_rotates_and_retries_once(tmp_path):
 
 
 async def test_public_nte_capability_never_requires_login(tmp_path):
-    service, provider, _, _ = make_service(tmp_path)
+    service, provider, settings, now = make_service(tmp_path)
+    await logged_in(service)
+    now[0] += 3601  # a private capability would renew this stale token first
+    async def rejected():
+        return FetchResult(ok=False, error='HTTP 401', error_code=401)
+    result = await service.fetch('nte', Capability.ANNOUNCEMENT, rejected)
+    assert result.error_kind is None and provider.renewed == 0
+    assert settings.nte_access_token == 'secret-access'
+    assert service.status()['accounts']['nte']['state'] == 'connected'
     await service.logout('nte')
     async def action():
         return FetchResult(ok=True, payload=[])
     assert (await service.fetch('nte', Capability.ANNOUNCEMENT, action)).ok
-    assert provider.renewed == 0
 
 
 async def test_unexpected_provider_error_returns_502_without_sensitive_details(tmp_path, caplog):
