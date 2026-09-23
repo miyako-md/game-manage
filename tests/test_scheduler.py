@@ -1,13 +1,11 @@
 import json
 
-import pytest
-
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult, StaminaInfo
 from game_assistant.reminder import ReminderEngine
 from game_assistant.reminder_store import ReminderDedup
-from game_assistant.scheduler import INTERVAL_ATTRS, interval_for, PollingScheduler
+from game_assistant.scheduler import interval_for, PollingScheduler
 from game_assistant.snapshots import SnapshotStore
 from tests.test_reminder import FakeNotify
 
@@ -78,8 +76,21 @@ def test_build_jobs_uses_intervals(tmp_path):
     assert jobs[Capability.PROGRESS] == 60
 
 
-@pytest.mark.parametrize("cap,attr", list(INTERVAL_ATTRS.items()))
-def test_interval_for_reads_mapped_settings_field(cap, attr):
-    defaults = Settings()
-    assert interval_for(cap, defaults) == getattr(defaults, attr)
-    assert interval_for(cap, Settings(**{attr: 60})) == 60
+def test_every_capability_polls_on_its_interval_setting():
+    settings = Settings(stamina_seconds=1, activity_seconds=2,
+                        announcement_seconds=3, news_seconds=4)
+    stamina, activity, announcement, news = 1, 2, 3, 4
+    expected = {
+        Capability.STAMINA: stamina,
+        Capability.ACCOUNT: activity, Capability.PROGRESS: activity,
+        Capability.MATCH: activity, Capability.STATS: activity,
+        Capability.ROLES: activity, Capability.COMBAT: activity,
+        Capability.ACTIVITIES: activity,
+        Capability.ANNOUNCEMENT: announcement, Capability.EVENTS: announcement,
+        Capability.NEWS: news, Capability.EXPLORATION: news,
+        Capability.CALABASH: news, Capability.RESOURCES: news,
+        Capability.GACHA: news, Capability.RECORD: news,
+        Capability.REALESTATE: news, Capability.VEHICLES: news,
+        Capability.TEAMS: news,
+    }
+    assert {cap: interval_for(cap, settings) for cap in Capability} == expected

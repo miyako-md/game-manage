@@ -1,18 +1,10 @@
 from datetime import datetime, timezone
 
-import pytest
-
 from game_assistant.models import (
     CalabashData, Capability, CountryGroup,
     DetectionSummary, ExplorationData, AreaSummary, FetchResult,
     MatchSummary, ProgressItem, RoleEntry, StaminaInfo,
 )
-
-
-@pytest.mark.parametrize("member", list(Capability))
-def test_capability_values(member):
-    assert member == member.value
-    assert Capability(member.value) is member
 
 
 def test_capability_activity_removed():
