@@ -19,7 +19,7 @@ import uuid
 import httpx
 
 from game_assistant.adapters.neverness.endpoints import (
-    APP_VERSION, GACHA, GET_ALL_COMMUNITY, GET_GAME_RECORD_CARD,
+    APP_VERSION, GACHA, GAME_ID, GET_ALL_COMMUNITY, GET_GAME_RECORD_CARD,
     GET_GAME_ROLES, GET_POST_FULL, GET_USER_FULL_INFO, ACHIEVE_PROGRESS,
     AREA_PROGRESS, CHARACTERS, OFFICIAL_POST_LIST, REALESTATE,
     ROLE_HOME, VEHICLES, TEAMS,
@@ -163,7 +163,7 @@ class TajiduoClient:
         return await self._request("GET", GET_USER_FULL_INFO)
 
     async def get_game_roles(self) -> dict:
-        return await self._request("GET", GET_GAME_ROLES, params={"gameId": "1289"})
+        return await self._request("GET", GET_GAME_ROLES, params={"gameId": GAME_ID})
 
     async def get_game_record_card(self, uid: str) -> dict:
         return await self._request("GET", GET_GAME_RECORD_CARD, params={"uid": uid})

@@ -9,6 +9,7 @@ from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.neverness import tajiduo
 from game_assistant.adapters.neverness import parse
 from game_assistant.adapters.neverness import assets
+from game_assistant.adapters.neverness.endpoints import GAME_ID
 from game_assistant.adapters.neverness.tajiduo_client import (
     TajiduoClient, TajiduoError, TajiduoWebClient,
 )
@@ -139,7 +140,7 @@ class NteAdapter(BaseGameAdapter):
         rows = data.get('roles', data.get('list', [])) if isinstance(data, dict) else data
         if isinstance(rows, list):
             for row in rows:
-                if not isinstance(row, dict) or str(row.get('gameId', '1289')) != '1289':
+                if not isinstance(row, dict) or str(row.get('gameId', GAME_ID)) != GAME_ID:
                     continue
                 role_id = str(row.get('roleId') or '')
                 if role_id and role_id != '0':
