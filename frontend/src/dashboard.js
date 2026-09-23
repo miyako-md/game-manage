@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { parseBeijingTime, safeUrl } from './calendar.js'
+import { DAY_MS, parseBeijingTime, safeUrl } from './calendar.js'
 export { safeUrl }
 
 const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams'])
@@ -47,10 +47,12 @@ export function upcomingEvents(games, snapshots, now = Date.now()) {
     if (!Array.isArray(snap?.payload)) return []
     return snap.payload.flatMap((ev, index) => {
       if (!ev || typeof ev !== 'object') return []
-      const end = parseBeijingTime(ev.end_at), start = parseBeijingTime(ev.start_at)
+      // Same start and staleness rules as the calendar (eventGeometry, collectCalendarEvents).
+      const end = parseBeijingTime(ev.end_at), start = parseBeijingTime(ev.start_at || ev.start_date)
       if (end == null || end <= now || (ev.start_at && start == null) || (start != null && start > end)) return []
       return [{ ...ev, id: `${game.game_id}:${index}`, gameId: game.game_id, gameName: game.display_name,
-        endTime: end, remainingDays: Math.ceil((end - now) / 86400000), upcoming: start != null && start > now, stale: !!snap.stale }]
+        endTime: end, remainingDays: Math.ceil((end - now) / DAY_MS), upcoming: start != null && start > now,
+        stale: Boolean(snap.stale || ev.source_stale) }]
     })
   }).sort((a, b) => a.endTime - b.endTime)
 }
