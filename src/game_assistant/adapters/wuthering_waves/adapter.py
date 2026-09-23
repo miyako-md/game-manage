@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from game_assistant import event_calendar
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.wuthering_waves import announcements, role, rolebox, widget
-from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient, KuroError
+from game_assistant.adapters.wuthering_waves.kuro_client import AUTH_EXPIRED_CODES, KuroClient, KuroError
 from game_assistant.adapters.wuthering_waves.rolebox_client import (
     RoleBoxClient, RoleBoxError,
 )
@@ -14,8 +14,6 @@ from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
 from .detail_parse import normalize, parse_tower, parse_periods, parse_profile, parse_report, latest_month_period
 from .data_models import SourceResult, CombatPayload, ActivitiesPayload, ResourcesPayload
-
-AUTH_CODES = (220, 401, 402, 403, 10900, 10901, 10903)
 
 logger = logging.getLogger(__name__)
 
@@ -83,13 +81,13 @@ class WutheringWavesAdapter(BaseGameAdapter):
         except RoleBoxError as e:
             return FetchResult(ok=False, error=e.message, error_code=e.code,
                 error_source='rolebox',
-                error_kind='auth_expired' if e.code in (220, 401, 402, 403, 10900, 10901, 10903) else 'source_error')
+                error_kind='auth_expired' if e.code in AUTH_EXPIRED_CODES else 'source_error')
         except KuroError as e:
             # The legacy client includes str(httpx_error) for network errors;
             # request URLs can contain secrets and must not enter persisted status.
             message = '网络请求失败，请稍后重试' if e.code == -1 else e.message
             return FetchResult(ok=False, error=f"库街区接口错误: {message}", error_code=e.code,
-                error_kind='auth_expired' if e.code in (220, 401, 402, 403, 10900, 10901, 10903) else 'source_error')
+                error_kind='auth_expired' if e.code in AUTH_EXPIRED_CODES else 'source_error')
         except Exception:
             # 解析器异常不得穿透 fetch 破坏失效隔离（spec §6）
             logger.warning("鸣潮数据处理异常，保留上次成功数据")
@@ -279,7 +277,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
                         data = parse_tower(raw, now) if name == 'tower' else normalize(raw)
                         sources[name] = SourceResult(data=data, fetched_at=now.isoformat(), source=endpoint)
                     except RoleBoxError as error:
-                        if error.code in AUTH_CODES:
+                        if error.code in AUTH_EXPIRED_CODES:
                             raise
                         old = previous.get(name)
                         sources[name] = SourceResult(state='stale' if old and old.data is not None else 'error',
@@ -353,7 +351,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
                         current = {'kind': 'month', 'period': period, 'data': parse_report(raw),
                             'state': 'ok', 'fetched_at': datetime.now(timezone.utc).isoformat()}
                     except (RoleBoxError, ValueError, TypeError) as exc:
-                        if isinstance(exc, RoleBoxError) and exc.code in AUTH_CODES:
+                        if isinstance(exc, RoleBoxError) and exc.code in AUTH_EXPIRED_CODES:
                             raise
                         error = '本月资源报告暂不可用'
                         previous = self._resource_cache.get(identity)

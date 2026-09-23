@@ -10,6 +10,7 @@ from copy import deepcopy
 
 logger = logging.getLogger(__name__)
 
+from game_assistant.adapters.wuthering_waves.kuro_client import AUTH_EXPIRED_CODES
 from game_assistant.auth.providers import WuwaLoginProvider
 from game_assistant.auth.store import CredentialStoreError
 from game_assistant.models import Capability, FetchResult
@@ -254,9 +255,9 @@ class LoginService:
             updated['_updated_at'] = self.clock()
             self._persist(game, updated)
         except AuthError as error:
-            if error.code in (220, 401, 402, 403, 10900, 10901, 10903):
+            if error.code in AUTH_EXPIRED_CODES:
                 self._errors[game] = '登录已失效，请重新登录'
-            kind = ('auth_expired' if error.code in (220, 401, 402, 403, 10900, 10901, 10903)
+            kind = ('auth_expired' if error.code in AUTH_EXPIRED_CODES
                     else 'source_error')
             raise LoginError(error.message, error_kind=kind) from None
         except LoginError:
@@ -293,7 +294,7 @@ class LoginService:
                 if not result.ok and invalid and can_renew and not renewed:
                     await self._renew(game)
                     result = await action()
-                if not result.ok and result.error_code in (220, 401, 402, 403, 10900, 10901, 10903):
+                if not result.ok and result.error_code in AUTH_EXPIRED_CODES:
                     self._errors[game] = '登录已失效，请重新登录'
                     result.error_kind = 'auth_expired'
                 elif result.ok:
