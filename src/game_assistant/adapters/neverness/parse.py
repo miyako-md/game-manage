@@ -14,6 +14,7 @@ from .data_models import (
     NteGachaDetail, NteGachaPool, NteProgress, NteProperty, NteRecord,
     NteRecordCard, NteRole, NteRoles, NteSkill, NteStamina, NteWeapon,
 )
+from .endpoints import GAME_ID
 
 _ERROR = "异环数据格式无效，请刷新重试"
 _QUALITY = dict(zip(
@@ -266,13 +267,13 @@ def parse_record(raw: Any, expected_role_id: str = "") -> NteRecord:
         game_id = _count(row.get("gameId"))
         if game_id is None:
             raise ValueError(_ERROR)
-        if game_id != 1289:
+        if game_id != int(GAME_ID):
             continue
         if row.get("bindRoleInfo") is None:
             continue  # An unbound community card has no character to display.
         role = _object(row["bindRoleInfo"])
         role_id = _id(role.get("roleId"))
-        if "gameId" in role and _count(role["gameId"]) != 1289:
+        if "gameId" in role and _count(role["gameId"]) != int(GAME_ID):
             continue
         if expected_role_id and role_id != str(expected_role_id):
             continue

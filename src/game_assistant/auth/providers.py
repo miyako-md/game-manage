@@ -18,6 +18,7 @@ import httpx
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
+from game_assistant.adapters.neverness.endpoints import GAME_ID as NTE_GAME_ID
 from game_assistant.adapters.neverness.tajiduo_client import make_ds_header
 from game_assistant.adapters.wuthering_waves.rolebox_client import USER_AGENT
 
@@ -210,12 +211,12 @@ class NteLoginProvider:
                        "refresh_token": _required(session, "refreshToken"), "center_uid": _required(session, "uid")}
         payload = await _request(_TAJIDUO + "/usercenter/api/v2/getGameRoles", method="GET",
                                  headers=self._tajiduo_headers(context, credentials["access_token"]),
-                                 params={"gameId": "1289"})
+                                 params={"gameId": NTE_GAME_ID})
         roles = payload.get("roles", []) if isinstance(payload, dict) else payload
         # Only this endpoint's documented roles container is eligible. Do not
         # recursively search unrelated community/game objects for a roleId.
         selected = next((role for role in roles if isinstance(role, dict)
-                         and _text(role.get("gameId", "1289")) == "1289"
+                         and _text(role.get("gameId", NTE_GAME_ID)) == NTE_GAME_ID
                          and _text(role.get("roleId")).isdigit() and int(role["roleId"]) > 0), None) if isinstance(roles, list) else None
         if not selected:
             raise AuthError("该账号未绑定异环角色，请先在塔吉多绑定角色")
