@@ -88,9 +88,9 @@ class WutheringWavesAdapter(BaseGameAdapter):
             message = '网络请求失败，请稍后重试' if e.code == -1 else e.message
             return FetchResult(ok=False, error=f"库街区接口错误: {message}", error_code=e.code,
                 error_kind='auth_expired' if e.code in AUTH_EXPIRED_CODES else 'source_error')
-        except Exception:
-            # 解析器异常不得穿透 fetch 破坏失效隔离
-            logger.warning("鸣潮数据处理异常，保留上次成功数据")
+        except Exception as exc:
+            # 解析器异常不得穿透 fetch 破坏失效隔离。只记类型：异常文本可能带上游数据。
+            logger.warning("鸣潮数据处理异常，保留上次成功数据 (%s)", type(exc).__name__)
             return FetchResult(ok=False, error="数据解析异常，请稍后重试", error_kind='invalid_data')
 
     async def _get_role_ids(self) -> tuple[str, str]:

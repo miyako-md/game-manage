@@ -62,9 +62,9 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
             return FetchResult(ok=False, error=e.message, error_kind='source_error')
         except LoLNewsError as e:
             return FetchResult(ok=False, error=e.message, error_kind='source_error')
-        except Exception:
-            # 解析器异常不得穿透 fetch 破坏失效隔离
-            logger.warning("英雄联盟数据处理异常，保留上次成功数据")
+        except Exception as exc:
+            # 解析器异常不得穿透 fetch 破坏失效隔离。只记类型：异常文本可能带上游数据。
+            logger.warning("英雄联盟数据处理异常，保留上次成功数据 (%s)", type(exc).__name__)
             return FetchResult(ok=False, error="数据处理异常，请稍后重试", error_kind='invalid_data')
 
     async def fetch_account(self) -> FetchResult:
