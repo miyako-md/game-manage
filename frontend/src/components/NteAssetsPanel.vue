@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
-import { displayBeijing } from '../time.js'
+import { fetchedLabel } from '../time.js'
 import { safeUrl } from '../calendar.js'
 import { displayRoleValue } from '../nte-roles.js'
 
@@ -22,7 +22,7 @@ const data = computed(() => legacy.value ? {} : payload.value ?? {})
 const entries = computed(() => list(data.value.entries))
 const roleMap = computed(() => new Map(props.roles.map(role => [String(role.id), role])))
 const roleName = id => roleMap.value.get(String(id))?.name || `角色 ${id}`
-const fetchedAt = computed(() => props.snap?.fetched_at ? displayBeijing(props.snap.fetched_at) : null)
+const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 const filtered = computed(() => {
   const query = search.value.trim().toLocaleLowerCase('zh-CN')
   return entries.value.filter(entry => {
