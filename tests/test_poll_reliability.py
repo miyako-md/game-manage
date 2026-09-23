@@ -140,8 +140,10 @@ async def test_same_capability_refreshes_are_serialized():
 
 
 async def test_account_changed_result_cannot_write_status_or_snapshot(tmp_path):
+    # Full stamina would notify if the stale result reached the reminder engine.
+    full = StaminaInfo(current=240, maximum=240, updated_at=datetime.now(timezone.utc))
     async def fetch(_):
-        return FetchResult(ok=True, payload={'old_account': True}, credential_version=1)
+        return FetchResult(ok=True, payload=full, credential_version=1)
     eng = engine(tmp_path)
     sched = scheduler(SimpleNamespace(fetch=fetch, display_name='G',
                       _auth=SimpleNamespace(version=lambda _: 2)), reminder=eng)

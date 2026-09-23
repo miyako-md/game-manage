@@ -28,7 +28,7 @@ def test_auth_writes_reject_missing_header_and_cross_origin(tmp_path):
     assert client.post('/api/auth/nte/sessions').status_code == 403
     assert client.post('/api/auth/nte/sessions', headers={**HEADERS, 'Origin': 'https://evil.example'}).status_code == 403
     assert client.post('/api/auth/nte/sessions', headers={**HEADERS, 'Host': 'evil.example'}).status_code == 403
-    assert provider.sent == 0
+    assert provider.started == 0
 
 
 def test_real_router_login_clears_private_snapshots_and_hot_updates(tmp_path):

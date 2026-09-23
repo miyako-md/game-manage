@@ -23,6 +23,7 @@ class FakeNotify:
 
 class OffNotify(FakeNotify):
     async def send(self, title, body):
+        self.sent.append((title, body))
         return False
 
 
@@ -143,7 +144,7 @@ async def test_notifier_off_does_not_mark_sent(tmp_path):
     r = FetchResult(ok=True, payload=StaminaInfo(
         current=240, maximum=240, updated_at=datetime.now(timezone.utc)))
     await eng.handle_poll("wuwa", "鸣潮", Capability.STAMINA, r)
-    assert eng.notifier.sent == []
+    assert [title for title, _ in eng.notifier.sent] == ["鸣潮体力已满"]
     # SendKey 未配置（send 返回 False）→ 不 mark_sent，配置后同 key 可再发
     assert eng.dedup.already_sent(
         f"stamina_full:wuwa:{datetime.now(BEIJING_TZ).strftime('%Y-%m-%d')}") is False
