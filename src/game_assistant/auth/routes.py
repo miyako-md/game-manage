@@ -30,13 +30,7 @@ def install_auth_routes(app, service):
             except ValueError:
                 length = 16385
             if length > 16384 or length < 0:
-                response = JSONResponse({'detail': '登录请求过大'}, status_code=413)
-            else:
-                response = await call_next(request)
-            response.headers['Cache-Control'] = 'no-store'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Referrer-Policy'] = 'no-referrer'
-            return response
+                return JSONResponse({'detail': '登录请求过大'}, status_code=413)
         return await call_next(request)
 
     @app.exception_handler(LoginError)

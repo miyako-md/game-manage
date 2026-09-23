@@ -14,15 +14,6 @@ def install_wuwa_archive_routes(app):
     store = app.state.store
     gacha = GachaStore(store._conn, store._lock)
 
-    @app.middleware('http')
-    async def private_headers(request, call_next):
-        response = await call_next(request)
-        if request.url.path.startswith('/api/wuwa/'):
-            response.headers['Cache-Control'] = 'no-store'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Referrer-Policy'] = 'no-referrer'
-        return response
-
     def current():
         try:
             adapter = app.state.registry.get(GAME)
