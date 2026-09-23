@@ -1,7 +1,7 @@
 """英雄联盟适配器：LCU 账号/对局 + 官网公告/资讯。
 
-结构照鸣潮适配器的 _guarded_run 模式（客户端错误暴露 message，
-catch-all 兜底防解析异常穿透破坏失效隔离，M1 最终审查裁定）。
+_guarded_run 把客户端错误的 message 交给页面，并兜底捕获解析异常，
+不让一个能力的失败影响其他能力。
 """
 import logging
 

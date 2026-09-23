@@ -110,7 +110,7 @@ def test_match_detail_unregistered_game(tmp_path):
 
 
 def test_match_detail_not_supported_for_non_lol_adapter(tmp_path):
-    # DummyAdapter 无 fetch_match_detail 属性 → 404"该游戏不支持对局详情"
+    # DummyAdapter 沿用基类的 fetch_match_detail → 404"该游戏不支持对局详情"
     client = _client_with(DummyAdapter(), tmp_path)
     resp = client.get("/api/games/dummy/match/123/detail")
     assert resp.status_code == 404

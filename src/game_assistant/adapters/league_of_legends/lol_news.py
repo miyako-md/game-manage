@@ -1,12 +1,12 @@
 """英雄联盟官网新闻/公告客户端与解析。
 
-校准结论（Task 7 Step 5，2026-09-13 实测，证据与端点常量见 endpoints.py）：
+校准结论（2026-09-13 实测，证据与端点常量见 endpoints.py）：
 - news/index.shtml 为 JS 动态渲染的 GBK 页面，HTML 内无新闻数据；
 - 真实数据源是 /v3/js/newslist.js 引用的腾讯 CMC 内容接口，同一端点按 target
   参数区分分类（23=综合 24=公告，见 NEWS_CATEGORY_IDS）；
 - 条目真实键名：sTitle / sIdxTime / sRedirectURL / iDocID / sVID / sDesc；
   sRedirectURL 为空时按官方前端逻辑回退拼 detail.shtml?docid={iDocID}。
-解析函数对键名与响应形状做防御式兼容（含 Task 7 简报的假设形状）。
+解析函数对键名与响应形状做防御式兼容（部分回退形状未经实测）。
 """
 import json
 import re
@@ -115,8 +115,7 @@ def _dt(*vals):
                 dt = datetime.fromisoformat(str(v))
             except ValueError:
                 continue
-            # sIdxTime 为北京时间（UTC+8），来源解析可能产出 naive datetime：
-            # 补 tzinfo → aware（与 reminder.py 对 naive end_at 的归一化口径一致）
+            # sIdxTime 是不带时区的北京时间（UTC+8），补上时区。
             return dt if dt.tzinfo else dt.replace(tzinfo=BEIJING_TZ)
     return None
 

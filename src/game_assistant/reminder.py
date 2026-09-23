@@ -22,7 +22,7 @@ class Reminder:
 
 
 class ReminderEngine:
-    """轮询后提醒规则评估。去重语义见 Global Constraints。"""
+    """轮询后提醒规则评估；各规则的去重键见方法内注释。"""
 
     def __init__(self, dedup: ReminderDedup, notifier,
                  settings: Settings) -> None:

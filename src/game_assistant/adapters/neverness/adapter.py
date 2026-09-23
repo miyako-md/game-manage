@@ -94,9 +94,9 @@ class NteAdapter(BaseGameAdapter):
 
     async def fetch_events(self) -> FetchResult:
         async def run():
-            # 主路径：config 手填（[[nte_events]]，长图 OCR 辅助人工抄写，
-            # 可靠）。配置非空即走手填（即使条目全部非法也不回退，避免配置
-            # 错误被自动扫描静默掩盖——坏项已 log.warning）
+            # config 手填的 [[nte_events]] 非空时优先于下面的公告扫描；API 层
+            # 再以 B站为主来源合并。配置非空即走手填（即使条目全部非法也不
+            # 回退，避免配置错误被自动扫描静默掩盖——坏项已 log.warning）
             if self._settings.nte_events:
                 events = event_calendar.parse_manual_events(self._settings.nte_events)
                 if not events:

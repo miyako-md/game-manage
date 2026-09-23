@@ -31,7 +31,7 @@ INTERVAL_ATTRS = {
     Capability.COMBAT: "activity_seconds",
     Capability.ACTIVITIES: "activity_seconds",
     Capability.RESOURCES: "news_seconds",
-    # 异环（塔吉多）抽卡记录/战绩卡：Phase 1 慢变化数据，与资讯同为 4 小时
+    # 异环（塔吉多）抽卡记录/战绩卡：慢变化数据，与资讯同为 4 小时
     Capability.GACHA: "news_seconds",
     Capability.RECORD: "news_seconds",
     Capability.REALESTATE: "news_seconds",

@@ -5,7 +5,7 @@ from game_assistant.adapters.league_of_legends.matches import (
 )
 from game_assistant.models import MatchSummary
 
-# fixture 形状校准来源：C:\GPT\LOLhelper pigeon/collector.py _payload_from_lcu（真实数据验证）
+# fixture 形状按真实客户端数据校准
 GAME = {
     "gameId": 1234567890, "queueId": 450, "gameMode": "ARAM",
     "gameCreation": 1788525600000, "gameDuration": 1234,

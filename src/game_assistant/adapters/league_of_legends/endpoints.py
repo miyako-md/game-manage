@@ -1,12 +1,12 @@
-"""LoL 数据端点。LCU 路径校准来源：C:\\GPT\\LOLhelper pigeon/lcu.py 与 collector.py。"""
-SUMMONER_CURRENT = "/lol-summoner/v1/current-summoner"   # LOLhelper 已验证
-RANKED_STATS = "/lol-ranked/v1/ranked-stats/{puuid}"     # 未验证（Task 10 时客户端未运行，待人工校准，见 README）
+"""LoL 数据端点。"""
+SUMMONER_CURRENT = "/lol-summoner/v1/current-summoner"   # 已用真实客户端验证
+RANKED_STATS = "/lol-ranked/v1/ranked-stats/{puuid}"     # 未用真实客户端验证
 # 国服 LCU 拒绝 count/startIndex 查询参数（"Unknown argument 'count'"，
 # 2026-09-13 实测）；不带任何 query 参数返回 200 + 默认最近 20 场
 MATCH_HISTORY = "/lol-match-history/v1/products/lol/{puuid}/matches"
-GAME_DETAIL = "/lol-match-history/v1/games/{game_id}"    # LOLhelper collector 已验证
+GAME_DETAIL = "/lol-match-history/v1/games/{game_id}"    # 已用真实客户端验证
 
-# ---- 官网新闻/公告（Task 7 Step 5 在线校准 2026-09-13，实测证据见 test_lol_news.py）----
+# 官网新闻/公告（2026-09-13 在线校准，实测样本见 test_lol_news.py）
 # news/index.shtml 为 JS 动态渲染的 GBK 页面，HTML 内无新闻数据；真实数据源是页面引用的
 # /v3/js/newslist.js 中的腾讯 CMC 内容接口（实测 200）。不带 r0=jsonp 时返回明文 JSON；
 # 带 r0=jsonp 则 JSONP 包裹 callback(...)（回调参数名 r1）。同一端点以 target 参数区分
