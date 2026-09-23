@@ -115,7 +115,7 @@ def test_account_switch_clears_only_private_poll_status():
 def scheduler(adapter, store=None, reminder=None):
     reg = SimpleNamespace(get=lambda _: adapter)
     return PollingScheduler(reg, store or SnapshotStore(':memory:'), Settings(),
-                            FakeNotify(), reminder=reminder)
+                            reminder=reminder)
 
 
 async def test_same_capability_refreshes_are_serialized():

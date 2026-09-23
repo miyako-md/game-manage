@@ -162,7 +162,7 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         engine = ReminderEngine(ReminderDedup(settings.db_path), notifier,
                                 settings)
         scheduler = PollingScheduler(app.state.registry, app.state.store,
-                                     settings, notifier, reminder=engine)
+                                     settings, reminder=engine)
     app.state.scheduler = scheduler
 
     @asynccontextmanager

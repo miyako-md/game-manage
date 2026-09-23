@@ -184,7 +184,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
             data = raw.get("data") or {}
             rows = data.get("list") if isinstance(data, dict) else data
             post = event_calendar.find_version_post(
-                rows, VERSION_TITLE_KEYS, id_key="postId",
+                rows, VERSION_TITLE_KEYS,
                 title_key="postTitle", time_key="publishTime")
             if not post:
                 return FetchResult(ok=False, error='未找到版本公告，保留上次成功日历',

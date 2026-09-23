@@ -123,7 +123,7 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
         async def run():
             async with LoLNewsClient() as client:
                 data = await client.fetch_news(category)
-            return FetchResult(ok=True, payload=parse_news_json(data, category))
+            return FetchResult(ok=True, payload=parse_news_json(data))
         return await self._guarded_run(run)
 
     async def fetch_announcement(self) -> FetchResult:
