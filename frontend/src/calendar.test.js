@@ -96,7 +96,11 @@ test('filtering and grouping retain source metadata and empty games do not fabri
   assert.equal(events[0].stale, true)
   assert.equal(collectCalendarEvents(games, snapshots, 'lol').length, 0)
   assert.equal(groupCalendarEvents(events)[0].events.length, 1)
-  assert.equal(safeUrl('javascript:alert(1)'), null)
-  assert.equal(safeUrl('12345'), null)
+})
+
+test('safeUrl keeps http(s) URLs and rejects script schemes, credentials and relative references', () => {
+  for (const url of ['javascript:alert(1)', 'data:image/png;base64,AA==', '/image.png', '//example.com/image.png',
+    'https://user:secret@example.com/a', '12345', null])
+    assert.equal(safeUrl(url), null)
   assert.equal(safeUrl('https://example.com/post'), 'https://example.com/post')
 })
