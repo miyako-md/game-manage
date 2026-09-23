@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     bilibili_poll_seconds: int = 600
     notify_provider: str = "serverchan"  # serverchan | pushplus
     notify_send_key: str = ""
-    # 提醒规则（M3）：体力满推送 / 满阈值 / 活动临期天数 / 轮询失败告警阈值
+    # 提醒规则：体力满推送 / 满阈值 / 活动临期天数 / 轮询失败告警阈值
     notify_stamina_full: bool = True
     stamina_threshold_percent: int = 90
     activity_remind_days: int = 3

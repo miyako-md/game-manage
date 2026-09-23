@@ -63,8 +63,8 @@ async def _request_json(client: httpx.AsyncClient, method: str, url: str, *,
                         authorized: bool = True) -> dict:
     """统一请求与错误契约：网络错误/HTTP 码/业务 code 检查 → TajiduoError。
 
-    成功码取 code∈(0, 200)（塔吉多为米哈游 BBS 风格接口，code=0 预期为主，
-    200 为防御；Phase 2 按真实响应校准）。业务错误码原样进 status_code。
+    成功码取 code∈(0, 200)（实测成功为 code=0，200 仅为防御）。
+    业务错误码原样进 status_code。
     """
     try:
         resp = await client.request(method, url, params=params, headers=headers)

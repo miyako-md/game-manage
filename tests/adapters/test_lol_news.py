@@ -1,6 +1,6 @@
 """官网公告/资讯客户端与解析测试。
 
-fixture 为 Task 7 Step 5 在线校准真实样本（2026-09-13 实测
+fixture 为在线校准的真实样本（2026-09-13 实测
 apps.game.qq.com/cmc/zmMcnTargetContentList?target=24，即"公告"tab），见 endpoints.py 注释。
 """
 from datetime import datetime, timedelta
@@ -83,7 +83,7 @@ def test_parse_news_json_cross_items_shape():
 
 
 def test_parse_news_json_legacy_assumed_shape():
-    # Task 7 简报的假设形状（sDate/sUrl/title）仍需兼容
+    # 未经实测的回退形状（sDate/sUrl/title）仍需兼容
     raw = {"newsList": [
         {"title": "26.18版本更新公告", "sDate": "2026-09-11",
          "sUrl": "https://lol.qq.com/news/detail.shtml?nid=1"},

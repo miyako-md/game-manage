@@ -1,4 +1,4 @@
-"""LCU 凭据发现。校准来源：C:\\GPT\\LOLhelper pigeon/lcu.py（国服 WeGame 已验证）。
+"""LCU 凭据发现（国服 WeGame 已验证）。
 
 国服 WeGame 的 lockfile 常为 0 字节，主路径是从 LeagueClientUx 进程
 命令行提取 --app-port / --remoting-auth-token（psutil）。
@@ -42,8 +42,6 @@ def find_lockfile_credentials(
     candidates: list[Path] = LOCKFILE_CANDIDATES,
 ) -> tuple[str, str] | None:
     # 标准 Riot lockfile 格式 PID:Port:Password:Protocol。
-    # 差异记录：LOLhelper lcu.py 取 parts[2],parts[3] 当 (port,token)，与标准格式
-    # 不符（其国服主路径是进程发现，此分支极少执行）；本实现按标准格式。
     for p in candidates:
         try:
             if p.exists() and p.stat().st_size > 0:

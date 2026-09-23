@@ -40,7 +40,7 @@ def _post_url(item: dict) -> str | None:
     """链接键回退：sUrl / url / jumpUrl；缺失时按 postId 拼社区详情页。
 
     实测 post 响应无任何 URL 键，只能按 postId 拼；bbs.tajiduo.com 帖子
-    详情路由本环境未能验证（站点域名连接失败，Phase 2 浏览器核对）。
+    详情路由尚未验证（当时站点域名连接失败）。
     """
     for key in ("sUrl", "url", "jumpUrl"):
         url = item.get(key)

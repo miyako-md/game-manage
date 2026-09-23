@@ -75,7 +75,7 @@ class DetectionSummary(BaseModel):
 
 class AreaSummary(BaseModel):
     # 国家分组下的地区（areaInfoList 单条）：名称 + 探索度百分比；
-    # itemList 明细不进模型（M4 再说）
+    # itemList 明细不进模型
     name: str
     progress: float | None = None
 

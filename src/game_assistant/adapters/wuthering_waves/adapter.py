@@ -89,7 +89,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
             return FetchResult(ok=False, error=f"库街区接口错误: {message}", error_code=e.code,
                 error_kind='auth_expired' if e.code in AUTH_EXPIRED_CODES else 'source_error')
         except Exception:
-            # 解析器异常不得穿透 fetch 破坏失效隔离（spec §6）
+            # 解析器异常不得穿透 fetch 破坏失效隔离
             logger.warning("鸣潮数据处理异常，保留上次成功数据")
             return FetchResult(ok=False, error="数据解析异常，请稍后重试", error_kind='invalid_data')
 
