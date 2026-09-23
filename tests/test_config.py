@@ -24,6 +24,17 @@ def test_load_from_toml(tmp_path):
     assert s.wuwa_token == "tok"
 
 
+def test_config_from_pre_release_template_still_loads(tmp_path):
+    cfg = tmp_path / "config.toml"
+    cfg.write_text(
+        'app_host = "127.0.0.1"\n'
+        'app_port = 8010\n'
+        'lol_enabled = false\n',
+        encoding="utf-8",
+    )
+    assert Settings.load(str(cfg)).lol_enabled is False
+
+
 def test_nte_events_default_empty(tmp_path):
     s = Settings.load(str(tmp_path / "missing.toml"))
     assert s.nte_events == []

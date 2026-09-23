@@ -5,6 +5,11 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # Templates before 0.1.0 wrote these keys and existing config.toml files keep
+    # them. Unknown keys are rejected, so they stay accepted; the launcher always
+    # listens on 127.0.0.1:8010 and nothing reads them.
+    app_host: str = "127.0.0.1"
+    app_port: int = 8010
     db_path: str = "data/assistant.db"
     stamina_seconds: int = 300
     activity_seconds: int = 3600
