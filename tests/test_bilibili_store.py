@@ -1,14 +1,22 @@
+from datetime import datetime, timezone
+
 from game_assistant.sources.bilibili_store import BilibiliStore
 from game_assistant.sources.bilibili import classify_dynamic
 from tests.test_bilibili_source import post, UID, NOW
 
+def published_now(text):
+    # rows() keeps the last 60 days by the real clock, so a fixed publish time
+    # would age out of the window.
+    now = datetime.now(timezone.utc)
+    return classify_dynamic(post(text, published=now.timestamp()), UID, now)
+
 def test_idempotent_ingestion_retains_filter_audit_and_source_isolation(tmp_path):
     store = BilibiliStore(tmp_path/'news.db')
-    good = classify_dynamic(post('9月15日版本更新公告'), UID, NOW)
+    good = published_now('9月15日版本更新公告')
     store.save_rows('nte', UID, [good, good])
     assert len(store.rows('nte', UID)) == 1
     assert len(store.rows('nte', UID, 'accepted')) == 1
-    rejected = classify_dynamic(post('9月15日版本PV发布'), UID, NOW)
+    rejected = published_now('9月15日版本PV发布')
     store.save_rows('nte', UID, [rejected])
     assert store.rows('nte', UID, 'accepted') == []
     assert store.rows('nte', UID)[0]['reason'] == 'promotion'
@@ -23,7 +31,7 @@ def test_failed_run_keeps_previous_success_and_history_coverage(tmp_path):
 
 def test_incomplete_article_does_not_replace_last_complete_accepted_record(tmp_path):
     store = BilibiliStore(tmp_path/'news.db')
-    good = classify_dynamic(post('9月15日版本更新公告\n完整活动安排'), UID, NOW)
+    good = published_now('9月15日版本更新公告\n完整活动安排')
     store.save_rows('nte', UID, [good])
     partial = {**good, 'body':'截断摘要...', 'decision':'excluded', 'reason':'incomplete'}
     store.save_rows('nte', UID, [partial])
