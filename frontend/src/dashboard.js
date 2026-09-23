@@ -11,10 +11,12 @@ export const gameStyle = (id) => GAME_STYLE[id] || { mark: '游', color: '#d8bb8
 export const finiteValue = (value) => typeof value === 'number' && Number.isFinite(value) ? value : null
 export function formatTime(value, options = {}) {
   const ts = typeof value === 'number' ? value : parseBeijingTime(value)
-  if (ts == null || !Number.isFinite(ts)) return '未提供'
+  // A finite number outside the Date range makes an Invalid Date, which Intl rejects.
+  const date = new Date(ts ?? NaN)
+  if (!Number.isFinite(date.getTime())) return '未提供'
   return new Intl.DateTimeFormat('zh-CN', {
     timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...options,
-  }).format(new Date(ts))
+  }).format(date)
 }
 export function summaryFor(game, snapshots = {}) {
   const validPayload = (cap) => {
