@@ -1,8 +1,4 @@
-"""ChampionCatalog：解析 / 7 天文件缓存 / 网络失败降级。
-
-形状按 2026-09-13 实测校准：字段 squarePortraitPath（无 iconPath），
-id=-1 占位项；图标 zh_cn 目录 404 → 拼 global/default 目录。
-"""
+"""ChampionCatalog：解析 / 7 天文件缓存 / 网络失败降级（2026-09-13 实测形状，id=-1 占位项）。"""
 import json
 import time
 
@@ -37,15 +33,11 @@ async def test_fetch_parses_and_skips_placeholder(tmp_path):
     cat = await ChampionCatalog(cache_path=str(tmp_path / "c.json")).get()
     assert route.call_count == 1
     assert sorted(cat) == [1, 157]  # id=-1 占位项跳过
-    assert cat[1]["name"] == "黑暗之女"
-    # 图标拼 global/default 目录（zh_cn 目录实测 404）
-    assert (cat[157]["icon"] ==
-            "https://raw.communitydragon.org/latest/plugins/"
-            "rcp-be-lol-game-data/global/default/v1/champion-icons/157.png")
+    assert cat == {1: {"name": "黑暗之女"}, 157: {"name": "疾风剑豪"}}
 
 
 def test_name_for():
-    catalog = {1: {"name": "黑暗之女", "icon": None}}
+    catalog = {1: {"name": "黑暗之女"}}
     assert ChampionCatalog.name_for(catalog, 1) == "黑暗之女"
     assert ChampionCatalog.name_for(catalog, 999) is None
     assert ChampionCatalog.name_for(catalog, None) is None
