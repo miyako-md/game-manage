@@ -1,5 +1,6 @@
 <script setup>
-import { list, value, safeImage } from '../wuwa-display.js'
+import { safeUrl } from '../calendar.js'
+import { list, value } from '../wuwa-display.js'
 import WuwaFields from './WuwaFields.vue'
 defineProps({ data: { type: Object, default: () => ({}) } })
 </script>
@@ -18,8 +19,8 @@ defineProps({ data: { type: Object, default: () => ({}) } })
       <h3>角色外观</h3>
       <div class="wuwa-equipment">
         <img
-          v-if="safeImage(data.role_skin?.skin_icon)"
-          :src="safeImage(data.role_skin.skin_icon)"
+          v-if="safeUrl(data.role_skin?.skin_icon)"
+          :src="safeUrl(data.role_skin.skin_icon)"
           alt="当前外观"
           loading="lazy"
         />
@@ -42,8 +43,8 @@ defineProps({ data: { type: Object, default: () => ({}) } })
       <h3>实际装备武器</h3>
       <div v-if="data.weapon_data" class="wuwa-equipment">
         <img
-          v-if="safeImage(data.weapon_data.weapon?.weapon_icon)"
-          :src="safeImage(data.weapon_data.weapon.weapon_icon)"
+          v-if="safeUrl(data.weapon_data.weapon?.weapon_icon)"
+          :src="safeUrl(data.weapon_data.weapon.weapon_icon)"
           alt="装备武器"
           loading="lazy"
         />
@@ -174,8 +175,8 @@ defineProps({ data: { type: Object, default: () => ({}) } })
         >
           <div class="wuwa-equipment">
             <img
-              v-if="safeImage(echo.phantom_prop?.icon_url)"
-              :src="safeImage(echo.phantom_prop.icon_url)"
+              v-if="safeUrl(echo.phantom_prop?.icon_url)"
+              :src="safeUrl(echo.phantom_prop.icon_url)"
               alt="声骸"
               loading="lazy"
             />
