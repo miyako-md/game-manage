@@ -1,5 +1,5 @@
 <script setup>
-import { displayBeijing } from '../time.js'
+import { fetchedLabel } from '../time.js'
 import { safeUrl } from '../calendar.js'
 import { displayRoleValue } from '../nte-roles.js'
 import { computed } from 'vue'
@@ -22,7 +22,7 @@ const exceedsTarget = (current, total) => measurable(current, total) && current 
 
 const fetchedAt = computed(() => {
   const readAt = props.capability === 'stamina' ? data.value.updated_at || props.snap?.fetched_at : props.snap?.fetched_at
-  return readAt ? displayBeijing(readAt) : null
+  return fetchedLabel(readAt)
 })
 const accountStats = computed(() => [
   ['等级', display(data.value.level)], ['世界等级', display(data.value.world_level)],
