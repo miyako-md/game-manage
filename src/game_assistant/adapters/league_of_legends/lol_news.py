@@ -137,12 +137,11 @@ def _detail_url(item: dict) -> str | None:
     return None
 
 
-def parse_news_json(data: dict | list, category: str = "公告") -> list[AnnouncementItem]:
+def parse_news_json(data: dict | list) -> list[AnnouncementItem]:
     """解析官网新闻列表响应为 AnnouncementItem。
 
-    category（"公告"/"综合"等，映射见 NEWS_CATEGORY_IDS）：校准确认分类过滤由端点
-    target 参数在服务端完成（公告条目 sTagIds 中并不含分类 id，无法客户端过滤），
-    此参数仅为保持调用签名，不做二次过滤。
+    分类只能由请求端点的 target 参数在服务端过滤（公告条目 sTagIds 中并不含
+    分类 id），这里不做二次过滤。
     """
     items = []
     for it in _extract_list(data):

@@ -57,7 +57,7 @@ class NteAdapter(BaseGameAdapter):
         s = self._settings
         if not (s.nte_access_token or s.nte_refresh_token):
             raise _UnconfiguredCredentialsError("未配置塔吉多凭据")
-        return TajiduoClient(s.nte_access_token, s.nte_refresh_token,
+        return TajiduoClient(s.nte_access_token,
                              device_id=s.nte_device_id or None)
 
     async def _guarded_run(self, run) -> FetchResult:
@@ -114,7 +114,7 @@ class NteAdapter(BaseGameAdapter):
                     column_id, count=OFFICIAL_POST_COUNT)
                 post = event_calendar.find_version_post(
                     tajiduo._extract_rows(raw), VERSION_TITLE_KEYS,
-                    id_key="postId", title_key="subject", time_key="createTime")
+                    title_key="subject", time_key="createTime")
                 if not post:
                     return FetchResult(ok=False, error='未找到版本公告，保留上次成功日历',
                                        error_kind='source_error')

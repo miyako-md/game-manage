@@ -53,7 +53,7 @@ async def test_home_cache_expiry_and_failed_fetch_keeps_last_snapshot(monkeypatc
     a = adapter()
     registry = GameRegistry(); registry.register(a)
     store = SnapshotStore(':memory:')
-    scheduler = PollingScheduler(registry, store, Settings(), None)
+    scheduler = PollingScheduler(registry, store, Settings())
     assert (await scheduler.poll_once('nte', Capability.ACCOUNT)).ok
     old = store.get('nte', 'account')
     clock[0] += 31

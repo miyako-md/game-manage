@@ -11,7 +11,7 @@ def test_refresh_endpoint(tmp_path):
     settings = Settings(db_path=str(tmp_path / "t.db"))
     store = SnapshotStore(settings.db_path)
     registry = build_dummy_registry()
-    sched = PollingScheduler(registry, store, settings, FakeNotify())
+    sched = PollingScheduler(registry, store, settings)
     client = TestClient(create_app(registry=registry, store=store, settings=settings,
                                    scheduler=sched, notifier=FakeNotify()), base_url="http://127.0.0.1:8010")
     resp = client.post("/api/games/dummy/refresh", headers={'X-Game-Assistant': '1'})

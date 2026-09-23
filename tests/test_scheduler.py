@@ -33,7 +33,7 @@ def _sched(tmp_path, settings=None, reminder=None):
                          "get": lambda self, gid: WuwaLike()})()
     store = SnapshotStore(str(tmp_path / "t.db"))
     s = settings or Settings()
-    sched = PollingScheduler(reg, store, s, FakeNotify(), reminder=reminder)
+    sched = PollingScheduler(reg, store, s, reminder=reminder)
     return sched, store
 
 

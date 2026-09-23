@@ -54,12 +54,10 @@ def _serialize(payload: Any) -> str:
 
 
 class PollingScheduler:
-    def __init__(self, registry, store, settings: Settings, notifier,
-                 reminder=None):
+    def __init__(self, registry, store, settings: Settings, reminder=None):
         self.registry = registry
         self.store = store
         self.settings = settings
-        self.notifier = notifier
         self.reminder = reminder
         self._scheduler: AsyncIOScheduler | None = None
         self._poll_locks: dict[tuple[str, Capability], asyncio.Lock] = {}
