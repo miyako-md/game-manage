@@ -280,7 +280,8 @@ async def test_malformed_payload_returns_fetch_error():
     # 解析异常必须被 _guarded_run 拦下转为失败结果，而不是穿透 fetch 破坏失效隔离
     respx.post(ROLE_LIST_URL).mock(
         return_value=httpx.Response(200, json=ROLE_LIST_RAW))
-    respx.post(WIDGET_URL).mock(return_value=httpx.Response(
+    # 仅 token 的旧账号读体力走小组件 refresh 端点
+    respx.post(WIDGET_REFRESH_URL).mock(return_value=httpx.Response(
         200, json={"code": 200, "data": "{not-json}"}))
     a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="1"))
     r = await a.fetch(Capability.STAMINA)
