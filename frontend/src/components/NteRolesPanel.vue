@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
-import { displayBeijing } from '../time.js'
+import { fetchedLabel } from '../time.js'
 import { safeUrl } from '../calendar.js'
 import { filterRoles, comparisonGroups, favoritesKey, loadFavorites, saveFavorites, roleId, displayRoleValue as display } from '../nte-roles.js'
 
@@ -96,7 +96,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
         </li>
       </ul>
     </template>
-    <p v-if="snap?.fetched_at" class="fetched-at">更新于 {{ displayBeijing(snap.fetched_at) }}</p>
+    <p v-if="fetchedLabel(snap?.fetched_at)" class="fetched-at">更新于 {{ fetchedLabel(snap?.fetched_at) }}</p>
   </section>
 </template>
 

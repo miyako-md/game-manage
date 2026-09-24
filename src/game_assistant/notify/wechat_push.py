@@ -50,4 +50,3 @@ class WeChatPushNotifier:
 def build_notifier(settings) -> WeChatPushNotifier:
     return WeChatPushNotifier(provider=settings.notify_provider,
                               send_key=settings.notify_send_key)
-

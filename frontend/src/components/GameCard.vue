@@ -177,7 +177,6 @@ function capComponent(cap) {
 .detail-cap-roles,.detail-cap-match,.detail-cap-gacha,.detail-cap-exploration { grid-column:1/-1; }
 .detail-cap-match :deep(.item-main),.detail-cap-match :deep(.item-sub) { font-size:13px; }
 .detail-cap-roles :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
-.detail-cap-roles:not(.nte-card):not(.nte-roles-panel) :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); }
 @media(max-width:950px) { .cap-list { grid-template-columns:1fr; gap:16px; } }
 @media(max-width:600px) { .card-head { gap:12px; }.game-heading { gap:11px; }.game-name { font-size:25px; }.detail-monogram { width:43px; height:43px; font-size:25px; }.detail-tabs button { padding:10px 8px; font-size:11px; }.detail-navigation>.text-link { margin-bottom:12px; }.game-heading .eyebrow { font-size:8px; letter-spacing:.7px; } }
 
