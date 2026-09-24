@@ -22,9 +22,14 @@ test('stamina separates city stamina, daily activity and explicitly remaining we
 })
 
 test('missing weekly attempts are identified as not supplied rather than zero', (t) => {
-  const text = content(card(t, 'stamina', { current: 100, maximum: 240, weekly_remaining: null }))
-  assert.match(text, /周本剩余 未提供/)
-  assert.doesNotMatch(text, /周本剩余 (0|未知)/)
+  for (const weekly_remaining of [null, undefined]) {
+    const text = content(card(t, 'stamina', { current: 100, maximum: 240, weekly_remaining }))
+    assert.match(text, /周本剩余 未提供/)
+    assert.doesNotMatch(text, /周本剩余 (0|未知)/)
+  }
+  const zero = content(card(t, 'stamina', { current: 100, maximum: 240, weekly_remaining: 0 }))
+  assert.match(zero, /周本剩余 0/)
+  assert.doesNotMatch(zero, /周本剩余 未提供/)
 })
 
 test('achievement card renders medals and counts under achievement progress', (t) => {
