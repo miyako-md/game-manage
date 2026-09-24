@@ -134,8 +134,8 @@ class LoginService:
                               if s['game'] != game and s['expires'] > now}
             try:
                 context = await self.providers[game].start_context()
-            except Exception:
-                logger.warning("无法初始化登录", extra={'game': game}, exc_info=True)
+            except Exception as exc:
+                logger.warning("无法初始化登录 (%s)", type(exc).__name__, extra={'game': game})
                 raise LoginError('无法初始化登录，请检查网络后重试', 502) from None
             sid = secrets.token_urlsafe(32)
             self._sessions[sid] = {'game': game, 'context': context,
@@ -176,8 +176,8 @@ class LoginService:
                 await self.providers[game].send_sms(session['context'], mobile, captcha)
             except AuthError as error:
                 raise LoginError(error.message) from None
-            except Exception:
-                logger.warning("短信发送失败", extra={'game': game}, exc_info=True)
+            except Exception as exc:
+                logger.warning("短信发送失败 (%s)", type(exc).__name__, extra={'game': game})
                 raise LoginError('短信发送失败，请稍后重试', 502) from None
             session['sent'] = True
             return {'ok': True, 'retry_after': 60}
@@ -225,8 +225,8 @@ class LoginService:
                 account = await self.providers[game].login(session['context'], mobile, code)
             except AuthError as error:
                 raise LoginError(error.message) from None
-            except Exception:
-                logger.warning("登录失败", extra={'game': game}, exc_info=True)
+            except Exception as exc:
+                logger.warning("登录失败 (%s)", type(exc).__name__, extra={'game': game})
                 raise LoginError('登录失败，请检查网络后重试', 502) from None
             if session['expires'] <= self.clock():
                 raise LoginError('登录会话已过期，请重新开始登录', 410)
@@ -256,8 +256,8 @@ class LoginService:
             raise LoginError(error.message, error_kind=kind) from None
         except LoginError:
             raise
-        except Exception:
-            logger.warning("登录状态刷新失败", extra={'game': game}, exc_info=True)
+        except Exception as exc:
+            logger.warning("登录状态刷新失败 (%s)", type(exc).__name__, extra={'game': game})
             raise LoginError('登录状态刷新失败，请稍后重试', 502) from None
 
     async def fetch(self, game, capability, action):

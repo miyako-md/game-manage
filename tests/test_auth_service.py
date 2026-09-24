@@ -205,6 +205,20 @@ async def test_public_nte_capability_never_requires_login(tmp_path):
     assert provider.renewed == 0
 
 
+async def test_unexpected_provider_error_returns_502_without_sensitive_details(tmp_path, caplog):
+    service, provider, _, _ = make_service(tmp_path)
+    async def broken():
+        raise RuntimeError('https://x/?token=abc')
+    provider.start_context = broken
+    with caplog.at_level('WARNING'):
+        with pytest.raises(LoginError) as failure:
+            await service.start('nte')
+    assert failure.value.status == 502
+    assert 'abc' not in caplog.text
+    assert 'Traceback' not in caplog.text
+    assert 'RuntimeError' in caplog.text
+
+
 async def test_auth_status_recovers_after_successful_private_request(tmp_path):
     service, provider, settings, _ = make_service(tmp_path)
     service._accounts['nte']['refresh_token'] = ''
