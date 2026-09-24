@@ -38,7 +38,7 @@ class KuroClient:
                 # 若上游改回 JSON 在此切换
                 resp = await client.post(url, headers=self._headers(), data=body)
         except httpx.HTTPError as e:
-            raise KuroError(-1, f"网络错误: {e}") from e
+            raise KuroError(-1, f"网络错误: {type(e).__name__}") from e
         if resp.status_code != 200:
             raise KuroError(resp.status_code, f"HTTP {resp.status_code}")
         try:
