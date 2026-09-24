@@ -34,3 +34,9 @@ test('date presentation crosses Beijing midnight and safely handles invalid nume
   for (const date of [null, undefined, '', NaN, Infinity, 1e30, 'not-a-date'])
     assert.equal(stamp(date), '未知')
 })
+
+test('stamp shows numbers outside four-digit years as unknown', () => {
+  assert.equal(stamp(1.7e15), '未知')
+  assert.equal(stamp(-6e13), '未知')
+  assert.equal(stamp(253402300800000), '未知')
+})

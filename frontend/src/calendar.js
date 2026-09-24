@@ -23,6 +23,9 @@ export function formatBeijingDateTime(value) {
   if (time === null) return '未知'
   const date = new Date(time + BEIJING_OFFSET)
   if (!Number.isFinite(date.getTime())) return '未知'
+  // Only four-digit years are displayable; anything else is a corrupt timestamp.
+  const year = date.getUTCFullYear()
+  if (year < 1000 || year > 9999) return '未知'
   return date.toISOString().slice(0, 16).replace('T', ' ')
 }
 
