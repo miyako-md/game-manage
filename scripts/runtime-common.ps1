@@ -150,6 +150,16 @@ function Start-LocalRuntime {
         $verified = Get-VerifiedProcess (Read-State)
         if ($verified) { $verified.Kill(); $null = $verified.WaitForExit(5000) }
         Clear-RuntimeRecord
+    } elseif (-not $launcher.HasExited) {
+        # No handshake was written, so this is still the process we started.
+        try {
+            $launcher.Kill()
+            $null = $launcher.WaitForExit(5000)
+        } catch {
+            # It may have exited between the check and the kill; the startup
+            # failure below is the error worth reporting.
+            Write-Warning "Could not stop launcher PID $($launcher.Id): $($_.Exception.GetType().Name)"
+        }
     }
     throw "Startup health/identity check failed. Logs: $script:RuntimeDir"
 }
