@@ -637,6 +637,40 @@ test('file import reads local JSON only after explicit click and masks error res
   assert.match(content(root), /参数无效/)
   assert.doesNotMatch(content(root), /SECRET/)
 })
+test('file import stays busy from the file read until the archive reloads', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () =>
+    reply({
+      ...identity,
+      total: 0,
+      items: [],
+      gold: [],
+      pools: [],
+      coverage: {},
+    }),
+  )
+  const root = mount(t, await component('WuwaGacha'), {
+    accountKey: 'account:server',
+  })
+  await tick()
+  const fileInput = () => nodes(root, 'input').find((n) => n.props.type === 'file')
+  let finish
+  fileInput().props.onChange({
+    target: {
+      files: [
+        { size: 50, text: () => new Promise((resolve) => (finish = resolve)) },
+      ],
+    },
+  })
+  await tick()
+  await click(root, '导入文件')
+  assert.match(content(root), /正在读取 \/ 导入/)
+  assert.equal(fileInput().props.disabled, true)
+  finish('{"uid":"account","list":[]}')
+  await tick()
+  await tick()
+  assert.doesNotMatch(content(root), /正在读取 \/ 导入/)
+  assert.equal(fileInput().props.disabled, false)
+})
 test('leaving gacha during file read cancels deferred import before it sends a POST', async (t) => {
   const requests = []
   t.mock.method(globalThis, 'fetch', async (url, options) => {
