@@ -185,14 +185,22 @@ class LoginService:
     def _persist(self, game, account, clear_snapshots=False):
         accounts = deepcopy(self._saved)
         accounts[game] = account
+        backup = None
         if clear_snapshots and self.snapshots:
             try:
+                backup = self.snapshots.export_private(game)
                 self.snapshots.clear_private(game)
             except Exception:
                 raise LoginError('旧账号快照清理失败，原登录状态已保留，请稍后重试', 500) from None
         try:
             self.store.save(accounts)
         except CredentialStoreError as error:
+            if backup is not None:
+                try:
+                    self.snapshots.restore_private(game, backup)
+                except Exception as restore_error:
+                    logger.warning("旧账号快照恢复失败 (%s)", type(restore_error).__name__)
+                    raise LoginError(f'{error}；旧账号快照未能恢复，请重新刷新数据', 500) from None
             raise LoginError(str(error), 500) from None
         self._saved = accounts
         self._accounts[game] = account

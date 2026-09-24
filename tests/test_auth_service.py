@@ -113,6 +113,45 @@ async def test_failed_save_keeps_live_account(tmp_path, monkeypatch):
     assert settings.nte_access_token == 'legacy-access'
 
 
+async def test_failed_save_restores_private_snapshots(tmp_path, monkeypatch):
+    from game_assistant.auth.store import CredentialStoreError
+    from game_assistant.snapshots import SnapshotStore
+    service, _, settings, _ = make_service(tmp_path)
+    snapshots = SnapshotStore(str(tmp_path / 'assistant.db'))
+    snapshots.save('nte', 'account', '{"nickname":"old"}')
+    snapshots.record_poll('nte', 'account', FetchResult(ok=False, error='旧错误', error_kind='source_error'))
+    service.snapshots = snapshots
+    def fail(_):
+        raise CredentialStoreError('本地凭据保存失败')
+    monkeypatch.setattr(service.store, 'save', fail)
+    with pytest.raises(LoginError):
+        await logged_in(service)
+    assert snapshots.get('nte', 'account')['payload'] == '{"nickname":"old"}'
+    assert snapshots.get_poll_status('nte', 'account')['error'] == '旧错误'
+    assert settings.nte_access_token == 'legacy-access'
+
+
+async def test_failed_save_and_failed_restore_report_both(tmp_path, monkeypatch):
+    from game_assistant.auth.store import CredentialStoreError
+    from game_assistant.snapshots import SnapshotStore
+    service, _, settings, _ = make_service(tmp_path)
+    snapshots = SnapshotStore(str(tmp_path / 'assistant.db'))
+    snapshots.save('nte', 'account', '{"nickname":"old"}')
+    service.snapshots = snapshots
+    def fail(_):
+        raise CredentialStoreError('本地凭据保存失败')
+    def broken_restore(_game, _backup):
+        raise RuntimeError('disk gone')
+    monkeypatch.setattr(service.store, 'save', fail)
+    monkeypatch.setattr(snapshots, 'restore_private', broken_restore)
+    with pytest.raises(LoginError) as info:
+        await logged_in(service)
+    assert info.value.status == 500
+    assert '本地凭据保存失败' in info.value.message and '旧账号快照未能恢复' in info.value.message
+    assert 'disk gone' not in info.value.message
+    assert settings.nte_access_token == 'legacy-access'
+
+
 async def test_login_attempt_limit(tmp_path):
     service, provider, _, _ = make_service(tmp_path)
     from game_assistant.auth.providers import AuthError
