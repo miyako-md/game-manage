@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from urllib.parse import parse_qs
 
 import httpx
 import pytest
@@ -96,7 +97,8 @@ async def test_default_resources_request_latest_available_month():
     assert result.ok and result.payload.current['period'] == '202609'
     assert [row['period'] for row in result.payload.periods['month']] == ['202607', '202609', '202608']
     assert len(month.calls) == 1
-    assert b'period=202609' in month.calls[0].request.content
+    body = parse_qs(month.calls[0].request.content.decode())
+    assert body == {'roleId': ['account'], 'serverId': ['server'], 'period': ['202609']}
 
 
 @respx.mock
