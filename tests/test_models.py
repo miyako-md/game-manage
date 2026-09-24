@@ -4,7 +4,7 @@ import pytest
 
 from game_assistant.models import (
     AccountInfo, AnnouncementItem, CalabashData, Capability, CountryGroup,
-    DetectionSummary, ExplorationData, AreaSummary,
+    DetectionSummary, ExplorationData, AreaSummary, FetchResult,
     MatchSummary, ProgressItem, RoleEntry, StaminaInfo,
 )
 
@@ -62,3 +62,40 @@ def test_match_summary_roundtrip():
                      duration_seconds=1234, win=True, champion_id=157,
                      kills=8, deaths=3, assists=10)
     assert MatchSummary.model_validate(m.model_dump()) == m
+
+
+def test_capability_names_and_values_are_pinned():
+    # 前端和轮询间隔配置按字符串值寻址能力；任何一项被改名或改值都是破坏性变更，
+    # 必须在这里显式暴露，而不是被参数化测试的自反断言掩盖。
+    expected = {
+        "ACCOUNT": "account",
+        "STAMINA": "stamina",
+        "PROGRESS": "progress",
+        "ANNOUNCEMENT": "announcement",
+        "NEWS": "news",
+        "MATCH": "match",
+        "STATS": "stats",
+        "EXPLORATION": "exploration",
+        "CALABASH": "calabash",
+        "ROLES": "roles",
+        "COMBAT": "combat",
+        "ACTIVITIES": "activities",
+        "RESOURCES": "resources",
+        "GACHA": "gacha",
+        "RECORD": "record",
+        "EVENTS": "events",
+        "REALESTATE": "realestate",
+        "VEHICLES": "vehicles",
+        "TEAMS": "teams",
+    }
+    assert {c.name: c.value for c in Capability} == expected
+
+
+def test_fetch_result_defaults_are_all_none_except_ok():
+    result = FetchResult(ok=True)
+    assert result.payload is None
+    assert result.error is None
+    assert result.error_code is None
+    assert result.error_source is None
+    assert result.error_kind is None
+    assert result.credential_version is None
