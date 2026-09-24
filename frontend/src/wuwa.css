@@ -39,6 +39,14 @@
 }
 .wuwa-dashboard button {
   cursor: pointer;
+  transition:
+    color var(--duration-quick) var(--ease-smooth-out),
+    border-color var(--duration-quick) var(--ease-smooth-out),
+    background-color var(--duration-quick) var(--ease-smooth-out),
+    transform var(--duration-quick) var(--ease-smooth-out);
+}
+.wuwa-dashboard button:not(:disabled):active {
+  transform: scale(var(--scale-small));
 }
 .wuwa-dashboard button:hover:not(:disabled),
 .wuwa-dashboard button[aria-pressed='true'] {
@@ -79,8 +87,10 @@
   gap: 7px;
   flex-wrap: wrap;
 }
-.wuwa-tabs button {
+.wuwa-tabs button,
+.wuwa-tabs button[aria-pressed='true'] {
   background: transparent;
+  border-color: transparent;
 }
 .wuwa-calendar {
   margin-left: auto;

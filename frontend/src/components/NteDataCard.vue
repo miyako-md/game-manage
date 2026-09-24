@@ -3,6 +3,7 @@ import { fetchedLabel } from '../time.js'
 import { safeUrl } from '../calendar.js'
 import { displayRoleValue } from '../nte-roles.js'
 import { computed } from 'vue'
+import { vPop } from '../motion.js'
 
 const props = defineProps({
   snap: { type: Object, default: null },
@@ -65,7 +66,7 @@ const staminaRows = computed(() => [
       <p class="muted">来源：塔吉多角色面板。社区数据可能延迟，请以游戏内体力为准。</p>
       <ul class="rows">
         <li v-for="row in staminaRows" :key="row.name">
-          <div class="row-head"><span>{{ row.name }}</span><strong>{{ ratio(row.current, row.total) }}</strong></div>
+          <div class="row-head"><span>{{ row.name }}</span><strong v-pop>{{ ratio(row.current, row.total) }}</strong></div>
           <progress v-if="measurable(row.current, row.total)" :value="row.current" :max="row.total" :aria-label="row.name" />
         </li>
         <li class="row-head"><span>周本剩余</span><strong>{{ data.weekly_remaining == null ? '未提供' : display(data.weekly_remaining) }}</strong></li>

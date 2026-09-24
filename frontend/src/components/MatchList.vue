@@ -177,6 +177,8 @@ async function toggleDetail(row) {
   cursor: pointer;
 }
 
+.detail-btn { transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
+.detail-btn:active { transform: scale(var(--scale-small)); }
 .detail-btn:hover {
   border-color: var(--accent);
   color: var(--accent);

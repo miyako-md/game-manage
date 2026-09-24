@@ -60,7 +60,7 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
 <template>
   <section v-if="visible.length" class="bili-panel">
     <details>
-      <summary>B站官方动态来源 <span>60 天回补 · 仅图文通知</span></summary>
+      <summary>B站官方动态来源 <span>60 天回补 · 仅图文通知</span><i class="t-disclosure" aria-hidden="true">⌄</i></summary>
       <p class="muted">只收录正文有明确日期的游戏内版本、活动、卡池等通知。视频、抽奖、PV/EP、实机与时装展示自动过滤。</p>
       <p v-if="error" role="alert">{{ error }}</p>
       <div v-for="s in visible" :key="s.uid" class="bili-status">
@@ -90,11 +90,11 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
 
 <style scoped>
 .bili-panel { margin-top:24px; padding:20px; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; font-size:12px; color:var(--text); }
-summary { cursor:pointer; font-weight:550; } summary span { margin-left:12px; font-size:11px; color:var(--text-muted); }
+summary { cursor:pointer; font-weight:550; } summary span { margin-left:12px; font-size:11px; color:var(--text-muted); } summary .t-disclosure { margin-left:10px; font-style:normal; color:var(--accent); }
 p { margin-top:10px; line-height:1.7; }.muted,small { color:var(--text-muted); }.warning,[role=alert] { color:#e3ba9a; }
 .bili-status { padding:16px 0; border-bottom:1px solid var(--border); }.bili-status small { display:block; margin-top:5px; }
 .bili-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
-button,select { background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--accent); padding:7px 12px; cursor:pointer; }button:disabled { opacity:.5; cursor:wait; }
+button,select { background:var(--bg); border:1px solid var(--border); border-radius:7px; color:var(--accent); padding:7px 12px; cursor:pointer; box-shadow:var(--btn-shadow); transition:color var(--duration-quick) var(--ease-smooth-out),border-color var(--duration-quick) var(--ease-smooth-out),background-color var(--duration-quick) var(--ease-smooth-out),transform var(--duration-quick) var(--ease-smooth-out); }button:disabled { opacity:.5; cursor:wait; box-shadow:none; }button:not(:disabled):hover { border-color:#627081; background:var(--surface-soft); }button:not(:disabled):active { transform:scale(var(--scale-small)); }
 .login-toggle { margin-top:16px; }.bili-login { max-width:520px; }.bili-login label { display:block; margin:12px 0; }.bili-login input { display:block; width:100%; margin-top:5px; padding:8px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:5px; }
 .bili-audit { margin-top:20px; max-height:650px; overflow:auto; }.bili-audit article { padding:14px 0; border-bottom:1px solid var(--border); }.bili-audit small { display:block; margin-top:6px; }.bili-audit a { color:var(--accent); }.bili-audit details { margin-top:8px; }.original { white-space:pre-wrap; overflow-wrap:anywhere; }
 </style>

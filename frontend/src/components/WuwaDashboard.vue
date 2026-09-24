@@ -12,6 +12,7 @@ import ExplorationCard from './ExplorationCard.vue'
 import CalabashCard from './CalabashCard.vue'
 import ProgressCard from './ProgressCard.vue'
 import AnnouncementList from './AnnouncementList.vue'
+import { vGlide } from '../motion.js'
 const props = defineProps({
   snaps: { type: Object, default: () => ({}) },
   initialSection: { type: String, default: 'overview' },
@@ -80,7 +81,7 @@ const roleNames = computed(() =>
 <template>
   <div class="wuwa-dashboard">
     <div class="wuwa-nav">
-      <nav class="wuwa-tabs" aria-label="鸣潮数据分区">
+      <nav v-glide class="wuwa-tabs" aria-label="鸣潮数据分区">
         <button
           v-for="[key, name] in tabs"
           :key="key"
@@ -94,7 +95,7 @@ const roleNames = computed(() =>
         活动日历 ↗
       </button>
     </div>
-    <div :key="accountKey" class="wuwa-stack">
+    <div :key="`${accountKey}:${section}`" class="wuwa-stack t-panel">
       <template v-if="section === 'news'"
         ><AnnouncementList
           :snap="snaps.news?.payload ? snaps.news : snaps.announcement"

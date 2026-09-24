@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { list, value, stamp } from '../wuwa-display.js'
+import { vGlide } from '../motion.js'
 const props = defineProps({
   roleNames: { type: Object, default: () => ({}) },
   data: { default: null },
@@ -24,7 +25,7 @@ const hasMissingFloorCaps = computed(() =>
     </p>
     <p v-if="data?.is_unlock === false" class="wuwa-muted">尚未解锁</p>
     <template v-else
-      ><div class="wuwa-tabs" aria-label="深塔分区">
+      ><div v-glide class="wuwa-tabs" aria-label="深塔分区">
         <button
           v-for="zone in zones"
           :key="zone.difficulty"

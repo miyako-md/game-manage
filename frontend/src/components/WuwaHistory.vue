@@ -5,6 +5,7 @@ import { list, stamp, label, value } from '../wuwa-display.js'
 import WuwaTower from './WuwaTower.vue'
 import WuwaFields from './WuwaFields.vue'
 import WuwaRoleDetail from './WuwaRoleDetail.vue'
+import { vGlide } from '../motion.js'
 const props = defineProps({
   roleNames: { type: Object, default: () => ({}) },
   accountKey: { type: String, default: '' },
@@ -79,7 +80,7 @@ watch(
     <p class="wuwa-muted">
       从成功观测开始记录。同一角色首次记录是基线，不计作练度提升；一次观测不能说明趋势。完整详情仅在你打开角色面板后记录。
     </p>
-    <nav class="wuwa-tabs" aria-label="历史类型">
+    <nav v-glide class="wuwa-tabs" aria-label="历史类型">
       <button
         v-for="[key, name] in [
           ['tower', '跨期深塔'],

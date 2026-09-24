@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { gameStyle } from '../dashboard.js'
+import { vGlide } from '../motion.js'
 import AppIcon from './AppIcon.vue'
 import GameIcon from './GameIcon.vue'
 import SourceStatusPanel from './SourceStatusPanel.vue'
@@ -81,19 +82,19 @@ function capComponent(cap) {
       </span>
       <button
         type="button"
-        class="refresh-btn"
+        class="ui-button refresh-btn"
         :disabled="externalRefreshing"
         @click="emit('refresh')"
       >
-        <AppIcon name="refresh" :size="15" :class="{ spinning: externalRefreshing }" />{{ externalRefreshing ? '刷新中…' : '刷新数据' }}
+        <AppIcon name="refresh" :size="15" :class="{ spinning: externalRefreshing }" /><span :class="{ 't-shimmer': externalRefreshing }">{{ externalRefreshing ? '刷新中…' : '刷新数据' }}</span>
       </button>
     </header>
 
     <SourceStatusPanel :game="game" :collection="collectionStatus" />
-    <div v-if="game.game_id !== 'wuthering_waves'" class="detail-navigation"><nav class="detail-tabs" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
+    <div v-if="game.game_id !== 'wuthering_waves'" class="detail-navigation"><nav v-glide.underline class="detail-tabs" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
     <WuwaDashboard v-if="game.game_id === 'wuthering_waves'" :snaps="externalSnapshots" :configured="game.credentials_configured" :initial-section="initialSection" @calendar="emit('calendar')" />
-    <div v-else class="cap-list">
-      <template v-for="cap in visibleCaps" :key="cap">
+    <div v-else :key="activeSection" class="cap-list t-panel">
+      <template v-for="(cap, index) in visibleCaps" :key="cap">
         <component
           :is="capComponent(cap)"
           v-if="capComponent(cap)"
@@ -102,7 +103,8 @@ function capComponent(cap) {
           :capability="cap"
           :account-id="game.game_id === 'nte' ? externalSnapshots.account?.payload?.role_id || '' : ''"
           :roles="externalSnapshots.roles?.payload?.entries || []"
-          :class="['detail-cap', `detail-cap-${cap}`]"
+          :class="['detail-cap', 't-item', `detail-cap-${cap}`]"
+          :style="{ '--i': index }"
         />
         <div v-else class="cap-card cap-coming">敬请期待</div>
       </template>
@@ -143,28 +145,7 @@ function capComponent(cap) {
   margin-top: 5px;
 }
 
-.refresh-btn {
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  padding: 9px 13px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 12px;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
+.refresh-btn { background:var(--bg); }
 
 .cap-list {
   display: grid;
@@ -173,7 +154,7 @@ function capComponent(cap) {
   align-items: start;
 }
 .detail-navigation { display:flex; justify-content:space-between; gap:15px; align-items:center; border-bottom:1px solid var(--border); margin-bottom:25px; flex-wrap:wrap; }
-.detail-tabs { display:flex; gap:5px; flex-wrap:wrap; }.detail-tabs button { color:var(--text-muted); background:none; border:0; padding:11px 13px; font-size:12px; border-bottom:2px solid transparent; }.detail-tabs button.active { color:var(--accent); border-bottom-color:var(--accent); }
+.detail-tabs { display:flex; gap:5px; flex-wrap:wrap; }.detail-tabs button { color:var(--text-muted); background:none; border:0; padding:11px 13px; font-size:12px; border-bottom:2px solid transparent; }.detail-tabs button.active { color:var(--accent); }.detail-tabs button { transition:color var(--duration-quick) var(--ease-smooth-out); }.detail-tabs button:not(.active):hover { color:var(--text); }
 .detail-cap-roles,.detail-cap-match,.detail-cap-gacha,.detail-cap-exploration { grid-column:1/-1; }
 .detail-cap-match :deep(.item-main),.detail-cap-match :deep(.item-sub) { font-size:13px; }
 .detail-cap-roles :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }

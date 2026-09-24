@@ -29,7 +29,7 @@ const teamResult = (team) => {
 </script>
 
 <template>
-  <div class="detail-panel">
+  <div class="detail-panel t-panel">
     <p v-if="loading" class="empty">对局详情加载中…</p>
     <div v-else-if="error" class="detail-error" role="alert">{{ error }}</div>
     <template v-else-if="detail">

@@ -4,6 +4,7 @@ import AppIcon from './AppIcon.vue'
 import GameIcon from './GameIcon.vue'
 import { gameStyle, summaryFor, upcomingEvents, recentNews, formatTime } from '../dashboard.js'
 import { sourceForGame } from '../source-status.js'
+import { vPop } from '../motion.js'
 
 const props = defineProps({ games: { type: Array, default: () => [] }, snapshots: { type: Object, default: () => ({}) },
   accounts: { type: Object, default: () => ({}) }, readErrors: { type: Object, default: () => ({}) }, refreshErrors: { type: Object, default: () => ({}) },
@@ -40,7 +41,7 @@ function resourceNote(card) {
   <div class="overview-page">
     <header class="overview-hero">
       <div class="hero-copy"><p class="eyebrow">YOUR DAILY CHECK-IN</p><h1>今晚，先看这里。</h1><p class="page-description">你的游戏、活动与进度，都在这张工作台。</p></div>
-      <div class="hero-actions"><span class="hero-count"><b>{{ String(games.length).padStart(2, '0') }}</b><span>个游戏<br>正在关注</span></span><button class="ui-button" :disabled="loading || anyRefreshing || !games.length" @click="emit('refresh')"><AppIcon name="refresh" :class="{ spinning: anyRefreshing }" />{{ anyRefreshing ? '同步中…' : '刷新数据' }}</button></div>
+      <div class="hero-actions"><span class="hero-count"><b>{{ String(games.length).padStart(2, '0') }}</b><span>个游戏<br>正在关注</span></span><button class="ui-button" :disabled="loading || anyRefreshing || !games.length" @click="emit('refresh')"><AppIcon name="refresh" :class="{ spinning: anyRefreshing }" /><span :class="{ 't-shimmer': anyRefreshing }">{{ anyRefreshing ? '同步中…' : '刷新数据' }}</span></button></div>
     </header>
 
     <div v-if="fullGames.length || nearEvents.length" class="attention-strip">
@@ -51,9 +52,9 @@ function resourceNote(card) {
 
     <div class="section-heading"><h2>我的游戏 <span class="count-label">/ {{ String(games.length).padStart(2, '0') }}</span></h2><span class="muted small">各游戏独立同步</span></div>
     <div class="game-summary-grid">
-      <button v-for="card in cards" :key="card.game_id" class="game-summary" :style="{ '--game-color': card.style.color }" @click="emit('navigate', 'game', card.game_id)">
+      <button v-for="(card, index) in cards" :key="card.game_id" class="game-summary t-item" :style="{ '--game-color': card.style.color, '--i': index }" @click="emit('navigate', 'game', card.game_id)">
         <div class="summary-header"><div class="game-identity"><GameIcon class="game-monogram" :game-id="card.game_id" :name="card.display_name" /><div><h3>{{ card.display_name }}</h3><p>{{ card.game_id === 'league_of_legends' ? 'PC / 国服' : '手游 / 社区数据' }}</p></div></div><span class="summary-state" :class="{ warn: card.summary.stale || card.auth?.state === 'expired' || readErrors[card.game_id] || card.source?.tone === 'danger' }"><i></i>{{ status(card) }}</span></div>
-        <div class="summary-metric"><p>{{ card.summary.hasStamina ? card.style.resource : '最近对局胜率' }}</p><div class="summary-number">{{ card.summary.value ?? '—' }}<small>{{ card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : '%' }}</small></div></div>
+        <div class="summary-metric"><p>{{ card.summary.hasStamina ? card.style.resource : '最近对局胜率' }}</p><div class="summary-number" v-pop>{{ card.summary.value ?? '—' }}<small>{{ card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : '%' }}</small></div></div>
         <div v-if="card.summary.percent != null" class="summary-meter" role="meter" :aria-label="card.summary.hasStamina ? card.style.resource : '胜率'" :aria-valuenow="card.summary.percent" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.min(100, card.summary.percent)}%` }"></i></div>
         <div v-else class="summary-meter unknown"></div>
         <p class="summary-note">{{ resourceNote(card) }}</p>
@@ -61,14 +62,15 @@ function resourceNote(card) {
         <p class="summary-updated">{{ card.summary.fetchedAt ? `更新于 ${formatTime(card.summary.fetchedAt)}` : '尚无成功快照' }}</p>
       </button>
     </div>
-    <p v-if="!games.length" class="empty-page">{{ loading ? '正在读取游戏数据…' : '暂无已启用的游戏。' }}</p>
+    <div v-if="!games.length && loading" class="game-summary-grid" aria-busy="true"><span class="sr-only">正在读取游戏数据…</span><div v-for="n in 3" :key="n" class="game-summary is-skeleton" aria-hidden="true"><span class="t-skel-block" style="width:38%;height:16px"></span><span class="t-skel-block" style="width:56%;height:11px;margin-top:10px"></span><span class="t-skel-block" style="width:44%;height:40px;margin-top:28px"></span><span class="t-skel-block" style="width:100%;height:4px;margin-top:14px"></span><span class="t-skel-block" style="width:60%;height:11px;margin-top:30px"></span></div></div>
+    <p v-else-if="!games.length" class="empty-page">暂无已启用的游戏。</p>
 
     <div class="overview-lower">
       <section><div class="section-heading"><h2>临近截止</h2><button class="text-link" @click="emit('navigate', 'calendar')">全部活动 <AppIcon name="arrow" :size="15" /></button></div>
-        <div class="overview-list"><p v-if="!events.length" class="empty-page">{{ loading ? '正在读取活动…' : '当前没有已知截止时间的待结束活动。' }}</p><button v-for="event in events.slice(0, 5)" :key="event.id" class="event-summary" @click="emit('navigate', 'calendar', event.gameId)"><span class="event-date"><b>{{ formatTime(event.end_at, { day: '2-digit', month: undefined, hour: undefined, minute: undefined }).replace('日', '') }}</b><small>截止日</small></span><span class="event-copy"><strong>{{ event.name }}</strong><small>{{ event.gameName }} · {{ event.category || '限时活动' }}</small><small>{{ formatTime(event.end_at) }} 截止<span v-if="event.stale"> · 数据可能过期</span></small></span><span class="deadline-label" :class="{ urgent: event.remainingDays <= 3 }">{{ event.upcoming ? '未开始 · ' : '' }}剩 {{ event.remainingDays }} 天</span></button></div>
+        <div class="overview-list"><p v-if="!events.length" class="empty-page">{{ loading ? '正在读取活动…' : '当前没有已知截止时间的待结束活动。' }}</p><button v-for="(event, index) in events.slice(0, 5)" :key="event.id" class="event-summary t-item" :style="{ '--i': index }" @click="emit('navigate', 'calendar', event.gameId)"><span class="event-date"><b>{{ formatTime(event.end_at, { day: '2-digit', month: undefined, hour: undefined, minute: undefined }).replace('日', '') }}</b><small>截止日</small></span><span class="event-copy"><strong>{{ event.name }}</strong><small>{{ event.gameName }} · {{ event.category || '限时活动' }}</small><small>{{ formatTime(event.end_at) }} 截止<span v-if="event.stale"> · 数据可能过期</span></small></span><span class="deadline-label" :class="{ urgent: event.remainingDays <= 3 }">{{ event.upcoming ? '未开始 · ' : '' }}剩 {{ event.remainingDays }} 天</span></button></div>
       </section>
       <section><div class="section-heading"><h2>公告与资讯</h2><label class="sr-only" for="news-game-filter">公告游戏筛选</label><select id="news-game-filter" v-model="newsFilter" class="quiet-select"><option value="">全部游戏</option><option v-for="g in games" :key="g.game_id" :value="g.game_id">{{ g.display_name }}</option></select><label class="sr-only" for="news-source-filter">资讯来源</label><select id="news-source-filter" v-model="sourceFilter" class="quiet-select"><option value="">全部来源</option><option value="bilibili">B站官方动态</option></select></div>
-        <div class="overview-list news-list"><p v-if="!news.length" class="empty-page">{{ loading ? '正在读取公告…' : '暂无公告快照。' }}</p><article v-for="(item, i) in news" :key="`${item.gameId}:${item.title}:${i}`" class="news-summary"><div class="news-source"><i :style="{ background: gameStyle(item.gameId).color }"></i>{{ item.gameName }}<span> / {{ item.source_name || (item.capability === 'news' ? '资讯' : '官方公告') }}<span v-if="item.stale"> · 旧快照</span></span></div><a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer">{{ item.title }} <span>↗</span></a><p v-else>{{ item.title }}</p><time v-if="item.published_at">{{ formatTime(item.published_at) }}</time></article></div>
+        <div class="overview-list news-list"><p v-if="!news.length" class="empty-page">{{ loading ? '正在读取公告…' : '暂无公告快照。' }}</p><article v-for="(item, i) in news" :key="`${item.gameId}:${item.title}:${i}`" class="news-summary t-item" :style="{ '--i': i }"><div class="news-source"><i :style="{ background: gameStyle(item.gameId).color }"></i>{{ item.gameName }}<span> / {{ item.source_name || (item.capability === 'news' ? '资讯' : '官方公告') }}<span v-if="item.stale"> · 旧快照</span></span></div><a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer">{{ item.title }} <span>↗</span></a><p v-else>{{ item.title }}</p><time v-if="item.published_at">{{ formatTime(item.published_at) }}</time></article></div>
       </section>
     </div>
     <footer class="overview-footer"><span><AppIcon name="shield" :size="14" />数据保存在本机</span><span>日期与时间均为北京时间</span></footer>
@@ -86,8 +88,9 @@ function resourceNote(card) {
 .attention-strip p { flex:1; font-size:12px; }.attention-strip .text-link { color:#ddc99f; }
 .section-heading { margin:27px 0 13px; }
 .game-summary-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
-.game-summary { text-align:left; border:1px solid var(--border); border-radius:12px; padding:20px; background:var(--card-bg); color:var(--text); min-width:0; position:relative; transition:border-color .15s,transform .15s; cursor:pointer; }
-.game-summary:hover { border-color:var(--game-color); transform:translateY(-2px); }
+.game-summary { text-align:left; border:1px solid var(--border); border-radius:12px; padding:20px; background:var(--card-bg); color:var(--text); min-width:0; position:relative; transition:border-color var(--duration-fast) var(--ease-smooth-out),transform var(--duration-fast) var(--ease-smooth-out),box-shadow var(--duration-fast) var(--ease-smooth-out); cursor:pointer; }
+@media(hover:hover) and (pointer:fine) { .game-summary:hover { border-color:var(--game-color); transform:translateY(-2px); box-shadow:var(--card-hover-shadow); } }
+.game-summary:active { transform:scale(var(--scale-small)); }.game-summary.is-skeleton { pointer-events:none; }
 .game-summary:before { content:''; position:absolute; inset:0 26px auto; height:1px; background:var(--game-color); opacity:.35; }
 .summary-header { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
 .game-identity { display:flex; align-items:center; gap:10px; }.game-monogram { display:grid; place-items:center; width:38px; height:38px; border:1px solid var(--border); border-radius:9px; background:var(--bg); color:var(--game-color); font-size:20px; }

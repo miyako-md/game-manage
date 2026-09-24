@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameIcon from './GameIcon.vue'
 import { beijingDayStart, calendarRange, collectCalendarEvents, eventGeometry, eventStatus, formatBeijingDateTime, groupCalendarEvents, safeUrl, shiftCalendarAnchor } from '../calendar.js'
 import { gameStyle } from '../dashboard.js'
+import { vGlide } from '../motion.js'
 
 const props = defineProps({
   games: { type: Array, default: () => [] },
@@ -80,7 +81,7 @@ async function selectEvent(event) {
           <button class="today-button" type="button" @click="goToday">今天</button>
         </div>
         <div class="calendar-filters">
-          <div class="range-toggle" aria-label="显示范围"><button type="button" :aria-pressed="mode === 'rolling'" @click="setMode('rolling')">近 30 天</button><button type="button" :aria-pressed="mode === 'month'" @click="setMode('month')">整月</button><button type="button" :aria-pressed="mode === 'fortnight'" @click="setMode('fortnight')">14 天</button></div>
+          <div v-glide class="range-toggle" aria-label="显示范围"><button type="button" :aria-pressed="mode === 'rolling'" @click="setMode('rolling')">近 30 天</button><button type="button" :aria-pressed="mode === 'month'" @click="setMode('month')">整月</button><button type="button" :aria-pressed="mode === 'fortnight'" @click="setMode('fortnight')">14 天</button></div>
           <label class="game-filter"><span class="sr-only">筛选游戏</span><select v-model="filter" aria-label="筛选游戏"><option value="">全部游戏</option><option v-for="game in games" :key="game.game_id" :value="game.game_id">{{ game.display_name }}</option></select></label>
         </div>
       </div>
@@ -116,7 +117,7 @@ async function selectEvent(event) {
 
     <section v-if="undated.length || invalid.length" class="calendar-unplaced" aria-labelledby="unplaced-title"><div class="unplaced-heading"><h2 id="unplaced-title">待确认的时间</h2><p>原始数据未给出完整日期，或日期存在异常。</p></div><div class="unplaced-grid"><div v-for="bucket in [{ title: '日期未提供', events: undated }, { title: '日期异常', events: invalid }]" v-show="bucket.events.length" :key="bucket.title" class="unplaced-bucket"><h3>{{ bucket.title }} <span>{{ bucket.events.length }}</span></h3><button v-for="event in bucket.events" :key="event.id" type="button" class="unplaced-event" :aria-label="`查看活动详情：${event.name || '未命名活动'}`" @click="selectEvent(event)"><span><strong>{{ event.name || '未命名活动' }}</strong><small>{{ event.gameName }} · {{ event.category }}</small></span><span class="unknown-reason">{{ event.geometry.reason }} <b aria-hidden="true">↗</b></span></button></div></div></section>
 
-    <section v-if="selected" ref="detailElement" class="calendar-detail" aria-labelledby="calendar-detail-title" tabindex="-1" :style="{ '--game-accent': gameAccent(selected.gameId) }">
+    <section v-if="selected" ref="detailElement" class="calendar-detail t-panel" aria-labelledby="calendar-detail-title" tabindex="-1" :style="{ '--game-accent': gameAccent(selected.gameId) }">
       <div class="detail-heading"><div><p class="calendar-eyebrow">{{ selected.gameName }} / {{ selected.category }}</p><h2 id="calendar-detail-title">{{ selected.name || '未命名活动' }}</h2></div><button type="button" class="detail-close" aria-label="关闭活动详情" @click="selectedId = null">×</button></div>
       <div class="detail-status"><span>{{ selected.status }}</span><span v-if="selected.geometry.reason">{{ selected.geometry.reason }}</span><span v-if="selected.stale" class="calendar-stale">数据可能过期</span></div>
       <dl><div><dt>开始时间 · 北京时间</dt><dd>{{ selected.start_at ? formatBeijingDateTime(selected.start_at) : selected.start_text || '未知' }}</dd><small v-if="selected.geometry.approximateStart">仅知开始日期 {{ selected.start_date }}，具体时刻未知</small><small v-if="selected.start_at && selected.geometry.start === null">原始值：{{ selected.start_at }}</small></div><div><dt>截止时间 · 北京时间</dt><dd>{{ formatBeijingDateTime(selected.end_at) }}</dd><small v-if="selected.end_at && selected.geometry.end === null">原始值：{{ selected.end_at }}</small></div><div><dt>来源标题</dt><dd>{{ selected.source_name ? selected.source_name + ' · ' : '' }}{{ selected.source_title || '未提供' }}</dd></div><div><dt>快照抓取时间 · 北京时间</dt><dd>{{ formatBeijingDateTime(selected.fetchedAt) }}</dd></div></dl>
@@ -143,12 +144,15 @@ async function selectEvent(event) {
 .calendar-navigation h2 { font-size: 19px; font-weight: 600; letter-spacing: -.02em; min-width: 141px; }
 .calendar-arrows { display: flex; gap: 2px; }
 .calendar-page button, .calendar-page select { cursor: pointer; font-family: inherit; }
-.calendar-arrows button, .today-button, .detail-close { border: 1px solid var(--border); background: transparent; color: var(--text-muted); border-radius: 7px; }
+.calendar-arrows button, .today-button, .detail-close { border: 1px solid var(--border); background: transparent; color: var(--text-muted); border-radius: 7px; transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
+.calendar-arrows button:hover, .today-button:hover, .detail-close:hover { border-color: #627081; background: var(--surface-soft); }
+.calendar-arrows button:active, .today-button:active, .detail-close:active { transform: scale(var(--scale-small)); }
 .calendar-arrows button { height: 32px; width: 29px; font-size: 22px; line-height: 24px; }
 .today-button { padding: 6px 12px; font-size: 11px; }
 .range-toggle { display: flex; background: var(--bg); border-radius: 8px; padding: 4px; }
-.range-toggle button { border: 0; padding: 6px 13px; color: var(--text-muted); background: transparent; border-radius: 5px; font-size: 12px; }
-.range-toggle button[aria-pressed="true"] { background: #35404b; color: var(--accent); }
+.range-toggle button { border: 0; padding: 6px 13px; color: var(--text-muted); background: transparent; border-radius: 5px; font-size: 12px; transition: color var(--duration-quick) var(--ease-smooth-out); }
+.range-toggle button[aria-pressed="true"] { color: var(--accent); }
+.range-toggle :deep(.t-glide) { background: #35404b; border-radius: 5px; }
 .game-filter select { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 7px; padding: 8px 10px; font-size: 12px; max-width: 170px; }
 .calendar-meta { display: flex; justify-content: space-between; gap: 12px; padding: 0 24px 18px; font-size: 11px; color: var(--text-muted); }
 .calendar-meta strong { color: var(--text); font-size: 12px; font-weight: 500; }
@@ -191,9 +195,10 @@ async function selectEvent(event) {
 .grid-backdrop .today-column { background: #d8bb8407; }
 .today-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #d8bb8475; z-index: 2; pointer-events: none; }
 .event-lane { height: 32px; position: relative; }
-.timeline-event { position: absolute; top: 0; height: 32px; min-width: 0; border: 0; box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--game-accent) 20%, transparent); border-radius: 0; color: var(--text); background: repeating-linear-gradient(125deg, transparent, transparent 12px, #ffffff03 12px, #ffffff03 14px), linear-gradient(100deg, color-mix(in srgb, var(--game-accent) 26%, #19232e), color-mix(in srgb, var(--game-accent) 9%, #19232e)); padding: 0 10px; display: flex; align-items: center; gap: 9px; text-align: left; overflow: hidden; transition: filter .15s; }
+.timeline-event { position: absolute; top: 0; height: 32px; min-width: 0; border: 0; box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--game-accent) 20%, transparent); border-radius: 0; color: var(--text); background: repeating-linear-gradient(125deg, transparent, transparent 12px, #ffffff03 12px, #ffffff03 14px), linear-gradient(100deg, color-mix(in srgb, var(--game-accent) 26%, #19232e), color-mix(in srgb, var(--game-accent) 9%, #19232e)); padding: 0 10px; display: flex; align-items: center; gap: 9px; text-align: left; overflow: hidden; transition: filter var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
 .timeline-event:not(.is-point)::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--game-accent); }
 .timeline-event:hover { filter: brightness(1.2); }
+.timeline-event:not(.is-point):active { transform: scaleY(0.94); }
 .timeline-event.is-ended { opacity: .56; }
 .event-summary { display: flex; align-items: center; gap: 9px; min-width: 0; width: 100%; }
 .timeline-event.is-short { overflow: visible; }

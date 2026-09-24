@@ -76,7 +76,7 @@ watch(() => props.capability, () => { search.value = ''; ownership.value = 'all'
       <p v-else-if="!filtered.length" class="empty" role="status">没有符合筛选条件的条目</p>
       <p v-else class="result-count" role="status">显示 {{ filtered.length }} / {{ entries.length }} 条</p>
       <div class="asset-list">
-        <details v-for="(entry, index) in filtered" :key="`${entry.id}-${index}`" class="asset">
+        <details v-for="(entry, index) in filtered" :key="`${entry.id}-${index}`" class="asset t-item" :style="{ '--i': Math.min(index, 11) }">
           <summary>
             <img v-if="capability === 'teams' && imageUrl(entry.icon_url)" :src="imageUrl(entry.icon_url)" alt="" loading="lazy" referrerpolicy="no-referrer" @error="imageFailed" />
             <strong>{{ entry.name || `${capability === 'teams' ? '推荐' : '资产'} ${entry.id}` }} · 详情</strong>

@@ -1,5 +1,6 @@
 <script setup>
 import { fetchedLabel } from '../time.js'
+import { vPop } from '../motion.js'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -23,7 +24,7 @@ const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 
     <p v-if="payload == null" class="empty">暂无数据</p>
     <template v-else>
-      <div class="stamina-big">
+      <div class="stamina-big" v-pop>
         {{ payload.current ?? '-' }}<span class="sep">/</span>{{ payload.maximum ?? '-' }}
       </div>
       <p v-if="expectedFullAt" class="stamina-eta">

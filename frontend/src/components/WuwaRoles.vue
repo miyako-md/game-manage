@@ -122,9 +122,10 @@ function close() {
     <p class="wuwa-muted">点击角色按需读取完整面板。武器类型不代表实际装备。</p>
     <div class="wuwa-role-grid">
       <button
-        v-for="r in filtered"
+        v-for="(r, index) in filtered"
         :key="r.role_id"
-        class="wuwa-role"
+        class="wuwa-role t-item"
+        :style="{ '--i': Math.min(index, 11) }"
         :aria-pressed="selected?.role_id === r.role_id"
         @click="open(r)"
       >

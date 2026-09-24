@@ -75,7 +75,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
       </div>
       <p v-if="!visible.length" class="empty">没有符合筛选条件的角色</p>
       <ul v-else class="role-grid">
-        <li v-for="role in visible" :key="keyOf(role)" class="role-card">
+        <li v-for="(role, index) in visible" :key="keyOf(role)" class="role-card t-item" :style="{ '--i': Math.min(index, 11) }">
           <div class="role-overview">
             <img v-if="safeUrl(role.icon_url) && !failedImages.has(safeUrl(role.icon_url))" :key="safeUrl(role.icon_url)" :src="safeUrl(role.icon_url)" :alt="role.name || '角色'" loading="lazy" class="avatar" @error="imageFailed" />
             <span v-else class="avatar avatar-empty" aria-hidden="true">{{ (role.name || '?').slice(0, 1) }}</span>
@@ -110,7 +110,9 @@ input, select, button { color: var(--text); background: var(--bg); border: 1px s
 input[type=search] { min-width: 0; width: 100%; box-sizing: border-box; }
 input[type=checkbox] { accent-color: var(--accent); }
 .role-toolbar .favorite-filter { display: flex; align-items: center; min-height: 36px; }
-button { cursor: pointer; font-size: 12px; }
+button { cursor: pointer; font-size: 12px; transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
+button:not(:disabled):hover { border-color: #627081; }
+button:not(:disabled):active { transform: scale(var(--scale-small)); }
 button[aria-pressed=true] { color: var(--accent); border-color: var(--accent); }
 button:disabled { cursor: default; opacity: .45; }
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, .comparison-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }

@@ -104,6 +104,6 @@ const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
   height: 100%;
   border-radius: 999px;
   background: var(--accent);
-  transition: width 0.3s ease;
+  transition: width var(--duration-slow) var(--ease-smooth-out);
 }
 </style>
