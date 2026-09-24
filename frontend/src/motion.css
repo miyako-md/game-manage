@@ -141,3 +141,27 @@
 /* Disclosure arrow that flips when a details element opens. */
 .t-disclosure { display: inline-block; transition: transform var(--duration-fast) var(--ease-smooth-out); }
 details[open] > summary .t-disclosure { transform: rotate(180deg); }
+
+/* ── Error shake (transitions.dev 12): replay by toggling .is-shaking ── */
+@keyframes t-shake {
+  10%, 90% { transform: translateX(calc(var(--distance-small) * -1)); }
+  20%, 80% { transform: translateX(var(--distance-small)); }
+  30%, 50%, 70% { transform: translateX(calc(var(--distance-base) * -1)); }
+  40%, 60% { transform: translateX(var(--distance-base)); }
+}
+.is-shaking { animation: t-shake var(--duration-slow) var(--ease-smooth-out) both; }
+
+/* ── Success check (transitions.dev 10): fade + bob, then stroke-draw ── */
+@keyframes t-check-in {
+  from { opacity: 0; transform: translateY(var(--distance-micro)) rotate(-8deg) scale(0.8); filter: blur(var(--blur-small)); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes t-check-draw { to { stroke-dashoffset: 0; } }
+.t-check { width: 18px; height: 18px; flex-shrink: 0; color: var(--success); animation: t-check-in var(--duration-fast) var(--ease-bounce) both; }
+.t-check-path { stroke-dasharray: 21; stroke-dashoffset: 21; animation: t-check-draw var(--duration-very-slow) var(--ease-smooth-out) var(--duration-quick) forwards; }
+
+/* ── Quiet hover for list rows ───────────────────────────────────── */
+.t-row { transition: background-color var(--duration-quick) var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out); }
+@media (hover: hover) and (pointer: fine) {
+  .t-row:hover { background-color: rgba(255, 255, 255, 0.025); }
+}

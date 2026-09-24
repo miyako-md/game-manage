@@ -18,6 +18,8 @@ const error = ref('')
 const notice = ref('')
 const now = ref(Date.now())
 const retryUntil = ref(0)
+const shaking = ref(false)
+let shakeTimer = null
 const captchaReady = ref(false)
 const captchaValidated = ref(false)
 let captcha = null
@@ -81,6 +83,13 @@ function closeForm() {
 }
 
 watch(mobile, resetSession, { flush: 'sync' })
+watch(error, (value) => {
+  // A new error message shakes once; the class is cleared after the animation so it can replay.
+  if (!value) return
+  if (shakeTimer) clearTimeout(shakeTimer)
+  shaking.value = false
+  shakeTimer = setTimeout(() => { shaking.value = true; shakeTimer = setTimeout(() => { shaking.value = false }, 450) }, 0)
+})
 watch(expired, (value) => {
   if (value) {
     destroyCaptcha()
@@ -306,6 +315,7 @@ onBeforeUnmount(() => {
   statusGeneration += 1
   clearInterval(clockTimer)
   clearInterval(statusTimer)
+  if (shakeTimer) clearTimeout(shakeTimer)
   destroyCaptcha()
 })
 </script>
@@ -356,8 +366,8 @@ onBeforeUnmount(() => {
         <button type="submit" class="primary submit-button" :disabled="!!busy || !validMobile || !validCode">{{ busy === 'login' ? '登录中…' : '登录并保存' }}</button>
       </template>
     </form>
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
-    <p v-if="notice" class="success" role="status">{{ notice }}</p>
+    <p v-if="error" class="error" :class="{ 'is-shaking': shaking }" role="alert">{{ error }}</p>
+    <p v-if="notice" class="success" role="status"><svg class="t-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="t-check-path" d="M5 13l4 4L19 7" /></svg>{{ notice }}</p>
   </section>
 </template>
 
@@ -397,6 +407,8 @@ input[readonly] { background: var(--bg); }
 .captcha-area { min-height: 64px; display: flex; flex-direction: column; gap: 8px; }
 .submit-button { align-self: flex-start; min-width: 132px; }
 .error, .success { font-size: 13px; line-height: 1.6; margin-top: 12px; overflow-wrap: anywhere; animation: t-rise var(--duration-medium) var(--ease-smooth-out) both; }
+.success { display: flex; align-items: flex-start; gap: 8px; }
+.error.is-shaking { animation: t-shake var(--duration-slow) var(--ease-smooth-out) both; }
 .error { color: var(--danger); }
 .success { color: var(--success); }
 @media (max-width: 640px) { .accounts { grid-template-columns: 1fr; } .login-panel { padding: 12px; } }

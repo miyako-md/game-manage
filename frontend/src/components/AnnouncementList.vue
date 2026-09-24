@@ -26,7 +26,7 @@ const rows = computed(() => {
 
     <p v-if="rows.length === 0" class="empty">暂无数据</p>
     <ul v-else class="item-list">
-      <li v-for="(it, i) in rows" :key="i" class="item">
+      <li v-for="(it, i) in rows" :key="i" class="item t-item" :style="{ '--i': Math.min(i, 11) }">
         <div class="item-main">
           <a
             v-if="it.url"

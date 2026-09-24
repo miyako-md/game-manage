@@ -92,7 +92,7 @@ async function selectEvent(event) {
       <p v-if="loading && !events.length" class="calendar-empty" role="status">正在读取活动快照…</p>
 
       <div v-else class="timeline-scroll" tabindex="0" role="region" aria-label="活动日期横轴，可横向和纵向滚动" :style="{ '--day-count': range.days.length, '--timeline-min': `${184 + range.days.length * (mode === 'fortnight' ? 39 : 26)}px` }">
-        <div class="timeline-canvas">
+        <div :key="`${mode}:${range.start}`" class="timeline-canvas t-panel">
           <div class="timeline-header"><div class="timeline-label header-label"><span>游戏</span><small>{{ mode === 'month' ? '当月时间轴' : mode === 'rolling' ? '近 30 天时间轴' : '14 天时间轴' }}</small></div><div class="date-track"><div v-for="day in range.days" :key="day.timestamp" class="date-cell" :class="{ weekend: day.weekend, 'is-today': day.timestamp === today }" :title="`${day.month} 月 ${day.day} 日`"><small>{{ day.weekday }}</small><strong>{{ day.day === 1 ? `${day.month}/1` : day.day }}</strong><span v-if="day.timestamp === today" class="day-today">今天</span></div></div></div>
           <template v-if="groups.length">
             <div v-for="group in groups" :key="group.key" class="timeline-group" :style="{ '--game-accent': gameAccent(group.gameId) }">
@@ -231,7 +231,7 @@ async function selectEvent(event) {
 .unplaced-grid { display: grid; gap: 24px; }
 .unplaced-bucket h3 { font-size: 11px; color: #a4b0bf; margin: 0 0 10px; font-weight: 500; }
 .unplaced-bucket h3 span { margin-left: 7px; color: var(--accent); }
-.unplaced-event { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 13px 0; width: 100%; border: 0; border-top: 1px solid #ffffff08; color: var(--text); background: transparent; text-align: left; }
+.unplaced-event { transition: background-color var(--duration-quick) var(--ease-smooth-out); display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 13px 0; width: 100%; border: 0; border-top: 1px solid #ffffff08; color: var(--text); background: transparent; text-align: left; }
 .unplaced-event > span:first-child { display: grid; gap: 6px; }
 .unplaced-event strong { font-weight: 500; font-size: 12px; }
 .unplaced-event small, .unknown-reason { color: var(--text-muted); font-size: 10px; }
@@ -251,6 +251,7 @@ async function selectEvent(event) {
 .source-link { display: inline-block; margin-top: 15px; color: var(--accent); font-size: 12px; }
 .calendar-page button:focus-visible, .calendar-page select:focus-visible, .timeline-scroll:focus-visible, .calendar-detail:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .calendar-page button:hover { color: var(--text); }
+.unplaced-event:hover { background-color: rgba(255, 255, 255, 0.025); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 760px) {
   .calendar-heading { align-items: start; flex-direction: column; gap: 14px; }

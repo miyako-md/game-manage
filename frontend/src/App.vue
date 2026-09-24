@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import * as api from './api.js'
 import { getAuthStatus } from './auth-api.js'
 import { createDashboard, readRoute } from './dashboard.js'
+import { vGlide } from './motion.js'
 import AppIcon from './components/AppIcon.vue'
 import GameIcon from './components/GameIcon.vue'
 import OverviewPage from './components/OverviewPage.vue'
@@ -75,13 +76,13 @@ onBeforeUnmount(() => { clearInterval(timer); dashboard.dispose(); window.remove
     <aside id="workspace-sidebar" ref="sidebar" class="workspace-sidebar" :inert="mobileNavigation && !menuOpen">
       <a class="brand" href="#/" @click="sidebarNavigate"><span class="brand-symbol"><AppIcon name="spark" :size="20" /></span><span>游戏管家<small>PERSONAL GAME SPACE</small></span></a>
       <button class="mobile-sidebar-close icon-button" aria-label="关闭导航" @click="closeMenu"><AppIcon name="close" /></button>
-      <nav class="primary-nav" aria-label="主导航" @click="sidebarNavigate">
+      <nav v-glide class="primary-nav" aria-label="主导航" @click="sidebarNavigate">
         <a href="#/" :class="{ active: route.page === 'overview' }" :aria-current="route.page === 'overview' ? 'page' : undefined"><AppIcon name="grid" /><span>今日总览</span></a>
         <a href="#/calendar" :class="{ active: route.page === 'calendar' }" :aria-current="route.page === 'calendar' ? 'page' : undefined"><AppIcon name="calendar" /><span>活动日历</span></a>
         <a href="#/accounts" :class="{ active: route.page === 'accounts' }" :aria-current="route.page === 'accounts' ? 'page' : undefined"><AppIcon name="user" /><span>社区账号</span></a>
       </nav>
       <div class="sidebar-label"><span>我的游戏</span><span>{{ String(state.games.length).padStart(2, '0') }}</span></div>
-      <nav class="game-nav" aria-label="游戏档案" @click="sidebarNavigate"><a v-for="game in state.games" :key="game.game_id" :href="`#/game/${encodeURIComponent(game.game_id)}`" :class="{ active: route.page === 'game' && route.game === game.game_id }" :aria-current="route.page === 'game' && route.game === game.game_id ? 'page' : undefined"><GameIcon class="nav-game-mark" :game-id="game.game_id" :name="game.display_name" /><span>{{ game.display_name }}</span><AppIcon class="nav-arrow" name="arrow" :size="14" /></a></nav>
+      <nav v-glide class="game-nav" aria-label="游戏档案" @click="sidebarNavigate"><a v-for="game in state.games" :key="game.game_id" :href="`#/game/${encodeURIComponent(game.game_id)}`" :class="{ active: route.page === 'game' && route.game === game.game_id }" :aria-current="route.page === 'game' && route.game === game.game_id ? 'page' : undefined"><GameIcon class="nav-game-mark" :game-id="game.game_id" :name="game.display_name" /><span>{{ game.display_name }}</span><AppIcon class="nav-arrow" name="arrow" :size="14" /></a></nav>
       <div class="sidebar-bottom"><p class="local-status"><i :class="{ offline: state.loadError || state.serviceError }"></i>{{ state.loadError || state.serviceError ? '本地服务连接异常' : state.loadedAt ? '本地工作台已连接' : '正在连接本地服务' }}</p><p>{{ state.notify ? state.notify.enabled ? '微信推送已启用' : '微信推送未启用' : '提醒状态读取中' }}</p><div><AppIcon name="shield" :size="13" />个人使用 · 数据保存在本机</div></div>
     </aside>
     <div class="workspace-body" :inert="mobileNavigation && menuOpen">

@@ -233,6 +233,19 @@
   cursor: pointer;
   color: var(--wuwa-gold);
   font-size: 12px;
+  list-style: none;
+}
+.wuwa-dashboard summary::-webkit-details-marker {
+  display: none;
+}
+.wuwa-dashboard summary::before {
+  content: '⌄';
+  display: inline-block;
+  margin-right: 7px;
+  transition: transform var(--duration-fast) var(--ease-smooth-out);
+}
+.wuwa-dashboard details[open] > summary::before {
+  transform: rotate(180deg);
 }
 .wuwa-supplement {
   font-size: 11px;

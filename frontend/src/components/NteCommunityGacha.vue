@@ -59,7 +59,7 @@ function obtained(value) {
     <template v-else>
       <p v-if="!pools.length" class="empty">暂无卡池统计。</p>
       <div v-else class="pool-overview">
-        <article v-for="(pool, index) in pools" :key="index" class="pool-stat" :class="{ active: selected === index }">
+        <article v-for="(pool, index) in pools" :key="index" class="pool-stat t-item" :style="{ '--i': index }" :class="{ active: selected === index }">
           <h3>{{ pool.name || '未命名卡池' }}</h3>
           <p class="draw-total"><strong>{{ show(pool.total_draws) }}</strong><span>抽</span></p>
           <dl><div><dd>{{ show(pool.s_count) }}</dd><dt>出 S 数量</dt></div><div><dd>{{ average(pool.average) }}</dd><dt>S 级平均</dt></div></dl>
@@ -71,7 +71,7 @@ function obtained(value) {
         <div class="history-heading"><h3>已出 S 记录 <span>{{ entries.length }} 条</span></h3><p>仅展示已抽出的 S 级条目与本次出 S 抽数，不展示当前垫抽。</p></div>
         <p v-if="!entries.length" class="empty">该卡池暂无已出 S 明细。</p>
         <ol v-else class="pull-list">
-          <li v-for="(entry, index) in entries" :key="`${selected}-${entry.item_id}-${index}`" class="pull-row">
+          <li v-for="(entry, index) in entries" :key="`${selected}-${entry.item_id}-${index}`" class="pull-row t-item" :style="{ '--i': Math.min(index, 11) }">
             <div class="reward-icon"><img v-if="icon(entry)" :src="icon(entry)" :alt="entry.name || entry.item_id" loading="lazy" referrerpolicy="no-referrer" @error="imageFailed(entry)" /><span v-else aria-hidden="true">{{ String(entry.name || entry.item_id || '?').slice(0, 2) }}</span><small>S</small></div>
             <div class="pull-content">
               <div class="pull-caption"><strong>{{ entry.name || entry.item_id || '未知条目' }}</strong><time>{{ obtained(entry.obtained_at) }}</time></div>
