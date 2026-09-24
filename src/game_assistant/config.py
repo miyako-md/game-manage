@@ -5,8 +5,11 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # 0.1.0 之前的模板写过 app_host/app_port，部分用户的 config.toml 仍保留这两个键。
+    # 未知键会被拒绝（extra='forbid'），所以这里继续接受它们；一键启动固定监听
+    # 127.0.0.1:8010，没有代码读取这两个字段。
     app_host: str = "127.0.0.1"
-    app_port: int = 8010  # 8000 被 Windows HTTP.sys 系统服务永久占用
+    app_port: int = 8010
     db_path: str = "data/assistant.db"
     stamina_seconds: int = 300
     activity_seconds: int = 3600
@@ -26,6 +29,8 @@ class Settings(BaseSettings):
     wuwa_token: str = ""
     wuwa_token_source: str = "h5"  # legacy web token; SDK login persists ios
     wuwa_user_id: str = ""
+    # 库街区 APP 端 token：已停用，只为兼容旧版配置模板，任何代码都不读取它。
+    wuwa_app_token: str = ""
     # roleBox会话由页面短信登录自动取得；以下字段保留旧手填配置兼容。
     # 会话供体力、进度、角色、探索度和数据坞等能力使用。
     wuwa_b_at: str = ""

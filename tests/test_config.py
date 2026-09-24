@@ -50,3 +50,18 @@ def test_nte_events_toml_array_of_tables(tmp_path):
     assert s.nte_events[0]["category"] == "休闲活动"
     assert s.nte_events[1]["start"] == "2026-08-27 04:00"
     assert "category" not in s.nte_events[1]
+
+
+def test_load_accepts_pre_release_template_keys(tmp_path):
+    # app_host/app_port/wuwa_app_token 来自 0.1.0 之前的配置模板；Settings 用
+    # extra='forbid'拒绝未知键，这三个键必须继续被接受才不会让旧配置报错。
+    cfg = tmp_path / "config.toml"
+    cfg.write_text(
+        'app_host = "0.0.0.0"\n'
+        'app_port = 9000\n'
+        'wuwa_app_token = ""\n'
+        'lol_enabled = false\n',
+        encoding="utf-8",
+    )
+    s = Settings.load(str(cfg))
+    assert s.lol_enabled is False
