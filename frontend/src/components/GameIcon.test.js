@@ -8,7 +8,7 @@ import { gameStyle } from '../dashboard.js'
 const GameIcon = await loadVue(new URL('./GameIcon.vue', import.meta.url))
 test('each supported game uses a locally bundled icon with recorded provenance', () => {
   const sources = JSON.parse(readFileSync(new URL('../../public/game-icons/sources.json', import.meta.url)))
-  for (const id of ['league_of_legends', 'wuthering_waves', 'nte']) {
+  for (const id of ['league_of_legends', 'wuthering_waves', 'nte', 'endfield']) {
     const src = gameStyle(id).icon
     assert.match(src, /^\/game-icons\//)
     assert.ok(readFileSync(new URL(`../../public${src}`, import.meta.url)).length > 500)

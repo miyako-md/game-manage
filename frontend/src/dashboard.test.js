@@ -96,6 +96,19 @@ test('stamina summary preserves real zero and unknown denominator', () => {
   assert.equal(unknown.value, null); assert.equal(unknown.percent, null)
 })
 
+test('Endfield summary shows special headhunting pity instead of a win rate', () => {
+  const endfield = { game_id: 'endfield', display_name: '终末地', capabilities: ['account', 'gacha', 'events'] }
+  const gacha = snapshot({ schema_version: 1, pools: [
+    { key: 'E_CharacterGachaPoolType_Standard', since_last_six: { count: 40, status: 'exact' } },
+    { key: 'E_CharacterGachaPoolType_Special', since_last_six: { count: 12, status: 'lower_bound' } }] })
+  const s = summaryFor(endfield, { account: snapshot({ schema_version: 1, nickname: '管理员', level: 52 }), gacha })
+  assert.deepEqual([s.metric, s.value, s.pityStatus, s.percent, s.nickname], ['gacha', 12, 'lower_bound', null, '管理员'])
+  assert.equal(s.fetchedAt, gacha.fetched_at)
+  const legacy = summaryFor(endfield, { gacha: snapshot({ pools: gacha.payload.pools }) })
+  assert.equal(legacy.value, null)
+  assert.equal(summaryFor({ ...endfield, capabilities: ['account'] }, {}).metric, 'stats')
+})
+
 test('NTE legacy raw data cannot silently become a valid account or stamina summary', () => {
   const s = summaryFor(game, { account: snapshot({ nickname: '旧结构' }), stamina: snapshot({ current: 50, maximum: 100 }) })
   assert.equal(s.value, null); assert.equal(s.nickname, null)

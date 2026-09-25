@@ -1,11 +1,12 @@
 # 首次使用复制为 config.toml；已有配置不要覆盖。真实配置不提交Git。
-# 鸣潮、异环均在看板「社区账号」短信登录，无需填写token或抓包字段。
+# 鸣潮、异环、终末地（官服）均在看板「社区账号」短信登录，无需填写token或抓包字段。
 # 一键启动固定监听 127.0.0.1:8010；本配置不控制监听地址或端口。
 db_path = "data/assistant.db"
 
 wuwa_enabled = true
 nte_enabled = true
 lol_enabled = true
+endfield_enabled = true
 
 # 游戏社区轮询间隔（秒）。B站使用独立的轮询间隔。
 stamina_seconds = 300
@@ -29,7 +30,8 @@ fail_notify_threshold = 3
 
 # 旧版手填token/roleBox字段仍受Settings兼容，正常使用不必填写。
 # B站登录与游戏社区登录独立，在页面底部来源面板配置并加密保存。
-# 以下为官方UP主的公开UID，不是个人账号。只对这两款手游应用B站主来源规则。
+# 以下为官方UP主的公开UID，不是个人账号。只对这三款手游应用B站主来源规则。
 [bilibili_sources]
 wuthering_waves = "1955897084"
 nte = "3546636978489848"
+endfield = "1265652806"

@@ -11,11 +11,13 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 
 from game_assistant.adapters.wuthering_waves.rolebox_client import USER_AGENT
-from game_assistant.auth.providers import AuthError, NteLoginProvider, WuwaLoginProvider
+from game_assistant.auth.providers import AuthError, EndfieldLoginProvider, NteLoginProvider, WuwaLoginProvider
 
 KURO = "https://api.kurobbs.com"
 LAOHU = "https://user.laohu.com"
 TAJI = "https://bbs-api.tajiduo.com"
+HG = "https://as.hypergryph.com"
+HG_BINDING = "https://binding-api-account-prod.hypergryph.com/account/binding/v1/binding_list"
 APP_KEY = "89155cc4e8634ec5b1b6364013b23e3e"  # Public SDK application constant.
 CONTEXT = {"did": "12345678-1234-4234-8234-123456789abc", "dev_code": f"8.8.8.8, {USER_AGENT}"}
 CAPTCHA = {"captcha_id": "ec4aa4174277d822d73f2442a165a2cd", "lot_number": "lot", "captcha_output": "human-proof", "pass_token": "pass", "gen_time": "123"}
@@ -216,3 +218,72 @@ async def test_network_exception_does_not_expose_request_details():
         await WuwaLoginProvider().login(CONTEXT, "13800000000", "123456")
     assert "secret" not in str(caught.value)
     assert caught.value.__cause__ is None
+
+
+def endfield_binding(accounts):
+    return {"status": 0, "msg": "OK", "data": {"list": [
+        {"appCode": "arknights", "bindingList": [{"uid": "1", "isOfficial": True, "roles": [{"roleId": "9", "serverId": "1"}]}]},
+        {"appCode": "endfield", "appName": "明日方舟：终末地", "bindingList": accounts},
+    ]}}
+
+
+OFFICIAL = {"uid": "hg-uid-1", "isOfficial": True, "channelName": "官服", "roles": [
+    {"roleId": "31000001", "nickName": "管理员", "level": 52, "serverId": "1", "serverName": "China", "isDefault": True}]}
+BILIBILI = {"uid": "hg-uid-2", "isOfficial": False, "channelName": "bilibili服", "roles": [
+    {"roleId": "32000002", "nickName": "B服角色", "serverId": "1"}]}
+
+
+def mock_endfield_login(accounts=None):
+    respx.post(HG + "/user/auth/v1/token_by_phone_code").respond(200, json={"status": 0, "msg": "OK", "data": {"token": "hg-secret"}})
+    grant = respx.post(HG + "/user/oauth2/v2/grant").respond(200, json={"status": 0, "msg": "OK", "data": {"token": "grant-secret"}})
+    binding = respx.get(HG_BINDING).respond(200, json=endfield_binding(accounts if accounts is not None else [BILIBILI, OFFICIAL]))
+    return grant, binding
+
+
+@respx.mock
+async def test_endfield_sms_login_selects_the_official_server_role():
+    send = respx.post(HG + "/general/v1/send_phone_code").respond(200, json={"status": 0, "msg": "OK"})
+    grant, binding = mock_endfield_login()
+    provider = EndfieldLoginProvider()
+    await provider.send_sms({}, "13800000000")
+    credentials = await provider.login({}, "13800000000", "123456")
+    assert json.loads(send.calls[0].request.content) == {"phone": "13800000000", "type": 1}
+    assert json.loads(grant.calls[0].request.content) == {"token": "hg-secret", "appCode": "be36d44aa36bfb5b", "type": 1}
+    assert binding.calls[0].request.url.params["appCode"] == "endfield"
+    assert binding.calls[0].request.url.params["token"] == "grant-secret"
+    assert credentials == {"hg_token": "hg-secret", "uid": "hg-uid-1", "role_id": "31000001",
+                           "server_id": "1", "nickname": "管理员"}
+
+
+@respx.mock
+async def test_endfield_login_shows_the_server_hint_for_a_wrong_code():
+    respx.post(HG + "/user/auth/v1/token_by_phone_code").respond(200, json={"status": 100, "msg": "验证码错误\n"})
+    with pytest.raises(AuthError, match="^验证码错误$"):
+        await EndfieldLoginProvider().login({}, "13800000000", "000000")
+
+
+@respx.mock
+@pytest.mark.parametrize("accounts", [[], [BILIBILI], [{**OFFICIAL, "isDeleted": True}],
+                                      [{**OFFICIAL, "roles": [{**OFFICIAL["roles"][0], "serverId": "2"}]}]])
+async def test_endfield_login_requires_an_official_server_role(accounts):
+    mock_endfield_login(accounts)
+    with pytest.raises(AuthError, match="官服角色"):
+        await EndfieldLoginProvider().login({}, "13800000000", "123456")
+
+
+@respx.mock
+@pytest.mark.parametrize("response", [httpx.Response(401), httpx.Response(200, json={"status": 3, "msg": "登录已过期，请重新登录"})])
+async def test_endfield_expired_token_is_reported_as_invalid_session(response):
+    respx.post(HG + "/user/auth/v1/token_by_phone_code").respond(200, json={"status": 0, "data": {"token": "hg-secret"}})
+    respx.post(HG + "/user/oauth2/v2/grant").mock(return_value=response)
+    with pytest.raises(AuthError) as caught:
+        await EndfieldLoginProvider().login({}, "13800000000", "123456")
+    assert caught.value.code == 401 and "hg-secret" not in caught.value.message
+
+
+@respx.mock
+async def test_endfield_sms_rate_limit_is_not_retried():
+    route = respx.post(HG + "/general/v1/send_phone_code").respond(429)
+    with pytest.raises(AuthError, match="频繁"):
+        await EndfieldLoginProvider().send_sms({}, "13800000000")
+    assert route.call_count == 1

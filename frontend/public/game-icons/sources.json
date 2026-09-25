@@ -19,5 +19,12 @@
     "creator": "game-manage contributors",
     "license": "GPL-3.0-only",
     "kind": "original text identifier; not official game artwork"
+  },
+  {
+    "game_id": "endfield",
+    "file": "endfield-mark.svg",
+    "creator": "game-manage contributors",
+    "license": "GPL-3.0-only",
+    "kind": "original text identifier; not official game artwork"
   }
 ]

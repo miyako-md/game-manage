@@ -26,8 +26,13 @@ function status(card) {
   if (card.game_id === 'league_of_legends') return '本机客户端'
   return ({ connected: '已连接', configured: '已配置', unconfigured: '未登录' })[card.auth?.state] || (card.credentials_configured ? '已配置' : '未登录')
 }
+const METRIC_UNITS = { stats: '%', gacha: '抽' }
+function metricLabel(card) {
+  return ({ stamina: card.style.resource, gacha: '特许寻访 · 距上次 6★' })[card.summary.metric] || '最近对局胜率'
+}
 function resourceNote(card) {
   const s = card.summary
+  if (s.metric === 'gacha') return s.value == null ? '等待寻访记录同步' : s.pityStatus === 'exact' ? '按连续的寻访记录计算' : '记录有断档或含免费寻访，这是最少抽数'
   if (!s.hasStamina) return s.totalGames == null ? '等待对局数据' : `最近 ${s.totalGames} 场 · ${s.wins == null ? '胜场未知' : `${s.wins} 胜`}`
   if (card.game_id === 'nte') return '塔吉多体力快照 · 可能有同步延迟'
   if (s.percent >= 100) return '快照显示体力已满'
@@ -53,7 +58,7 @@ function resourceNote(card) {
     <div class="game-summary-grid">
       <button v-for="card in cards" :key="card.game_id" class="game-summary" :style="{ '--game-color': card.style.color }" @click="emit('navigate', 'game', card.game_id)">
         <div class="summary-header"><div class="game-identity"><GameIcon class="game-monogram" :game-id="card.game_id" :name="card.display_name" /><div><h3>{{ card.display_name }}</h3><p>{{ card.game_id === 'league_of_legends' ? 'PC / 国服' : '手游 / 社区数据' }}</p></div></div><span class="summary-state" :class="{ warn: card.summary.stale || card.auth?.state === 'expired' || readErrors[card.game_id] || card.source?.tone === 'danger' }"><i></i>{{ status(card) }}</span></div>
-        <div class="summary-metric"><p>{{ card.summary.hasStamina ? card.style.resource : '最近对局胜率' }}</p><div class="summary-number">{{ card.summary.value ?? '—' }}<small>{{ card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : '%' }}</small></div></div>
+        <div class="summary-metric"><p>{{ metricLabel(card) }}</p><div class="summary-number">{{ card.summary.metric === 'gacha' && card.summary.pityStatus === 'lower_bound' && card.summary.value != null ? '≥' : '' }}{{ card.summary.value ?? '—' }}<small>{{ card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : METRIC_UNITS[card.summary.metric] }}</small></div></div>
         <div v-if="card.summary.percent != null" class="summary-meter" role="meter" :aria-label="card.summary.hasStamina ? card.style.resource : '胜率'" :aria-valuenow="card.summary.percent" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.min(100, card.summary.percent)}%` }"></i></div>
         <div v-else class="summary-meter unknown"></div>
         <p class="summary-note">{{ resourceNote(card) }}</p>

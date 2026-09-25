@@ -7,7 +7,11 @@ export const GAME_STYLE = {
   wuthering_waves: { mark: '鸣', icon: '/game-icons/wuthering_waves-mark.svg', color: '#d8bb84', english: 'WUTHERING WAVES', resource: '结晶波片' },
   nte: { mark: '异', icon: '/game-icons/nte-mark.svg', color: '#b6a3d4', english: 'NEVERNESS TO EVERNESS', resource: '本性像素' },
   league_of_legends: { mark: 'L', icon: '/game-icons/league_of_legends-mark.svg', color: '#87b9ce', english: 'LEAGUE OF LEGENDS' },
+  endfield: { mark: '终', icon: '/game-icons/endfield-mark.svg', color: '#e6d45c', english: 'ARKNIGHTS: ENDFIELD', resource: '理智' },
 }
+// Versioned private payloads: an old snapshot shape is shown as missing, never misread.
+const VERSIONED_GAMES = new Set(['nte', 'endfield'])
+export const ENDFIELD_SPECIAL_POOL = 'E_CharacterGachaPoolType_Special'
 export const gameStyle = (id) => GAME_STYLE[id] || { mark: '游', color: '#d8bb84', english: 'MY GAME', resource: '体力' }
 export const finiteValue = (value) => typeof value === 'number' && Number.isFinite(value) ? value : null
 export function formatTime(value, options = {}) {
@@ -21,19 +25,23 @@ export function summaryFor(game, snapshots = {}) {
   const validPayload = (cap) => {
     const p = snapshots[cap]?.payload
     if (!p || typeof p !== 'object' || Array.isArray(p)) return null
-    if (game.game_id === 'nte' && !PUBLIC_CAPS.has(cap) && p.schema_version !== 1) return null
+    if (VERSIONED_GAMES.has(game.game_id) && !PUBLIC_CAPS.has(cap) && p.schema_version !== 1) return null
     return p
   }
   const account = validPayload('account')
   const stamina = validPayload('stamina')
   const stats = validPayload('stats')
   const hasStamina = game.capabilities.includes('stamina')
-  const value = finiteValue(hasStamina ? stamina?.current : stats?.winrate)
+  // Games without stamina or match stats show headhunting pity instead.
+  const metric = hasStamina ? 'stamina' : game.capabilities.includes('stats') || !game.capabilities.includes('gacha') ? 'stats' : 'gacha'
+  const pity = metric === 'gacha' ? validPayload('gacha')?.pools?.find?.(pool => pool?.key === ENDFIELD_SPECIAL_POOL)?.since_last_six : null
+  const value = finiteValue(metric === 'stamina' ? stamina?.current : metric === 'gacha' ? pity?.count : stats?.winrate)
   const maximum = finiteValue(stamina?.maximum)
-  const primary = snapshots[hasStamina ? 'stamina' : 'stats'] || snapshots.account
+  const primary = snapshots[metric] || snapshots.account
   return {
-    nickname: account?.nickname || null, level: finiteValue(account?.level), hasStamina,
-    value, maximum, percent: hasStamina ? value != null && maximum > 0 ? Math.max(0, Math.min(100, value / maximum * 100)) : null : value,
+    nickname: account?.nickname || null, level: finiteValue(account?.level), hasStamina, metric,
+    pityStatus: pity?.status || null,
+    value, maximum, percent: metric === 'stamina' ? value != null && maximum > 0 ? Math.max(0, Math.min(100, value / maximum * 100)) : null : metric === 'stats' ? value : null,
     expectedFullAt: stamina?.expected_full_at || null, totalGames: finiteValue(stats?.total_games), wins: finiteValue(stats?.wins),
     fetchedAt: primary?.fetched_at || null, stale: !!primary?.stale,
   }
@@ -55,7 +63,7 @@ export function upcomingEvents(games, snapshots, now = Date.now()) {
 
 export function recentNews(games, snapshots) {
   const rows = games.flatMap(game => {
-    const primary = ['nte', 'wuthering_waves'].includes(game.game_id) && snapshots[game.game_id]?.news?.primary_source === 'bilibili'
+    const primary = ['nte', 'wuthering_waves', 'endfield'].includes(game.game_id) && snapshots[game.game_id]?.news?.primary_source === 'bilibili'
     return (primary ? ['news', 'announcement'] : ['announcement', 'news']).flatMap(cap => {
     const snap = snapshots[game.game_id]?.[cap]
     if (!Array.isArray(snap?.payload)) return []

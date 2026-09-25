@@ -74,6 +74,24 @@ test('NTE sends SMS only on explicit action and reuses the session until the pho
   assert.equal(vm.code, '')
 })
 
+test('Endfield logs in with SMS only and never loads the captcha widget', async (t) => {
+  const requests = network(t, (url) => url.endsWith('/sessions') ? { session_id: 'session-ef', expires_in: 600, captcha_id: null } : undefined)
+  widget(t, () => { throw new Error('captcha must not load') })
+  const { vm } = mount(t)
+  assert.ok(vm.GAMES.some((game) => game.id === 'endfield'))
+  vm.selectGame('endfield')
+  assert.equal(vm.needsCaptcha, false)
+  vm.mobile = '13800000000'
+  await vm.startSession()
+  await vm.sendSms()
+  vm.code = '123456'
+  await vm.submitLogin()
+  const sms = requests.find((r) => r.url.endsWith('/sms'))
+  assert.equal(sms.url, '/api/auth/endfield/sms')
+  assert.equal('captcha' in sms.body, false)
+  assert.equal(requests.find((r) => r.url.endsWith('/login')).url, '/api/auth/endfield/login')
+})
+
 test('Wuwa requires human captcha success and sends the captcha id without replacing the session', async (t) => {
   const requests = network(t)
   let success
