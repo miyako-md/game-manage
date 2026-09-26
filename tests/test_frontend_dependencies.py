@@ -38,7 +38,9 @@ def install(frontend):
     )
     return subprocess.run(
         ['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command],
-        capture_output=True, text=True, errors='replace', timeout=20,
+        # A cold powershell.exe on a busy CI runner has taken over 20 s to start
+        # (2026-09-21, 2026-09-26); the timeout only guards against a real hang.
+        capture_output=True, text=True, errors='replace', timeout=120,
     )
 
 
