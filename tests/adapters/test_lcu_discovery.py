@@ -35,6 +35,12 @@ def test_lockfile(tmp_path, monkeypatch):
     assert find_lockfile_credentials([lf]) == ("54321", "abcTOKEN")
 
 
+def test_league_client_lockfile_leads_with_the_process_name(tmp_path):
+    lf = tmp_path / "lockfile"
+    lf.write_text("LeagueClient:18236:61455:fB3rT0kEn_x:https", encoding="utf-8")
+    assert find_lockfile_credentials([lf]) == ("61455", "fB3rT0kEn_x")
+
+
 def test_lockfile_empty_and_missing(tmp_path):
     empty = tmp_path / "empty.lock"
     empty.write_text("", encoding="utf-8")

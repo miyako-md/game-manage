@@ -41,15 +41,18 @@ def find_credentials_from(
 def find_lockfile_credentials(
     candidates: list[Path] = LOCKFILE_CANDIDATES,
 ) -> tuple[str, str] | None:
-    # 标准 Riot lockfile 格式 PID:Port:Password:Protocol。
+    # 英雄联盟客户端的 lockfile 是 进程名:PID:端口:密码:协议 五段（LOLhelper 取
+    # parts[2]、parts[3] 就是这个格式）；从末尾往前取，四段的 PID:端口:密码:协议
+    # 也能读对。
     for p in candidates:
         try:
             if p.exists() and p.stat().st_size > 0:
                 parts = p.read_text(encoding="utf-8", errors="replace").strip().split(":")
                 if len(parts) >= 4:
-                    if not parts[1] or not parts[2]:
+                    port, password = parts[-3], parts[-2]
+                    if not port or not password:
                         continue  # port/password 为空串：残缺 lockfile，跳过
-                    return parts[1], parts[2]
+                    return port, password
         except OSError:
             continue
     return None
