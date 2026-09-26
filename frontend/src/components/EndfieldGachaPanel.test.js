@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { nextTick, reactive } from 'vue'
-import { loadVue, mount, content, nodes } from '../test-utils/vue.js'
+import { loadVue, mount, content, nodes, choose } from '../test-utils/vue.js'
 const Panel = await loadVue(new URL('./EndfieldGachaPanel.vue', import.meta.url))
 const flush = async () => { await new Promise(setImmediate); await nextTick() }
 function api(t, handler) {
@@ -21,7 +21,7 @@ test('pools show exact and lower-bound pity wording and an unfinished sync', asy
   const root = mount(t, Panel, { snap, accountId: 'r1' }); await flush()
   const text = content(root)
   assert.match(text, /距上次 6★ 2 抽/)
-  assert.match(text, /提弗洛斯 至少 28 抽/)
+  assert.match(text, /提弗洛斯 ≥28 抽/)
   assert.match(text, /还有未同步完的记录/)
   assert.match(text, /有未同步完的区段/)
   assert.equal(calls.length, 0) // 逐条记录未展开时不读取
@@ -35,6 +35,8 @@ test('opening the record list reads the selected pool and pages through the loca
   assert.match(content(root), /提弗洛斯 6★/)
   await nodes(root, 'button').find(n => content(n) === '下一页').props.onClick(); await flush()
   assert.match(calls.at(-1), /offset=50/)
+  choose(root, '卡池', 'E_CharacterGachaPoolType_Special'); await flush()
+  assert.match(calls.at(-1), /pool_key=E_CharacterGachaPoolType_Special&offset=0/)
 })
 
 test('missing login, legacy snapshots and read errors are explained without inventing data', async t => {

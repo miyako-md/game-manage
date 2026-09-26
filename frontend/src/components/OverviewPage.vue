@@ -34,11 +34,11 @@ const METRIC_UNITS = { stats: '%', gacha: '抽' }
 const PLATFORMS = { league_of_legends: 'PC / 国服', endfield: '官服 / 鹰角通行证' }
 const platform = id => PLATFORMS[id] || '手游 / 社区数据'
 function metricLabel(card) {
-  return ({ stamina: card.style.resource, gacha: '特许寻访 · 距上次 6★' })[card.summary.metric] || '最近对局胜率'
+  return ({ stamina: card.style.resource, gacha: '距上次 6★' })[card.summary.metric] || '最近对局胜率'
 }
 function resourceNote(card) {
   const s = card.summary
-  if (s.metric === 'gacha') return s.value == null ? '等待寻访记录同步' : s.pityStatus === 'exact' ? '按连续的寻访记录计算' : '记录有断档或含免费寻访，这是最少抽数'
+  if (s.metric === 'gacha') return `特许寻访 · ${s.value == null ? '等待寻访记录同步' : s.pityStatus === 'exact' ? '按连续记录计算' : '有缺口或免费寻访，为最少值'}`
   // 胜率不含重开和结果未知的对局；分母和总场数不同时写出来，免得按总场数去算。
   if (!s.hasStamina) return s.totalGames == null ? '等待对局数据' : `最近 ${s.totalGames} 场 · ${s.wins == null ? '胜场未知' : `${s.wins} 胜`}${s.decided != null && s.decided !== s.totalGames ? ` · 胜率按 ${s.decided} 场计` : ''}`
   if (card.game_id === 'nte') return '塔吉多体力快照 · 可能有同步延迟'
@@ -62,7 +62,7 @@ function resourceNote(card) {
     <div v-for="game in notices" :key="game.game_id" class="inline-warning" role="status"><strong>{{ game.display_name }}</strong> · {{ refreshErrors[game.game_id] || readErrors[game.game_id] }}</div>
 
     <div class="section-heading"><h2>我的游戏 <span class="count-label">/ {{ String(games.length).padStart(2, '0') }}</span></h2><span class="muted small">各游戏独立同步</span></div>
-    <div class="game-summary-grid">
+    <div class="game-summary-grid" :class="{ many: cards.length > 3 }" :style="{ '--cards': Math.min(cards.length, 4) }">
       <button v-for="(card, index) in cards" :key="card.game_id" class="game-summary t-item t-glare" :style="{ '--game-color': card.style.color, '--i': index }" @click="emit('navigate', 'game', card.game_id)">
         <div class="summary-header"><GameIcon class="game-monogram" :game-id="card.game_id" :name="card.display_name" /><div class="game-identity"><h3>{{ card.display_name }}</h3><p>{{ platform(card.game_id) }}</p></div><span class="summary-state" :class="{ warn: card.summary.stale || card.auth?.state === 'expired' || readErrors[card.game_id] || card.source?.tone === 'danger' }"><i></i>{{ status(card) }}</span></div>
         <div class="summary-metric"><div><p>{{ metricLabel(card) }}</p><div class="summary-number" v-pop>{{ card.summary.metric === 'gacha' && card.summary.pityStatus === 'lower_bound' && card.summary.value != null ? '≥' : '' }}{{ card.summary.value ?? '—' }}<small>{{ card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : METRIC_UNITS[card.summary.metric] }}</small></div></div><p class="summary-note">{{ resourceNote(card) }}</p></div>
@@ -92,7 +92,9 @@ function resourceNote(card) {
 .attention-strip { display:flex; align-items:center; gap:10px; padding:9px 14px; margin-bottom:4px; background:var(--attention-bg); border:1px solid var(--attention-border); border-radius:10px; color:var(--attention-text); }
 .attention-strip p { flex:1; font-size:13px; }.attention-strip .text-link { color:var(--attention-text); }
 .section-heading { margin:20px 0 10px; }.page-heading + .section-heading { margin-top:0; }
-.game-summary-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+/* One row of up to four games; four fall to 2 × 2 before they get too narrow. */
+.game-summary-grid { display:grid; grid-template-columns:repeat(var(--cards, 3),minmax(0,1fr)); gap:12px; }
+@media(max-width:1280px) { .game-summary-grid.many { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .game-summary { display:flex; flex-direction:column; text-align:left; border:1px solid var(--border); border-radius:12px; padding:14px 16px; background:var(--card-bg); color:var(--text); min-width:0; box-shadow:var(--card-shadow); transition:border-color var(--duration-fast) var(--ease-smooth-out),transform var(--duration-fast) var(--ease-smooth-out),box-shadow var(--duration-fast) var(--ease-smooth-out); cursor:pointer; }
 @media(hover:hover) and (pointer:fine) { .game-summary:hover { border-color:color-mix(in srgb, var(--game-color) 40%, var(--border)); transform:translateY(-2px); box-shadow:var(--card-hover-shadow); } }
 .game-summary:active { transform:scale(var(--scale-small)); }.game-summary.is-skeleton { pointer-events:none; }
@@ -117,6 +119,6 @@ function resourceNote(card) {
 @media(hover:hover) and (pointer:fine) { .news-summary a:hover,.news-summary a:hover span { color:var(--accent); } }
 .overview-footer { margin-top:24px; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:12px; color:var(--text-faint); font-size:11px; }.overview-footer>span { display:flex; align-items:center; gap:7px; }
 @media(max-width:1200px) { .hero-count { display:none; } }
-@media(max-width:940px) { .game-summary-grid { grid-template-columns:1fr; }.overview-lower { grid-template-columns:1fr; } }
+@media(max-width:940px) { .game-summary-grid,.game-summary-grid.many { grid-template-columns:1fr; }.overview-lower { grid-template-columns:1fr; } }
 @media(max-width:600px) { .attention-strip { flex-wrap:wrap; gap:8px; padding:10px 12px; }.attention-strip p { flex-basis:80%; }.attention-strip .text-link { margin-left:26px; }.summary-number { font-size:26px; line-height:30px; }.overview-footer { flex-wrap:wrap; } }
 </style>

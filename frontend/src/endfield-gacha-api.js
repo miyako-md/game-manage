@@ -10,7 +10,7 @@ export const exportRecords = () => request('export')
 
 export function pityText(pity) {
   if (!pity || !Number.isInteger(pity.count)) return '未知'
-  return pity.status === 'exact' ? `${pity.count} 抽` : `至少 ${pity.count} 抽`
+  return pity.status === 'exact' ? `${pity.count} 抽` : `≥${pity.count} 抽`
 }
 export function pullDate(value) {
   if (!Number.isFinite(value)) return '时间未提供'
