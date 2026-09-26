@@ -36,7 +36,7 @@ export function summaryFor(game, snapshots = {}) {
   return {
     nickname: account?.nickname || null, level: finiteValue(account?.level), hasStamina,
     value, maximum, percent: hasStamina ? value != null && maximum > 0 ? Math.max(0, Math.min(100, value / maximum * 100)) : null : value,
-    expectedFullAt: stamina?.expected_full_at || null, totalGames: finiteValue(stats?.total_games), wins: finiteValue(stats?.wins), remakes: finiteValue(stats?.remakes) ?? 0,
+    expectedFullAt: stamina?.expected_full_at || null, totalGames: finiteValue(stats?.total_games), wins: finiteValue(stats?.wins), decided: finiteValue(stats?.decided_games),
     fetchedAt: primary?.fetched_at || null, stale: !!primary?.stale,
   }
 }

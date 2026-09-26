@@ -58,6 +58,8 @@
   --btn-primary-shadow: 0 1px 2px rgba(16, 24, 40, .03), inset 0 1px 0 rgba(255, 255, 255, .18); --btn-primary-pressed: inset 0 1.5px 3px rgba(13, 22, 38, .28), 0 1px 2px rgba(16, 24, 40, .1);
 }
 * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
+/* The sticky top bar must not cover whatever keyboard focus scrolls into view. */
+html { scroll-padding-top: 72px; }
 body { margin: 0; min-width: 320px; font-size: 14px; line-height: 1.6; color: var(--text); background: var(--bg); font-feature-settings: "tnum" 1, "cv05" 1; }
 /* Paper grain: a 22px dot grid that only shows on the bare canvas. */
 body::before { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; background-image:radial-gradient(circle, var(--paper-dot) 1px, transparent 1px); background-size:22px 22px; }
@@ -123,7 +125,7 @@ button,a,input,select,summary { transition: color var(--duration-quick) var(--ea
 .menu-toggle,.mobile-sidebar-close,.sidebar-scrim { display:none; }
 .service-error { display:flex; justify-content:space-between; align-items:center; gap:15px; background:var(--danger-bg); border:1px solid var(--danger-border); padding:14px 16px; border-radius:10px; margin:0 0 16px; animation:t-rise var(--duration-medium) var(--ease-smooth-out) backwards; }.service-error strong { color:var(--danger); font-size:13px; font-weight:600; }.service-error p { font-size:12px; margin-top:4px; color:var(--text-muted); }
 /* Card surface (Option Pro card-surface): white, hairline, 12px, soft ink shadow. */
-.cap-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:16px; min-width:0; box-shadow:var(--card-shadow); }.cap-title { display:flex; align-items:center; gap:6px 8px; font-size:14px; line-height:20px; font-weight:600; color:var(--text); margin-bottom:12px; flex-wrap:wrap; }.empty { color:var(--text-muted); padding:18px 0; text-align:center; font-size:12px; }.fetched-at { margin-top:10px; font-size:11px; color:var(--text-faint); }
+.cap-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:16px; min-width:0; box-shadow:var(--card-shadow); }.cap-title { display:flex; align-items:center; gap:6px 8px; font-size:14px; line-height:20px; font-weight:600; color:var(--text); margin-bottom:12px; flex-wrap:wrap; }.empty { color:var(--text-muted); padding:18px 0; text-align:center; font-size:12px; }
 .badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:11px; line-height:18px; white-space:nowrap; font-weight:500; }.badge-danger { color:var(--danger); background:var(--danger-bg); }.badge-stale { color:var(--stale-text); background:var(--stale-bg); }
 /* Accounts page tweaks to LoginPanel; .workspace-main outranks its scoped rules. */
 .workspace-main .accounts-page .login-panel { padding:24px; }.workspace-main .accounts-page .panel-header { padding-bottom:16px; border-bottom:1px solid var(--border); }.workspace-main .accounts-page .accounts { gap:16px; margin-top:20px; }.workspace-main .accounts-page .account-row { padding:18px 20px; background:var(--panel-bg); }.workspace-main .accounts-page .account-info>strong { font-size:17px; font-weight:600; }.workspace-main .accounts-page .account-info .nickname { flex-basis:100%; font-size:12px; margin-top:4px; color:var(--text-muted); }.workspace-main .accounts-page .login-form { margin-top:24px; padding-top:22px; }
@@ -134,19 +136,20 @@ button,a,input,select,summary { transition: color var(--duration-quick) var(--ea
    chips, stacked bars and data tables. */
 /* Card header meta: timestamps and counts sit on the title line, right side. */
 .cap-meta { margin-left:auto; display:inline-flex; align-items:center; gap:8px; color:var(--text-faint); font-size:11px; font-weight:400; line-height:16px; white-space:nowrap; }
+/* Phones: long meta drops to its own line under the title instead of pushing the page wide. */
+@media(max-width:600px) { .cap-meta { flex-basis:100%; margin-left:0; white-space:normal; } }
 /* ⓘ hint (InfoHint.vue): the note shows on hover or keyboard focus. */
 .info-hint { position:relative; display:inline-flex; vertical-align:middle; }
 .info-hint-trigger { display:grid; place-items:center; width:20px; height:20px; padding:0; border:0; border-radius:50%; background:none; color:var(--text-faint); }
 @media(hover:hover) and (pointer:fine) { .info-hint-trigger:hover { color:var(--text-body); background:var(--hover-bg); } }
-/* Hidden tips are display:none so they never widen the page; they fade in
-   after a short hover delay (transitions.dev tooltip) and close instantly. */
-.info-hint-tip { display:none; position:absolute; left:-6px; bottom:calc(100% + 6px); z-index:25; width:max-content; max-width:min(300px, calc(100vw - 32px)); padding:8px 10px; border:1px solid var(--border); border-radius:9px; background:var(--card-bg); box-shadow:var(--popover-shadow); color:var(--text-body); font-size:12px; font-weight:400; line-height:1.6; letter-spacing:0; text-transform:none; white-space:normal; text-align:left; pointer-events:none; }
-.info-hint.align-end .info-hint-tip { left:auto; right:-6px; }
+/* Hidden tips are display:none so they never widen the page; InfoHint.vue
+   places the fixed tip from its icon. They fade in after a short hover delay
+   (transitions.dev tooltip); a tap opens at once; Escape dismisses. */
+.info-hint-tip { display:none; position:fixed; z-index:70; width:max-content; max-width:min(300px, calc(100vw - 24px)); padding:8px 10px; border:1px solid var(--border); border-radius:9px; background:var(--card-bg); box-shadow:var(--popover-shadow); color:var(--text-body); font-size:12px; font-weight:400; line-height:1.6; letter-spacing:0; text-transform:none; white-space:normal; text-align:left; pointer-events:none; }
 .info-hint:hover .info-hint-tip,.info-hint-trigger:focus-visible + .info-hint-tip { display:block; animation:t-tip-in var(--duration-quick) var(--ease-out) var(--duration-quick) backwards; }
 .info-hint.is-open .info-hint-tip { display:block; animation:t-tip-in var(--duration-quick) var(--ease-out) backwards; }
+.info-hint.is-dismissed .info-hint-tip { display:none; }
 @keyframes t-tip-in { from { opacity:0; transform:translateY(4px); } }
-/* Phones: the tip spans the screen just below its trigger instead of hanging off an edge. */
-@media(max-width:600px) { .info-hint-tip { position:fixed; left:16px; right:16px; bottom:auto; width:auto; max-width:none; margin-top:26px; } .info-hint.align-end .info-hint-tip { left:16px; right:16px; } }
 /* Key-value grid: small label over a strong value; .tiles puts each in a well. */
 .kv-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--kv-min, 112px), 1fr)); gap:8px; margin:0; }
 .kv-grid>div { min-width:0; }.kv-grid dt { color:var(--text-muted); font-size:11px; line-height:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.kv-grid dd { margin:2px 0 0; color:var(--text); font-size:16px; line-height:22px; font-weight:600; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }.kv-grid dd small { margin-left:3px; color:var(--text-muted); font-size:11px; font-weight:400; letter-spacing:0; }

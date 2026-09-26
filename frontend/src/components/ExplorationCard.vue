@@ -76,8 +76,8 @@ const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
           <b>{{ detections.total }}</b>
           <span class="detection-unit">只</span>
         </p>
-        <template v-if="hasSplit">
-          <div class="stack-bar" aria-hidden="true">
+        <template v-if="levels.length">
+          <div v-if="hasSplit" class="stack-bar" aria-hidden="true">
             <i v-for="l in levels" v-show="l.size" :key="l.name" :style="{ flex: l.size, '--series': l.series }"></i>
           </div>
           <ul class="legend">

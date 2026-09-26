@@ -99,7 +99,7 @@ const signed = (n) => (typeof n === 'number' && n > 0 ? `+${n}` : n)
       </button>
     </header>
     <div class="wuwa-history-bar">
-      <nav v-glide class="wuwa-tabs segmented" aria-label="历史类型">
+      <nav v-glide class="segmented" aria-label="历史类型">
         <button
           v-for="[key, name] in [
             ['tower', '跨期深塔'],
@@ -117,7 +117,7 @@ const signed = (n) => (typeof n === 'number' && n > 0 ? `+${n}` : n)
       <p v-if="archive" class="wuwa-meta wuwa-bar-end">
         开始记录 {{ stamp(archive.archive_started_at) }}（北京时间） ·
         {{ value(archive.total) }} 条观测，非变化次数<InfoHint
-          :text="archive.coverage || '仅保存成功观测；首次记录之前未知。'"
+          :text="typeof archive.coverage === 'string' && archive.coverage ? archive.coverage : '仅保存成功观测；首次记录之前未知。'"
           align="end"
         />
       </p>
@@ -192,11 +192,11 @@ const signed = (n) => (typeof n === 'number' && n > 0 ? `+${n}` : n)
             <summary>{{ deltaLabel(key) }}</summary>
             <div class="wuwa-compare">
               <section>
-                <p class="wuwa-field-label">之前</p>
+                <p class="wuwa-field-label" role="heading" aria-level="5">之前</p>
                 <WuwaFields :data="delta?.before" />
               </section>
               <section>
-                <p class="wuwa-field-label">之后</p>
+                <p class="wuwa-field-label" role="heading" aria-level="5">之后</p>
                 <WuwaFields :data="delta?.after" />
               </section>
             </div>

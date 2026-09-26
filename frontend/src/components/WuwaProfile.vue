@@ -20,7 +20,7 @@ const exp = computed(() => {
   if (cur == null && max == null) return null
   const pct =
     typeof cur === 'number' && typeof max === 'number' && max > 0
-      ? Math.min(100, Math.round((cur / max) * 100))
+      ? Math.max(0, Math.min(100, Math.round((cur / max) * 100)))
       : 0
   return { cur, max, pct }
 })

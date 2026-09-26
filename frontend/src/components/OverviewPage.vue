@@ -32,7 +32,8 @@ function status(card) {
 }
 function resourceNote(card) {
   const s = card.summary
-  if (!s.hasStamina) return s.totalGames == null ? '等待对局数据' : `最近 ${s.totalGames} 场 · ${s.wins == null ? '胜场未知' : `${s.wins} 胜`}${s.remakes ? ` · ${s.remakes} 场重开不计` : ''}`
+  // 胜率不含重开和结果未知的对局；分母和总场数不同时写出来，免得按总场数去算。
+  if (!s.hasStamina) return s.totalGames == null ? '等待对局数据' : `最近 ${s.totalGames} 场 · ${s.wins == null ? '胜场未知' : `${s.wins} 胜`}${s.decided != null && s.decided !== s.totalGames ? ` · 胜率按 ${s.decided} 场计` : ''}`
   if (card.game_id === 'nte') return '塔吉多体力快照 · 可能有同步延迟'
   if (s.percent >= 100) return '快照显示体力已满'
   if (s.expectedFullAt) return `预计 ${formatTime(s.expectedFullAt)} 回满`

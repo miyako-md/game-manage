@@ -109,7 +109,7 @@ const totals = computed(() => {
         num: r.num,
         pct:
           typeof r.num === 'number' && base > 0
-            ? Math.min(100, Math.round((r.num / base) * 100))
+            ? Math.max(0, Math.min(100, Math.round((r.num / base) * 100)))
             : null,
         series: `var(--chart-${(i + n * 3) % 6 + 1})`,
       })),

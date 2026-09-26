@@ -94,9 +94,9 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
         </div>
         <div class="login-row">
           <button type="button" class="text-link" @click="showLogin = !showLogin">{{ login ? '更新B站登录信息' : '配置B站登录信息（匿名受限时）' }}</button>
-          <InfoHint v-if="showLogin" text="从已登录的 bilibili.com 浏览器 Cookie 中复制。仅在本机加密保存，用于查询官方动态，不执行点赞或发送消息。" />
         </div>
         <form v-if="showLogin" @submit.prevent="saveLogin" class="bili-login">
+          <p class="login-note">从已登录的 bilibili.com 浏览器 Cookie 中复制。仅在本机加密保存，用于查询官方动态，不执行点赞或发送消息。</p>
           <label>SESSDATA<input v-model="sessdata" type="password" required autocomplete="off" /></label>
           <label>bili_jct（可选）<input v-model="csrf" type="password" autocomplete="off" /></label>
           <label>buvid3（可选）<input v-model="buvid" type="password" autocomplete="off" /></label>
@@ -146,6 +146,7 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
 .bili-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
 .login-row { display:flex; align-items:center; gap:6px; margin-top:12px; }
 .bili-login { max-width:480px; margin-top:10px; }
+.login-note { color:var(--text-muted); font-size:12px; line-height:1.7; }
 .bili-login label { display:block; margin:10px 0; color:var(--text-muted); }
 .bili-login input { display:block; width:100%; margin-top:4px; padding:7px 8px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; font-size:12px; }
 .bili-audit { margin-top:14px; max-height:650px; overflow:auto; }

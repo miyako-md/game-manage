@@ -64,6 +64,12 @@ def test_remake_from_short_duration_and_normal_game():
     assert [m.remake for m in items] == [True, False]
 
 
+def test_remake_duration_boundary_and_missing_duration():
+    games = [{**GAME, "gameDuration": d} for d in (299, 300, None, -5)]
+    items = parse_match_history({"games": {"games": games}}, "ME")
+    assert [m.remake for m in items] == [True, False, False, False]
+
+
 def test_damage_extracted():
     game = {**GAME, "participants": [
         {**GAME["participants"][0],
@@ -196,7 +202,7 @@ def test_compute_stats_leaves_out_remakes_and_unknown_results():
     assert (s.total_games, s.remakes, s.decided_games, s.wins) == (4, 1, 2, 1)
     assert s.winrate == 50.0  # 1 胜 1 负；重开与未知结果都不当负场
     assert s.avg_kills == round((10 + 4 + 2) / 3, 1)  # 重开不拉低场均
-    assert s.top_champions[0].games == 3
+    assert (s.top_champions[0].games, s.top_champions[0].wins, s.top_champions[0].losses) == (3, 1, 1)
     assists = [r for r in s.records if r["label"] == "单场最高助攻"]
     assert assists and assists[0]["match_id"] == "1"
 

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, useId } from 'vue'
 import { fetchedLabel, monthDay } from '../time.js'
 import { DAY_MS, beijingDayStart, parseBeijingTime } from '../calendar.js'
 import { getMatchDetail } from '../api.js'
@@ -31,7 +31,9 @@ function fmtDamage(value) {
 
 // 结果分四种：重开和结果未知不是负场，用灰色，不进胜率与场均。
 function statusOf(it) {
-  if (it.remake === true || (known(it.duration_seconds) && it.duration_seconds >= 0 && it.duration_seconds < REMAKE_SECONDS)) return 'remake'
+  // 后端给出了判定就用它；旧快照没有这个字段时才按时长推断。
+  const remake = typeof it.remake === 'boolean' ? it.remake : known(it.duration_seconds) && it.duration_seconds >= 0 && it.duration_seconds < REMAKE_SECONDS
+  if (remake) return 'remake'
   if (it.win === true) return 'win'
   if (it.win === false) return 'loss'
   return 'unknown'
@@ -64,10 +66,13 @@ const recordLabels = computed(() => {
   return byMatch
 })
 
-// 从新到旧，与快照顺序一致。
+// 从新到旧。快照一般已是这个顺序；时间齐全时仍按开局时间排一次，走势和空档都依赖它。
 const rows = computed(() => {
   const payload = props.snap?.payload
-  const items = Array.isArray(payload) ? payload : []
+  const raw = Array.isArray(payload) ? payload : []
+  const items = raw.every((it) => parseBeijingTime(it.start_at) != null)
+    ? [...raw].sort((a, b) => parseBeijingTime(b.start_at) - parseBeijingTime(a.start_at))
+    : raw
   const played = items.filter((it) => statusOf(it) !== 'remake')
   const maxDamage = Math.max(0, ...played.map((it) => (known(it.damage) ? it.damage : 0)))
   const mapped = items.map((it) => {
@@ -126,7 +131,8 @@ const summary = computed(() => {
   }
   const mean = (values) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : null)
   const damage = mean(played.map((r) => r.damage).filter(known))
-  const duration = mean(played.map((r) => r.duration_seconds).filter(known))
+  const durations = played.map((r) => r.duration_seconds).filter(known)
+  const duration = mean(durations)
   return {
     wins,
     losses: decided.length - wins,
@@ -138,6 +144,7 @@ const summary = computed(() => {
     latest: agoText(rows.value.find((r) => r.day != null)?.day ?? null),
     damage: damage == null ? null : fmtDamage(Math.round(damage)),
     duration: duration == null ? null : fmtDuration(duration),
+    durationGames: durations.length,
   }
 })
 
@@ -219,13 +226,33 @@ const metaText = computed(() => {
   if (fetchedAt.value) parts.push(`更新于 ${fetchedAt.value}`)
   return parts.join(' · ')
 })
-// 对局详情按需展开（同时只展开一场）
+// 对局详情按需展开（同时只展开一场），放在被点卡片那一行的末尾之后，
+// 这样阅读和键盘顺序与画面一致（不用 dense 回填）。
+const grid = ref(null)
+const columns = ref(1)
+const detailId = `${useId()}-detail`
+function measureColumns() {
+  const el = grid.value
+  if (!el || typeof getComputedStyle !== 'function') return
+  columns.value = Math.max(1, getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length)
+}
 const expandedId = ref(null)
+const expandedRow = computed(() => rows.value.find((r) => r.match_id === expandedId.value) ?? null)
+const detailAfter = computed(() => {
+  if (expandedId.value == null) return -1
+  const index = rows.value.findIndex((r) => r.match_id === expandedId.value)
+  if (index < 0) return -1
+  const per = columns.value
+  return Math.min(rows.value.length - 1, Math.floor(index / per) * per + per - 1)
+})
+function watchWidth(on) {
+  if (typeof window !== 'undefined') window[on ? 'addEventListener' : 'removeEventListener']('resize', measureColumns)
+}
 const detail = ref(null)
 const detailLoading = ref(false)
 const detailError = ref('')
 let detailGeneration = 0
-onBeforeUnmount(() => { detailGeneration += 1 })
+onBeforeUnmount(() => { detailGeneration += 1; watchWidth(false) })
 
 async function toggleDetail(row) {
   const request = ++detailGeneration
@@ -234,8 +261,11 @@ async function toggleDetail(row) {
     detail.value = null
     detailError.value = ''
     detailLoading.value = false
+    watchWidth(false)
     return
   }
+  measureColumns()
+  watchWidth(true)
   expandedId.value = row.match_id
   detail.value = null
   detailError.value = ''
@@ -283,7 +313,7 @@ async function toggleDetail(row) {
             <div><dt>场均伤害</dt><dd>{{ summary.damage }}</dd><p>对英雄伤害</p></div>
           </div>
           <div v-if="summary.duration" class="tile">
-            <div><dt>场均时长</dt><dd>{{ summary.duration }}</dd><p>{{ rows.length }} 场平均</p></div>
+            <div><dt>场均时长</dt><dd>{{ summary.duration }}</dd><p>{{ summary.durationGames }} 场平均</p></div>
           </div>
         </dl>
 
@@ -334,7 +364,7 @@ async function toggleDetail(row) {
         </div>
       </div>
 
-      <div class="match-grid">
+      <div ref="grid" class="match-grid">
         <template v-for="(it, i) in rows" :key="it.match_id ?? i">
           <article class="match-item" :class="[`is-${it.status}`, { open: expandedId === it.match_id }]">
             <div class="mi-head">
@@ -356,12 +386,12 @@ async function toggleDetail(row) {
               <span class="mi-meta">{{ [it.champion ? it.mode : '', it.durationText].filter(Boolean).join(' · ') }}</span>
               <span v-if="it.gapBefore" class="chip gap-chip" :title="`与上一场相隔 ${it.gapBefore} 天`">隔 {{ it.gapBefore }} 天</span>
               <span v-for="label in it.records" :key="label" class="chip record">{{ label }}</span>
-              <button type="button" class="ui-button ghost small-button" :aria-expanded="expandedId === it.match_id" @click="toggleDetail(it)">
+              <button type="button" class="ui-button ghost small-button" :aria-expanded="expandedId === it.match_id" :aria-controls="expandedId === it.match_id ? detailId : undefined" @click="toggleDetail(it)">
                 {{ expandedId === it.match_id ? '收起' : '详情' }}
               </button>
             </div>
           </article>
-          <div v-if="expandedId === it.match_id" class="match-detail">
+          <div v-if="i === detailAfter" :id="detailId" class="match-detail" :aria-label="`对局详情 ${expandedRow?.dateText ?? ''}`" role="region">
             <MatchDetailPanel :detail="detail" :loading="detailLoading" :error="detailError" />
           </div>
         </template>
@@ -434,9 +464,9 @@ async function toggleDetail(row) {
 .modes .k small { margin-left: 4px; color: var(--text-faint); font-size: 11px; }
 .modes-note { margin-top: auto; color: var(--text-faint); font-size: 11px; }
 
-/* Match cards: a dense grid; the opened match's details span the full row
-   right below it (dense flow lets later cards fill the gap). */
-.match-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 232px), 1fr)); grid-auto-flow: row dense; gap: 8px; }
+/* Match cards in a grid; the opened match's details span the full width
+   after the last card of its row. */
+.match-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 232px), 1fr)); gap: 8px; }
 .match-item { display: grid; gap: 6px; min-width: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); transition: border-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-quick) var(--ease-smooth-out); }
 .match-item.is-remake { background: var(--panel-bg); }
 .is-remake .mi-head strong, .is-remake .mi-kda b, .is-remake .mi-kda b.deaths { color: var(--text-muted); }

@@ -36,7 +36,7 @@ const tiles = computed(() => {
         cap,
         pct:
           typeof cur === 'number' && typeof cap === 'number' && cap > 0
-            ? Math.min(100, Math.round((cur / cap) * 100))
+            ? Math.max(0, Math.min(100, Math.round((cur / cap) * 100)))
             : null,
       })
     }

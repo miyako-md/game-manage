@@ -115,7 +115,7 @@ function nextExport() { exportStart.value = exportNext.value + 1; download() }
     <header class="cap-title ledger-head">
       <h2>逐抽账本</h2>
       <InfoHint text="逐条保存真实记录。导入覆盖范围与社区统计分别计算。" />
-      <span v-if="accountId" class="saved-count"><b>{{ summary?.total_records ?? 0 }}</b>条已保存记录<InfoHint text="截至导入文件时间，不代表已经覆盖账号全部历史" /></span>
+      <span v-if="accountId" class="saved-count"><b>{{ summary?.total_records ?? 0 }}</b>条已保存记录 · 截至导入文件时间<InfoHint text="只包含已导入文件里的记录，不代表已经覆盖账号全部历史。" /></span>
       <span class="head-actions">
         <label v-if="accountId" class="check"><input type="checkbox" v-model="segmented" :disabled="busy" />分段导出大账本</label>
         <button v-if="accountId" type="button" class="ui-button small-button" :disabled="busy" @click="load">刷新账本</button>
@@ -127,7 +127,8 @@ function nextExport() { exportStart.value = exportNext.value + 1; download() }
       <div v-if="segmented" class="toolbar export-controls">
         <label>从第 <input type="number" v-model="exportStart" min="1" :disabled="busy" /> 条开始</label>
         <button v-if="exportNext != null" type="button" class="ui-button small-button" :disabled="busy" @click="nextExport">下载下一段</button>
-        <InfoHint align="end" text="每段最多 2,000 条，过大时自动缩小；请按提示下载全部分段，期间不要导入新记录。分段恢复保留流水，垫抽范围需原始连续记录重新证明。" />
+        <InfoHint align="end" text="每段最多 2,000 条，过大时自动缩小。分段恢复保留流水，垫抽范围需原始连续记录重新证明。" />
+        <p class="export-warning">请按提示下载全部分段，期间不要导入新记录。</p>
       </div>
       <p v-if="error" role="alert" class="notice error">{{ error }}</p><p v-if="message" role="status" class="notice">{{ message }}</p>
       <details class="panel import-panel"><summary>导入逐抽记录<AppIcon name="chevron" :size="14" class="t-disclosure" /></summary>
@@ -190,6 +191,7 @@ function nextExport() { exportStart.value = exportNext.value + 1; download() }
 .saved-count { display:inline-flex; align-items:center; gap:4px; margin-left:4px; color:var(--text-muted); font-size:12px; font-weight:400; }
 .saved-count b { color:var(--text); font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; }
 .head-actions { display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; margin-left:auto; }
+.export-warning { flex-basis:100%; margin:0; color:var(--stale-text); font-size:12px; }
 .check { display:inline-flex; align-items:center; gap:6px; color:var(--text-body); font-size:12px; font-weight:400; cursor:pointer; }
 .ledger input[type=checkbox] { margin:0; accent-color:var(--accent); }
 .ledger input:not([type=checkbox]):not([type=file]) { min-height:30px; max-width:100%; padding:4px 8px; border:1px solid var(--border); border-radius:7px; background:var(--card-bg); color:var(--text); font-size:12px; }

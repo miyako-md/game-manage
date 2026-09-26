@@ -15,7 +15,7 @@ const pct = computed(() => {
   const { current, maximum } = payload.value || {}
   return typeof current === 'number' && typeof maximum === 'number' && maximum > 0
     ? Math.max(0, Math.min(100, (current / maximum) * 100))
-    : 0
+    : null
 })
 </script>
 
@@ -39,7 +39,7 @@ const pct = computed(() => {
           预计 {{ expectedFullAt }} 恢复满
         </span>
       </div>
-      <span class="meter stamina-meter"><i :style="{ '--pct': pct + '%' }"></i></span>
+      <span v-if="pct != null" class="meter stamina-meter"><i :style="{ '--pct': pct + '%' }"></i></span>
     </template>
   </div>
 </template>

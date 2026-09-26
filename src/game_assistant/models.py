@@ -170,8 +170,9 @@ class ChampionStat(BaseModel):
     # 常用英雄（生涯统计近 20 场口径）
     champion_id: int | None = None
     champion_name: str | None = None
-    games: int = 0
+    games: int = 0  # 不含重开
     wins: int = 0
+    losses: int | None = None  # 旧快照没有；games - wins - losses 为结果未知的场数
 
 
 class StatsSummary(BaseModel):

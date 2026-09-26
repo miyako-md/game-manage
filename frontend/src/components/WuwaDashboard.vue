@@ -82,7 +82,7 @@ const roleNames = computed(() =>
 <template>
   <div class="wuwa-dashboard">
     <div class="wuwa-nav">
-      <nav v-glide class="wuwa-tabs segmented" aria-label="鸣潮数据分区">
+      <nav v-glide class="segmented" aria-label="鸣潮数据分区">
         <button
           v-for="[key, name] in tabs"
           :key="key"

@@ -97,6 +97,14 @@ test('stamina summary preserves real zero and unknown denominator', () => {
   assert.equal(unknown.value, null); assert.equal(unknown.percent, null)
 })
 
+test('LoL win rate summary carries the decided-game count used as its denominator', () => {
+  const lol = { game_id: 'league_of_legends', capabilities: ['account', 'match', 'stats'] }
+  const s = summaryFor(lol, { stats: snapshot({ total_games: 20, wins: 10, winrate: 55.6, decided_games: 18, remakes: 1 }) })
+  assert.equal(s.value, 55.6); assert.equal(s.totalGames, 20); assert.equal(s.decided, 18)
+  const old = summaryFor(lol, { stats: snapshot({ total_games: 20, wins: 11, winrate: 55 }) })
+  assert.equal(old.decided, null)
+})
+
 test('NTE legacy raw data cannot silently become a valid account or stamina summary', () => {
   const s = summaryFor(game, { account: snapshot({ nickname: '旧结构' }), stamina: snapshot({ current: 50, maximum: 100 }) })
   assert.equal(s.value, null); assert.equal(s.nickname, null)

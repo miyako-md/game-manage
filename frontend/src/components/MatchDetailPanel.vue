@@ -69,7 +69,7 @@ const teamResult = (team) => {
                 <td class="num">{{ kda(p) }}</td>
                 <td class="num">{{ fmtNum(p.damage) }}</td>
                 <td class="num">{{ fmtNum(p.gold) }}</td>
-                <td class="muted items-cell" :title="(p.items || []).join(' · ')">{{ (p.items || []).join('·') || '-' }}</td>
+                <td class="items-cell"><span v-for="(item, k) in p.items || []" :key="k" class="item-id">{{ item }}</span><span v-if="!(p.items || []).length" class="muted">-</span></td>
               </tr>
             </tbody>
           </table>
@@ -159,11 +159,22 @@ const teamResult = (team) => {
   color: var(--text-muted);
 }
 
-.items-cell {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Up to six item ids per player: small wrapping chips, all of them readable. */
+.team-col .data-table td.items-cell {
+  min-width: 150px;
+  white-space: normal;
+}
+
+.item-id {
+  display: inline-block;
+  margin: 1px 3px 1px 0;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--overlay-3);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 16px;
 }
 
 .player-own td {

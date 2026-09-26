@@ -67,8 +67,6 @@
   animation: t-rise var(--duration-slow) var(--ease-smooth-out) backwards;
   animation-delay: calc(var(--i, 0) * var(--duration-stagger));
 }
-/* Notices and errors rise in like a banner. */
-.t-notice { animation: t-rise var(--duration-medium) var(--ease-smooth-out) backwards; }
 /* Replayed on a number when its text changes (v-pop). */
 .t-pop { animation: t-pop var(--duration-very-slow) var(--ease-smooth-out) backwards; }
 /* Loading text: a highlight band sweeps across muted text. */
@@ -139,16 +137,6 @@
 }
 
 /* ── Interactive surfaces ─────────────────────────────────────────── */
-.t-lift {
-  transition:
-    transform var(--duration-fast) var(--ease-smooth-out),
-    box-shadow var(--duration-fast) var(--ease-smooth-out),
-    border-color var(--duration-fast) var(--ease-smooth-out),
-    background-color var(--duration-fast) var(--ease-smooth-out);
-}
-@media (hover: hover) and (pointer: fine) {
-  .t-lift:hover { transform: translateY(-2px); box-shadow: var(--card-hover-shadow); }
-}
 /* Card glare (beUI / rareui tilt-lite): a diagonal sheen on hover, no 3D. */
 .t-glare { position: relative; isolation: isolate; }
 .t-glare::after {
@@ -163,11 +151,6 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .t-glare:hover::after { opacity: .32; }
-}
-/* Chevron that slides on hover (transitions.dev "learn more"). */
-.t-chevron { transition: transform 350ms var(--ease-smooth-out); }
-@media (hover: hover) and (pointer: fine) {
-  a:hover > .t-chevron, button:hover > .t-chevron { transform: translateX(2px); }
 }
 /* Accordion expand (transitions.dev 21) for every native disclosure. Browsers
    without ::details-content keep the instant toggle; flow-root keeps child
@@ -208,6 +191,8 @@ details[open] > summary .t-disclosure { transform: rotate(180deg); }
 @keyframes t-check-draw { to { stroke-dashoffset: 0; } }
 .t-check { width: 18px; height: 18px; flex-shrink: 0; color: var(--success); animation: t-check-in var(--duration-fast) var(--ease-bounce) both; }
 .t-check-path { stroke-dasharray: 21; stroke-dashoffset: 21; animation: t-check-draw var(--duration-very-slow) var(--ease-smooth-out) var(--duration-quick) forwards; }
+/* With animations off the stroke would stay hidden; draw it at once. */
+@media (prefers-reduced-motion: reduce) { .t-check-path { stroke-dashoffset: 0; } }
 
 /* ── Quiet hover for list rows ───────────────────────────────────── */
 .t-row { transition: background-color var(--duration-quick) var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out); }

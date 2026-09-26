@@ -84,7 +84,7 @@ watch(() => props.capability, () => { search.value = ''; ownership.value = 'all'
         <span class="count" role="status">显示 {{ filtered.length }} / {{ entries.length }} 条</span>
       </div>
       <p v-if="!entries.length" class="empty">{{ capability === 'teams' ? '暂无官方配队推荐' : '暂无资产明细' }}</p>
-      <p v-else-if="!filtered.length" class="empty">没有符合筛选条件的条目</p>
+      <p v-else-if="!filtered.length" class="empty" role="status">没有符合筛选条件的条目</p>
       <div v-else class="asset-list" :class="capability === 'teams' ? 'team-list' : capability === 'vehicles' ? 'vehicle-grid' : 'asset-grid'">
         <details v-for="(entry, index) in filtered" :key="`${entry.id}-${index}`" class="asset t-item" :style="{ '--i': Math.min(index, 11) }" open>
           <summary>

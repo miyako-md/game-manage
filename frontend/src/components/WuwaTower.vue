@@ -39,7 +39,7 @@ const glyphs = (floor) => {
       <div
         v-if="data?.is_unlock !== false"
         v-glide
-        class="wuwa-tabs segmented"
+        class="segmented"
         role="group"
         aria-label="深塔分区"
       >

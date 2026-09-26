@@ -30,9 +30,17 @@ const sets = computed(() => {
   }
   return [...seen.values()]
 })
-// Attribute rows ({ attribute_name, attribute_value }) read as a key-value grid.
+// Attribute rows made only of { attribute_name, attribute_value } read as a
+// key-value grid; anything with extra fields keeps the generic renderer so no
+// field is dropped.
+const ATTRIBUTE_KEYS = new Set(['attribute_name', 'attribute_value'])
 const isAttributeList = (v) =>
-  list(v).length > 0 && list(v).every((p) => p?.attribute_name != null)
+  list(v).length > 0 &&
+  list(v).every(
+    (p) =>
+      p?.attribute_name != null &&
+      Object.keys(p).every((k) => ATTRIBUTE_KEYS.has(k)),
+  )
 </script>
 <template>
   <div class="wuwa-role-detail">
@@ -49,7 +57,7 @@ const isAttributeList = (v) =>
         <div class="wuwa-basics-body">
           <WuwaFields :data="data.role" />
           <div class="wuwa-field-group">
-            <span class="wuwa-field-label">角色外观</span
+            <span class="wuwa-field-label" role="heading" aria-level="4">角色外观</span
             ><WuwaFields :data="data.role_skin" />
           </div>
           <dl class="wuwa-kv">
@@ -180,19 +188,19 @@ const isAttributeList = (v) =>
               分支激活 {{ value(entry.active_branch) }}
             </li>
             <li
-              v-for="(b, j) in list(entry.skill?.skill_branches).filter((b) => b?.name)"
+              v-for="(b, j) in list(entry.skill?.skill_branches)"
               :key="j"
               class="chip"
-              :title="b.description || undefined"
+              :title="b?.description || undefined"
             >
-              {{ b.name }}
+              {{ b?.name || `分支 ${j + 1}` }}
             </li>
           </ul>
+          <p v-if="entry.skill?.description" class="wuwa-description">
+            {{ entry.skill.description }}
+          </p>
           <details class="wuwa-supplement">
-            <summary>技能说明与来源资料</summary>
-            <p v-if="entry.skill?.description" class="wuwa-description">
-              {{ entry.skill.description }}
-            </p>
+            <summary>分支说明与来源资料</summary>
             <WuwaFields
               :data="entry.skill"
               :exclude="['name', 'type', 'description']"
@@ -218,6 +226,7 @@ const isAttributeList = (v) =>
           :key="i"
           class="wuwa-chain"
           :class="{ 'wuwa-locked': chain.unlocked === false }"
+          open
         >
           <summary>
             <span class="wuwa-chain-order">{{ value(chain.order) }}</span

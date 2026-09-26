@@ -166,6 +166,7 @@ def compute_stats(summaries: list[MatchSummary],
         champion_name=(ChampionCatalog.name_for(catalog, cid) if catalog else None)
         or f"英雄 #{cid}",
         games=len(games), wins=sum(1 for s in games if s.win is True),
+        losses=sum(1 for s in games if s.win is False),
     ) for cid, games in top]
 
     records = []

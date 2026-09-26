@@ -92,14 +92,21 @@ async function importFile() {
 onMounted(() => load())
 watch(
   () => props.accountKey,
-  () => load(),
+  () => {
+    importDecided = false
+    load()
+  },
 )
-// The import form starts open only once the archive turns out to be empty.
-const importOpen = computed(
-  () =>
-    Boolean(archive.value) &&
-    (archive.value.state === 'need_import' || !archive.value.total),
-)
+// The import form opens by itself only when the first archive read for an
+// account is empty; after that it stays as the user left it, so a successful
+// import does not fold it away mid-use.
+const importOpen = ref(false)
+let importDecided = false
+watch(archive, (loaded) => {
+  if (importDecided || !loaded) return
+  importDecided = true
+  importOpen.value = loaded.state === 'need_import' || !loaded.total
+})
 const poolNames = computed(() =>
   Object.fromEntries(
     list(archive.value?.pools)
@@ -142,7 +149,7 @@ function rarities(pool) {
         text="由你决定何时导入。打开此页只读取本地档案；链接仅在点击导入时使用，用后清空。文件在本机解析后交给本地服务。"
       />
     </header>
-    <details class="wuwa-import" :open="importOpen">
+    <details class="wuwa-import" :open="importOpen" @toggle="importOpen = $event.target.open">
       <summary>导入记录</summary>
       <div class="wuwa-import-body">
         <form class="toolbar wuwa-import-row" @submit.prevent="importUrl">
@@ -208,7 +215,7 @@ function rarities(pool) {
         尚无已导入记录。导入前的账号抽卡历史未知。
       </p>
       <p class="wuwa-coverage">
-        <span class="wuwa-meta">覆盖范围</span>
+        <span class="wuwa-meta" role="heading" aria-level="3">覆盖范围</span>
         <span class="badge badge-stale">不完整历史</span>
         <span class="wuwa-range"
           >{{ sourceTime(archive.coverage?.earliest) }} —

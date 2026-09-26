@@ -34,7 +34,7 @@ const roleName = (role) =>
   `角色 ${role.role_id ?? '未知'}`
 const share = (score, max) =>
   typeof score === 'number' && typeof max === 'number' && max > 0
-    ? Math.min(100, Math.round((score / max) * 100))
+    ? Math.max(0, Math.min(100, Math.round((score / max) * 100)))
     : null
 </script>
 <template>
@@ -131,12 +131,11 @@ const share = (score, max) =>
             >
               <header class="wuwa-tile-head">
                 <h3>{{ challenge.challenge_name }}</h3>
-                <span class="wuwa-tile-end wuwa-score">{{
-                  value(challenge.score)
-                }}</span
+                <span class="wuwa-tile-end wuwa-score"
+                  ><span class="wuwa-meta">得分 </span
+                  >{{ value(challenge.score) }}</span
                 ><span class="badge wuwa-rank"
-                  ><span class="sr-only">评级 </span
-                  >{{ value(challenge.rank) }}</span
+                  >评级 {{ value(challenge.rank) }}</span
                 >
               </header>
               <ul class="wuwa-halves">
@@ -144,7 +143,10 @@ const share = (score, max) =>
                   <span class="wuwa-half-name">{{
                     half.half_name || `第 ${k + 1} 半场`
                   }}</span
-                  ><b class="wuwa-half-score">{{ value(half.score) }}</b>
+                  ><b class="wuwa-half-score"
+                    ><span class="wuwa-meta">得分 </span
+                    >{{ value(half.score) }}</b
+                  >
                   <ul v-if="list(half.role_list).length" class="chip-list">
                     <li
                       v-for="(role, m) in list(half.role_list)"

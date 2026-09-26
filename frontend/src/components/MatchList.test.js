@@ -62,3 +62,14 @@ test('a long break between games is marked on the newer game', t => {
   ] } })
   assert.match(content(root), /隔 10 天/)
 })
+
+test('games are shown newest first even when the snapshot is out of order', t => {
+  const root = mount(t, MatchList, { gameId: 'lol', snap: { payload: [
+    game('older', false, { start_at: '2026-09-20T12:00:00Z' }),
+    game('newer', true, { start_at: '2026-09-26T12:00:00Z' }),
+  ] } })
+  const cards = nodes(root, 'article')
+  assert.match(content(cards[0]), /09-26/)
+  assert.match(content(cards[1]), /09-20/)
+  assert.match(content(root), /1\s*连胜/)
+})

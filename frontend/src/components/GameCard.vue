@@ -98,7 +98,7 @@ function capComponent(cap) {
     </header>
     <div v-if="game.game_id !== 'wuthering_waves'" class="detail-navigation"><nav v-glide class="detail-tabs segmented" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
     <WuwaDashboard v-if="game.game_id === 'wuthering_waves'" :snaps="externalSnapshots" :configured="game.credentials_configured" :initial-section="initialSection" @calendar="emit('calendar')" />
-    <div v-else :key="activeSection" class="cap-list t-panel">
+    <div v-else class="cap-list">
       <template v-for="(cap, index) in visibleCaps" :key="cap">
         <component
           :is="capComponent(cap)"
