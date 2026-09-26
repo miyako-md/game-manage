@@ -173,7 +173,8 @@ async function selectEvent(event) {
 .date-cell strong { font-size: 14px; font-weight: 500; }
 .date-cell.weekend { background: var(--overlay-1); }
 .date-cell.is-today { color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); }
-.date-cell.is-today strong { border-radius: 50%; background: var(--accent); color: var(--accent-ink); width: 25px; height: 25px; line-height: 25px; margin-top: -3px; }
+/* A circle for one or two digits, a pill for the 1st of a month ("10/1"); the number sits in the middle. */
+.date-cell.is-today strong { min-width: 26px; height: 26px; padding: 0 4px; border-radius: 13px; background: var(--accent); color: var(--accent-ink); line-height: 26px; text-align: center; margin-top: -3px; }
 .day-today { font-size: 9px; font-weight: 500; position: absolute; bottom: 4px; color: var(--accent); }
 .timeline-group { border-bottom: 1px solid var(--border); }
 .timeline-group:last-child { border-bottom: 0; }
