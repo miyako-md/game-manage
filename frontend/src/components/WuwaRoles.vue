@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useWuwaRequest } from '../wuwa-api.js'
 import { safeUrl } from '../calendar.js'
-import { list, value } from '../wuwa-display.js'
+import { list, starCount, value } from '../wuwa-display.js'
 import WuwaRoleDetail from './WuwaRoleDetail.vue'
 import WuwaStatus from './WuwaStatus.vue'
 import InfoHint from './InfoHint.vue'
@@ -52,10 +52,6 @@ const filtered = computed(() =>
     }),
 )
 // Rarity as stars: 5★ in the game gold, 4★ in the purple series (same as the gacha split).
-const starCount = (r) => {
-  const n = Number(r.star_level)
-  return Number.isInteger(n) && n > 0 && n <= 6 ? n : 0
-}
 async function open(role) {
   selected.value = role
   detail.value = null
@@ -147,12 +143,12 @@ function close() {
           ><span class="wuwa-role-head"
             ><strong>{{ r.name || r.role_id }}</strong
             ><span
-              v-if="starCount(r)"
+              v-if="starCount(r.star_level)"
               class="stars"
-              :class="{ 'is-four': starCount(r) === 4 }"
+              :class="{ 'is-four': starCount(r.star_level) === 4 }"
               role="img"
               :aria-label="`${r.star_level} 星`"
-              >{{ '★'.repeat(starCount(r)) }}</span
+              >{{ '★'.repeat(starCount(r.star_level)) }}</span
             ><span v-else class="wuwa-meta">{{ value(r.star_level) }} 星</span></span
           ><span class="wuwa-role-meta"
             ><span class="wuwa-role-stats"

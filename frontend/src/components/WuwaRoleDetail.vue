@@ -1,14 +1,10 @@
 <script setup>
 import { computed } from 'vue'
 import { safeUrl } from '../calendar.js'
-import { fieldLabels, list, value } from '../wuwa-display.js'
+import { fieldLabels, list, starCount, value } from '../wuwa-display.js'
 import WuwaFields from './WuwaFields.vue'
 import InfoHint from './InfoHint.vue'
 const props = defineProps({ data: { type: Object, default: () => ({}) } })
-const stars = (n) => {
-  const count = Number(n)
-  return Number.isInteger(count) && count > 0 && count <= 6 ? count : 0
-}
 const chains = computed(() => list(props.data.chain_list))
 const unlockedChains = computed(
   () => chains.value.filter((c) => c.unlocked === true).length,
@@ -105,12 +101,12 @@ const isAttributeList = (v) =>
               data.weapon_data.weapon?.weapon_name || '名称未知'
             }}</strong
             ><span
-              v-if="stars(data.weapon_data.weapon?.weapon_star_level)"
+              v-if="starCount(data.weapon_data.weapon?.weapon_star_level)"
               class="stars"
               role="img"
               :aria-label="`${data.weapon_data.weapon.weapon_star_level} 星`"
               >{{
-                '★'.repeat(stars(data.weapon_data.weapon.weapon_star_level))
+                '★'.repeat(starCount(data.weapon_data.weapon.weapon_star_level))
               }}</span
             ><span v-else class="wuwa-meta"
               >{{ value(data.weapon_data.weapon?.weapon_star_level) }} 星</span

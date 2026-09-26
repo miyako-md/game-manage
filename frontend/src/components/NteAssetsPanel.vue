@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { fetchedLabel } from '../time.js'
+import { percentOf } from '../dashboard.js'
 import { safeUrl } from '../calendar.js'
 import { displayRoleValue } from '../nte-roles.js'
 import AppIcon from './AppIcon.vue'
@@ -16,6 +17,13 @@ const search = ref('')
 const ownership = ref('all')
 const ownershipOptions = [{ value: 'all', label: '全部状态' }, { value: 'owned', label: '已拥有' }, { value: 'unowned', label: '未拥有' }, { value: 'unknown', label: '未知' }]
 const failedImages = reactive(new Set())
+// Cards start open; one the reader folds stays folded while the list is searched or filtered.
+const folded = reactive(new Set())
+const foldKey = entry => entry.id != null ? `id:${entry.id}` : entry.name ? `name:${entry.name}` : `#${entries.value.indexOf(entry)}`
+function onFold(event, key) {
+  if (event.currentTarget.open) folded.delete(key)
+  else folded.add(key)
+}
 const titles = { realestate: '房产详情', vehicles: '载具详情', teams: '官方配队推荐' }
 const searchLabels = { realestate: '搜索房产', vehicles: '搜索载具', teams: '搜索配队推荐' }
 const placeholders = { realestate: '搜索名称、入住角色、家具', vehicles: '搜索载具名称', teams: '搜索名称、描述' }
@@ -24,12 +32,7 @@ const display = (value) => displayRoleValue(value, '未知', { numbers: false })
 const state = value => value === true ? '已拥有' : value === false ? '未拥有' : '拥有状态未知'
 const stateClass = value => value === true ? 'owned' : value === false ? 'unowned' : 'unknown'
 // Counts arrive as numbers, vehicle stats as strings; only a known value over
-// a positive maximum draws a bar.
-const numeric = value => typeof value === 'number' || (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN
-function share(value, maximum) {
-  const current = numeric(value), total = numeric(maximum)
-  return Number.isFinite(current) && current >= 0 && Number.isFinite(total) && total > 0 ? Math.min(100, current / total * 100) : null
-}
+// a positive maximum draws a bar (percentOf).
 const payload = computed(() => props.snap?.payload ?? null)
 const legacy = computed(() => payload.value !== null && payload.value.schema_version !== 1)
 const data = computed(() => legacy.value ? {} : payload.value ?? {})
@@ -37,7 +40,7 @@ const entries = computed(() => list(data.value.entries))
 const roleMap = computed(() => new Map(props.roles.map(role => [String(role.id), role])))
 const roleName = id => roleMap.value.get(String(id))?.name || `角色 ${id}`
 const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
-const ownedShare = computed(() => share(data.value.owned_count, data.value.total))
+const ownedShare = computed(() => percentOf(data.value.owned_count, data.value.total))
 const filtered = computed(() => {
   const query = search.value.trim().toLocaleLowerCase('zh-CN')
   return entries.value.filter(entry => {
@@ -86,7 +89,7 @@ watch(() => props.capability, () => { search.value = ''; ownership.value = 'all'
       <p v-if="!entries.length" class="empty">{{ capability === 'teams' ? '暂无官方配队推荐' : '暂无资产明细' }}</p>
       <p v-else-if="!filtered.length" class="empty" role="status">没有符合筛选条件的条目</p>
       <div v-else class="asset-list" :class="capability === 'teams' ? 'team-list' : capability === 'vehicles' ? 'vehicle-grid' : 'asset-grid'">
-        <details v-for="(entry, index) in filtered" :key="`${entry.id}-${index}`" class="asset t-item" :style="{ '--i': Math.min(index, 11) }" open>
+        <details v-for="(entry, index) in filtered" :key="`${entry.id}-${index}`" class="asset t-item" :style="{ '--i': Math.min(index, 11) }" :open="!folded.has(foldKey(entry))" @toggle="onFold($event, foldKey(entry))">
           <summary>
             <img v-if="capability === 'teams' && imageUrl(entry.icon_url)" class="team-icon" :src="imageUrl(entry.icon_url)" alt="" loading="lazy" referrerpolicy="no-referrer" @error="imageFailed" />
             <strong class="asset-name" :title="entry.name">{{ entry.name || `${capability === 'teams' ? '推荐' : '资产'} ${entry.id}` }}</strong>
@@ -132,7 +135,7 @@ watch(() => props.capability, () => { search.value = ''; ownership.value = 'all'
                 <dl v-if="list(entry.advanced).length" class="rows">
                   <div v-for="(stat, i) in entry.advanced" :key="i">
                     <dt>{{ stat.name || '未命名属性' }}</dt>
-                    <dd class="gauge"><span v-if="share(stat.value, stat.maximum) !== null" class="meter" aria-hidden="true"><i :style="{ '--pct': `${share(stat.value, stat.maximum)}%` }" /></span>{{ display(stat.value) }} / {{ display(stat.maximum) }}</dd>
+                    <dd class="gauge"><span v-if="percentOf(stat.value, stat.maximum) !== null" class="meter" aria-hidden="true"><i :style="{ '--pct': `${percentOf(stat.value, stat.maximum)}%` }" /></span>{{ display(stat.value) }} / {{ display(stat.maximum) }}</dd>
                   </div>
                 </dl>
                 <p v-else class="muted">未提供进阶属性</p>

@@ -7,12 +7,16 @@ const root = typeof document === 'undefined' ? null : document.documentElement
 
 export const theme = ref(root?.dataset.theme === 'light' ? 'light' : 'dark')
 
+// The pick also lives in memory, so a browser that refuses storage still keeps
+// it for this session instead of following the system again.
+let picked = null
 function saved() {
-  try { return localStorage.getItem(KEY) } catch { return null }
+  try { return localStorage.getItem(KEY) ?? picked } catch { return picked }
 }
 
 export function setTheme(next, { remember = true } = {}) {
   theme.value = next
+  if (remember) picked = next
   if (!root) return
   root.dataset.theme = next
   if (remember) try { localStorage.setItem(KEY, next) } catch { /* private mode */ }

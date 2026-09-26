@@ -77,16 +77,12 @@ export const vGlide = {
 
 /** v-pop: replays a short rise on an element whenever its text changes. */
 export const vPop = {
-  mounted(el) {
-    if (!domReady(el) || typeof MutationObserver !== 'function') return
-    const replay = () => {
-      el.classList.remove('t-pop')
-      void el.offsetWidth
-      el.classList.add('t-pop')
-    }
-    const observer = new MutationObserver(replay)
-    observer.observe(el, { childList: true, characterData: true, subtree: true })
-    el.__pop = observer
+  mounted(el) { if (domReady(el)) el.__popText = el.textContent },
+  updated(el) {
+    if (el.__popText === undefined || el.textContent === el.__popText) return
+    el.__popText = el.textContent
+    el.classList.remove('t-pop')
+    void el.offsetWidth
+    el.classList.add('t-pop')
   },
-  unmounted(el) { el.__pop?.disconnect(); delete el.__pop },
 }

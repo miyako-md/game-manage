@@ -49,3 +49,12 @@ test('picking the current option again emits nothing', t => {
   choose(root, '筛选', 'all')
   assert.deepEqual(changes, ['all'])
 })
+
+test('typing a label prefix highlights the first match', async t => {
+  const { trigger, changes } = setup(t)
+  trigger.props.onKeydown(key('Enter')); await nextTick()
+  trigger.props.onKeydown(key('其')); await nextTick()
+  assert.match(trigger.props['aria-activedescendant'], /-2$/)
+  trigger.props.onKeydown(key('Enter')); await nextTick()
+  assert.deepEqual(changes, ['x'])
+})

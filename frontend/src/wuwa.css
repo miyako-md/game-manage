@@ -1254,14 +1254,9 @@
   gap: 8px 20px;
 }
 
-@media (max-width: 700px) {
-  .wuwa-panel {
-    padding: 14px;
-  }
-  .wuwa-pools,
-  .wuwa-echoes {
-    --tile-min: 150px;
-  }
+/* One column once the main area drops below about 620px: phones, and tablets
+   where the 220px sidebar is still showing (721–900px windows). */
+@media (max-width: 900px) {
   .wuwa-grid {
     grid-template-columns: 1fr;
   }
@@ -1272,6 +1267,15 @@
   .wuwa-slot-2 { order: 2; }
   .wuwa-slot-3 { order: 3; }
   .wuwa-slot-4 { order: 4; }
+}
+@media (max-width: 700px) {
+  .wuwa-panel {
+    padding: 14px;
+  }
+  .wuwa-pools,
+  .wuwa-echoes {
+    --tile-min: 150px;
+  }
   .wuwa-nav {
     margin-bottom: 12px;
   }

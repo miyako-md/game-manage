@@ -10,6 +10,13 @@ export const GAME_STYLE = {
 // Colours are theme variables (style.css), so each game keeps a readable accent by day and by night.
 export const gameStyle = (id) => GAME_STYLE[id] || { mark: '游', color: 'var(--text-muted)', english: 'MY GAME', resource: '体力' }
 export const finiteValue = (value) => typeof value === 'number' && Number.isFinite(value) ? value : null
+// Numbers, or numeric strings (some sources send stats as text); anything else is unknown.
+const numberOf = (value) => typeof value === 'number' || (typeof value === 'string' && value.trim() !== '') ? finiteValue(Number(value)) : null
+/** How far `current` is towards `total`, 0–100; null unless both are known and `total` is positive. */
+export function percentOf(current, total) {
+  const done = numberOf(current), whole = numberOf(total)
+  return done != null && done >= 0 && whole != null && whole > 0 ? Math.min(100, (done / whole) * 100) : null
+}
 export function formatTime(value, options = {}) {
   const ts = typeof value === 'number' ? value : parseBeijingTime(value)
   // A finite number outside the Date range makes an Invalid Date, which Intl rejects.

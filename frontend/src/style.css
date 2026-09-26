@@ -13,14 +13,14 @@
   --stale-text: #facc15; --stale-bg: #3a3008; --warning-text: #facc15;
   --attention-bg: #3a3008; --attention-border: #5a4b12; --attention-text: #fde047;
   /* Translucent layers that lift a surface: white at night, ink by day. */
-  --overlay-1: rgba(241, 243, 245, .02); --overlay-2: rgba(241, 243, 245, .04); --overlay-3: rgba(241, 243, 245, .06); --card-highlight: transparent;
+  --overlay-1: rgba(241, 243, 245, .02); --overlay-2: rgba(241, 243, 245, .04); --overlay-3: rgba(241, 243, 245, .06);
   --scrim: rgba(0, 0, 0, .55); --paper-dot: rgba(241, 243, 245, .045); --glare: rgba(241, 243, 245, .08); --skeleton-sheen: rgba(241, 243, 245, .08);
   --game-wuwa: #d8bb84; --game-nte: #b6a3d4; --game-lol: #87b9ce;
   /* Series colours for data (shadcn --chart-N naming): sibling bars in one card
      take the next colour so neighbours never share a hue. */
   --chart-1: #8b9cff; --chart-2: #4ec4d4; --chart-3: #62d0a5; --chart-4: #f2b544; --chart-5: #b69cff; --chart-6: #ff8fb1;
   /* Depth: ink shadows only; night drops the white inner highlight. */
-  --card-shadow: 0 2px 4px rgba(0, 0, 0, .28), 0 9px 25px -12px rgba(0, 0, 0, .45); --shadow: var(--card-shadow);
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, .28), 0 9px 25px -12px rgba(0, 0, 0, .45);
   --card-hover-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 12px 32px -14px rgba(0, 0, 0, .55);
   --popover-shadow: 0 2px 5px rgba(0, 0, 0, .32), 0 10px 28px -10px rgba(0, 0, 0, .5);
   --control-selected-shadow: 0 2px 4px rgba(0, 0, 0, .28), 0 5px 12px -4px rgba(0, 0, 0, .36);
@@ -138,15 +138,23 @@ button,a,input,select,summary { transition: color var(--duration-quick) var(--ea
 .cap-meta { margin-left:auto; display:inline-flex; align-items:center; gap:8px; color:var(--text-faint); font-size:11px; font-weight:400; line-height:16px; white-space:nowrap; }
 /* Phones: long meta drops to its own line under the title instead of pushing the page wide. */
 @media(max-width:600px) { .cap-meta { flex-basis:100%; margin-left:0; white-space:normal; } }
-/* ⓘ hint (InfoHint.vue): the note shows on hover or keyboard focus. */
+/* ⓘ hint (InfoHint.vue): the note shows on hover or keyboard focus, and a tap toggles it. */
 .info-hint { position:relative; display:inline-flex; vertical-align:middle; }
 .info-hint-trigger { display:grid; place-items:center; width:20px; height:20px; padding:0; border:0; border-radius:50%; background:none; color:var(--text-faint); }
 @media(hover:hover) and (pointer:fine) { .info-hint-trigger:hover { color:var(--text-body); background:var(--hover-bg); } }
 /* Hidden tips are display:none so they never widen the page; InfoHint.vue
    places the fixed tip from its icon. They fade in after a short hover delay
-   (transitions.dev tooltip); a tap opens at once; Escape dismisses. */
-.info-hint-tip { display:none; position:fixed; z-index:70; width:max-content; max-width:min(300px, calc(100vw - 24px)); padding:8px 10px; border:1px solid var(--border); border-radius:9px; background:var(--card-bg); box-shadow:var(--popover-shadow); color:var(--text-body); font-size:12px; font-weight:400; line-height:1.6; letter-spacing:0; text-transform:none; white-space:normal; text-align:left; pointer-events:none; }
-.info-hint:hover .info-hint-tip,.info-hint-trigger:focus-visible + .info-hint-tip { display:block; animation:t-tip-in var(--duration-quick) var(--ease-out) var(--duration-quick) backwards; }
+   (transitions.dev tooltip); a tap opens at once; Escape dismisses. The tip
+   takes the pointer, and ::before bridges exactly the gap to the icon, so
+   moving from the icon onto the text keeps it open (WCAG 1.4.13). Hover comes
+   from InfoHint's is-hovered (mouse and pen only), not :hover, which sticks
+   after a tap and would pin the tip open. */
+.info-hint-tip { display:none; position:fixed; z-index:70; width:max-content; max-width:min(300px, calc(100% - 24px)); padding:8px 10px; border:1px solid var(--border); border-radius:9px; background:var(--card-bg); box-shadow:var(--popover-shadow); color:var(--text-body); font-size:12px; font-weight:400; line-height:1.6; letter-spacing:0; text-transform:none; white-space:normal; text-align:left; }
+.info-hint-tip::before { content:''; position:absolute; left:0; right:0; height:6px; }
+@media(max-width:600px) { .info-hint-tip::before { height:8px; } }
+.info-hint-tip[data-side="above"]::before { top:100%; }
+.info-hint-tip[data-side="below"]::before { bottom:100%; }
+.info-hint.is-hovered .info-hint-tip,.info-hint-trigger:focus-visible + .info-hint-tip { display:block; animation:t-tip-in var(--duration-quick) var(--ease-out) var(--duration-quick) backwards; }
 .info-hint.is-open .info-hint-tip { display:block; animation:t-tip-in var(--duration-quick) var(--ease-out) backwards; }
 .info-hint.is-dismissed .info-hint-tip { display:none; }
 @keyframes t-tip-in { from { opacity:0; transform:translateY(4px); } }

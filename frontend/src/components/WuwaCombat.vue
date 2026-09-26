@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { list, value } from '../wuwa-display.js'
+import { percentOf } from '../dashboard.js'
 import WuwaTower from './WuwaTower.vue'
 import WuwaStatus from './WuwaStatus.vue'
 import WuwaFields from './WuwaFields.vue'
@@ -32,10 +33,6 @@ const roleName = (role) =>
   role.name ||
   props.roleNames[role.role_id] ||
   `角色 ${role.role_id ?? '未知'}`
-const share = (score, max) =>
-  typeof score === 'number' && typeof max === 'number' && max > 0
-    ? Math.max(0, Math.min(100, Math.round((score / max) * 100)))
-    : null
 </script>
 <template>
   <div class="wuwa-stack">
@@ -115,7 +112,7 @@ const share = (score, max) =>
             ><span class="meter"
               ><i
                 :style="{
-                  '--pct': (share(zone.all_score, zone.max_score) ?? 0) + '%',
+                  '--pct': (percentOf(zone.all_score, zone.max_score) ?? 0) + '%',
                   '--series': 'var(--game-wuwa)',
                 }"
               ></i></span

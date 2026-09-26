@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createDashboard, formatTime, summaryFor, upcomingEvents, recentNews, readRoute } from './dashboard.js'
+import { createDashboard, formatTime, percentOf, summaryFor, upcomingEvents, recentNews, readRoute } from './dashboard.js'
 import { collectCalendarEvents, eventStatus } from './calendar.js'
 
 const game = { game_id: 'nte', display_name: '异环', capabilities: ['account', 'stamina', 'events'] }
@@ -199,4 +199,14 @@ test('overview events agree with the calendar on date-only starts and stale sour
   assert.deepEqual(overview.map(e => [e.name, e.upcoming, e.stale]), [['社区补充', false, true], ['次日开放', true, false]])
   const calendar = collectCalendarEvents([game], snapshots)
   assert.deepEqual(calendar.map(e => [e.name, eventStatus(e, now) === '未开始', e.stale]), [['次日开放', true, false], ['社区补充', false, true]])
+})
+
+test('percentOf takes numbers or numeric text and refuses unknown or non-positive totals', () => {
+  assert.equal(percentOf(3, 12), 25)
+  assert.equal(percentOf('3', '12'), 25)
+  assert.equal(percentOf(15, 10), 100)
+  assert.equal(percentOf(0, 10), 0)
+  for (const [current, total] of [[null, 10], [5, 0], [5, null], [-1, 10], ['', 10], ['abc', 10], [true, 10], [5, Infinity]]) {
+    assert.equal(percentOf(current, total), null, `${current} / ${total}`)
+  }
 })

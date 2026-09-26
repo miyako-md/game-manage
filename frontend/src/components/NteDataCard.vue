@@ -1,5 +1,6 @@
 <script setup>
 import { fetchedLabel } from '../time.js'
+import { percentOf } from '../dashboard.js'
 import { safeUrl } from '../calendar.js'
 import { displayRoleValue } from '../nte-roles.js'
 import { computed } from 'vue'
@@ -17,10 +18,9 @@ const legacy = computed(() => payload.value !== null && payload.value.schema_ver
 const data = computed(() => legacy.value ? {} : payload.value ?? {})
 const list = (value) => Array.isArray(value) ? value : []
 const display = (value) => displayRoleValue(value, '未知')
-const measurable = (current, total) => Number.isFinite(current) && current >= 0 && Number.isFinite(total) && total > 0
-const share = (current, total) => Math.min(100, current / total * 100)
-const percent = (current, total) => measurable(current, total) ? `${Math.round(share(current, total))}%` : null
-const exceedsTarget = (current, total) => measurable(current, total) && current > total
+const measurable = (current, total) => percentOf(current, total) != null
+const percent = (current, total) => measurable(current, total) ? `${Math.round(percentOf(current, total))}%` : null
+const exceedsTarget = (current, total) => measurable(current, total) && Number(current) > Number(total)
 
 const fetchedAt = computed(() => {
   const readAt = props.capability === 'stamina' ? data.value.updated_at || props.snap?.fetched_at : props.snap?.fetched_at
@@ -71,7 +71,7 @@ const medals = computed(() => [
       <dl class="kv-grid tiles account-grid">
         <div v-for="stat in accountStats" :key="stat.name">
           <dt>{{ stat.name }}</dt>
-          <dd>{{ display(stat.value) }}<small v-if="stat.series">/ {{ display(stat.total) }}</small><span v-if="stat.series && measurable(stat.value, stat.total)" class="meter tile-meter" :style="{ '--series': stat.series }"><i :style="{ '--pct': `${share(stat.value, stat.total)}%` }" /></span></dd>
+          <dd>{{ display(stat.value) }}<small v-if="stat.series">/ {{ display(stat.total) }}</small><span v-if="stat.series && measurable(stat.value, stat.total)" class="meter tile-meter" :style="{ '--series': stat.series }"><i :style="{ '--pct': `${percentOf(stat.value, stat.total)}%` }" /></span></dd>
         </div>
       </dl>
     </template>

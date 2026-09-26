@@ -46,6 +46,7 @@ function navigate(page, game = '') {
   window.location.hash = page === 'game' ? `/game/${encodeURIComponent(game)}` : page === 'calendar' ? `/calendar${game ? '?game=' + encodeURIComponent(game) : ''}` : page === 'accounts' ? '/accounts' : '/'
   menuOpen.value = false
 }
+let themeWipe = 0
 function toggleTheme(event) {
   const next = theme.value === 'light' ? 'dark' : 'light'
   const root = document.documentElement
@@ -57,12 +58,20 @@ function toggleTheme(event) {
   root.style.setProperty('--theme-y', `${y}px`)
   root.style.setProperty('--theme-r', `${Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))}px`)
   // Colour transitions pause until the wipe ends, so the revealed theme is already settled.
+  // A second click mid-wipe skips this wipe and settles it early, so only the
+  // latest wipe may resume them.
+  const wipe = ++themeWipe
   root.dataset.themeSwitching = ''
-  const settle = () => { delete root.dataset.themeSwitching }
-  const transition = document.startViewTransition(async () => { setTheme(next); await nextTick() })
-  transition.finished.then(settle, settle)
-  // A second click mid-wipe skips this one, which rejects its ready promise.
-  transition.ready.catch(() => {})
+  const settle = () => { if (wipe === themeWipe) delete root.dataset.themeSwitching }
+  try {
+    const transition = document.startViewTransition(async () => { setTheme(next); await nextTick() })
+    transition.finished.then(settle, settle)
+    // The skipped wipe rejects its ready promise.
+    transition.ready.catch(() => {})
+  } catch {
+    setTheme(next)
+    settle()
+  }
 }
 async function refreshAll() { if (!refreshing.value) await Promise.all(state.games.map(game => dashboard.refresh(game.game_id))) }
 async function onAccountChanged({ game }) {

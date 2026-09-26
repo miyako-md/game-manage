@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useWuwaRequest } from '../wuwa-api.js'
-import { list, value, stamp } from '../wuwa-display.js'
+import { list, value, sourceDateTime } from '../wuwa-display.js'
 import WuwaStatus from './WuwaStatus.vue'
 import WuwaFields from './WuwaFields.vue'
 import InfoHint from './InfoHint.vue'
@@ -78,9 +78,7 @@ const itemRows = computed(() => {
     ? rows
     : null
 })
-const DATE_TIME = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/
-const when = (v) =>
-  typeof v === 'string' && DATE_TIME.test(v) && stamp(v) !== '未知' ? stamp(v) : v
+const when = (v) => sourceDateTime(v) ?? v
 // 环比 comes as "+12%" / "-15%" or a number: the sign picks the chip colour.
 function trend(v) {
   const n = typeof v === 'number' ? v : Number.parseFloat(String(v ?? ''))

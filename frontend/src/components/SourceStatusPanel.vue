@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { capabilityLabel, describeSource } from '../source-status.js'
 import { displayBeijing } from '../time.js'
 import AppIcon from './AppIcon.vue'
@@ -17,8 +17,9 @@ const summary = computed(() => {
   return pending ? `${pending} 项尚未采集` : '各项状态已更新'
 })
 const tone = computed(() => faults.value ? 'danger' : summary.value === '各项状态已更新' ? 'good' : 'warn')
-// The details open as a fixed popover under the header chip, kept inside the
-// window; a click outside, Escape, scrolling or resizing closes them.
+// The details open as a fixed popover under the header chip (above it when the
+// chip sits low and there is more room there), kept inside the window; a click
+// outside, Escape, scrolling or resizing closes them.
 const panel = ref(null)
 const popStyle = ref({})
 function dismiss(event) {
@@ -41,14 +42,23 @@ function listen(on) {
   window[method]('scroll', closeOnMove, true)
   window[method]('resize', closeOnMove)
 }
-function onToggle() {
+async function onToggle() {
   const el = panel.value
   if (!el?.open) { listen(false); return }
   const box = el.querySelector('summary')?.getBoundingClientRect?.()
   if (box) {
-    const width = Math.min(760, innerWidth - 32)
-    const left = Math.min(Math.max(16, box.right - width), innerWidth - 16 - width)
-    popStyle.value = { top: `${box.bottom + 6}px`, left: `${left}px`, width: `${width}px`, maxHeight: `${Math.max(200, innerHeight - box.bottom - 24)}px` }
+    // Fixed offsets are measured without a classic (Windows) scrollbar, hence clientWidth.
+    const viewport = document.documentElement.clientWidth
+    const width = Math.min(760, viewport - 32)
+    const left = Math.min(Math.max(16, box.right - width), viewport - 16 - width)
+    const below = innerHeight - box.bottom - 22
+    const above = box.top - 22
+    // Lay the rows out at the final width first; their height decides the side.
+    popStyle.value = { top: `${box.bottom + 6}px`, left: `${left}px`, width: `${width}px`, maxHeight: `${Math.max(120, below)}px` }
+    await nextTick()
+    if (!el.open) return
+    const up = below < el.querySelector('.source-body').scrollHeight && above > below
+    if (up) popStyle.value = { bottom: `${innerHeight - box.top + 6}px`, left: `${left}px`, width: `${width}px`, maxHeight: `${Math.max(120, above)}px` }
   }
   listen(true)
 }

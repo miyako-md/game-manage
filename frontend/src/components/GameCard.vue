@@ -70,6 +70,22 @@ function capComponent(cap) {
   if (props.game.game_id === 'nte' && ['account', 'stamina', 'progress', 'exploration', 'record'].includes(cap)) return NteDataCard
   return CAP_COMPONENTS[cap] || null
 }
+
+// Each panel gets only the props it declares; anything else would land on its
+// root element as an attribute (roles="[object Object],…").
+function capProps(cap) {
+  const snaps = props.externalSnapshots
+  const offered = {
+    snap: snaps[cap],
+    gameId: props.game.game_id,
+    capability: cap,
+    accountId: props.game.game_id === 'nte' ? snaps.account?.payload?.role_id || '' : '',
+    roles: snaps.roles?.payload?.entries || [],
+    stats: snaps.stats?.payload ?? null,
+  }
+  const declared = capComponent(cap)?.props ?? {}
+  return Object.fromEntries(Object.entries(offered).filter(([key]) => key in declared))
+}
 </script>
 
 <template>
@@ -103,12 +119,7 @@ function capComponent(cap) {
         <component
           :is="capComponent(cap)"
           v-if="capComponent(cap)"
-          :snap="externalSnapshots[cap]"
-          :game-id="game.game_id"
-          :capability="cap"
-          :account-id="game.game_id === 'nte' ? externalSnapshots.account?.payload?.role_id || '' : ''"
-          :roles="externalSnapshots.roles?.payload?.entries || []"
-          v-bind="cap === 'match' ? { stats: externalSnapshots.stats?.payload ?? null } : {}"
+          v-bind="capProps(cap)"
           :class="['detail-cap', 't-item', `detail-cap-${cap}`]"
           :style="{ '--i': index }"
         />
@@ -147,8 +158,8 @@ function capComponent(cap) {
   align-items: start;
 }
 .detail-navigation { display:flex; justify-content:space-between; gap:10px 16px; align-items:center; margin:0 0 16px; flex-wrap:wrap; }
-.detail-cap-roles,.detail-cap-match,.detail-cap-gacha,.detail-cap-exploration { grid-column:1/-1; }
 /* 英雄联盟 has one short identity card and one wide stats card: stack them full width. */
+.detail-cap-roles,.detail-cap-match,.detail-cap-gacha,.detail-cap-exploration { grid-column:1/-1; }
 .game-league_of_legends .detail-cap-account,.game-league_of_legends .detail-cap-stats { grid-column:1/-1; }
 .detail-cap-roles :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
 @media(max-width:950px) { .cap-list { grid-template-columns:1fr; } }

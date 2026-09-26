@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { fieldLabels, value, stamp } from '../wuwa-display.js'
+import { fieldLabels, value, sourceDateTime } from '../wuwa-display.js'
 const props = defineProps({
   data: { default: null },
   exclude: { type: Array, default: () => [] },
@@ -8,17 +8,10 @@ const props = defineProps({
   inline: { type: Boolean, default: false },
 })
 const HIDDEN = /(?:icon|pic|image|_url|^sort$|^provenance$)/
-const DATE_TIME = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/
 const isScalar = (v) => v == null || typeof v !== 'object'
 const visible = (obj) => Object.entries(obj).filter(([k]) => !HIDDEN.test(k))
 // Source date-times show as Beijing wall time, like every other timestamp here.
-function shown(v) {
-  if (typeof v === 'string' && DATE_TIME.test(v)) {
-    const formatted = stamp(v)
-    if (formatted !== '未知') return formatted
-  }
-  return value(v)
-}
+const shown = (v) => sourceDateTime(v) ?? value(v)
 function small(v) {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return false
   const rows = visible(v)

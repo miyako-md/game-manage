@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { value, list, stamp } from './wuwa-display.js'
+import { value, list, stamp, sourceDateTime, starCount } from './wuwa-display.js'
 
 test('unknown presentation never turns zero or false into missing data', () => {
   assert.equal(value(0), 0)
@@ -24,4 +24,16 @@ test('stamp shows numbers outside four-digit years as unknown', () => {
   assert.equal(stamp(1.7e15), '未知')
   assert.equal(stamp(-6e13), '未知')
   assert.equal(stamp(253402300800000), '未知')
+})
+
+test('source date-times read as Beijing wall time and everything else passes through as null', () => {
+  assert.equal(sourceDateTime('2026-09-26 20:30:00'), stamp('2026-09-26 20:30:00'))
+  assert.notEqual(sourceDateTime('2026-09-26T12:30:00Z'), null)
+  for (const v of ['2026-09-26', 'soon', 20260926, null, '2026-13-40 99:99']) assert.equal(sourceDateTime(v), null, String(v))
+})
+
+test('star counts are whole numbers from one to six', () => {
+  assert.equal(starCount(5), 5)
+  assert.equal(starCount('4'), 4)
+  for (const v of [0, 7, 4.5, null, undefined, 'x', -1]) assert.equal(starCount(v), 0, String(v))
 })

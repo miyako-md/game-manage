@@ -4,8 +4,10 @@ import AppIcon from './AppIcon.vue'
 
 // Web-rendered select (Option Pro MenuSelect / Radix select-only combobox).
 // Focus stays on the trigger, which points at the highlighted option through
-// aria-activedescendant; the list is fixed-positioned so cards and scroll
-// containers never clip it. Options: [{ value, label }] or plain values.
+// aria-activedescendant. The list is fixed-positioned in the top layer (Popover
+// API), so no card or scroll container clips it and no transformed ancestor
+// (entrance animations, hover lifts) can shift it. Options: [{ value, label }]
+// or plain values.
 const props = defineProps({
   modelValue: { type: [String, Number, Boolean], default: '' },
   options: { type: Array, required: true },
@@ -31,6 +33,8 @@ const GAP = 6
 function position() {
   const box = trigger.value?.getBoundingClientRect?.()
   if (!box) return
+  // Fixed offsets are measured without a classic (Windows) scrollbar, hence clientWidth.
+  const width = document.documentElement.clientWidth
   const below = innerHeight - box.bottom - GAP - EDGE
   const above = box.top - GAP - EDGE
   const wanted = Math.min(288, items.value.length * 34 + 10)
@@ -38,16 +42,28 @@ function position() {
   const style = { minWidth: `${box.width}px`, maxHeight: `${Math.max(120, Math.min(288, up ? above : below))}px` }
   if (up) style.bottom = `${innerHeight - box.top + GAP}px`
   else style.top = `${box.bottom + GAP}px`
-  if (props.align === 'end') style.right = `${Math.max(EDGE, innerWidth - box.right)}px`
+  if (props.align === 'end') style.right = `${Math.max(EDGE, width - box.right)}px`
   else style.left = `${Math.max(EDGE, box.left)}px`
   place.value = { style, up }
 }
-// A list wider than the room left of the viewport edge slides back inside.
+// A list wider than the room beside its trigger slides back inside the window.
 function clamp() {
+  const box = list.value?.getBoundingClientRect?.()
+  if (!box) return
+  const style = { ...place.value.style }
+  const side = props.align === 'end' ? 'right' : 'left'
+  const overflow = side === 'right' ? EDGE - box.left : box.right - (document.documentElement.clientWidth - EDGE)
+  if (overflow <= 0) return
+  style[side] = `${Math.max(EDGE, parseFloat(style[side]) - overflow)}px`
+  place.value = { ...place.value, style }
+}
+// Browsers without the Popover API keep the fixed list in place, as before.
+function raise(on) {
   const el = list.value
-  if (!el?.getBoundingClientRect || props.align === 'end') return
-  const overflow = el.getBoundingClientRect().right - (innerWidth - EDGE)
-  if (overflow > 0) place.value = { ...place.value, style: { ...place.value.style, left: `${Math.max(EDGE, parseFloat(place.value.style.left) - overflow)}px` } }
+  if (typeof el?.showPopover !== 'function') return
+  const showing = el.matches(':popover-open')
+  if (on && !showing) el.showPopover()
+  else if (!on && showing) el.hidePopover()
 }
 function scrollActive() {
   list.value?.querySelector?.('[data-active]')?.scrollIntoView?.({ block: 'nearest' })
@@ -74,6 +90,7 @@ async function show(index = selectedIndex.value) {
   open.value = true
   listen(true)
   await nextTick()
+  raise(true)
   clamp()
   scrollActive()
 }
@@ -81,6 +98,7 @@ function hide(returnFocus = false) {
   if (!open.value) return
   open.value = false
   listen(false)
+  raise(false)
   if (returnFocus === true) trigger.value?.focus?.()
 }
 function choose(index) {
@@ -115,8 +133,8 @@ function onKeydown(event) {
     typed = (now - typedAt > 600 ? '' : typed) + event.key.toLowerCase()
     typedAt = now
     const hit = items.value.findIndex(item => String(item.label).toLowerCase().startsWith(typed))
-    if (hit >= 0) active.value = hit
-    return
+    if (hit < 0) return
+    active.value = hit
   } else return
   event.preventDefault()
   nextTick(scrollActive)
@@ -141,7 +159,7 @@ onBeforeUnmount(() => { if (open.value) listen(false) })
       @click="open ? hide() : show()"
       @keydown="onKeydown"
     ><span class="menu-select-value">{{ items[selectedIndex]?.label ?? '—' }}</span><AppIcon name="chevron" :size="12" /></button>
-    <ul v-show="open" :id="`${id}-list`" ref="list" class="menu-select-list" :class="{ up: place.up }" role="listbox" :aria-label="label" :style="place.style">
+    <ul v-show="open" :id="`${id}-list`" ref="list" popover="manual" class="menu-select-list" :class="{ up: place.up, end: align === 'end' }" role="listbox" :aria-label="label" :style="place.style">
       <li
         v-for="(item, index) in items"
         :id="`${id}-${index}`"
@@ -170,8 +188,10 @@ onBeforeUnmount(() => { if (open.value) listen(false) })
 @media (pointer: coarse) { .menu-select-trigger { min-height: 40px; } }
 
 /* Floating list: same surface and clock as Option Pro's select (200ms in). */
-.menu-select-list { position: fixed; z-index: 60; max-width: calc(100vw - 24px); margin: 0; padding: 4px; overflow-y: auto; list-style: none; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--card-bg); box-shadow: var(--popover-shadow); transform-origin: top left; animation: menu-select-in 200ms var(--ease-smooth-out); }
+.menu-select-list { position: fixed; inset: auto; z-index: 60; color: var(--text-body); max-width: calc(100% - 24px); margin: 0; padding: 4px; overflow-y: auto; list-style: none; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--card-bg); box-shadow: var(--popover-shadow); transform-origin: top left; animation: menu-select-in 200ms var(--ease-smooth-out); }
 .menu-select-list.up { transform-origin: bottom left; }
+.menu-select-list.end { transform-origin: top right; }
+.menu-select-list.end.up { transform-origin: bottom right; }
 @keyframes menu-select-in { from { opacity: 0; transform: scale(.97); } }
 li { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 32px; padding: 6px 8px 6px 10px; border-radius: 6px; color: var(--text-body); font-size: 12px; line-height: 20px; white-space: nowrap; cursor: default; user-select: none; }
 li[data-active] { background: var(--accent-soft); color: var(--accent-strong); }
