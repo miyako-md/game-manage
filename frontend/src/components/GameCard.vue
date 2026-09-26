@@ -130,7 +130,7 @@ function capProps(cap) {
 </template>
 
 <style scoped>
-.detail-cap-realestate, .detail-cap-vehicles, .detail-cap-teams, .detail-cap-roles, .detail-cap-gacha { grid-column: 1 / -1; }
+.detail-cap-realestate, .detail-cap-vehicles, .detail-cap-teams, .detail-cap-roles, .detail-cap-gacha, .detail-cap-match, .detail-cap-exploration { grid-column: 1 / -1; }
 .game-card {
   min-width: 0;
 }
@@ -159,9 +159,7 @@ function capProps(cap) {
 }
 .detail-navigation { display:flex; justify-content:space-between; gap:10px 16px; align-items:center; margin:0 0 16px; flex-wrap:wrap; }
 /* 英雄联盟 has one short identity card and one wide stats card: stack them full width. */
-.detail-cap-roles,.detail-cap-match,.detail-cap-gacha,.detail-cap-exploration { grid-column:1/-1; }
 .game-league_of_legends .detail-cap-account,.game-league_of_legends .detail-cap-stats { grid-column:1/-1; }
-.detail-cap-roles :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
 @media(max-width:950px) { .cap-list { grid-template-columns:1fr; } }
 @media(max-width:600px) { .card-head { padding-bottom:12px; margin-bottom:14px; }.game-heading { gap:10px; flex-basis:100%; }.game-name { font-size:22px; line-height:28px; }.detail-monogram { width:36px; height:36px; font-size:20px; }.detail-tabs button { padding:4px 9px; } }
 

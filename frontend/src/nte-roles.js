@@ -1,8 +1,8 @@
 import { finiteValue } from './dashboard.js'
 
 export const roleId = role => role?.id === null || role?.id === undefined ? '' : String(role.id).trim()
-export const displayRoleValue = (value, missing = '未提供', { numbers = true } = {}) => {
-  const badNumber = numbers && typeof value === 'number' && !Number.isFinite(value)
+export const displayRoleValue = (value, missing = '未提供') => {
+  const badNumber = typeof value === 'number' && !Number.isFinite(value)
   return value === null || value === undefined || value === '' || badNumber ? missing : value
 }
 

@@ -28,7 +28,7 @@ const titles = { realestate: '房产详情', vehicles: '载具详情', teams: '�
 const searchLabels = { realestate: '搜索房产', vehicles: '搜索载具', teams: '搜索配队推荐' }
 const placeholders = { realestate: '搜索名称、入住角色、家具', vehicles: '搜索载具名称', teams: '搜索名称、描述' }
 const list = value => Array.isArray(value) ? value : []
-const display = (value) => displayRoleValue(value, '未知', { numbers: false })
+const display = (value) => displayRoleValue(value, '未知')
 const state = value => value === true ? '已拥有' : value === false ? '未拥有' : '拥有状态未知'
 const stateClass = value => value === true ? 'owned' : value === false ? 'unowned' : 'unknown'
 // Counts arrive as numbers, vehicle stats as strings; only a known value over

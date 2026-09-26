@@ -83,8 +83,8 @@ class WutheringWavesAdapter(BaseGameAdapter):
                 error_source='rolebox',
                 error_kind='auth_expired' if e.code in AUTH_EXPIRED_CODES else 'source_error')
         except KuroError as e:
-            # The legacy client includes str(httpx_error) for network errors;
-            # request URLs can contain secrets and must not enter persisted status.
+            # Network failures (code -1) get a fixed message on the page; the
+            # client's own text only names the exception type.
             message = '网络请求失败，请稍后重试' if e.code == -1 else e.message
             return FetchResult(ok=False, error=f"库街区接口错误: {message}", error_code=e.code,
                 error_kind='auth_expired' if e.code in AUTH_EXPIRED_CODES else 'source_error')

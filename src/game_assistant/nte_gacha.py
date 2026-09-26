@@ -249,7 +249,8 @@ class GachaStore:
                 identity_confirmed=False):
         options = dict(latest_confirmed=latest_confirmed, continuity_confirmed=continuity_confirmed,
                        identity_confirmed=identity_confirmed)
-        rows, coverage, warnings, missing_identity = self._normalize(role, document, latest_confirmed, continuity_confirmed)
+        rows, coverage, warnings, missing_identity = self._normalize(
+            role, document, latest_confirmed=latest_confirmed, continuity_confirmed=continuity_confirmed)
         duplicates = 0
         with self._db() as db:
             self._check_metadata(db, role, _metadata(document))
@@ -276,7 +277,8 @@ class GachaStore:
                        identity_confirmed=identity_confirmed)
         if not isinstance(preview_id, str) or not hmac.compare_digest(preview_id, self._ticket(role, document, options)):
             raise GachaError('导入内容或确认选项已变化，请重新预览', 409)
-        rows, coverage, warnings, missing_identity = self._normalize(role, document, latest_confirmed, continuity_confirmed)
+        rows, coverage, warnings, missing_identity = self._normalize(
+            role, document, latest_confirmed=latest_confirmed, continuity_confirmed=continuity_confirmed)
         if missing_identity and not identity_confirmed:
             raise GachaError('文件缺少角色身份，请明确确认归属后重新预览', 409)
         imported = 0

@@ -393,7 +393,7 @@ button:not(:disabled):active { transform: scale(var(--scale-medium)); box-shadow
 .text-button, .text-button:not(:disabled):hover { box-shadow: none; background: transparent; border-color: transparent; }
 button:disabled { opacity: .5; cursor: not-allowed; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.text-button { border: 0; color: var(--accent); min-height: 0; padding: 4px; white-space: nowrap; background: transparent; }
+.text-button { border: 0; color: var(--accent); min-height: 0; padding: 4px; white-space: nowrap; }
 @media (hover: hover) and (pointer: fine) { .text-button:not(:disabled):hover { color: var(--accent-strong); } }
 .logout { color: var(--text-muted); }
 .primary { color: var(--accent-ink); background: var(--accent-fill); border-color: transparent; box-shadow: var(--btn-primary-shadow); }

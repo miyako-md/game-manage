@@ -9,6 +9,7 @@ import MenuSelect from './MenuSelect.vue'
 
 const props = defineProps({ snap: { type: Object, default: null }, accountId: { type: String, default: '' } })
 const payload = computed(() => props.snap?.payload ?? null)
+const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 const legacy = computed(() => payload.value !== null && payload.value.schema_version !== 1)
 const list = value => Array.isArray(value) ? value.filter(row => row && typeof row === 'object') : []
 const roles = computed(() => legacy.value ? [] : list(payload.value?.entries))
@@ -59,7 +60,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
         <span class="chip">S级 <b>{{ qualityCount('S') }}</b></span>
         <span class="chip">A级 <b>{{ qualityCount('A') }}</b></span>
       </span>
-      <span v-if="fetchedLabel(snap?.fetched_at)" class="cap-meta">更新于 {{ fetchedLabel(snap?.fetched_at) }}</span>
+      <span v-if="fetchedAt" class="cap-meta">更新于 {{ fetchedAt }}</span>
     </div>
     <p v-if="payload === null" class="empty">暂无数据，请登录后刷新</p>
     <p v-else-if="legacy" class="empty">数据格式已更新，请刷新</p>
