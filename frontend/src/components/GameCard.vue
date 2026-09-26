@@ -14,6 +14,7 @@ import NteDataCard from './NteDataCard.vue'
 import NteAssetsPanel from './NteAssetsPanel.vue'
 import NteRolesPanel from './NteRolesPanel.vue'
 import NteGachaPanel from './NteGachaPanel.vue'
+import EndfieldGachaPanel from './EndfieldGachaPanel.vue'
 import ProgressCard from './ProgressCard.vue'
 import StaminaCard from './StaminaCard.vue'
 import StatsCard from './StatsCard.vue'
@@ -67,6 +68,7 @@ function capComponent(cap) {
   if (props.game.game_id === 'nte' && ['realestate', 'vehicles', 'teams'].includes(cap)) return NteAssetsPanel
   if (props.game.game_id === 'nte' && cap === 'roles') return NteRolesPanel
   if (props.game.game_id === 'nte' && cap === 'gacha') return NteGachaPanel
+  if (props.game.game_id === 'endfield' && cap === 'gacha') return EndfieldGachaPanel
   if (props.game.game_id === 'nte' && ['account', 'stamina', 'progress', 'exploration', 'record'].includes(cap)) return NteDataCard
   return CAP_COMPONENTS[cap] || null
 }
@@ -79,7 +81,7 @@ function capProps(cap) {
     snap: snaps[cap],
     gameId: props.game.game_id,
     capability: cap,
-    accountId: props.game.game_id === 'nte' ? snaps.account?.payload?.role_id || '' : '',
+    accountId: ['nte', 'endfield'].includes(props.game.game_id) ? snaps.account?.payload?.role_id || '' : '',
     roles: snaps.roles?.payload?.entries || [],
     stats: snaps.stats?.payload ?? null,
   }

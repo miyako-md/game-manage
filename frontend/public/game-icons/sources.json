@@ -22,5 +22,13 @@
     "license": "GPL-3.0-only",
     "kind": "original text identifier; not official game artwork",
     "file_light": "league_of_legends-mark-light.svg"
+  },
+  {
+    "game_id": "endfield",
+    "file": "endfield-mark.svg",
+    "creator": "game-manage contributors",
+    "license": "GPL-3.0-only",
+    "kind": "original text identifier; not official game artwork",
+    "file_light": "endfield-mark-light.svg"
   }
 ]

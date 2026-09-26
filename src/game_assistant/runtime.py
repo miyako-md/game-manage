@@ -23,7 +23,7 @@ def build_app(sandbox_dir: Path | None = None):
               for name, field in Settings.model_fields.items()}
     values.update(db_path=str(sandbox_dir / "assistant.db"),
                   auth_store_path=str(sandbox_dir / "credentials.json"),
-                  wuwa_enabled=False, lol_enabled=False, nte_enabled=False,
+                  wuwa_enabled=False, lol_enabled=False, nte_enabled=False, endfield_enabled=False,
                   notify_send_key="")
     return create_app(settings=Settings(**values), start_scheduler=False)
 

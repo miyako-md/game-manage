@@ -44,6 +44,8 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
     install_auth_routes(app, auth_service)
     from game_assistant.nte_gacha_routes import install_nte_gacha_routes
     install_nte_gacha_routes(app, settings)
+    from game_assistant.endfield_gacha_routes import install_endfield_gacha_routes
+    install_endfield_gacha_routes(app, settings)
     from game_assistant.adapters.wuthering_waves.routes import install_wuwa_routes
     install_wuwa_routes(app)
     from game_assistant.wuwa_archive_routes import install_wuwa_archive_routes

@@ -239,3 +239,72 @@ async def test_auth_status_recovers_after_successful_private_request(tmp_path):
         return FetchResult(ok=True, payload=[])
     await service.fetch('nte', Capability.ROLES, recovered)
     assert service.status()['accounts']['nte']['state'] == 'configured'
+
+
+class EndfieldProvider(Provider):
+    async def login(self, context, mobile, code):
+        self.logins += 1
+        return {'hg_token': 'secret-hg', 'uid': 'hg-uid', 'role_id': '31000001',
+                'server_id': '1', 'nickname': '管理员'}
+
+
+def make_endfield_service(tmp_path):
+    settings = Settings()
+    service = LoginService(settings, CredentialStore(tmp_path / 'secrets.bin'),
+                           providers={'endfield': EndfieldProvider()})
+    return service, settings
+
+
+async def endfield_login(service):
+    sid = (await service.start('endfield'))['session_id']
+    await service.sms('endfield', sid, '13800000000')
+    await service.login('endfield', sid, '13800000000', '123456')
+
+
+async def test_endfield_login_fills_settings_without_captcha(tmp_path):
+    service, settings = make_endfield_service(tmp_path)
+    assert (await service.start('endfield'))['captcha_id'] is None
+    assert not service.status()['accounts']['endfield']['configured']
+    await endfield_login(service)
+    account = service.status()['accounts']['endfield']
+    assert account['configured'] and account['nickname'] == '管理员' and 'secret-hg' not in str(account)
+    assert (settings.endfield_hg_token, settings.endfield_uid, settings.endfield_role_id) == ('secret-hg', 'hg-uid', '31000001')
+
+
+async def test_endfield_fetch_does_not_block_logout(tmp_path):
+    service, settings = make_endfield_service(tmp_path)
+    await endfield_login(service)
+    started, release = asyncio.Event(), asyncio.Event()
+    async def slow_sync():
+        started.set()
+        await release.wait()
+        return FetchResult(ok=True, payload={})
+    pending = asyncio.create_task(service.fetch('endfield', Capability.GACHA, slow_sync))
+    await started.wait()
+    await asyncio.wait_for(service.logout('endfield'), timeout=1)
+    release.set()
+    result = await pending
+    # The version stamped before the switch lets the scheduler discard this result.
+    assert result.credential_version != service.version('endfield')
+    assert settings.endfield_hg_token == ''
+
+
+async def test_endfield_expiry_is_reported_and_cleared(tmp_path):
+    service, _ = make_endfield_service(tmp_path)
+    await endfield_login(service)
+    async def expired():
+        return FetchResult(ok=False, error='登录已失效', error_kind='auth_expired')
+    await service.fetch('endfield', Capability.ACCOUNT, expired)
+    assert service.status()['accounts']['endfield']['state'] == 'expired'
+    async def recovered():
+        return FetchResult(ok=True, payload={})
+    await service.fetch('endfield', Capability.ACCOUNT, recovered)
+    assert service.status()['accounts']['endfield']['state'] == 'connected'
+
+
+async def test_public_endfield_capability_never_requires_login(tmp_path):
+    service, _ = make_endfield_service(tmp_path)
+    async def action():
+        return FetchResult(ok=True, payload=[])
+    result = await service.fetch('endfield', Capability.EVENTS, action)
+    assert result.ok and result.credential_version is None

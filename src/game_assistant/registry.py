@@ -1,4 +1,5 @@
 from game_assistant.adapters.base import BaseGameAdapter
+from game_assistant.adapters.endfield.adapter import EndfieldAdapter
 from game_assistant.adapters.league_of_legends.adapter import LeagueOfLegendsAdapter
 from game_assistant.adapters.neverness.adapter import NteAdapter
 from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
@@ -31,4 +32,6 @@ def build_default_registry(settings: Settings) -> GameRegistry:
         registry.register(LeagueOfLegendsAdapter(settings))
     if settings.nte_enabled:
         registry.register(NteAdapter(settings))
+    if settings.endfield_enabled:
+        registry.register(EndfieldAdapter(settings))
     return registry

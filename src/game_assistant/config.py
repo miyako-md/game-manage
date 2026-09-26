@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     nte_refresh_token: str = ""
     nte_device_id: str = ""
     nte_role_id: str = ""
+    # 终末地（官服）凭据由页面短信登录取得并加密保存；以下字段只在运行时由登录服务填写。
+    endfield_enabled: bool = True
+    endfield_hg_token: str = ""
+    endfield_uid: str = ""
+    endfield_role_id: str = ""
+    endfield_server_id: str = ""
     auth_store_path: str = ""  # empty: adjacent to db_path, *.credentials.json
     auth_allowed_origins: list[str] = [
         "http://127.0.0.1:8010", "http://localhost:8010",

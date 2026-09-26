@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 from game_assistant.event_calendar import BEIJING_TZ as BJ
 
-MOBILE_GAMES = {'nte', 'wuthering_waves'}
+MOBILE_GAMES = {'nte', 'wuthering_waves', 'endfield'}
 VERSION = re.compile(r'(\d+\.\d+)\s*版本')
 DATE = re.compile(r'(?<![\d.])(?:(20\d{2})[年/.-])?(\d{1,2})(?:月|/|-)(\d{1,2})(?:日)?\s*(?:(\d{1,2})[:：](\d{2})(?::(\d{2}))?)?')
 RELATIVE = re.compile(r'(?:版本)?更新后|维护(?:完成|结束)?后')
@@ -93,6 +93,9 @@ def _heading(line, game):
 
 
 def parse_post_events(post, game, version):
+    if game == 'endfield':
+        from .endfield_notice import parse_post_events as parse_endfield
+        return parse_endfield(post, version)
     if game not in MOBILE_GAMES or post.get('decision') != 'accepted':
         return []
     lines = [s.strip() for s in post.get('body', '').splitlines() if s.strip()]
@@ -163,6 +166,9 @@ def _maintenance_day(post):
 
 def calendar_from_posts(posts, game, now=None):
     now = now or datetime.now(timezone.utc)
+    if game == 'endfield':
+        from .endfield_notice import calendar_from_posts as endfield_calendar
+        return endfield_calendar(posts, now)
     if game not in MOBILE_GAMES:
         return dict(version=None, events=[])
     bases = []

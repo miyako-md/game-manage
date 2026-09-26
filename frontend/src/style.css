@@ -15,7 +15,7 @@
   /* Translucent layers that lift a surface: white at night, ink by day. */
   --overlay-1: rgba(241, 243, 245, .02); --overlay-2: rgba(241, 243, 245, .04); --overlay-3: rgba(241, 243, 245, .06);
   --scrim: rgba(0, 0, 0, .55); --paper-dot: rgba(241, 243, 245, .045); --glare: rgba(241, 243, 245, .08); --skeleton-sheen: rgba(241, 243, 245, .08);
-  --game-wuwa: #d8bb84; --game-nte: #b6a3d4; --game-lol: #87b9ce;
+  --game-wuwa: #d8bb84; --game-nte: #b6a3d4; --game-lol: #87b9ce; --game-endfield: #e6d45c;
   /* Series colours for data (shadcn --chart-N naming): sibling bars in one card
      take the next colour so neighbours never share a hue. */
   --chart-1: #8b9cff; --chart-2: #4ec4d4; --chart-3: #62d0a5; --chart-4: #f2b544; --chart-5: #b69cff; --chart-6: #ff8fb1;
@@ -47,7 +47,7 @@
   --attention-bg: #fcf3e2; --attention-border: #f0dcb2; --attention-text: #7a4f08;
   --overlay-1: rgba(13, 22, 38, .02); --overlay-2: rgba(13, 22, 38, .035); --overlay-3: rgba(13, 22, 38, .05);
   --scrim: rgba(13, 22, 38, .32); --paper-dot: rgba(13, 22, 38, .02); --glare: rgba(255, 255, 255, .55); --skeleton-sheen: rgba(255, 255, 255, .85);
-  --game-wuwa: #8c6114; --game-nte: #6a52a0; --game-lol: #2a6c87;
+  --game-wuwa: #8c6114; --game-nte: #6a52a0; --game-lol: #2a6c87; --game-endfield: #786e00;
   --chart-1: #3b59f2; --chart-2: #0e8a9e; --chart-3: #119a6b; --chart-4: #c98208; --chart-5: #7b5bd6; --chart-6: #d6457a;
   --card-shadow: 0 2px 4px rgba(24, 43, 68, .02), 0 9px 25px -12px rgba(24, 43, 68, .12);
   --card-hover-shadow: 0 2px 4px rgba(16, 24, 40, .04), 0 24px 56px -16px rgba(16, 24, 40, .16);

@@ -30,8 +30,15 @@ function status(card) {
   if (card.game_id === 'league_of_legends') return '本机客户端'
   return ({ connected: '已连接', configured: '已配置', unconfigured: '未登录' })[card.auth?.state] || (card.credentials_configured ? '已配置' : '未登录')
 }
+const METRIC_UNITS = { stats: '%', gacha: '抽' }
+const PLATFORMS = { league_of_legends: 'PC / 国服', endfield: '官服 / 鹰角通行证' }
+const platform = id => PLATFORMS[id] || '手游 / 社区数据'
+function metricLabel(card) {
+  return ({ stamina: card.style.resource, gacha: '特许寻访 · 距上次 6★' })[card.summary.metric] || '最近对局胜率'
+}
 function resourceNote(card) {
   const s = card.summary
+  if (s.metric === 'gacha') return s.value == null ? '等待寻访记录同步' : s.pityStatus === 'exact' ? '按连续的寻访记录计算' : '记录有断档或含免费寻访，这是最少抽数'
   // 胜率不含重开和结果未知的对局；分母和总场数不同时写出来，免得按总场数去算。
   if (!s.hasStamina) return s.totalGames == null ? '等待对局数据' : `最近 ${s.totalGames} 场 · ${s.wins == null ? '胜场未知' : `${s.wins} 胜`}${s.decided != null && s.decided !== s.totalGames ? ` · 胜率按 ${s.decided} 场计` : ''}`
   if (card.game_id === 'nte') return '塔吉多体力快照 · 可能有同步延迟'
@@ -57,9 +64,9 @@ function resourceNote(card) {
     <div class="section-heading"><h2>我的游戏 <span class="count-label">/ {{ String(games.length).padStart(2, '0') }}</span></h2><span class="muted small">各游戏独立同步</span></div>
     <div class="game-summary-grid">
       <button v-for="(card, index) in cards" :key="card.game_id" class="game-summary t-item t-glare" :style="{ '--game-color': card.style.color, '--i': index }" @click="emit('navigate', 'game', card.game_id)">
-        <div class="summary-header"><GameIcon class="game-monogram" :game-id="card.game_id" :name="card.display_name" /><div class="game-identity"><h3>{{ card.display_name }}</h3><p>{{ card.game_id === 'league_of_legends' ? 'PC / 国服' : '手游 / 社区数据' }}</p></div><span class="summary-state" :class="{ warn: card.summary.stale || card.auth?.state === 'expired' || readErrors[card.game_id] || card.source?.tone === 'danger' }"><i></i>{{ status(card) }}</span></div>
-        <div class="summary-metric"><div><p>{{ card.summary.hasStamina ? card.style.resource : '最近对局胜率' }}</p><div class="summary-number" v-pop>{{ card.summary.value ?? '—' }}<small>{{ card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : '%' }}</small></div></div><p class="summary-note">{{ resourceNote(card) }}</p></div>
-        <div v-if="card.summary.percent != null" class="summary-meter" role="meter" :aria-label="card.summary.hasStamina ? card.style.resource : '胜率'" :aria-valuenow="card.summary.percent" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.min(100, card.summary.percent)}%` }"></i></div>
+        <div class="summary-header"><GameIcon class="game-monogram" :game-id="card.game_id" :name="card.display_name" /><div class="game-identity"><h3>{{ card.display_name }}</h3><p>{{ platform(card.game_id) }}</p></div><span class="summary-state" :class="{ warn: card.summary.stale || card.auth?.state === 'expired' || readErrors[card.game_id] || card.source?.tone === 'danger' }"><i></i>{{ status(card) }}</span></div>
+        <div class="summary-metric"><div><p>{{ metricLabel(card) }}</p><div class="summary-number" v-pop>{{ card.summary.metric === 'gacha' && card.summary.pityStatus === 'lower_bound' && card.summary.value != null ? '≥' : '' }}{{ card.summary.value ?? '—' }}<small>{{ card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : METRIC_UNITS[card.summary.metric] }}</small></div></div><p class="summary-note">{{ resourceNote(card) }}</p></div>
+        <div v-if="card.summary.percent != null" class="summary-meter" role="meter" :aria-label="metricLabel(card)" :aria-valuenow="card.summary.percent" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.min(100, card.summary.percent)}%` }"></i></div>
         <div v-else class="summary-meter unknown"></div>
         <div class="summary-account"><span>{{ card.summary.nickname || '暂无账号数据' }}<small v-if="card.summary.level != null">Lv.{{ card.summary.level }}</small></span><span class="summary-updated">{{ card.summary.fetchedAt ? `更新于 ${formatTime(card.summary.fetchedAt)}` : '尚无成功快照' }}</span><AppIcon name="arrow" :size="15" /></div>
       </button>

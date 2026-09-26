@@ -9,13 +9,13 @@ import uuid
 from copy import deepcopy
 
 from game_assistant.adapters.wuthering_waves.kuro_client import AUTH_EXPIRED_CODES, KuroClient
-from game_assistant.auth.providers import AuthError, NteLoginProvider, WuwaLoginProvider
+from game_assistant.auth.providers import AuthError, EndfieldLoginProvider, NteLoginProvider, WuwaLoginProvider
 from game_assistant.auth.store import CredentialStoreError
 from game_assistant.models import Capability, FetchResult
 
 logger = logging.getLogger(__name__)
 
-GAMES = ('wuthering_waves', 'nte')
+GAMES = ('wuthering_waves', 'nte', 'endfield')
 FIELDS = {
     'wuthering_waves': {'token': 'wuwa_token', 'user_id': 'wuwa_user_id',
         'token_source': 'wuwa_token_source',
@@ -23,6 +23,13 @@ FIELDS = {
         'role_id': 'wuwa_role_id', 'server_id': 'wuwa_server_id'},
     'nte': {'access_token': 'nte_access_token', 'refresh_token': 'nte_refresh_token',
         'device_id': 'nte_device_id', 'role_id': 'nte_role_id'},
+    'endfield': {'hg_token': 'endfield_hg_token', 'uid': 'endfield_uid',
+        'role_id': 'endfield_role_id', 'server_id': 'endfield_server_id'},
+}
+# Public feeds remain available without a community session.
+PUBLIC_CAPABILITIES = {
+    'nte': (Capability.ANNOUNCEMENT, Capability.EVENTS, Capability.TEAMS),
+    'endfield': (Capability.ANNOUNCEMENT, Capability.EVENTS),
 }
 
 
@@ -38,7 +45,8 @@ class LoginService:
     def __init__(self, settings, store, providers=None, clock=time.time):
         self.settings, self.store, self.clock = settings, store, clock
         if providers is None:
-            providers = {'wuthering_waves': WuwaLoginProvider(), 'nte': NteLoginProvider()}
+            providers = {'wuthering_waves': WuwaLoginProvider(), 'nte': NteLoginProvider(),
+                         'endfield': EndfieldLoginProvider()}
         self.providers = providers
         self._locks = {g: asyncio.Lock() for g in GAMES}
         self._sessions = {}
@@ -104,8 +112,11 @@ class LoginService:
         account = self._accounts[game]
         if account.get('logged_out'):
             return False
-        return bool(account.get('token') and account.get('user_id')) if game == GAMES[0] else bool(
-            account.get('access_token') or account.get('refresh_token'))
+        if game == 'wuthering_waves':
+            return bool(account.get('token') and account.get('user_id'))
+        if game == 'nte':
+            return bool(account.get('access_token') or account.get('refresh_token'))
+        return bool(account.get('hg_token') and account.get('role_id'))
 
     def status(self):
         accounts = {}
@@ -140,7 +151,7 @@ class LoginService:
             self._sessions[sid] = {'game': game, 'context': context,
                 'expires': self.clock() + 600, 'attempts': 0, 'mobile': None, 'sent': False}
             return {'session_id': sid, 'expires_in': 600,
-                    'captcha_id': WuwaLoginProvider.captcha_id if game == GAMES[0] else None}
+                    'captcha_id': WuwaLoginProvider.captcha_id if game == 'wuthering_waves' else None}
 
     def _session(self, game, sid):
         session = self._sessions.get(sid)
@@ -258,9 +269,10 @@ class LoginService:
             raise LoginError('登录状态刷新失败，请稍后重试', 502) from None
 
     async def fetch(self, game, capability, action):
-        # Public NTE feeds remain available without a community session.
-        if game == 'nte' and capability in (Capability.ANNOUNCEMENT, Capability.EVENTS, Capability.TEAMS):
+        if capability in PUBLIC_CAPABILITIES.get(game, ()):
             return await action()
+        if game == 'endfield':
+            return await self._fetch_without_renewal(game, action)
         async with self._locks[game]:
             account = self._accounts[game]
             renewed = False
@@ -271,7 +283,7 @@ class LoginService:
                     await self._renew(game)
                     renewed = True
                 result = await action()
-                if game == GAMES[0]:
+                if game == 'wuthering_waves':
                     # RoleBox uses a renewable b-at ticket. Base account/widget
                     # HTTP auth errors concern the login token and require login.
                     rolebox = capability in (Capability.ROLES, Capability.EXPLORATION, Capability.CALABASH,
@@ -281,7 +293,7 @@ class LoginService:
                         rolebox and result.error_code in (401, 403))
                 else:
                     invalid = result.error_code in (401, 402, 403)
-                can_renew = bool(account.get('token') and account.get('role_id')) if game == GAMES[0] else bool(account.get('refresh_token'))
+                can_renew = bool(account.get('token') and account.get('role_id')) if game == 'wuthering_waves' else bool(account.get('refresh_token'))
                 if not result.ok and invalid and can_renew and not renewed:
                     await self._renew(game)
                     result = await action()
@@ -295,3 +307,17 @@ class LoginService:
             except LoginError as error:
                 return FetchResult(ok=False, error=error.message, error_kind=error.error_kind or 'source_error',
                                    credential_version=self.version(game))
+
+    async def _fetch_without_renewal(self, game, action):
+        # 终末地通行证 token 没有续期接口，无需持锁轮换凭据；寻访同步翻页较久也不会阻塞登录和退出。
+        # 期间若换了账号，调度器按 credential_version 与 account_generation 丢弃这次结果。
+        version = self.version(game)
+        result = await action()
+        if version != self.version(game):
+            pass  # 旧账号的结果不能改写新账号的登录状态
+        elif result.error_kind == 'auth_expired':
+            self._errors[game] = '登录已失效，请重新登录'
+        elif result.ok:
+            self._errors.pop(game, None)
+        result.credential_version = version
+        return result

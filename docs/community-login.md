@@ -1,9 +1,10 @@
 # 社区账号登录
 
-在仪表盘顶部的「社区账号」中选择鸣潮或异环，输入手机号并点击「开始登录」。
+在仪表盘顶部的「社区账号」中选择鸣潮、异环或终末地，输入手机号并点击「开始登录」。
 
 - 鸣潮：先手动完成人机验证，再点击「发送验证码」，输入短信验证码后「登录并保存」。
 - 异环：点击「发送验证码」，输入短信验证码后「登录并保存」。
+- 终末地：使用鹰角通行证绑定的手机号，点击「发送验证码」，输入短信验证码后「登录并保存」。目前只支持官服，会选择官方渠道、未删除账号下 serverId 为 1 的角色。
 - 使用社区已经绑定游戏角色的中国大陆手机号。当前自动使用接口返回的首个有效绑定角色。
 - 页面收到成功结果后才显示已连接；短信验证码只用于当次登录，不保存在磁盘。
 - 登录后从左侧进入对应游戏，点击「刷新数据」加载新账号数据；账号切换会清理旧的私人快照及采集状态，不能将尚未刷新时的空卡片当作登录失败。
@@ -22,6 +23,8 @@
 异环通过老虎短信登录换取塔吉多 access/refresh token。访问令牌会按本地 1 小时间隔或服务端拒绝时刷新，轮换后的令牌保存到本地。refresh token 失效后需要重新短信登录。旧配置中只有 refresh token 时也支持换取访问令牌。
 
 异环账号、体力、角色、成就、探索、抽卡统计和社区名片现已接入专属卡片，详见 [异环展示说明](nte-data.md)。
+
+终末地短信登录取得鹰角通行证 token 并加密保存。通行证没有续期接口：每次采集都用它重新授权，授权失败即提示重新登录；采集不占用登录锁，寻访同步翻页期间仍可退出或重新登录。详见 [终末地数据说明](endfield-data.md)。
 
 ## 运行
 
@@ -43,6 +46,7 @@
 
 - WutheringWavesUID `1d693a2df0f940824cb34e102cec1cf3b381e70f`：[登录](https://github.com/kvcfdd/WutheringWavesUID/blob/1d693a2df0f940824cb34e102cec1cf3b381e70f/WutheringWavesUID/wutheringwaves_login/login.py)、[HTTP 与令牌](https://github.com/kvcfdd/WutheringWavesUID/blob/1d693a2df0f940824cb34e102cec1cf3b381e70f/WutheringWavesUID/utils/api/requests.py)。
 - NTEUID `ba7790e13e39f9a825090853498848b51a06c3c9`：[老虎 SDK](https://github.com/tyql688/NTEUID/blob/ba7790e13e39f9a825090853498848b51a06c3c9/NTEUID/utils/sdk/laohu.py)、[塔吉多 SDK](https://github.com/tyql688/NTEUID/blob/ba7790e13e39f9a825090853498848b51a06c3c9/NTEUID/utils/sdk/tajiduo.py)。
+- EndUID `7781451d69cabab5b61c56657bdbdfce89df6ed3`：[接口与登录](https://github.com/Loping151/EndUID/blob/7781451d69cabab5b61c56657bdbdfce89df6ed3/EndUID/utils/api/requests.py)；寻访授权链路另参考 bhaoo/endfield-gacha `72c526d`。终末地协议尚未经真实账号验证。
 
 自动化验证使用模拟 HTTP 和独立临时数据，不发送真实短信。完整在线验收需要用户在页面完成人工验证及输入真实短信验证码，然后检查账号、体力与 roleBox 数据；不得将模拟通过视为真实账号在线通过。
 
