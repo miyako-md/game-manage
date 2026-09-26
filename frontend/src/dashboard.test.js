@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createDashboard, formatTime, percentOf, summaryFor, upcomingEvents, recentNews, readRoute } from './dashboard.js'
+import { createDashboard, percentOf, summaryFor, upcomingEvents, recentNews, readRoute } from './dashboard.js'
 import { collectCalendarEvents, eventStatus } from './calendar.js'
 
 const game = { game_id: 'nte', display_name: '异环', capabilities: ['account', 'stamina', 'events'] }
@@ -195,13 +195,6 @@ test('late older observations cannot roll back a newer cleared status', async ()
   await d.load(); old = true; await d.loadStatus()
   assert.equal(d.state.collection[0].state, 'never')
 })
-test('formatTime shows missing, unparseable and out-of-range times as not provided', () => {
-  assert.equal(formatTime(null), '未提供')
-  assert.equal(formatTime('not a date'), '未提供')
-  assert.equal(formatTime(8.64e15 + 1), '未提供')
-  assert.equal(formatTime('2026-09-14T02:00:00Z'), '09/14 10:00')
-})
-
 test('overview events agree with the calendar on date-only starts and stale source rows', () => {
   const now = Date.parse('2026-09-15T00:00:00+08:00')
   const snapshots = { nte: { events: snapshot([

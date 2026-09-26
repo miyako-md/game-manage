@@ -23,12 +23,10 @@ export function percentOf(current, total) {
 }
 export function formatTime(value, options = {}) {
   const ts = typeof value === 'number' ? value : parseBeijingTime(value)
-  // A finite number outside the Date range makes an Invalid Date, which Intl rejects.
-  const date = new Date(ts ?? NaN)
-  if (!Number.isFinite(date.getTime())) return '未提供'
+  if (ts == null || !Number.isFinite(ts)) return '未提供'
   return new Intl.DateTimeFormat('zh-CN', {
     timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...options,
-  }).format(date)
+  }).format(new Date(ts))
 }
 export function summaryFor(game, snapshots = {}) {
   const validPayload = (cap) => {

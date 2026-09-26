@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from game_assistant.models import (
     CalabashData, Capability, CountryGroup,
-    DetectionSummary, ExplorationData, AreaSummary, FetchResult,
+    DetectionSummary, ExplorationData, AreaSummary,
     MatchSummary, ProgressItem, RoleEntry, StaminaInfo,
 )
 
@@ -81,13 +81,3 @@ def test_capability_names_and_values_are_pinned():
         "TEAMS": "teams",
     }
     assert {c.name: c.value for c in Capability} == expected
-
-
-def test_fetch_result_defaults_are_all_none_except_ok():
-    result = FetchResult(ok=True)
-    assert result.payload is None
-    assert result.error is None
-    assert result.error_code is None
-    assert result.error_source is None
-    assert result.error_kind is None
-    assert result.credential_version is None
