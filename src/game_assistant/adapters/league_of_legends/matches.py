@@ -7,6 +7,16 @@ from game_assistant.models import (
 from game_assistant.adapters.league_of_legends.champions import ChampionCatalog
 
 
+# 召唤师峡谷最早 15 分钟才能投降，5 分钟内结束的只会是重开或中途中止。
+REMAKE_SECONDS = 300
+
+
+def is_remake(stats: dict, duration_seconds) -> bool:
+    if stats.get("gameEndedInEarlySurrender") is True:
+        return True
+    return isinstance(duration_seconds, (int, float)) and 0 <= duration_seconds < REMAKE_SECONDS
+
+
 def _win_from(stats: dict, team_id: int | None, team_win: dict[int, bool]) -> bool | None:
     # 复用现有口径：stats.win(bool) 优先，否则 teams[].win=="Win" 兜底
     if isinstance(stats.get("win"), bool):
@@ -24,6 +34,7 @@ def _own_summary(game: dict, own_puuid: str) -> MatchSummary:
             ident_pid = ident.get("participantId")
             break
     champion = kills = deaths = assists = damage = team = win = None
+    stats: dict = {}
     for p in game.get("participants") or []:
         if p.get("participantId") != ident_pid:
             continue
@@ -40,6 +51,7 @@ def _own_summary(game: dict, own_puuid: str) -> MatchSummary:
         duration_seconds=game.get("gameDuration"),
         win=win, champion_id=champion,
         kills=kills, deaths=deaths, assists=assists, damage=damage,
+        remake=is_remake(stats, game.get("gameDuration")),
     )
 
 
@@ -134,15 +146,18 @@ def compute_stats(summaries: list[MatchSummary],
     total = len(summaries)
     if total == 0:
         return StatsSummary()
-    wins = sum(1 for s in summaries if s.win is True)
+    # 重开不算真正的一局；结果未知的对局只是不进胜率分母，不能按负场算。
+    played = [s for s in summaries if not s.remake]
+    decided = [s for s in played if s.win is not None]
+    wins = sum(1 for s in decided if s.win is True)
 
     def avg(field: str) -> float | None:
-        vals = [getattr(s, field) for s in summaries
+        vals = [getattr(s, field) for s in played
                 if getattr(s, field) is not None]
         return round(sum(vals) / len(vals), 1) if vals else None
 
     groups: dict[int, list[MatchSummary]] = {}
-    for s in summaries:
+    for s in played:
         if s.champion_id is not None:
             groups.setdefault(s.champion_id, []).append(s)
     top = sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:5]
@@ -156,7 +171,7 @@ def compute_stats(summaries: list[MatchSummary],
     records = []
     for label, field, fmt in _RECORDS:
         best = None
-        for s in summaries:
+        for s in played:
             v = getattr(s, field, None)
             if v is None:  # damage=None 的场次跳过该纪录
                 continue
@@ -168,7 +183,8 @@ def compute_stats(summaries: list[MatchSummary],
 
     return StatsSummary(
         total_games=total, wins=wins,
-        winrate=round(wins / total * 100, 1),
+        winrate=round(wins / len(decided) * 100, 1) if decided else None,
+        decided_games=len(decided), remakes=total - len(played),
         avg_kills=avg("kills"), avg_deaths=avg("deaths"), avg_assists=avg("assists"),
         top_champions=top_champions, records=records,
     )

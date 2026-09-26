@@ -131,6 +131,8 @@ class MatchSummary(BaseModel):
     deaths: int | None = None
     assists: int | None = None
     damage: int | None = None  # totalDamageDealtToChampions（生涯"最高伤害"纪录用）
+    # 重开 / 开局即中止的对局：不算胜负，也不进场均与名场面（见 matches.is_remake）
+    remake: bool = False
 
 
 class MatchParticipant(BaseModel):
@@ -174,9 +176,11 @@ class ChampionStat(BaseModel):
 
 class StatsSummary(BaseModel):
     # 生涯统计+名场面（国服 match history 不支持翻页，口径 = 最近 20 场）
-    total_games: int = 0
+    total_games: int = 0  # 含重开的全部对局
     wins: int = 0
-    winrate: float | None = None  # 0-100
+    winrate: float | None = None  # 0-100，分母 = decided_games
+    decided_games: int = 0  # 有胜负结果且不是重开的对局
+    remakes: int = 0
     avg_kills: float | None = None
     avg_deaths: float | None = None
     avg_assists: float | None = None

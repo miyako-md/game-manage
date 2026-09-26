@@ -30,3 +30,35 @@ test('a closed detail response cannot overwrite a newly selected match', async t
   first.resolve(detail('旧')); await new Promise(setImmediate); await nextTick()
   assert.match(content(root), /当前/); assert.doesNotMatch(content(root), /旧/)
 })
+
+const game = (id, win, extra = {}) => ({ match_id: id, win, mode: 'CLASSIC', kills: 5, deaths: 2, assists: 6, duration_seconds: 1800, damage: 20000, start_at: '2026-09-26T12:00:00Z', ...extra })
+
+test('remakes and unknown results stay out of the win rate, streak and header count', t => {
+  const root = mount(t, MatchList, { gameId: 'lol', snap: { payload: [
+    game('remake', false, { duration_seconds: 210, kills: 0, deaths: 0, assists: 0 }),
+    game('w1', true),
+    game('unknown', null),
+    game('l1', false),
+  ] } })
+  const text = content(root)
+  assert.match(text, /近 4 场 1 胜 · 1 场重开不计 · 1 场结果未知/)
+  assert.match(text, /50\s*%/)
+  assert.match(text, /1 胜 1 负/)
+  assert.match(text, /1\s*连胜/)
+  assert.match(text, /重开.*不计入统计/)
+  assert.doesNotMatch(text, /连败/)
+})
+
+test('a remake flagged by the backend counts as a remake whatever its length', t => {
+  const root = mount(t, MatchList, { gameId: 'lol', snap: { payload: [game('flagged', false, { remake: true }), game('w', true)] } })
+  assert.match(content(root), /近 2 场 1 胜 · 1 场重开不计/)
+  assert.match(content(root), /100\s*%/)
+})
+
+test('a long break between games is marked on the newer game', t => {
+  const root = mount(t, MatchList, { gameId: 'lol', snap: { payload: [
+    game('new', true, { start_at: '2026-09-26T12:00:00Z' }),
+    game('old', false, { start_at: '2026-09-16T12:00:00Z' }),
+  ] } })
+  assert.match(content(root), /隔 10 天/)
+})

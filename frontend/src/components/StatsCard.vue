@@ -21,6 +21,11 @@ const topChampions = computed(() => {
 })
 
 const records = computed(() => payload.value?.records ?? [])
+// 胜率分母不含重开和结果未知的对局；分母和总场数不同时写明，免得读成「11 胜 / 20 场」。
+const rateBase = computed(() => {
+  const p = payload.value
+  return p?.decided_games && p.decided_games !== p.total_games ? ` / ${p.decided_games} 场` : ''
+})
 const maxGames = computed(() => Math.max(1, ...topChampions.value.map((c) => c.games || 0)))
 </script>
 
@@ -36,9 +41,9 @@ const maxGames = computed(() => Math.max(1, ...topChampions.value.map((c) => c.g
     <template v-else>
       <div class="stats-body">
         <div class="stats-figures">
-          <dl class="kv-grid tiles" style="--kv-min:92px">
-            <div><dt>近20场</dt><dd>{{ payload.total_games }}</dd></div>
-            <div><dt>胜率</dt><dd>{{ pct(payload.winrate) }}<small v-if="payload.wins != null">{{ payload.wins }}胜</small></dd></div>
+          <dl class="kv-grid tiles" style="--kv-min:136px">
+            <div><dt>近20场</dt><dd>{{ payload.total_games }}<small v-if="payload.remakes">含 {{ payload.remakes }} 场重开</small></dd></div>
+            <div><dt>胜率</dt><dd>{{ pct(payload.winrate) }}<small v-if="payload.wins != null">{{ payload.wins }}胜{{ rateBase }}</small></dd></div>
             <div class="kda-tile"><dt>平均 KDA</dt><dd>{{ avg(payload.avg_kills) }}/{{ avg(payload.avg_deaths) }}/{{ avg(payload.avg_assists) }}</dd></div>
           </dl>
           <div v-if="records.length > 0" class="block">
