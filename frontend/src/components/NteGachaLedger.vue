@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { getLedgerSummary, getLedgerRecords, previewLedger, importLedger, getLedgerRules, saveLedgerRule, exportLedger, pityLabel, ledgerDate, poolLabel, requirementLabel, resultLabel } from '../nte-gacha-api.js'
 import AppIcon from './AppIcon.vue'
 import InfoHint from './InfoHint.vue'
+import MenuSelect from './MenuSelect.vue'
 
 const props = defineProps({ accountId: { type: String, default: '' } })
 const summary = ref(null), records = ref([]), recordTotal = ref(0), rules = ref([])
@@ -160,9 +161,9 @@ function nextExport() { exportStart.value = exportNext.value + 1; download() }
       </div>
       <details class="panel rule-editor" :open="!!rulePool"><summary>卡池规则<AppIcon name="chevron" :size="14" class="t-disclosure" /></summary>
         <form class="panel-body rule-form" @submit.prevent="saveRule">
-          <label>卡池<select v-model="rulePool" class="quiet-select" required @change="selectRule(rulePool)"><option value="">选择卡池</option><option v-for="item in summary?.pools || []" :key="item.pool_id" :value="item.pool_id">{{ poolLabel(item.pool_id) }}</option></select></label>
+          <div class="field">卡池<MenuSelect :model-value="rulePool" label="卡池" :options="[{ value: '', label: '选择卡池' }, ...(summary?.pools || []).map(item => ({ value: item.pool_id, label: poolLabel(item.pool_id) }))]" @change="selectRule" /></div>
           <label>S 硬保底抽数<input v-model="ruleLimit" type="number" min="1" max="1000" required /></label>
-          <label>重置奖励<select v-model="ruleType" class="quiet-select"><option value="character">S 角色</option><option value="arc">S 弧盘</option></select></label>
+          <div class="field">重置奖励<MenuSelect v-model="ruleType" label="重置奖励" :options="[{ value: 'character', label: 'S 角色' }, { value: 'arc', label: 'S 弧盘' }]" /></div>
           <label class="wide">规则依据<input v-model="ruleNote" maxlength="200" required placeholder="例如：游戏内某卡池规则及核对日期" /></label>
           <label class="wide check"><input type="checkbox" v-model="ruleConfirmed" required />我已核对这项卡池规则，按我的设置计算</label>
           <div class="wide panel-actions"><button class="ui-button small-button" :disabled="busy || !rulePool || !ruleConfirmed">保存规则</button><InfoHint text="只有记录完整性和奖励语义满足条件，才计算所设保底剩余。请核对游戏内对应卡池规则。" /></div>
@@ -170,7 +171,7 @@ function nextExport() { exportStart.value = exportNext.value + 1; download() }
       </details>
       <div class="toolbar records-toolbar">
         <h3>逐抽记录</h3>
-        <select v-model="pool" class="quiet-select" aria-label="卡池" @change="offset = 0"><option value="">全部卡池</option><option v-for="item in summary?.pools || []" :key="item.pool_id" :value="item.pool_id">{{ poolLabel(item.pool_id) }}</option></select>
+        <MenuSelect v-model="pool" label="卡池" :options="[{ value: '', label: '全部卡池' }, ...(summary?.pools || []).map(item => ({ value: item.pool_id, label: poolLabel(item.pool_id) }))]" @change="offset = 0" />
         <span class="count">{{ recordTotal }} 条</span>
       </div>
       <p v-if="!records.length" class="empty">暂无逐抽记录<InfoHint align="end" text="导入后即可查看；这里不会用社区出 S 明细补造历史。" /></p>
@@ -234,8 +235,8 @@ function nextExport() { exportStart.value = exportNext.value + 1; download() }
 .requirements { margin:0; padding-left:16px; list-style:disc; color:var(--text-muted); font-size:12px; line-height:1.6; }
 
 .rule-form { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px 12px; }
-.rule-form label { display:grid; gap:4px; color:var(--text-muted); font-size:11px; }
-.rule-form .quiet-select { max-width:none; width:100%; }
+.rule-form label,.rule-form .field { display:grid; gap:4px; color:var(--text-muted); font-size:11px; }
+.rule-form .menu-select { display:flex; width:100%; }
 .rule-form .wide { grid-column:1 / -1; }
 .rule-form .check { display:flex; align-items:center; color:var(--text-body); font-size:12px; }
 

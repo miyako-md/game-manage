@@ -89,9 +89,6 @@ button,a,input,select,summary { transition: color var(--duration-quick) var(--ea
 .icon-button { display:grid; place-items:center; width:32px; height:32px; padding:0; border:1px solid var(--border); border-radius:7px; background:var(--card-bg); color:var(--text-muted); box-shadow:var(--btn-shadow); }
 @media(hover:hover) and (pointer:fine) { .icon-button:hover { background:var(--button-hover-bg); color:var(--text); } }
 .icon-button:active { transform:scale(var(--scale-medium)); }
-.quiet-select { appearance:none; min-height:30px; max-width:170px; padding:4px 28px 4px 10px; border:1px solid var(--border); border-radius:7px; background:var(--card-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%238c94a3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E") no-repeat right 9px center / 12px; color:var(--text-body); font-size:12px; line-height:20px; box-shadow:0 1px 2px rgba(24, 43, 68, .025); }
-@media(hover:hover) and (pointer:fine) { .quiet-select:hover { border-color:var(--border-strong); color:var(--text); } }
-.quiet-select option { background:var(--card-bg); color:var(--text); }
 /* Segmented control (Option Pro selection group, Cloud Monitor rail): a grey
    track and a raised white slip under the chosen item. v-glide moves the slip. */
 .segmented { display:inline-flex; flex-wrap:wrap; align-items:center; gap:2px; max-width:100%; padding:3px; border:1px solid var(--border); border-radius:10px; background:var(--control-track); }

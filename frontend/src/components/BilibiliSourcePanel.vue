@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { formatTime } from '../dashboard.js'
 import { safeUrl } from '../calendar.js'
 import InfoHint from './InfoHint.vue'
+import MenuSelect from './MenuSelect.vue'
 const props = defineProps({ gameId: { type: String, default: '' } })
 const emit = defineEmits(['collected'])
 const sources = ref([]), rows = ref([]), error = ref(''), login = ref(false), showLogin = ref(false)
@@ -103,14 +104,10 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
         </form>
         <div v-if="selected" class="bili-audit">
           <div class="toolbar">
-            <label class="audit-filter-label">
+            <span class="audit-filter-label">
               筛选记录
-              <select v-model="decision" class="quiet-select">
-                <option value="accepted">已收入资讯</option>
-                <option value="excluded">已过滤</option>
-                <option value="">全部</option>
-              </select>
-            </label>
+              <MenuSelect v-model="decision" label="筛选记录" :options="[{ value: 'accepted', label: '已收入资讯' }, { value: 'excluded', label: '已过滤' }, { value: '', label: '全部' }]" />
+            </span>
           </div>
           <p v-if="!filtered.length" class="muted bili-empty">暂无符合条件的已采集记录；不代表官方没有发布。</p>
           <article v-for="r in filtered" :key="r.id">

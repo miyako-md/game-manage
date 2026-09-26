@@ -7,6 +7,7 @@ import WuwaRoleDetail from './WuwaRoleDetail.vue'
 import WuwaStatus from './WuwaStatus.vue'
 import InfoHint from './InfoHint.vue'
 import AppIcon from './AppIcon.vue'
+import MenuSelect from './MenuSelect.vue'
 const props = defineProps({
   snap: { default: null },
   accountKey: { type: String, default: '' },
@@ -94,46 +95,31 @@ function close() {
         placeholder="搜索角色"
         :value="search"
         @input="search = $event.target.value"
-      /><select
-        class="quiet-select"
-        aria-label="属性"
-        :value="attribute"
-        @change="attribute = $event.target.value"
-      >
-        <option value="">全部属性</option>
-        <option v-for="v in options('attribute')" :key="v" :value="v">
-          {{ v }}
-        </option></select
-      ><select
-        class="quiet-select"
-        aria-label="武器类型"
-        :value="weapon"
-        @change="weapon = $event.target.value"
-      >
-        <option value="">全部武器类型</option>
-        <option v-for="v in options('weapon')" :key="v" :value="v">
-          {{ v }}
-        </option></select
-      ><select
-        class="quiet-select"
-        aria-label="稀有度"
-        :value="rarity"
-        @change="rarity = $event.target.value"
-      >
-        <option value="">全部稀有度</option>
-        <option v-for="v in options('star_level')" :key="v" :value="v">
-          {{ v }} 星
-        </option></select
-      ><select
-        class="quiet-select"
-        aria-label="排序"
-        :value="sort"
-        @change="sort = $event.target.value"
-      >
-        <option value="level">等级优先</option>
-        <option value="chain">共鸣链优先</option>
-        <option value="total_skill_level">技能总等级优先</option></select
-      ><span class="count"
+      /><MenuSelect
+        v-model="attribute"
+        label="属性"
+        :options="[{ value: '', label: '全部属性' }, ...options('attribute')]"
+      /><MenuSelect
+        v-model="weapon"
+        label="武器类型"
+        :options="[{ value: '', label: '全部武器类型' }, ...options('weapon')]"
+      /><MenuSelect
+        v-model="rarity"
+        label="稀有度"
+        :options="[
+          { value: '', label: '全部稀有度' },
+          ...options('star_level').map((v) => ({ value: String(v), label: `${v} 星` })),
+        ]"
+      /><MenuSelect
+        v-model="sort"
+        label="排序"
+        align="end"
+        :options="[
+          { value: 'level', label: '等级优先' },
+          { value: 'chain', label: '共鸣链优先' },
+          { value: 'total_skill_level', label: '技能总等级优先' },
+        ]"
+      /><span class="count"
         ><template v-if="filtered.length !== roles.length"
           >筛选 {{ filtered.length }} 位 · </template
         >已记录 {{ roles.length }} 位</span

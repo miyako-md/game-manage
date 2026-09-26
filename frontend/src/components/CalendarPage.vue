@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameIcon from './GameIcon.vue'
+import MenuSelect from './MenuSelect.vue'
 import { beijingDayStart, calendarRange, collectCalendarEvents, eventGeometry, eventStatus, formatBeijingDateTime, groupCalendarEvents, safeUrl, shiftCalendarAnchor } from '../calendar.js'
 import { gameStyle } from '../dashboard.js'
 import { vGlide } from '../motion.js'
@@ -16,6 +17,7 @@ const now = ref(Date.now())
 const anchor = ref(now.value)
 const mode = ref('rolling')
 const filter = ref(props.initialGameId === 'all' ? '' : props.initialGameId)
+const gameOptions = computed(() => [{ value: '', label: '全部游戏' }, ...props.games.map(game => ({ value: game.game_id, label: game.display_name }))])
 const selectedId = ref(null)
 const detailElement = ref(null)
 let timer
@@ -82,7 +84,7 @@ async function selectEvent(event) {
         </div>
         <div class="calendar-filters">
           <div v-glide class="range-toggle segmented" aria-label="显示范围"><button type="button" :aria-pressed="mode === 'rolling'" @click="setMode('rolling')">近 30 天</button><button type="button" :aria-pressed="mode === 'month'" @click="setMode('month')">整月</button><button type="button" :aria-pressed="mode === 'fortnight'" @click="setMode('fortnight')">14 天</button></div>
-          <label class="game-filter"><span class="sr-only">筛选游戏</span><select v-model="filter" class="quiet-select" aria-label="筛选游戏"><option value="">全部游戏</option><option v-for="game in games" :key="game.game_id" :value="game.game_id">{{ game.display_name }}</option></select></label>
+          <MenuSelect v-model="filter" label="筛选游戏" align="end" :options="gameOptions" />
         </div>
       </div>
       <div class="calendar-meta"><span><strong>{{ visibleEvents.length }}</strong> 项活动位于当前范围<span v-if="events.length > visibleEvents.length"> · 共 {{ events.length }} 项</span></span><div class="calendar-legend"><span><i class="legend-range" />已知区间</span><span><i class="legend-point" />日期标记</span><span><i class="legend-today" />现在</span></div></div>

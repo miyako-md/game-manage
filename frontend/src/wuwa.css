@@ -1282,8 +1282,7 @@
   .wuwa-history-times {
     margin-left: 0;
   }
-  .wuwa-dashboard .toolbar .quiet-select {
+  .wuwa-dashboard .toolbar .menu-select {
     flex: 1 1 40%;
-    max-width: none;
   }
 }

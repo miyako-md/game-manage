@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import GameIcon from './GameIcon.vue'
+import MenuSelect from './MenuSelect.vue'
 import { gameStyle, summaryFor, upcomingEvents, recentNews, formatTime } from '../dashboard.js'
 import { sourceForGame } from '../source-status.js'
 import { vPop } from '../motion.js'
@@ -12,6 +13,8 @@ const props = defineProps({ games: { type: Array, default: () => [] }, snapshots
 const emit = defineEmits(['navigate', 'refresh'])
 const newsFilter = ref('')
 const sourceFilter = ref('')
+const newsGameOptions = computed(() => [{ value: '', label: '全部游戏' }, ...props.games.map(g => ({ value: g.game_id, label: g.display_name }))])
+const newsSourceOptions = [{ value: '', label: '全部来源' }, { value: 'bilibili', label: 'B站官方动态' }]
 const cards = computed(() => props.games.map(game => ({ ...game, style: gameStyle(game.game_id), summary: summaryFor(game, props.snapshots[game.game_id]), auth: props.accounts[game.game_id], source: sourceForGame(game.game_id, props.collection) })))
 const events = computed(() => upcomingEvents(props.games, props.snapshots, props.now))
 const nearEvents = computed(() => events.value.filter(event => event.remainingDays <= 3))
@@ -67,7 +70,7 @@ function resourceNote(card) {
       <section><div class="section-heading"><h2>临近截止</h2><button class="text-link" @click="emit('navigate', 'calendar')">全部活动 <AppIcon name="arrow" :size="15" /></button></div>
         <div class="overview-list"><p v-if="!events.length" class="empty-page">{{ loading ? '正在读取活动…' : '当前没有已知截止时间的待结束活动。' }}</p><button v-for="event in events.slice(0, 6)" :key="event.id" class="event-summary t-row" :style="{ '--game-color': gameStyle(event.gameId).color }" @click="emit('navigate', 'calendar', event.gameId)"><i class="event-mark" aria-hidden="true"></i><span class="event-copy"><strong>{{ event.name }}</strong><small>{{ event.gameName }} · {{ event.category || '限时活动' }} · {{ formatTime(event.end_at) }} 截止<span v-if="event.stale"> · 数据可能过期</span></small></span><span class="deadline-label" :class="{ urgent: event.remainingDays <= 3 }">{{ event.upcoming ? '未开始 · ' : '' }}剩 {{ event.remainingDays }} 天</span></button></div>
       </section>
-      <section><div class="section-heading"><h2>公告与资讯</h2><label class="sr-only" for="news-game-filter">公告游戏筛选</label><select id="news-game-filter" v-model="newsFilter" class="quiet-select"><option value="">全部游戏</option><option v-for="g in games" :key="g.game_id" :value="g.game_id">{{ g.display_name }}</option></select><label class="sr-only" for="news-source-filter">资讯来源</label><select id="news-source-filter" v-model="sourceFilter" class="quiet-select"><option value="">全部来源</option><option value="bilibili">B站官方动态</option></select></div>
+      <section><div class="section-heading"><h2>公告与资讯</h2><div class="news-filters"><MenuSelect v-model="newsFilter" label="公告游戏筛选" :options="newsGameOptions" /><MenuSelect v-model="sourceFilter" label="资讯来源" align="end" :options="newsSourceOptions" /></div></div>
         <div class="overview-list news-list"><p v-if="!news.length" class="empty-page">{{ loading ? '正在读取公告…' : '暂无公告快照。' }}</p><article v-for="(item, i) in news" :key="`${item.gameId}:${item.title}:${i}`" class="news-summary t-row"><a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer">{{ item.title }} <span>↗</span></a><p v-else>{{ item.title }}</p><div class="news-source"><i :style="{ background: gameStyle(item.gameId).color }"></i>{{ item.gameName }}<span> / {{ item.source_name || (item.capability === 'news' ? '资讯' : '官方公告') }}<span v-if="item.stale"> · 旧快照</span></span><time v-if="item.published_at">{{ formatTime(item.published_at) }}</time></div></article></div>
       </section>
     </div>
@@ -95,7 +98,7 @@ function resourceNote(card) {
 .summary-account { display:flex; align-items:center; gap:8px; margin-top:auto; padding-top:10px; border-top:1px solid var(--border); color:var(--text); font-size:12px; font-weight:500; }.summary-account>span:first-child { min-width:0; margin-right:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.summary-account small { margin-left:6px; color:var(--text-muted); font-size:11px; font-weight:400; }.summary-updated { color:var(--text-faint); font-size:11px; font-weight:400; white-space:nowrap; }.summary-account svg { color:var(--text-faint); transition:transform 350ms var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out); }
 @media(hover:hover) and (pointer:fine) { .game-summary:hover .summary-account svg { color:var(--accent); transform:translateX(2px); } }
 .overview-lower { display:grid; grid-template-columns:1.1fr 1fr; gap:16px; }.overview-lower>section { min-width:0; }.overview-list { border:1px solid var(--border); border-radius:12px; background:var(--card-bg); padding:4px 16px; box-shadow:var(--card-shadow); }
-.section-heading .quiet-select { flex-shrink:0; }.section-heading .quiet-select:first-of-type { margin-left:auto; }
+.news-filters { display:flex; gap:8px; margin-left:auto; min-width:0; }
 .event-summary { width:100%; display:flex; align-items:center; gap:10px; border:0; border-bottom:1px solid var(--border); background:transparent; color:var(--text); text-align:left; padding:9px 0; cursor:pointer; }.event-summary:last-child { border:0; }
 @media(hover:hover) and (pointer:fine) { .event-summary:hover strong { color:var(--accent); } }
 .event-mark { align-self:stretch; width:3px; flex-shrink:0; margin:2px 0; border-radius:2px; background:var(--game-color); }

@@ -5,6 +5,7 @@ import { safeUrl } from '../calendar.js'
 import { filterRoles, comparisonGroups, favoritesKey, loadFavorites, saveFavorites, roleId, displayRoleValue as display } from '../nte-roles.js'
 import AppIcon from './AppIcon.vue'
 import InfoHint from './InfoHint.vue'
+import MenuSelect from './MenuSelect.vue'
 
 const props = defineProps({ snap: { type: Object, default: null }, accountId: { type: String, default: '' } })
 const payload = computed(() => props.snap?.payload ?? null)
@@ -66,10 +67,10 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
     <template v-else>
       <div class="toolbar">
         <input class="grow" type="search" aria-label="搜索角色" placeholder="搜索角色名称" :value="search" @input="search = $event.target.value" />
-        <select class="quiet-select" aria-label="品质筛选" :value="quality" @change="quality = $event.target.value"><option value="">全部品质</option><option v-for="item in qualities" :key="item" :value="item">{{ item }}</option></select>
-        <select class="quiet-select" aria-label="元素筛选" :value="element" @change="element = $event.target.value"><option value="">全部元素</option><option v-for="item in elements" :key="item" :value="item">{{ item }}</option></select>
-        <select class="quiet-select" aria-label="角色排序" :value="sort" @change="sort = $event.target.value"><option value="level">按等级</option><option value="awaken_level">按觉醒</option><option value="mix_level">按混频</option><option value="name">按名称</option></select>
-        <select class="quiet-select" aria-label="排序方向" :value="direction" @change="direction = $event.target.value"><option value="desc">降序</option><option value="asc">升序</option></select>
+        <MenuSelect v-model="quality" label="品质筛选" :options="[{ value: '', label: '全部品质' }, ...qualities]" />
+        <MenuSelect v-model="element" label="元素筛选" :options="[{ value: '', label: '全部元素' }, ...elements]" />
+        <MenuSelect v-model="sort" label="角色排序" :options="[{ value: 'level', label: '按等级' }, { value: 'awaken_level', label: '按觉醒' }, { value: 'mix_level', label: '按混频' }, { value: 'name', label: '按名称' }]" />
+        <MenuSelect v-model="direction" label="排序方向" align="end" :options="[{ value: 'desc', label: '降序' }, { value: 'asc', label: '升序' }]" />
         <label class="favorite-filter"><input type="checkbox" aria-label="仅收藏" :checked="favoritesOnly" @change="favoritesOnly = $event.target.checked" /><span>仅收藏</span></label>
         <span class="count">显示 {{ visible.length }} / {{ roles.length }}</span>
       </div>
@@ -208,7 +209,7 @@ input[type=checkbox] { margin: 0; accent-color: var(--accent); }
 .detail-rows dt { overflow: hidden; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; }
 .detail-rows dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (max-width: 560px) {
-  .toolbar .quiet-select { flex: 1 1 calc(25% - 8px); min-width: 0; max-width: none; }
+  .toolbar .menu-select { flex: 1 1 calc(25% - 8px); min-width: 0; }
   .toolbar .count { margin-left: auto; }
 }
 </style>

@@ -5,6 +5,7 @@ import { safeUrl } from '../calendar.js'
 import { displayRoleValue } from '../nte-roles.js'
 import AppIcon from './AppIcon.vue'
 import InfoHint from './InfoHint.vue'
+import MenuSelect from './MenuSelect.vue'
 
 const props = defineProps({
   capability: { type: String, required: true },
@@ -13,6 +14,7 @@ const props = defineProps({
 })
 const search = ref('')
 const ownership = ref('all')
+const ownershipOptions = [{ value: 'all', label: '全部状态' }, { value: 'owned', label: '已拥有' }, { value: 'unowned', label: '未拥有' }, { value: 'unknown', label: '未知' }]
 const failedImages = reactive(new Set())
 const titles = { realestate: '房产详情', vehicles: '载具详情', teams: '官方配队推荐' }
 const searchLabels = { realestate: '搜索房产', vehicles: '搜索载具', teams: '搜索配队推荐' }
@@ -78,12 +80,7 @@ watch(() => props.capability, () => { search.value = ''; ownership.value = 'all'
     <template v-else>
       <div v-if="entries.length" class="toolbar">
         <input class="grow" type="search" :aria-label="searchLabels[capability]" :placeholder="placeholders[capability]" :value="search" @input="search = $event.target.value" />
-        <select v-if="capability !== 'teams'" class="quiet-select" aria-label="拥有状态" :value="ownership" @change="ownership = $event.target.value">
-          <option value="all">全部状态</option>
-          <option value="owned">已拥有</option>
-          <option value="unowned">未拥有</option>
-          <option value="unknown">未知</option>
-        </select>
+        <MenuSelect v-if="capability !== 'teams'" v-model="ownership" label="拥有状态" align="end" :options="ownershipOptions" />
         <span class="count" role="status">显示 {{ filtered.length }} / {{ entries.length }} 条</span>
       </div>
       <p v-if="!entries.length" class="empty">{{ capability === 'teams' ? '暂无官方配队推荐' : '暂无资产明细' }}</p>
