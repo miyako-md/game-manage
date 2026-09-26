@@ -11,6 +11,7 @@ const sessdata = ref(''), csrf = ref(''), buvid = ref(''), selected = ref(''), d
 const visible = computed(() => sources.value.filter(s => !props.gameId || s.game_id === props.gameId))
 const filtered = computed(() => rows.value.filter(r => !decision.value || r.decision === decision.value))
 const STATUS_ERROR = '无法读取B站来源状态'
+const SOURCE_NAMES = { wuthering_waves: '鸣潮', nte: '异环', endfield: '终末地' }
 let timer, stopped = false, wasRunning = false, latestLoad = 0
 async function request(path, options = {}) {
   const r = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', 'X-Game-Assistant': '1' } })
@@ -60,80 +61,77 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
 </script>
 
 <template>
-  <section v-if="visible.length" class="bili-panel">
-    <details>
-      <summary>
-        B站官方动态来源
-        <span>60 天回补 · 仅图文通知</span>
-        <i class="t-disclosure" aria-hidden="true">⌄</i>
-      </summary>
-      <div class="bili-body">
-        <div class="bili-intro">
-          <span class="eyebrow">采集范围</span>
-          <InfoHint text="只收录正文有明确日期的游戏内版本、活动、卡池等通知。视频、抽奖、PV/EP、实机与时装展示自动过滤。" />
+  <section v-if="visible.length" class="bili-panel" aria-label="B站官方动态来源">
+    <header class="bili-head">
+      <h2>B站官方动态来源</h2>
+      <span>60 天回补 · 仅图文通知</span>
+    </header>
+    <div class="bili-body">
+      <div class="bili-intro">
+        <span class="eyebrow">采集范围</span>
+        <InfoHint text="只收录正文有明确日期的游戏内版本、活动、卡池等通知。视频、抽奖、PV/EP、实机与时装展示自动过滤。" />
+      </div>
+      <p v-if="error" role="alert" class="bili-alert">{{ error }}</p>
+      <div v-for="s in visible" :key="s.uid" class="bili-status">
+        <div class="bili-status-head">
+          <strong>{{ SOURCE_NAMES[s.game_id] || s.game_id }} · UID {{ s.uid }}</strong>
+          <span v-if="s.running" class="chip">采集中</span>
         </div>
-        <p v-if="error" role="alert" class="bili-alert">{{ error }}</p>
-        <div v-for="s in visible" :key="s.uid" class="bili-status">
-          <div class="bili-status-head">
-            <strong>{{ ({ nte: '异环', wuthering_waves: '鸣潮' })[s.game_id] || s.game_id }} · UID {{ s.uid }}</strong>
-            <span v-if="s.running" class="chip">采集中</span>
-          </div>
-          <p :class="{ warning: s.status === 'error' }" role="status" class="status-line">{{ s.message || '等待首次采集' }} · 已读取 {{ s.pages || 0 }} 页</p>
-          <dl class="kv-list cols-2 bili-kv">
-            <div><dt>已保存</dt><dd>{{ s.total }} 条</dd></div>
-            <div><dt>收入资讯</dt><dd>{{ s.accepted }} 条</dd></div>
-            <div><dt>历史回补</dt><dd>{{ s.history_complete ? '60天历史已回补' : '60天历史尚未完整回补' }}</dd></div>
-            <div v-if="s.last_success"><dt>最近成功</dt><dd>{{ formatTime(s.last_success) }}</dd></div>
-            <div v-if="s.next_retry && s.next_retry * 1000 > Date.now()"><dt>下次可请求</dt><dd>{{ formatTime(s.next_retry * 1000) }}</dd></div>
-          </dl>
-          <div class="bili-actions">
-            <button :disabled="busy || s.running" class="ui-button small-button" @click="refresh(s.game_id, false)">采集新动态</button>
-            <button :disabled="busy || s.running" class="ui-button small-button" @click="refresh(s.game_id, true)">回补60天</button>
-            <button class="ui-button ghost small-button" @click="audit(s.game_id)">查看筛选记录</button>
-          </div>
-        </div>
-        <div class="login-row">
-          <button type="button" class="text-link" @click="showLogin = !showLogin">{{ login ? '更新B站登录信息' : '配置B站登录信息（匿名受限时）' }}</button>
-        </div>
-        <form v-if="showLogin" @submit.prevent="saveLogin" class="bili-login">
-          <p class="login-note">从已登录的 bilibili.com 浏览器 Cookie 中复制。仅在本机加密保存，用于查询官方动态，不执行点赞或发送消息。</p>
-          <label>SESSDATA<input v-model="sessdata" type="password" required autocomplete="off" /></label>
-          <label>bili_jct（可选）<input v-model="csrf" type="password" autocomplete="off" /></label>
-          <label>buvid3（可选）<input v-model="buvid" type="password" autocomplete="off" /></label>
-          <button :disabled="busy" type="submit" class="ui-button primary small-button">加密保存</button>
-        </form>
-        <div v-if="selected" class="bili-audit">
-          <div class="toolbar">
-            <span class="audit-filter-label">
-              筛选记录
-              <MenuSelect v-model="decision" label="筛选记录" :options="[{ value: 'accepted', label: '已收入资讯' }, { value: 'excluded', label: '已过滤' }, { value: '', label: '全部' }]" />
-            </span>
-          </div>
-          <p v-if="!filtered.length" class="muted bili-empty">暂无符合条件的已采集记录；不代表官方没有发布。</p>
-          <article v-for="r in filtered" :key="r.id">
-            <a v-if="safeUrl(r.url)" :href="safeUrl(r.url)" target="_blank" rel="noopener noreferrer" class="audit-title">{{ r.title || '无文字动态' }} ↗</a>
-            <div class="audit-meta">
-              <span class="chip">{{ r.reason_text }}</span>
-              <span class="audit-date">{{ formatTime(r.published_at) }}</span>
-            </div>
-            <p v-if="r.time_evidence?.length" class="audit-evidence">日期依据：{{ r.time_evidence.map(t => t.text).join('；') }}</p>
-            <details>
-              <summary>查看原文</summary>
-              <p class="original">{{ r.body || '无文字内容' }}</p>
-            </details>
-          </article>
+        <p :class="{ warning: s.status === 'error' }" role="status" class="status-line">{{ s.message || '等待首次采集' }} · 已读取 {{ s.pages || 0 }} 页</p>
+        <dl class="kv-list cols-2 bili-kv">
+          <div><dt>已保存</dt><dd>{{ s.total }} 条</dd></div>
+          <div><dt>收入资讯</dt><dd>{{ s.accepted }} 条</dd></div>
+          <div><dt>历史回补</dt><dd>{{ s.history_complete ? '60天历史已回补' : '60天历史尚未完整回补' }}</dd></div>
+          <div v-if="s.last_success"><dt>最近成功</dt><dd>{{ formatTime(s.last_success) }}</dd></div>
+          <div v-if="s.next_retry && s.next_retry * 1000 > Date.now()"><dt>下次可请求</dt><dd>{{ formatTime(s.next_retry * 1000) }}</dd></div>
+        </dl>
+        <div class="bili-actions">
+          <button :disabled="busy || s.running" class="ui-button small-button" @click="refresh(s.game_id, false)">采集新动态</button>
+          <button :disabled="busy || s.running" class="ui-button small-button" @click="refresh(s.game_id, true)">回补60天</button>
+          <button class="ui-button ghost small-button" @click="audit(s.game_id)">查看筛选记录</button>
         </div>
       </div>
-    </details>
+      <div class="login-row">
+        <button type="button" class="text-link" @click="showLogin = !showLogin">{{ login ? '更新B站登录信息' : '配置B站登录信息（匿名受限时）' }}</button>
+      </div>
+      <form v-if="showLogin" @submit.prevent="saveLogin" class="bili-login">
+        <p class="login-note">从已登录的 bilibili.com 浏览器 Cookie 中复制。仅在本机加密保存，用于查询官方动态，不执行点赞或发送消息。</p>
+        <label>SESSDATA<input v-model="sessdata" type="password" required autocomplete="off" /></label>
+        <label>bili_jct（可选）<input v-model="csrf" type="password" autocomplete="off" /></label>
+        <label>buvid3（可选）<input v-model="buvid" type="password" autocomplete="off" /></label>
+        <button :disabled="busy" type="submit" class="ui-button primary small-button">加密保存</button>
+      </form>
+      <div v-if="selected" class="bili-audit">
+        <div class="toolbar">
+          <span class="audit-filter-label">
+            筛选记录
+            <MenuSelect v-model="decision" label="筛选记录" :options="[{ value: 'accepted', label: '已收入资讯' }, { value: 'excluded', label: '已过滤' }, { value: '', label: '全部' }]" />
+          </span>
+        </div>
+        <p v-if="!filtered.length" class="muted bili-empty">暂无符合条件的已采集记录；不代表官方没有发布。</p>
+        <article v-for="r in filtered" :key="r.id">
+          <a v-if="safeUrl(r.url)" :href="safeUrl(r.url)" target="_blank" rel="noopener noreferrer" class="audit-title">{{ r.title || '无文字动态' }} ↗</a>
+          <div class="audit-meta">
+            <span class="chip">{{ r.reason_text }}</span>
+            <span class="audit-date">{{ formatTime(r.published_at) }}</span>
+          </div>
+          <p v-if="r.time_evidence?.length" class="audit-evidence">日期依据：{{ r.time_evidence.map(t => t.text).join('；') }}</p>
+          <details>
+            <summary>查看原文</summary>
+            <p class="original">{{ r.body || '无文字内容' }}</p>
+          </details>
+        </article>
+      </div>
+    </div>
   </section>
 </template>
 
 <style scoped>
 .bili-panel { margin-top:24px; padding:0 16px; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; font-size:12px; color:var(--text); }
-.bili-panel > details > summary { cursor:pointer; font-weight:600; font-size:13px; display:flex; align-items:center; gap:10px; min-height:40px; list-style:none; }
-.bili-panel > details > summary::-webkit-details-marker { display:none; }
-.bili-panel > details > summary span { font-size:11px; font-weight:400; color:var(--text-muted); }
-.bili-panel > details > summary .t-disclosure { margin-left:auto; font-style:normal; color:var(--accent); font-size:15px; }
+/* Always open: the source status and its controls are what this card is for. */
+.bili-head { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; min-height:40px; }
+.bili-head h2 { margin:0; color:var(--text); font-size:13px; font-weight:600; }
+.bili-head span { color:var(--text-muted); font-size:11px; font-weight:400; }
 .bili-body { padding-bottom:14px; }
 .bili-intro { display:flex; align-items:center; gap:2px; margin-bottom:8px; }
 .bili-alert { margin:0 0 8px; color:var(--warning-text); }
