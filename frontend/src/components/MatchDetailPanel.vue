@@ -1,10 +1,13 @@
 <script setup>
 import { computed } from 'vue'
+import InfoHint from './InfoHint.vue'
 
 const props = defineProps({
   detail: { type: Object, default: null },
   loading: { type: Boolean, default: false },
   error: { type: String, default: '' },
+  // 重开局客户端仍记了一方胜一方负，这里不当胜负显示（与列表口径一致）。
+  remake: { type: Boolean, default: false },
 })
 
 const championName = (p) => p.champion_name || `英雄 #${p.champion_id ?? '?'}`
@@ -22,6 +25,7 @@ const teams = computed(() => {
 
 const isOwnTeam = (team) => team.participants.some((p) => p.is_own)
 const teamResult = (team) => {
+  if (props.remake) return { text: '重开', cls: 'team-remake' }
   if (team.win === true) return { text: '胜利', cls: 'team-win' }
   if (team.win === false) return { text: '失败', cls: 'team-lose' }
   return { text: '-', cls: '' }
@@ -29,54 +33,52 @@ const teamResult = (team) => {
 </script>
 
 <template>
-  <div class="detail-panel">
+  <div class="detail-panel t-panel">
     <p v-if="loading" class="empty">对局详情加载中…</p>
     <div v-else-if="error" class="detail-error" role="alert">{{ error }}</div>
-    <template v-else-if="detail">
-      <div class="teams">
-        <div
-          v-for="team in teams"
-          :key="team.team_id"
-          class="team-col"
-          :class="{ 'team-own': isOwnTeam(team) }"
-        >
-          <div class="team-head">
-            <span class="team-result" :class="teamResult(team).cls">
-              {{ teamResult(team).text }}
-            </span>
-            <span v-if="isOwnTeam(team)" class="team-own-tag">我方</span>
-          </div>
-          <div
-            v-for="(p, i) in team.participants"
-            :key="`${team.team_id}-${i}`"
-            class="player"
-            :class="{ 'player-own': p.is_own }"
-          >
-            <div class="player-main">
-              <span class="champ">{{ championName(p) }}</span>
-              <span class="lv">Lv{{ p.level ?? '-' }}</span>
-              <span class="role">{{ p.role_name || '-' }}</span>
-            </div>
-            <div class="player-sub">
-              <span class="kda">{{ kda(p) }}</span>
-              <span class="dmg">{{ fmtNum(p.damage) }}</span>
-              <span class="gold">{{ fmtNum(p.gold) }}</span>
-            </div>
-            <div class="items">
-              <span
-                v-for="(item, i) in (p.items || []).slice(0, 6)"
-                :key="i"
-                class="item-box"
-                :title="`装备 #${item}`"
-              >{{ item }}</span>
-            </div>
-          </div>
+    <div v-else-if="detail" class="teams">
+      <div
+        v-for="team in teams"
+        :key="team.team_id"
+        class="team-col"
+        :class="{ 'team-own': isOwnTeam(team) }"
+      >
+        <div class="team-head">
+          <span class="team-result" :class="teamResult(team).cls">
+            {{ teamResult(team).text }}
+          </span>
+          <span v-if="isOwnTeam(team)" class="team-own-tag">我方</span>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>英雄</th>
+                <th>昵称</th>
+                <th class="num">KDA</th>
+                <th class="num">伤害</th>
+                <th class="num">金币</th>
+                <th>装备<InfoHint text="装备当前仅显示编号，图标将在后续版本接入。" align="end" /></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(p, i) in team.participants"
+                :key="`${team.team_id}-${i}`"
+                :class="{ 'player-own': p.is_own }"
+              >
+                <td>{{ championName(p) }} <small class="muted">Lv{{ p.level ?? '-' }}</small></td>
+                <td class="muted">{{ p.role_name || '-' }}</td>
+                <td class="num">{{ kda(p) }}</td>
+                <td class="num">{{ fmtNum(p.damage) }}</td>
+                <td class="num">{{ fmtNum(p.gold) }}</td>
+                <td class="items-cell"><span v-for="(item, k) in p.items || []" :key="k" class="item-id">{{ item }}</span><span v-if="!(p.items || []).length" class="muted">-</span></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-      <p class="detail-legend">
-        每行：英雄 / 等级 / 昵称 · KDA · 伤害 · 金币 · 装备（图标后续版本接入）
-      </p>
-    </template>
+    </div>
   </div>
 </template>
 
@@ -95,20 +97,20 @@ const teamResult = (team) => {
 
 .teams {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .team-col {
-  flex: 1 1 240px;
+  flex: 1 1 300px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 8px;
-  min-width: 240px;
+  min-width: 260px;
 }
 
 .team-col.team-own {
-  border-color: var(--accent);
+  border-color: var(--game-lol);
   order: -1;
 }
 
@@ -132,86 +134,57 @@ const teamResult = (team) => {
   color: var(--danger);
 }
 
+.team-remake {
+  color: var(--text-muted);
+}
+
 .team-own-tag {
   font-size: 11px;
-  color: var(--accent);
-  border: 1px solid var(--accent);
+  color: var(--game-lol);
+  border: 1px solid var(--game-lol);
   border-radius: 999px;
   padding: 0 6px;
 }
 
-.player {
-  padding: 6px 4px;
-  border-top: 1px solid var(--border);
+.table-scroll {
+  overflow-x: auto;
 }
 
-.player:first-of-type {
-  border-top: none;
-}
-
-.player-own {
-  background: var(--success-bg);
-  border-radius: 6px;
-}
-
-.player-main {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.champ {
-  font-weight: 500;
-}
-
-.lv,
-.role {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.role {
-  margin-left: auto;
-  max-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* Nicknames and champion names are unbroken CJK strings with no natural line-
+   break point; without nowrap the browser wraps them one character per line
+   instead of scrolling the table, which is far harder to read. */
+.team-col .data-table th,
+.team-col .data-table td {
   white-space: nowrap;
 }
 
-.player-sub {
-  display: flex;
-  gap: 10px;
-  font-size: 12px;
+.team-col .data-table {
+  min-width: 320px;
+}
+
+.muted {
   color: var(--text-muted);
-  margin-top: 2px;
 }
 
-.kda {
-  color: var(--text);
+/* Up to six item ids per player: small wrapping chips, all of them readable. */
+.team-col .data-table td.items-cell {
+  min-width: 150px;
+  white-space: normal;
 }
 
-.items {
-  display: flex;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.item-box {
-  width: 28px;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: var(--text-muted);
-  background: var(--bg);
-  border: 1px solid var(--border);
+.item-id {
+  display: inline-block;
+  margin: 1px 3px 1px 0;
+  padding: 0 4px;
   border-radius: 4px;
+  background: var(--overlay-3);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 16px;
 }
 
-.detail-legend {
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--text-muted);
+.player-own td {
+  background: color-mix(in srgb, var(--game-lol) 12%, transparent);
 }
 </style>

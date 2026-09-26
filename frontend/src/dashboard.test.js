@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createDashboard, formatTime, summaryFor, upcomingEvents, recentNews, readRoute } from './dashboard.js'
+import { createDashboard, percentOf, summaryFor, upcomingEvents, recentNews, readRoute } from './dashboard.js'
 import { collectCalendarEvents, eventStatus } from './calendar.js'
 
 const game = { game_id: 'nte', display_name: '异环', capabilities: ['account', 'stamina', 'events'] }
@@ -97,6 +97,27 @@ test('stamina summary preserves real zero and unknown denominator', () => {
   assert.equal(unknown.value, null); assert.equal(unknown.percent, null)
 })
 
+test('LoL win rate summary carries the decided-game count used as its denominator', () => {
+  const lol = { game_id: 'league_of_legends', capabilities: ['account', 'match', 'stats'] }
+  const s = summaryFor(lol, { stats: snapshot({ total_games: 20, wins: 10, winrate: 55.6, decided_games: 18, remakes: 1 }) })
+  assert.equal(s.value, 55.6); assert.equal(s.totalGames, 20); assert.equal(s.decided, 18)
+  const old = summaryFor(lol, { stats: snapshot({ total_games: 20, wins: 11, winrate: 55 }) })
+  assert.equal(old.decided, null)
+})
+
+test('Endfield summary shows special headhunting pity instead of a win rate', () => {
+  const endfield = { game_id: 'endfield', display_name: '终末地', capabilities: ['account', 'gacha', 'events'] }
+  const gacha = snapshot({ schema_version: 1, pools: [
+    { key: 'E_CharacterGachaPoolType_Standard', since_last_six: { count: 40, status: 'exact' } },
+    { key: 'E_CharacterGachaPoolType_Special', since_last_six: { count: 12, status: 'lower_bound' } }] })
+  const s = summaryFor(endfield, { account: snapshot({ schema_version: 1, nickname: '管理员', level: 52 }), gacha })
+  assert.deepEqual([s.metric, s.value, s.pityStatus, s.percent, s.nickname], ['gacha', 12, 'lower_bound', null, '管理员'])
+  assert.equal(s.fetchedAt, gacha.fetched_at)
+  const legacy = summaryFor(endfield, { gacha: snapshot({ pools: gacha.payload.pools }) })
+  assert.equal(legacy.value, null)
+  assert.equal(summaryFor({ ...endfield, capabilities: ['account'] }, {}).metric, 'stats')
+})
+
 test('NTE legacy raw data cannot silently become a valid account or stamina summary', () => {
   const s = summaryFor(game, { account: snapshot({ nickname: '旧结构' }), stamina: snapshot({ current: 50, maximum: 100 }) })
   assert.equal(s.value, null); assert.equal(s.nickname, null)
@@ -174,13 +195,6 @@ test('late older observations cannot roll back a newer cleared status', async ()
   await d.load(); old = true; await d.loadStatus()
   assert.equal(d.state.collection[0].state, 'never')
 })
-test('formatTime shows missing, unparseable and out-of-range times as not provided', () => {
-  assert.equal(formatTime(null), '未提供')
-  assert.equal(formatTime('not a date'), '未提供')
-  assert.equal(formatTime(8.64e15 + 1), '未提供')
-  assert.equal(formatTime('2026-09-14T02:00:00Z'), '09/14 10:00')
-})
-
 test('overview events agree with the calendar on date-only starts and stale source rows', () => {
   const now = Date.parse('2026-09-15T00:00:00+08:00')
   const snapshots = { nte: { events: snapshot([
@@ -191,4 +205,14 @@ test('overview events agree with the calendar on date-only starts and stale sour
   assert.deepEqual(overview.map(e => [e.name, e.upcoming, e.stale]), [['社区补充', false, true], ['次日开放', true, false]])
   const calendar = collectCalendarEvents([game], snapshots)
   assert.deepEqual(calendar.map(e => [e.name, eventStatus(e, now) === '未开始', e.stale]), [['次日开放', true, false], ['社区补充', false, true]])
+})
+
+test('percentOf takes numbers or numeric text and refuses unknown or non-positive totals', () => {
+  assert.equal(percentOf(3, 12), 25)
+  assert.equal(percentOf('3', '12'), 25)
+  assert.equal(percentOf(15, 10), 100)
+  assert.equal(percentOf(0, 10), 0)
+  for (const [current, total] of [[null, 10], [5, 0], [5, null], [-1, 10], ['', 10], ['abc', 10], [true, 10], [5, Infinity]]) {
+    assert.equal(percentOf(current, total), null, `${current} / ${total}`)
+  }
 })

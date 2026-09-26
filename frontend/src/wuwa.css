@@ -1,405 +1,1292 @@
+/* 鸣潮 dashboard. The density kit (kv-grid, bar-row, meter, chip, stack-bar,
+   data-table, toolbar, InfoHint) lives in style.css; this file only lays it
+   out. No bare element styling: kit classes must win without a fight. */
 .wuwa-dashboard {
-  --wuwa-gold: var(--accent, #d7b574);
+  --wuwa-gold: var(--game-wuwa);
+  --game-color: var(--game-wuwa);
   min-width: 0;
   color: var(--text);
   font-size: 13px;
-  line-height: 1.7;
+  line-height: 1.6;
 }
-.wuwa-dashboard * {
-  box-sizing: border-box;
+.wuwa-dashboard :where(h2, h3, h4, h5, p, dl, dd) {
+  margin: 0;
 }
-.wuwa-dashboard h2 {
-  font-size: 22px;
-  font-weight: 550;
-  letter-spacing: 0.02em;
-  margin: 0 0 12px;
-}
-.wuwa-dashboard h3 {
-  font-size: 15px;
-  font-weight: 550;
-  margin: 15px 0 10px;
-}
-.wuwa-dashboard h4 {
-  font-size: 13px;
+.wuwa-dashboard :where(h2, h3, h4, h5) {
+  font-size: inherit;
   font-weight: 600;
-  margin: 9px 0;
-}
-.wuwa-dashboard p {
-  margin: 8px 0;
-}
-.wuwa-dashboard button,
-.wuwa-dashboard input,
-.wuwa-dashboard select {
-  font: inherit;
-  color: var(--text);
-  background: var(--bg, #111c2c);
-  border: 1px solid var(--border, #304052);
-  border-radius: 6px;
-  padding: 8px 12px;
-}
-.wuwa-dashboard button {
-  cursor: pointer;
-}
-.wuwa-dashboard button:hover:not(:disabled),
-.wuwa-dashboard button[aria-pressed='true'] {
-  color: var(--wuwa-gold);
-  border-color: var(--wuwa-gold);
-}
-.wuwa-dashboard button:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 .wuwa-dashboard :focus-visible {
-  outline: 2px solid var(--wuwa-gold);
-  outline-offset: 3px;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
-.wuwa-dashboard input,
-.wuwa-dashboard select {
-  display: block;
-  width: 100%;
-  margin-top: 5px;
-}
-.wuwa-dashboard label {
-  display: block;
-  font-size: 12px;
-  color: var(--text-muted);
-}
+
+/* ── Frame ──────────────────────────────────────────────────────────── */
 .wuwa-nav {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 24px;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 14px;
-  flex-wrap: wrap;
-}
-.wuwa-tabs {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
-}
-.wuwa-tabs button {
-  background: transparent;
 }
 .wuwa-calendar {
   margin-left: auto;
   white-space: nowrap;
 }
-.wuwa-panel {
-  background: var(--card-bg, #142033);
-  border: 1px solid var(--border, #304052);
-  border-radius: 12px;
-  padding: 25px;
-  min-width: 0;
-}
 .wuwa-stack {
   display: grid;
-  gap: 20px;
+  gap: 12px;
+  min-width: 0;
 }
-.wuwa-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  flex-wrap: wrap;
+.wuwa-panel {
+  min-width: 0;
+  padding: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
 }
-.wuwa-heading h2,
-.wuwa-heading h3 {
-  margin-bottom: 0;
+.wuwa-empty {
+  color: var(--text-muted);
+  font-size: 13px;
 }
-.wuwa-kicker {
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: var(--wuwa-gold);
-}
-.wuwa-muted,
-.wuwa-meta {
-  color: var(--text-muted, #99a9ba);
-}
-.wuwa-meta {
-  font-size: 11px;
-}
-.wuwa-gold,
-.wuwa-big {
-  color: var(--wuwa-gold);
-}
-.wuwa-big {
-  font-size: 26px;
-  font-variant-numeric: tabular-nums;
-}
-.wuwa-warning {
-  color: var(--stale-text, #dfbb7b);
-}
-.wuwa-error {
-  background: var(--danger-bg);
-  color: var(--danger);
-  padding: 12px;
-  border-radius: 6px;
-  overflow-wrap: anywhere;
-}
-.wuwa-notice {
-  padding: 13px 17px;
-  border-left: 2px solid var(--wuwa-gold);
-  background: var(--bg);
-  border-radius: 4px;
-}
+/* Two independent columns, so a short card (stamina) is not stretched to the
+   height of its neighbour. On one column the cards keep their reading order. */
 .wuwa-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 17px;
-  margin: 14px 0;
+  align-items: start;
+  gap: 12px;
 }
-.wuwa-inset {
-  padding: 18px;
-  background: var(--bg, #101b2b);
-  border: 1px solid var(--border, #304052);
-  border-radius: 8px;
+.wuwa-column {
+  display: grid;
+  gap: 12px;
   min-width: 0;
 }
-.wuwa-inset > h3:first-child {
-  margin-top: 0;
+
+/* Title line: 14px title, ⓘ, then meta pushed to the right. */
+.wuwa-dashboard .cap-title > :where(h2, h3) {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text);
 }
-.wuwa-metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
-  gap: 12px;
-  margin: 24px 0;
+.wuwa-dashboard .cap-title > .wuwa-name {
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: -0.01em;
 }
-.wuwa-metrics > div {
+.wuwa-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px 8px;
+  min-width: 0;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+}
+.cap-title > .wuwa-status,
+.wuwa-report-head > .wuwa-status,
+.wuwa-title-end,
+.wuwa-bar-end,
+.wuwa-tile-end {
+  margin-left: auto;
+}
+.wuwa-status-error {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.wuwa-banner {
   display: flex;
-  flex-direction: column;
-  border-left: 2px solid var(--wuwa-gold);
-  padding: 10px 16px;
-  background: var(--bg);
-  border-radius: 3px;
 }
-.wuwa-metrics span,
-.wuwa-metrics small {
+.wuwa-banner > .wuwa-status {
+  justify-content: flex-start;
+}
+.wuwa-bar-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ── Text helpers ───────────────────────────────────────────────────── */
+.wuwa-muted {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.wuwa-meta {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+}
+.wuwa-gold {
+  color: var(--wuwa-gold);
+}
+.wuwa-warning {
+  color: var(--stale-text);
+}
+.wuwa-note {
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.wuwa-description {
+  color: var(--text-body);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.wuwa-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+  border-radius: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.wuwa-notice {
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-body);
+  font-size: 12px;
+}
+.wuwa-notice > p + p {
+  margin-top: 2px;
+}
+.wuwa-badge-on {
+  color: var(--success);
+  background: var(--success-bg);
+}
+.wuwa-badge-off {
+  color: var(--text-muted);
+  background: var(--overlay-3);
+}
+.wuwa-rank {
+  color: var(--wuwa-gold);
+  background: color-mix(in srgb, var(--wuwa-gold) 14%, transparent);
+  font-weight: 600;
+}
+.wuwa-dashboard .chip small {
+  margin-left: 3px;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.wuwa-dashboard .stars .off {
+  color: var(--border-strong);
+}
+
+/* ── Sections, columns and tiles ────────────────────────────────────── */
+.wuwa-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.wuwa-subhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.wuwa-colhead {
+  margin-bottom: 2px;
   color: var(--text-muted);
   font-size: 11px;
-}
-.wuwa-metrics strong {
-  font-size: 27px;
+  line-height: 16px;
   font-weight: 500;
-  font-variant-numeric: tabular-nums;
 }
-.wuwa-dashboard dl {
-  margin: 8px 0;
+.wuwa-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 10px 24px;
 }
-.wuwa-dashboard dl > div {
+.wuwa-tiles {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--tile-min, 220px)), 1fr)
+  );
+  gap: 8px;
+}
+.wuwa-tile {
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.wuwa-tile-head {
   display: flex;
-  justify-content: space-between;
-  gap: 15px;
-  border-bottom: 1px solid var(--border);
-  padding: 7px 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 20px;
+  margin-bottom: 6px;
 }
-.wuwa-dashboard dt {
+.wuwa-tile-head > :where(h3, h4) {
+  min-width: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+/* A size container: bar lists inside fold their meter under the label when
+   the card is narrow (see the @container rules below). */
+.wuwa-cq {
+  container-type: inline-size;
+}
+
+/* ── Bar lists: one shared column grid, so every meter lines up ─────── */
+.bar-list.wuwa-bars {
+  grid-template-columns: minmax(72px, var(--bar-label, 30%)) minmax(60px, 1fr) auto;
+  column-gap: 10px;
+}
+.bar-list.wuwa-bars.with-note {
+  grid-template-columns: minmax(72px, var(--bar-label, 30%)) minmax(60px, 1fr) auto auto;
+}
+.bar-list.wuwa-bars > .bar-row {
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+/* Narrow: label and value on top, meter and note underneath. */
+@container (max-width: 340px) {
+  .bar-list.wuwa-bars.with-note {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .bar-list.wuwa-bars.with-note .bar-row {
+    row-gap: 2px;
+    padding: 2px 0;
+  }
+  .bar-list.wuwa-bars.with-note .bar-row > .meter {
+    grid-area: 2 / 1;
+  }
+  .bar-list.wuwa-bars.with-note .bar-row > .v {
+    grid-area: 1 / 2;
+  }
+  .bar-list.wuwa-bars.with-note .bar-row > .note {
+    grid-area: 2 / 2;
+    line-height: 12px;
+  }
+}
+@container (max-width: 220px) {
+  .bar-list.wuwa-bars:not(.with-note) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .bar-list.wuwa-bars:not(.with-note) .bar-row {
+    row-gap: 3px;
+  }
+  .bar-list.wuwa-bars:not(.with-note) .bar-row > .meter {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+/* ── Generic fields (WuwaFields) ────────────────────────────────────── */
+.wuwa-fields {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.wuwa-fields:empty {
+  display: none;
+}
+.wuwa-kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr));
+  column-gap: 20px;
+  font-size: 12px;
+}
+.wuwa-kv > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.wuwa-kv dt {
+  flex: none;
+  max-width: 60%;
   color: var(--text-muted);
 }
-.wuwa-dashboard dd {
-  margin: 0;
+.wuwa-kv dd {
+  min-width: 0;
+  color: var(--text);
+  font-weight: 500;
+  text-align: right;
+  overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
+}
+.wuwa-field-group {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.wuwa-field-group > :is(.wuwa-fields, .wuwa-fields-list) {
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+}
+.wuwa-field-group.is-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+}
+.wuwa-field-group.is-inline > .wuwa-field-label {
+  min-width: 5em;
+}
+.wuwa-field-group.is-inline > .wuwa-fields-list {
+  padding-left: 0;
+  border-left: 0;
+}
+.wuwa-field-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+.wuwa-fields-list {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.wuwa-fields-list.is-scalars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+.wuwa-inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  font-size: 12px;
+}
+.wuwa-inline .k {
+  color: var(--text-muted);
+}
+.wuwa-inline b {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* Supplementary source fields: raw key and value, in the same columns as .wuwa-kv. */
+.wuwa-other {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr));
+  column-gap: 20px;
 }
 .wuwa-field {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  align-items: start;
-  gap: 15px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-.wuwa-field > .wuwa-fields {
-  min-width: 45%;
-}
-.wuwa-fields {
+  gap: 10px;
   min-width: 0;
-  overflow-wrap: anywhere;
-}
-.wuwa-dashboard details {
-  padding: 10px 0;
-}
-.wuwa-dashboard summary {
-  cursor: pointer;
-  color: var(--wuwa-gold);
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
   font-size: 12px;
 }
-.wuwa-supplement {
-  font-size: 11px;
-}
-.wuwa-description {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  line-height: 1.85;
-}
-.wuwa-toolbar {
-  display: flex;
+.wuwa-field.is-wide {
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 18px 0;
+  justify-content: flex-start;
+  grid-column: 1 / -1;
 }
-.wuwa-toolbar > label {
-  flex: 1;
-  min-width: 115px;
+.wuwa-field-key {
+  flex: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
 }
+.wuwa-field:not(.is-wide) > :last-child {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.wuwa-subfields:has(> .wuwa-fields:empty) {
+  display: none;
+}
+
+/* Disclosures: a small chevron that turns when open. */
+.wuwa-dashboard summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 24px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-body);
+  font-size: 12px;
+  font-weight: 500;
+}
+.wuwa-dashboard summary::-webkit-details-marker {
+  display: none;
+}
+.wuwa-dashboard summary::before {
+  content: '';
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin: 0 3px 0 1px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--duration-fast) var(--ease-smooth-out);
+}
+.wuwa-dashboard details[open] > summary::before {
+  transform: translateY(-2px) rotate(45deg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .wuwa-dashboard summary:hover {
+    color: var(--text);
+  }
+}
+.wuwa-supplement {
+  margin-top: 6px;
+  font-size: 12px;
+}
+.wuwa-supplement > summary {
+  color: var(--text-muted);
+}
+.wuwa-supplement[open] > summary {
+  margin-bottom: 4px;
+}
+
+/* ── 档案 ───────────────────────────────────────────────────────────── */
+.wuwa-idgrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+.wuwa-idgrid dd {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.wuwa-level {
+  grid-column: span 2;
+}
+.wuwa-idgrid .wuwa-level dd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wuwa-level dd b {
+  font-size: 16px;
+  font-weight: 600;
+}
+.wuwa-exp {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-level .meter {
+  flex: 1 1 60px;
+  min-width: 40px;
+  --series: var(--game-wuwa);
+}
+/* Six tiles: one row, or two rows of three — never five plus one. */
+.wuwa-metrics {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .wuwa-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ── 角色 ───────────────────────────────────────────────────────────── */
 .wuwa-role-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 13px;
-  margin: 18px 0;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 8px;
 }
 .wuwa-role {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
   align-items: center;
-  gap: 5px;
-  padding: 17px 10px !important;
-  overflow: hidden;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-bg);
+  color: var(--text-body);
+  font: inherit;
+  text-align: left;
+}
+.wuwa-role[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+  background: var(--accent-soft);
+}
+.wuwa-role:active {
+  transform: scale(var(--scale-small));
+}
+@media (hover: hover) and (pointer: fine) {
+  .wuwa-role:not([aria-pressed='true']):hover {
+    border-color: var(--border-strong);
+    background: var(--hover-bg);
+  }
 }
 .wuwa-role img,
 .wuwa-avatar-placeholder {
-  width: 78px;
-  height: 78px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   object-fit: cover;
-  border-radius: 10px;
-  background: var(--card-bg);
+  background: var(--surface-soft);
 }
 .wuwa-avatar-placeholder {
   display: grid;
   place-items: center;
-  font-size: 35px;
   color: var(--wuwa-gold);
+  font-size: 18px;
+  font-weight: 600;
 }
-.wuwa-role > span {
+.wuwa-role-body {
+  display: grid;
+  min-width: 0;
+}
+.wuwa-role-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.wuwa-role-head strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wuwa-role-head > :last-child {
+  flex: none;
+  margin-left: auto;
+}
+.wuwa-dashboard .stars.is-four {
+  --game-color: var(--chart-5);
+}
+.wuwa-role-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1px 8px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 16px;
+}
+.wuwa-role .chip {
+  padding: 0 5px;
+  line-height: 16px;
+}
+.wuwa-role-stats {
+  color: var(--text-body);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-role-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.wuwa-role-weapon {
+  color: var(--text-faint);
   font-size: 11px;
+  white-space: nowrap;
 }
 .wuwa-detail {
-  border-top: 2px solid var(--wuwa-gold);
-  margin-top: 24px;
-  padding-top: 23px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
-.wuwa-detail > .wuwa-heading {
-  margin-bottom: 23px;
+.wuwa-close {
+  margin-left: auto;
 }
-.wuwa-stat-grid {
+.wuwa-status + .wuwa-close {
+  margin-left: 0;
+}
+.wuwa-role-detail {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 23px;
+  gap: 12px;
+  min-width: 0;
 }
-.wuwa-equipment {
+.wuwa-detail-section {
+  min-width: 0;
+}
+.wuwa-detail-section + .wuwa-detail-section {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.wuwa-basics {
   display: flex;
-  gap: 15px;
-  align-items: start;
+  align-items: flex-start;
+  gap: 12px;
 }
-.wuwa-equipment img {
-  width: 72px;
-  height: 72px;
+.wuwa-skin {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--surface-soft);
+}
+.wuwa-basics-body {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+.wuwa-attrs {
+  --kv-min: 108px;
+}
+.wuwa-equip {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.wuwa-equip > img {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
   object-fit: contain;
-  flex-shrink: 0;
+  background: var(--surface-soft);
+}
+.wuwa-equip-body {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+.wuwa-equip-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wuwa-equip-name strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.wuwa-effect {
+  color: var(--text-body);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.wuwa-effect strong {
+  margin-right: 6px;
+  color: var(--text);
+  font-weight: 600;
+}
+.wuwa-skills {
+  --tile-min: 220px;
+}
+.wuwa-echoes {
+  --tile-min: 200px;
+}
+.wuwa-skills .wuwa-tile-head {
+  margin-bottom: 2px;
+}
+.wuwa-skill-meta {
+  align-items: center;
+}
+.wuwa-skill-meta > .wuwa-meta {
+  margin-right: 4px;
+}
+.wuwa-chains {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  column-gap: 24px;
+}
+.wuwa-chain {
+  min-width: 0;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+}
+.wuwa-chain > summary {
+  width: 100%;
+  color: var(--text-body);
+}
+.wuwa-chain-order {
+  flex: none;
+  width: 1.1em;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-chain-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wuwa-chain > :not(summary) {
+  margin: 2px 0 4px 26px;
 }
 .wuwa-locked {
-  opacity: 0.65;
+  opacity: 0.6;
 }
-.wuwa-tag {
-  display: inline-block;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 7px;
-  margin: 3px;
+.wuwa-echo-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.wuwa-echo-head img {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--surface-soft);
+}
+.wuwa-echo-head h4 {
+  font-size: 13px;
+  line-height: 18px;
+}
+.wuwa-props h5 {
+  margin-top: 6px;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+}
+.wuwa-props .wuwa-kv {
+  grid-template-columns: 1fr;
+}
+.wuwa-props .wuwa-kv > div {
+  padding: 2px 0;
+}
+.wuwa-set {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.wuwa-sets {
+  display: grid;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.wuwa-sets > div {
+  display: grid;
+  grid-template-columns: minmax(72px, max-content) minmax(0, 1fr);
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.wuwa-sets dt {
+  color: var(--text);
+  font-weight: 600;
+}
+.wuwa-sets dd p {
+  color: var(--text-body);
+}
+.wuwa-sets .k {
+  margin-right: 6px;
+  color: var(--text-muted);
+}
+
+/* ── 挑战 ───────────────────────────────────────────────────────────── */
+.wuwa-tower-bar,
+.wuwa-history-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+.wuwa-towers {
+  --tile-min: 300px;
+}
+.wuwa-towers .wuwa-tile-head {
+  margin-bottom: 2px;
+}
+.data-table.wuwa-floors th,
+.data-table.wuwa-floors td {
+  padding: 5px 4px;
+  vertical-align: middle;
+}
+.data-table.wuwa-floors th {
+  width: 1%;
+  padding-left: 0;
+  color: var(--text-body);
+  font-size: 12px;
+  font-weight: 500;
+}
+.data-table.wuwa-floors td:last-child {
+  padding-right: 0;
+}
+.data-table.wuwa-floors tr:last-child > * {
+  border-bottom: 0;
+}
+.wuwa-floor-stars {
+  width: 1%;
+  white-space: nowrap;
+}
+.wuwa-floor-stars .stars {
+  font-size: 12px;
+}
+.wuwa-holograms {
+  --tile-min: 240px;
+  align-items: start;
+}
+.wuwa-disclosure > summary {
+  width: 100%;
+  color: var(--text);
+  font-size: 13px;
+}
+.wuwa-disclosure > summary .wuwa-meta {
+  margin-left: auto;
+}
+.wuwa-records {
+  display: grid;
+  margin-top: 4px;
+}
+.wuwa-records > li {
+  display: grid;
+  gap: 4px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+.wuwa-slash-zone + .wuwa-slash-zone {
+  margin-top: 14px;
+}
+.bar-row.wuwa-slash-total {
+  --bar-label: 16%;
+  margin-bottom: 8px;
+}
+.bar-row.wuwa-slash-total > .k {
+  color: var(--text);
+  font-weight: 600;
+}
+.wuwa-slash {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+}
+.wuwa-score {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-halves > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+.wuwa-half-name {
+  min-width: 2.4em;
+  color: var(--text-muted);
   font-size: 11px;
 }
-.wuwa-floor {
-  border-top: 1px solid var(--border);
-  padding: 11px 0;
+.wuwa-half-score {
+  min-width: 3em;
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
-.wuwa-floor > span {
-  float: right;
+.wuwa-buff {
+  color: var(--text-muted);
+  font-size: 12px;
 }
+.wuwa-buff strong {
+  margin-right: 4px;
+  color: var(--text-body);
+  font-weight: 500;
+}
+.wuwa-halves > li > .wuwa-fields {
+  flex-basis: 100%;
+}
+
+/* ── 玩法 ───────────────────────────────────────────────────────────── */
+.wuwa-activities {
+  --tile-min: 220px;
+}
+.wuwa-pair + .wuwa-pair {
+  margin-top: 6px;
+}
+.wuwa-pair-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.wuwa-pair-line > .k {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wuwa-pair-line > .v {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-pair-line > .v b {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.wuwa-pct {
+  min-width: 3.2em;
+  color: var(--text-faint);
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-tile > .wuwa-fields {
+  margin-top: 6px;
+}
+
+/* ── 资源简报 ────────────────────────────────────────────────────────── */
 .wuwa-periods {
-  display: grid;
-  gap: 10px;
-  margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  margin-bottom: 12px;
 }
-.wuwa-periods fieldset {
+.wuwa-period-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.wuwa-period-label {
+  margin-right: 2px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.wuwa-chip-button {
+  min-height: 26px;
+  padding: 2px 9px;
   border: 1px solid var(--border);
-  padding: 10px;
   border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-body);
+  font: inherit;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
 }
-.wuwa-periods button {
-  margin: 4px;
+.wuwa-chip-button[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 500;
+}
+.wuwa-chip-button:not(:disabled):active {
+  transform: scale(var(--scale-medium));
+}
+@media (hover: hover) and (pointer: fine) {
+  .wuwa-chip-button:not([aria-pressed='true']):hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+}
+@media (pointer: coarse) {
+  .wuwa-chip-button {
+    min-height: 36px;
+  }
+}
+.wuwa-report-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-bottom: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.wuwa-report-head h3 {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+}
+.wuwa-currencies {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 12px 28px;
+}
+.wuwa-currency {
+  min-width: 0;
+}
+.wuwa-total {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.wuwa-total dt {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.wuwa-total dd {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.wuwa-total b {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-delta {
+  padding: 0 6px;
+  border-radius: 5px;
+  background: var(--overlay-3);
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.wuwa-delta.is-up {
+  color: var(--success);
+  background: var(--success-bg);
+}
+.wuwa-delta.is-down {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/* ── 抽卡历史 ────────────────────────────────────────────────────────── */
+.wuwa-import {
+  margin-bottom: 10px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-bg);
+}
+.wuwa-import > summary {
+  color: var(--text);
+}
+.wuwa-import-body {
+  display: grid;
+  gap: 8px;
+  padding: 6px 0 4px;
+}
+.wuwa-import-row.toolbar {
+  margin: 0;
+}
+.wuwa-import-row input[type='password'] {
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 12px;
+}
+.wuwa-file {
+  max-width: 100%;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.wuwa-file::file-selector-button {
+  margin-right: 8px;
+  padding: 3px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-body);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.wuwa-coverage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 12px;
+}
+.wuwa-range {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-coverage-end {
+  margin-left: auto;
+}
+.wuwa-pools {
+  --tile-min: 220px;
+}
+.wuwa-pool-total {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.wuwa-pool-total b {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.wuwa-pools .stack-bar {
+  margin-top: 4px;
 }
 .wuwa-table-wrap {
   max-width: 100%;
-  overflow: auto;
-  margin: 12px 0;
+  overflow-x: auto;
 }
-.wuwa-dashboard table {
-  border-collapse: collapse;
-  width: 100%;
-  min-width: 520px;
-  text-align: left;
-  font-size: 12px;
-}
-.wuwa-dashboard th,
-.wuwa-dashboard td {
-  padding: 11px 13px;
-  border-bottom: 1px solid var(--border);
+.data-table.wuwa-draws td {
   white-space: nowrap;
 }
-.wuwa-dashboard th {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 500;
+.data-table.wuwa-items {
+  margin-top: 2px;
 }
-.wuwa-gold-row {
+.data-table.wuwa-items td:first-child {
+  white-space: nowrap;
+}
+.data-table.wuwa-draws td small {
+  margin-left: 4px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.data-table .wuwa-gold-row td {
   color: var(--wuwa-gold);
-  background: color-mix(in srgb, var(--wuwa-gold) 5%, transparent);
+  background: color-mix(in srgb, var(--wuwa-gold) 6%, transparent);
+}
+.data-table .wuwa-gold-row td small {
+  color: inherit;
+  opacity: 0.8;
+}
+.data-table .wuwa-four-row .wuwa-rarity {
+  color: var(--chart-5);
+  font-weight: 600;
+}
+.wuwa-records-all > summary {
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
 }
 .wuwa-pager {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
-  margin-top: 20px;
-  font-size: 11px;
+  gap: 12px;
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: 12px;
 }
-.wuwa-inset > button {
-  margin-top: 13px;
+.wuwa-pager > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
-@media (max-width: 700px) {
-  .wuwa-panel {
-    padding: 17px;
-  }
+
+/* ── 成长记录 ────────────────────────────────────────────────────────── */
+.wuwa-history {
+  display: grid;
+}
+.wuwa-history > li {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.wuwa-history-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.wuwa-history-head h3 {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+}
+.wuwa-history-times {
+  margin-left: auto;
+}
+.data-table.wuwa-deltas {
+  width: auto;
+  min-width: min(100%, 480px);
+  margin-top: 6px;
+}
+.wuwa-compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 8px 20px;
+}
+
+/* One column once the main area drops below about 620px: phones, and tablets
+   where the 220px sidebar is still showing (721–900px windows). */
+@media (max-width: 900px) {
   .wuwa-grid {
     grid-template-columns: 1fr;
   }
-  .wuwa-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .wuwa-column {
+    display: contents;
   }
-  .wuwa-role-grid {
-    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+  .wuwa-slot-1 { order: 1; }
+  .wuwa-slot-2 { order: 2; }
+  .wuwa-slot-3 { order: 3; }
+  .wuwa-slot-4 { order: 4; }
+}
+@media (max-width: 700px) {
+  .wuwa-panel {
+    padding: 14px;
   }
-  .wuwa-stat-grid {
-    grid-template-columns: 1fr;
-  }
-  .wuwa-field {
-    flex-wrap: wrap;
+  .wuwa-pools,
+  .wuwa-echoes {
+    --tile-min: 150px;
   }
   .wuwa-nav {
-    gap: 10px;
+    margin-bottom: 12px;
   }
-  .wuwa-tabs button {
-    padding: 7px 9px;
-    font-size: 12px;
+  .wuwa-level {
+    grid-column: 1 / -1;
   }
-  .wuwa-pager {
-    gap: 9px;
+  .wuwa-coverage-end,
+  .wuwa-history-times {
+    margin-left: 0;
   }
-  .wuwa-equipment {
-    gap: 10px;
-  }
-  .wuwa-equipment img {
-    width: 55px;
-    height: 55px;
+  .wuwa-dashboard .toolbar .menu-select {
+    flex: 1 1 40%;
   }
 }

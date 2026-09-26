@@ -4,20 +4,31 @@
     "file": "wuthering_waves-mark.svg",
     "creator": "game-manage contributors",
     "license": "GPL-3.0-only",
-    "kind": "original text identifier; not official game artwork"
+    "kind": "original text identifier; not official game artwork",
+    "file_light": "wuthering_waves-mark-light.svg"
   },
   {
     "game_id": "nte",
     "file": "nte-mark.svg",
     "creator": "game-manage contributors",
     "license": "GPL-3.0-only",
-    "kind": "original text identifier; not official game artwork"
+    "kind": "original text identifier; not official game artwork",
+    "file_light": "nte-mark-light.svg"
   },
   {
     "game_id": "league_of_legends",
     "file": "league_of_legends-mark.svg",
     "creator": "game-manage contributors",
     "license": "GPL-3.0-only",
-    "kind": "original text identifier; not official game artwork"
+    "kind": "original text identifier; not official game artwork",
+    "file_light": "league_of_legends-mark-light.svg"
+  },
+  {
+    "game_id": "endfield",
+    "file": "endfield-mark.svg",
+    "creator": "game-manage contributors",
+    "license": "GPL-3.0-only",
+    "kind": "original text identifier; not official game artwork",
+    "file_light": "endfield-mark-light.svg"
   }
 ]

@@ -80,14 +80,16 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
         return await self._guarded_run(run)
 
     async def fetch_match(self) -> FetchResult:
+        # 英雄名只读生涯统计维护的目录缓存，不联网：目录下载慢或失败时，
+        # 对局照常返回，只是没有英雄名（页面退回用生涯统计里的常用英雄补名）
         async def run():
             port, token = self._discover()
             async with LcuClient(port=port, token=token) as lcu:
                 raw = await lcu.current_summoner()
                 puuid = raw.get("puuid") or ""
                 history = await lcu.match_history(puuid)
-                return FetchResult(ok=True,
-                                   payload=parse_match_history(history, puuid))
+                return FetchResult(ok=True, payload=parse_match_history(
+                    history, puuid, ChampionCatalog().cached()))
         return await self._guarded_run(run)
 
     async def fetch_stats(self) -> FetchResult:

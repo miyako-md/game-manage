@@ -3,39 +3,53 @@ import { DAY_MS, parseBeijingTime, safeUrl } from './calendar.js'
 
 const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams'])
 export const GAME_STYLE = {
-  wuthering_waves: { mark: '鸣', icon: '/game-icons/wuthering_waves-mark.svg', color: '#d8bb84', english: 'WUTHERING WAVES', resource: '结晶波片' },
-  nte: { mark: '异', icon: '/game-icons/nte-mark.svg', color: '#b6a3d4', english: 'NEVERNESS TO EVERNESS', resource: '本性像素' },
-  league_of_legends: { mark: 'L', icon: '/game-icons/league_of_legends-mark.svg', color: '#87b9ce', english: 'LEAGUE OF LEGENDS' },
+  wuthering_waves: { mark: '鸣', icon: '/game-icons/wuthering_waves-mark.svg', iconLight: '/game-icons/wuthering_waves-mark-light.svg', color: 'var(--game-wuwa)', english: 'WUTHERING WAVES', resource: '结晶波片' },
+  nte: { mark: '异', icon: '/game-icons/nte-mark.svg', iconLight: '/game-icons/nte-mark-light.svg', color: 'var(--game-nte)', english: 'NEVERNESS TO EVERNESS', resource: '本性像素' },
+  league_of_legends: { mark: 'L', icon: '/game-icons/league_of_legends-mark.svg', iconLight: '/game-icons/league_of_legends-mark-light.svg', color: 'var(--game-lol)', english: 'LEAGUE OF LEGENDS' },
+  endfield: { mark: '终', icon: '/game-icons/endfield-mark.svg', iconLight: '/game-icons/endfield-mark-light.svg', color: 'var(--game-endfield)', english: 'ARKNIGHTS: ENDFIELD', resource: '理智' },
 }
-export const gameStyle = (id) => GAME_STYLE[id] || { mark: '游', color: '#d8bb84', english: 'MY GAME', resource: '体力' }
+// Versioned private payloads: an old snapshot shape is shown as missing, never misread.
+const VERSIONED_GAMES = new Set(['nte', 'endfield'])
+export const ENDFIELD_SPECIAL_POOL = 'E_CharacterGachaPoolType_Special'
+// Colours are theme variables (style.css), so each game keeps a readable accent by day and by night.
+export const gameStyle = (id) => GAME_STYLE[id] || { mark: '游', color: 'var(--text-muted)', english: 'MY GAME', resource: '体力' }
 export const finiteValue = (value) => typeof value === 'number' && Number.isFinite(value) ? value : null
+// Numbers, or numeric strings (some sources send stats as text); anything else is unknown.
+const numberOf = (value) => typeof value === 'number' || (typeof value === 'string' && value.trim() !== '') ? finiteValue(Number(value)) : null
+/** How far `current` is towards `total`, 0–100; null unless both are known and `total` is positive. */
+export function percentOf(current, total) {
+  const done = numberOf(current), whole = numberOf(total)
+  return done != null && done >= 0 && whole != null && whole > 0 ? Math.min(100, (done / whole) * 100) : null
+}
 export function formatTime(value, options = {}) {
   const ts = typeof value === 'number' ? value : parseBeijingTime(value)
-  // A finite number outside the Date range makes an Invalid Date, which Intl rejects.
-  const date = new Date(ts ?? NaN)
-  if (!Number.isFinite(date.getTime())) return '未提供'
+  if (ts == null || !Number.isFinite(ts)) return '未提供'
   return new Intl.DateTimeFormat('zh-CN', {
     timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...options,
-  }).format(date)
+  }).format(new Date(ts))
 }
 export function summaryFor(game, snapshots = {}) {
   const validPayload = (cap) => {
     const p = snapshots[cap]?.payload
     if (!p || typeof p !== 'object' || Array.isArray(p)) return null
-    if (game.game_id === 'nte' && !PUBLIC_CAPS.has(cap) && p.schema_version !== 1) return null
+    if (VERSIONED_GAMES.has(game.game_id) && !PUBLIC_CAPS.has(cap) && p.schema_version !== 1) return null
     return p
   }
   const account = validPayload('account')
   const stamina = validPayload('stamina')
   const stats = validPayload('stats')
   const hasStamina = game.capabilities.includes('stamina')
-  const value = finiteValue(hasStamina ? stamina?.current : stats?.winrate)
+  // Games without stamina or match stats show headhunting pity instead.
+  const metric = hasStamina ? 'stamina' : game.capabilities.includes('stats') || !game.capabilities.includes('gacha') ? 'stats' : 'gacha'
+  const pity = metric === 'gacha' ? validPayload('gacha')?.pools?.find?.(pool => pool?.key === ENDFIELD_SPECIAL_POOL)?.since_last_six : null
+  const value = finiteValue(metric === 'stamina' ? stamina?.current : metric === 'gacha' ? pity?.count : stats?.winrate)
   const maximum = finiteValue(stamina?.maximum)
-  const primary = snapshots[hasStamina ? 'stamina' : 'stats'] || snapshots.account
+  const primary = snapshots[metric] || snapshots.account
   return {
-    nickname: account?.nickname || null, level: finiteValue(account?.level), hasStamina,
-    value, maximum, percent: hasStamina ? value != null && maximum > 0 ? Math.max(0, Math.min(100, value / maximum * 100)) : null : value,
-    expectedFullAt: stamina?.expected_full_at || null, totalGames: finiteValue(stats?.total_games), wins: finiteValue(stats?.wins),
+    nickname: account?.nickname || null, level: finiteValue(account?.level), hasStamina, metric,
+    pityStatus: pity?.status || null,
+    value, maximum, percent: metric === 'stamina' ? percentOf(value, maximum) : metric === 'stats' ? value : null,
+    expectedFullAt: stamina?.expected_full_at || null, totalGames: finiteValue(stats?.total_games), wins: finiteValue(stats?.wins), decided: finiteValue(stats?.decided_games),
     fetchedAt: primary?.fetched_at || null, stale: !!primary?.stale,
   }
 }
@@ -58,7 +72,7 @@ export function upcomingEvents(games, snapshots, now = Date.now()) {
 
 export function recentNews(games, snapshots) {
   const rows = games.flatMap(game => {
-    const primary = ['nte', 'wuthering_waves'].includes(game.game_id) && snapshots[game.game_id]?.news?.primary_source === 'bilibili'
+    const primary = ['nte', 'wuthering_waves', 'endfield'].includes(game.game_id) && snapshots[game.game_id]?.news?.primary_source === 'bilibili'
     return (primary ? ['news', 'announcement'] : ['announcement', 'news']).flatMap(cap => {
     const snap = snapshots[game.game_id]?.[cap]
     if (!Array.isArray(snap?.payload)) return []

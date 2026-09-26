@@ -22,27 +22,27 @@ const rows = computed(() => {
 
 <template>
   <div class="cap-card">
-    <div class="cap-title">{{ capability === 'news' ? '资讯' : '公告' }}<span v-if="snap?.stale" class="badge badge-stale">数据可能过期</span></div>
+    <div class="cap-title">
+      {{ capability === 'news' ? '资讯' : '公告' }}
+      <span v-if="snap?.stale" class="badge badge-stale">数据可能过期</span>
+      <span v-if="snap?.fetched_at" class="cap-meta">更新于 {{ formatTime(snap.fetched_at) }}</span>
+    </div>
 
     <p v-if="rows.length === 0" class="empty">暂无数据</p>
     <ul v-else class="item-list">
-      <li v-for="(it, i) in rows" :key="i" class="item">
-        <div class="item-main">
-          <a
-            v-if="it.url"
-            class="item-title item-link"
-            :href="it.url"
-            target="_blank"
-            rel="noopener noreferrer"
-          >{{ it.title }}</a>
-          <span v-else class="item-title">{{ it.title }}</span>
+      <li v-for="(it, i) in rows" :key="i" class="item" :style="{ '--i': Math.min(i, 11) }">
+        <p class="item-title">
+          <a v-if="it.url" class="item-link" :href="it.url" target="_blank" rel="noopener noreferrer">{{ it.title }}</a>
+          <span v-else>{{ it.title }}</span>
+        </p>
+        <p class="item-meta">
+          <span v-if="it.source_name" class="chip">{{ it.source_name }}</span>
+          <span v-if="it.source_stale" class="badge badge-stale">来源采集异常，保留旧记录</span>
           <span v-if="it.dateText" class="item-date">{{ it.dateText }}</span>
-        </div>
-        <small v-if="it.source_name">{{ it.source_name }}<span v-if="it.source_stale"> · 来源采集异常，保留旧记录</span></small>
-        <p v-if="it.summary" class="item-summary">{{ it.summary }}</p>
+        </p>
+        <p v-if="it.summary" class="item-summary" :title="it.summary">{{ it.summary }}</p>
       </li>
     </ul>
-    <p v-if="snap?.fetched_at" class="fetched-at">更新于 {{ formatTime(snap.fetched_at) }}</p>
   </div>
 </template>
 
@@ -50,11 +50,10 @@ const rows = computed(() => {
 .item-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .item {
-  padding: 6px 0;
+  padding: 9px 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -62,15 +61,11 @@ const rows = computed(() => {
   border-bottom: none;
 }
 
-.item-main {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: space-between;
-}
-
 .item-title {
+  margin: 0;
+  font-size: 13px;
   font-weight: 500;
+  line-height: 18px;
 }
 
 .item-link {
@@ -82,15 +77,29 @@ const rows = computed(() => {
   text-decoration: underline;
 }
 
+.item-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 0;
+}
+
 .item-date {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--text-muted);
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
 }
 
 .item-summary {
-  margin-top: 2px;
+  margin: 4px 0 0;
   font-size: 12px;
+  line-height: 1.5;
   color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

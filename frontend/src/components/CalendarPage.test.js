@@ -25,6 +25,21 @@ test('calendar filters by initial game, keeps unknown events and exposes accessi
   assert.doesNotMatch(content(root), /待定的活动/)
   assert.match(content(root), /暂无活动数据/)
 })
+test('an event ending before the next version update shows the notice wording until its time is announced', async (t) => {
+  const start = new Date(Date.now() - 86400000).toISOString()
+  const events = (end_at) => ({ endfield: { events: { payload: [{ name: '绚丽异彩', category: '角色寻访', start_at: start, end_at,
+    end_text: '版本更新维护前', end_precision: 'version_end', source_title: '「雪凇幽梦」版本更新说明' }], fetched_at: start } } })
+  const props = reactive({ games: [{ game_id: 'endfield', display_name: '终末地' }], snapshots: events(null), initialGameId: 'endfield' })
+  const root = mount(t, CalendarPage, props)
+  const open = async () => { await nodes(root, 'button').find(n => n.props['aria-label'] === '查看活动详情：绚丽异彩').props.onClick(); await nextTick() }
+  await open()
+  assert.match(content(root), /截止时间 · 北京时间 版本更新维护前/)
+  props.snapshots = events('2026-10-15T06:00:00+08:00')
+  await nextTick(); await open()
+  assert.match(content(root), /2026-10-15 06:00/)
+  assert.match(content(root), /时刻取自下个版本的维护预告/)
+})
+
 test('navigation changes displayed time range and allows returning to today', async (t) => {
   const root = mount(t, CalendarPage, { games: [], snapshots: {} })
   assert.ok(nodes(root, 'button').find(n => n.text === '近 30 天').props['aria-pressed'])

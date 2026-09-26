@@ -41,3 +41,10 @@ export function mount(t, component, props) {
 }
 export const content = n => [n.text, ...n.children.map(content)].filter(Boolean).join(' ').replace(/\s+/g, ' ')
 export const nodes = (n, type) => [...(n.type === type ? [n] : []), ...n.children.flatMap(child => nodes(child, type))]
+/** Picks an option of a MenuSelect, found by its accessible label, by option value. */
+export function choose(root, label, value) {
+  const list = nodes(root, 'ul').find(n => n.props.role === 'listbox' && n.props['aria-label'] === label)
+  const option = list && nodes(list, 'li').find(n => n.props['data-value'] === String(value))
+  if (!option) throw new Error(`MenuSelect ${label} has no option ${value}`)
+  option.props.onClick()
+}

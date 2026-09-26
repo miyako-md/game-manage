@@ -83,8 +83,8 @@ class PollingScheduler:
         original_generation = generation(game_id)
         try:
             result = await adapter.fetch(capability)
-        except Exception:
-            logger.warning("拉取失败 %s/%s", game_id, capability.value, exc_info=True)
+        except Exception as exc:
+            logger.warning("拉取失败 %s/%s (%s)", game_id, capability.value, type(exc).__name__)
             result = FetchResult(ok=False, error='数据源请求失败，请稍后重试', error_kind='source_error')
         if original_generation != generation(game_id):
             return FetchResult(ok=False, error='账号已切换，请重新刷新', error_kind='account_changed')

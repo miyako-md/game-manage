@@ -72,3 +72,43 @@ test('a non-JSON error page is replaced by the fixed failure text', async (t) =>
   assert.match(content(root), /操作失败，请稍后重试/)
   assert.doesNotMatch(content(root), /Unexpected token/)
 })
+
+test('a collection that finishes while two reads overlap emits collected once', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let reads = 0, audits = 0, collected = 0, releaseRead, releaseAudit
+  serve(t, async (path, options) => {
+    if (options?.method === 'POST') return { ok: true, json: async () => ({ queued: true }) }
+    if (path.endsWith('/audit')) {
+      // The audit triggered by "collected" stays pending so a second read can resolve meanwhile.
+      if (++audits >= 2) await new Promise(resolve => (releaseAudit = resolve))
+      return { ok: true, json: async () => ({ rows: [] }) }
+    }
+    reads += 1
+    if (reads === 2) await new Promise(resolve => (releaseRead = resolve))
+    const data = status()
+    data.sources[0].running = reads === 2 || reads === 3
+    return { ok: true, json: async () => data }
+  })
+  const root = mount(t, Panel, { onCollected: () => { collected += 1 } })
+  await flush()
+  await nodes(root, 'button').find(n => content(n) === '查看筛选记录').props.onClick(); await flush()
+  t.mock.timers.tick(30000)
+  await collect(root); await flush()
+  releaseRead(); await flush()
+  t.mock.timers.tick(2500); await flush()
+  releaseAudit?.(); await flush()
+  assert.equal(collected, 1)
+})
+
+test('the panel is always open and names every mobile game, Endfield included', async (t) => {
+  const previous = globalThis.fetch
+  const source = (game_id, uid) => ({ game_id, uid, status: 'ok', message: '', history_complete: true, total: 1, accepted: 1, running: false })
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ sources: [source('wuthering_waves', '1955897084'), source('nte', '3546636978489848'), source('endfield', '1265652806')], login: { configured: false } }) })
+  t.after(() => { globalThis.fetch = previous })
+  const root = mount(t, Panel, {})
+  await new Promise(resolve => setImmediate(resolve)); await nextTick()
+  assert.equal(nodes(root, 'details').length, 0)
+  const text = content(root)
+  for (const name of ['鸣潮', '异环', '终末地']) assert.match(text, new RegExp(`${name} · UID`))
+  assert.doesNotMatch(text, /endfield · UID/)
+})

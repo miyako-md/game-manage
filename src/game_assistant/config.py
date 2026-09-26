@@ -5,9 +5,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Templates before 0.1.0 wrote these keys and existing config.toml files keep
-    # them. Unknown keys are rejected, so they stay accepted; the launcher always
-    # listens on 127.0.0.1:8010 and nothing reads them.
+    # 0.1.0 之前的模板写过 app_host/app_port，部分用户的 config.toml 仍保留这两个键。
+    # 未知键会被拒绝（extra='forbid'），所以这里继续接受它们；一键启动固定监听
+    # 127.0.0.1:8010，没有代码读取这两个字段。
     app_host: str = "127.0.0.1"
     app_port: int = 8010
     db_path: str = "data/assistant.db"
@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     wuwa_token: str = ""
     wuwa_token_source: str = "h5"  # legacy web token; SDK login persists ios
     wuwa_user_id: str = ""
+    # 库街区 APP 端 token：已停用，只为兼容旧版配置模板，任何代码都不读取它。
+    wuwa_app_token: str = ""
     # roleBox会话由页面短信登录自动取得；以下字段保留旧手填配置兼容。
     # 会话供体力、进度、角色、探索度和数据坞等能力使用。
     wuwa_b_at: str = ""
@@ -44,6 +46,12 @@ class Settings(BaseSettings):
     nte_refresh_token: str = ""
     nte_device_id: str = ""
     nte_role_id: str = ""
+    # 终末地（官服）凭据由页面短信登录取得并加密保存；以下字段只在运行时由登录服务填写。
+    endfield_enabled: bool = True
+    endfield_hg_token: str = ""
+    endfield_uid: str = ""
+    endfield_role_id: str = ""
+    endfield_server_id: str = ""
     auth_store_path: str = ""  # empty: adjacent to db_path, *.credentials.json
     auth_allowed_origins: list[str] = [
         "http://127.0.0.1:8010", "http://localhost:8010",

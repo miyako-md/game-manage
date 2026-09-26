@@ -104,3 +104,11 @@ test('safeUrl keeps http(s) URLs and rejects script schemes, credentials and rel
     assert.equal(safeUrl(url), null)
   assert.equal(safeUrl('https://example.com/post'), 'https://example.com/post')
 })
+
+test('formatBeijingDateTime rejects timestamps outside four-digit years', () => {
+  assert.equal(formatBeijingDateTime(1.7e15), '未知')
+  assert.equal(formatBeijingDateTime(-6e13), '未知')
+  assert.equal(formatBeijingDateTime(-62135596800000), '未知')
+  assert.equal(formatBeijingDateTime(253402300800000), '未知')
+  assert.equal(formatBeijingDateTime(Date.UTC(2026, 8, 24, 2, 0)), '2026-09-24 10:00')
+})

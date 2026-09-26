@@ -3,6 +3,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import * as api from './api.js'
 import { getAuthStatus } from './auth-api.js'
 import { createDashboard, readRoute } from './dashboard.js'
+import { vGlide } from './motion.js'
+import { followSystem, setTheme, theme } from './theme.js'
 import AppIcon from './components/AppIcon.vue'
 import GameIcon from './components/GameIcon.vue'
 import OverviewPage from './components/OverviewPage.vue'
@@ -30,7 +32,7 @@ const calendarErrors = computed(() => Object.fromEntries(state.games.map(g => {
   const source = state.collection.find(row => row.game_id === g.game_id && row.capability === 'events' && ['error', 'auth_expired'].includes(row.state))
   return [g.game_id, [state.readErrors[g.game_id], state.refreshErrors[g.game_id], source?.error].filter(Boolean).join('；')]
 })))
-let timer
+let timer, stopFollowingSystem
 function syncRoute() { route.value = readRoute(window.location.hash); menuOpen.value = false; window.scrollTo({ top: 0, behavior: 'instant' }); nextTick(() => mainContent.value?.focus({ preventScroll: true })) }
 async function openMenu() { menuOpen.value = true; await nextTick(); sidebar.value?.querySelector('.primary-nav a')?.focus() }
 async function closeMenu() { menuOpen.value = false; await nextTick(); menuToggle.value?.focus() }
@@ -43,6 +45,33 @@ function mediaChanged(event) { mobileNavigation.value = event.matches; if (!even
 function navigate(page, game = '') {
   window.location.hash = page === 'game' ? `/game/${encodeURIComponent(game)}` : page === 'calendar' ? `/calendar${game ? '?game=' + encodeURIComponent(game) : ''}` : page === 'accounts' ? '/accounts' : '/'
   menuOpen.value = false
+}
+let themeWipe = 0
+function toggleTheme(event) {
+  const next = theme.value === 'light' ? 'dark' : 'light'
+  const root = document.documentElement
+  if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { setTheme(next); return }
+  // beUI theme toggle: the new theme opens as a circle from the button.
+  const box = event.currentTarget.getBoundingClientRect()
+  const x = box.left + box.width / 2, y = box.top + box.height / 2
+  root.style.setProperty('--theme-x', `${x}px`)
+  root.style.setProperty('--theme-y', `${y}px`)
+  root.style.setProperty('--theme-r', `${Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))}px`)
+  // Colour transitions pause until the wipe ends, so the revealed theme is already settled.
+  // A second click mid-wipe skips this wipe and settles it early, so only the
+  // latest wipe may resume them.
+  const wipe = ++themeWipe
+  root.dataset.themeSwitching = ''
+  const settle = () => { if (wipe === themeWipe) delete root.dataset.themeSwitching }
+  try {
+    const transition = document.startViewTransition(async () => { setTheme(next); await nextTick() })
+    transition.finished.then(settle, settle)
+    // The skipped wipe rejects its ready promise.
+    transition.ready.catch(() => {})
+  } catch {
+    setTheme(next)
+    settle()
+  }
 }
 async function refreshAll() { if (!refreshing.value) await Promise.all(state.games.map(game => dashboard.refresh(game.game_id))) }
 async function onAccountChanged({ game }) {
@@ -61,12 +90,13 @@ function handleKey(event) {
 }
 onMounted(() => {
   dashboard.load()
+  stopFollowingSystem = followSystem()
   window.addEventListener('hashchange', syncRoute)
   window.addEventListener('keydown', handleKey)
   navigationMedia.addEventListener('change', mediaChanged)
   timer = setInterval(() => { now.value = Date.now(); dashboard.loadSnapshots(); dashboard.loadStatus() }, 60000)
 })
-onBeforeUnmount(() => { clearInterval(timer); dashboard.dispose(); window.removeEventListener('hashchange', syncRoute); window.removeEventListener('keydown', handleKey); navigationMedia.removeEventListener('change', mediaChanged) })
+onBeforeUnmount(() => { clearInterval(timer); stopFollowingSystem?.(); dashboard.dispose(); window.removeEventListener('hashchange', syncRoute); window.removeEventListener('keydown', handleKey); navigationMedia.removeEventListener('change', mediaChanged) })
 </script>
 <template>
   <div class="workbench" :class="{ 'menu-open': menuOpen }">
@@ -75,23 +105,23 @@ onBeforeUnmount(() => { clearInterval(timer); dashboard.dispose(); window.remove
     <aside id="workspace-sidebar" ref="sidebar" class="workspace-sidebar" :inert="mobileNavigation && !menuOpen">
       <a class="brand" href="#/" @click="sidebarNavigate"><span class="brand-symbol"><AppIcon name="spark" :size="20" /></span><span>游戏管家<small>PERSONAL GAME SPACE</small></span></a>
       <button class="mobile-sidebar-close icon-button" aria-label="关闭导航" @click="closeMenu"><AppIcon name="close" /></button>
-      <nav class="primary-nav" aria-label="主导航" @click="sidebarNavigate">
+      <nav v-glide.hover class="primary-nav" aria-label="主导航" @click="sidebarNavigate">
         <a href="#/" :class="{ active: route.page === 'overview' }" :aria-current="route.page === 'overview' ? 'page' : undefined"><AppIcon name="grid" /><span>今日总览</span></a>
         <a href="#/calendar" :class="{ active: route.page === 'calendar' }" :aria-current="route.page === 'calendar' ? 'page' : undefined"><AppIcon name="calendar" /><span>活动日历</span></a>
         <a href="#/accounts" :class="{ active: route.page === 'accounts' }" :aria-current="route.page === 'accounts' ? 'page' : undefined"><AppIcon name="user" /><span>社区账号</span></a>
       </nav>
       <div class="sidebar-label"><span>我的游戏</span><span>{{ String(state.games.length).padStart(2, '0') }}</span></div>
-      <nav class="game-nav" aria-label="游戏档案" @click="sidebarNavigate"><a v-for="game in state.games" :key="game.game_id" :href="`#/game/${encodeURIComponent(game.game_id)}`" :class="{ active: route.page === 'game' && route.game === game.game_id }" :aria-current="route.page === 'game' && route.game === game.game_id ? 'page' : undefined"><GameIcon class="nav-game-mark" :game-id="game.game_id" :name="game.display_name" /><span>{{ game.display_name }}</span><AppIcon class="nav-arrow" name="arrow" :size="14" /></a></nav>
+      <nav v-glide.hover class="game-nav" aria-label="游戏档案" @click="sidebarNavigate"><a v-for="game in state.games" :key="game.game_id" :href="`#/game/${encodeURIComponent(game.game_id)}`" :class="{ active: route.page === 'game' && route.game === game.game_id }" :aria-current="route.page === 'game' && route.game === game.game_id ? 'page' : undefined"><GameIcon class="nav-game-mark" :game-id="game.game_id" :name="game.display_name" /><span>{{ game.display_name }}</span><AppIcon class="nav-arrow" name="arrow" :size="14" /></a></nav>
       <div class="sidebar-bottom"><p class="local-status"><i :class="{ offline: state.loadError || state.serviceError }"></i>{{ state.loadError || state.serviceError ? '本地服务连接异常' : state.loadedAt ? '本地工作台已连接' : '正在连接本地服务' }}</p><p>{{ state.notify ? state.notify.enabled ? '微信推送已启用' : '微信推送未启用' : '提醒状态读取中' }}</p><div><AppIcon name="shield" :size="13" />个人使用 · 数据保存在本机</div></div>
     </aside>
     <div class="workspace-body" :inert="mobileNavigation && menuOpen">
-      <header class="workspace-topbar"><div class="topbar-left"><button ref="menuToggle" class="menu-toggle icon-button" :aria-expanded="menuOpen" aria-controls="workspace-sidebar" aria-label="打开导航" @click="openMenu"><AppIcon name="menu" /></button><span class="breadcrumb">个人空间 <span>/</span> <b>{{ pageTitle }}</b></span></div><div class="topbar-right"><span class="topbar-date">{{ today }}</span><button class="ui-button small-button" @click="navigate('accounts')"><AppIcon name="user" :size="15" />社区账号</button></div></header>
+      <header class="workspace-topbar"><div class="topbar-left"><button ref="menuToggle" class="menu-toggle icon-button" :aria-expanded="menuOpen" aria-controls="workspace-sidebar" aria-label="打开导航" @click="openMenu"><AppIcon name="menu" /></button><span class="breadcrumb">个人空间 <span>/</span> <b>{{ pageTitle }}</b></span></div><div class="topbar-right"><span class="topbar-date">{{ today }}</span><button class="icon-button theme-toggle" :aria-label="theme === 'light' ? '切换到夜间模式' : '切换到白天模式'" :title="theme === 'light' ? '夜间模式' : '白天模式'" @click="toggleTheme"><span class="icon-swap"><AppIcon name="sun" :size="16" :data-active="theme !== 'light'" /><AppIcon name="moon" :size="16" :data-active="theme === 'light'" /></span></button><button class="ui-button small-button" @click="navigate('accounts')"><AppIcon name="user" :size="15" />社区账号</button></div></header>
       <main id="main-content" ref="mainContent" tabindex="-1" class="workspace-main">
         <div v-if="state.loadError" class="service-error" role="alert"><div><strong>暂时无法读取游戏数据</strong><p>{{ state.loadError }}</p></div><button class="ui-button" :disabled="state.loading" @click="dashboard.load">重试连接</button></div>
-        <OverviewPage v-if="route.page === 'overview'" :games="state.games" :snapshots="state.snapshots" :accounts="state.accounts" :collection="state.collection" :read-errors="state.readErrors" :refresh-errors="state.refreshErrors" :refreshing="state.refreshing" :now="now" :loading="state.loading" @navigate="navigate" @refresh="refreshAll" />
-        <CalendarPage v-else-if="route.page === 'calendar'" :games="state.games" :snapshots="state.snapshots" :loading="state.loading" :initial-game-id="route.game" :read-errors="calendarErrors" />
-        <template v-else-if="route.page === 'game'"><GameCard v-if="selectedGame" :key="`${selectedGame.game_id}:${accountRevisions[selectedGame.game_id] || 0}`" :game="selectedGame" initial-section="overview" :collection-status="state.collection" :external-snapshots="state.snapshots[selectedGame.game_id] || {}" :external-refreshing="!!state.refreshing[selectedGame.game_id]" :external-error="state.refreshErrors[selectedGame.game_id] || state.readErrors[selectedGame.game_id] || ''" @refresh="dashboard.refresh(selectedGame.game_id)" @calendar="navigate('calendar', selectedGame.game_id)" /><div v-else class="empty-page"><p>{{ state.loading ? '正在读取游戏列表…' : '这个游戏尚未启用或已从配置中移除。' }}</p><button class="ui-button" @click="navigate('overview')">返回总览</button></div></template>
-        <div v-show="route.page === 'accounts'" class="accounts-page"><header class="page-heading"><p class="eyebrow">CONNECTED WORLDS</p><h1>社区账号</h1><p class="page-description">连接你的游戏世界，让账号与进度自动汇聚。</p></header><LoginPanel @account-changed="onAccountChanged" /><section class="connection-note"><AppIcon name="shield" :size="24" /><div><h2>授权只保存在本机</h2><p>鸣潮与异环使用社区手机号登录；短期凭据自动续期。英雄联盟通过本机客户端读取数据，无需在这里登录。</p><p>登录成功后，进入对应游戏点击「刷新数据」即可加载账号快照。</p></div></section></div>
+        <OverviewPage v-if="route.page === 'overview'" class="t-page" :games="state.games" :snapshots="state.snapshots" :accounts="state.accounts" :collection="state.collection" :read-errors="state.readErrors" :refresh-errors="state.refreshErrors" :refreshing="state.refreshing" :now="now" :loading="state.loading" @navigate="navigate" @refresh="refreshAll" />
+        <CalendarPage v-else-if="route.page === 'calendar'" class="t-page" :games="state.games" :snapshots="state.snapshots" :loading="state.loading" :initial-game-id="route.game" :read-errors="calendarErrors" />
+        <template v-else-if="route.page === 'game'"><GameCard v-if="selectedGame" class="t-page" :key="`${selectedGame.game_id}:${accountRevisions[selectedGame.game_id] || 0}`" :game="selectedGame" initial-section="overview" :collection-status="state.collection" :external-snapshots="state.snapshots[selectedGame.game_id] || {}" :external-refreshing="!!state.refreshing[selectedGame.game_id]" :external-error="state.refreshErrors[selectedGame.game_id] || state.readErrors[selectedGame.game_id] || ''" @refresh="dashboard.refresh(selectedGame.game_id)" @calendar="navigate('calendar', selectedGame.game_id)" /><div v-else class="empty-page"><p>{{ state.loading ? '正在读取游戏列表…' : '这个游戏尚未启用或已从配置中移除。' }}</p><button class="ui-button" @click="navigate('overview')">返回总览</button></div></template>
+        <div v-show="route.page === 'accounts'" class="accounts-page"><header class="page-heading"><div class="page-heading-copy"><p class="page-kicker"><span class="section-no">§03</span><span class="eyebrow">Connected worlds</span></p><h1>社区账号</h1><p class="page-description">连接你的游戏世界，让账号与进度自动汇聚。</p></div></header><LoginPanel @account-changed="onAccountChanged" /><section class="connection-note"><AppIcon name="shield" :size="24" /><div><h2>授权只保存在本机</h2><p>鸣潮与异环使用社区手机号登录，短期凭据自动续期；终末地使用鹰角通行证手机号登录，失效后需重新登录。英雄联盟通过本机客户端读取数据，无需在这里登录。</p><p>登录成功后，进入对应游戏点击「刷新数据」即可加载账号快照。</p></div></section></div>
         <BilibiliSourcePanel v-if="route.page === 'overview' || route.page === 'game'" :game-id="route.page === 'game' ? route.game : ''" @collected="dashboard.loadSnapshots()" />
       </main>
     </div>

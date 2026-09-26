@@ -1,6 +1,6 @@
 """Small community authentication clients; no SMS retries or credential logging.
 
-Protocol references: WutheringWavesUID 1d693a2 and NTEUID ba7790e.
+Protocol references: WutheringWavesUID 1d693a2, NTEUID ba7790e and EndUID 7781451.
 Only human supplied Geetest proofs are accepted. SDK application constants below
 are public protocol identifiers, not user credentials.
 """
@@ -18,6 +18,9 @@ import httpx
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
+from game_assistant.adapters.endfield import endpoints as endfield_endpoints
+from game_assistant.adapters.endfield.hypergryph import EndfieldError, HypergryphClient, request_data
+from game_assistant.adapters.endfield.parse import select_official_role
 from game_assistant.adapters.neverness.endpoints import GAME_ID as NTE_GAME_ID
 from game_assistant.adapters.neverness.tajiduo_client import make_ds_header
 from game_assistant.adapters.wuthering_waves.rolebox_client import USER_AGENT
@@ -229,3 +232,47 @@ class NteLoginProvider:
                                  failure="登录续期失败，请稍后重试或重新登录")
         return {**credentials, "access_token": _required(session, "accessToken"),
                 "refresh_token": _required(session, "refreshToken")}
+
+
+class EndfieldLoginProvider:
+    """鹰角通行证短信登录（官服）。通行证 token 没有续期接口，失效后重新登录。"""
+
+    async def start_context(self) -> dict:
+        return {}
+
+    async def _account(self, url: str, body: dict, failure: str) -> Any:
+        try:
+            async with httpx.AsyncClient(timeout=20, trust_env=False,
+                                         headers={"User-Agent": endfield_endpoints.USER_AGENT}) as client:
+                return await request_data(client, "POST", url, body=body)
+        except EndfieldError as error:
+            if error.status_code == 429:
+                raise AuthError("请求过于频繁，请稍后重试", 429) from None
+            if error.expired:
+                raise AuthError(_INVALID_SESSION, 401) from None
+            raise AuthError(error.hint or failure, error.status_code) from None
+
+    async def send_sms(self, context: dict, mobile: str, captcha: dict | None = None) -> None:
+        await self._account(endfield_endpoints.SEND_PHONE_CODE, {"phone": mobile, "type": 1},
+                            "短信发送失败，请稍后重试")
+
+    async def login(self, context: dict, mobile: str, code: str) -> dict:
+        account = await self._account(endfield_endpoints.TOKEN_BY_PHONE_CODE, {"phone": mobile, "code": code},
+                                      "登录失败，请检查短信验证码后重试")
+        token = _required(account, "token")
+        role = await self._role(token)
+        return {"hg_token": token, "uid": role.uid, "role_id": role.role_id,
+                "server_id": role.server_id, "nickname": role.nickname or ""}
+
+    async def _role(self, token: str):
+        try:
+            async with HypergryphClient(trust_env=False) as client:
+                binding = await client.binding_list(await client.grant(token))
+        except EndfieldError as error:
+            if error.expired:
+                raise AuthError(_INVALID_SESSION, 401) from None
+            raise AuthError(error.hint or "终末地角色查询失败，请稍后重试", error.status_code) from None
+        try:
+            return select_official_role(binding)
+        except ValueError as error:
+            raise AuthError(str(error)) from None

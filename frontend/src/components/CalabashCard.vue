@@ -29,46 +29,22 @@ const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
       <span v-if="snap?.stale" class="badge badge-stale">
         数据可能过期
       </span>
+      <span v-if="fetchedAt" class="cap-meta">更新于 {{ fetchedAt }}</span>
     </div>
 
     <p v-if="payload == null" class="empty">暂无数据</p>
-    <ul v-else class="dock-list">
-      <li v-for="r in rows" :key="r.label" class="dock-row">
-        <span class="dock-label">{{ r.label }}</span>
-        <span class="dock-value">{{ r.value ?? '—' }}</span>
-      </li>
-    </ul>
-
-    <p v-if="fetchedAt" class="fetched-at">更新于 {{ fetchedAt }}</p>
+    <dl v-else class="kv-grid dock-grid">
+      <div v-for="r in rows" :key="r.label">
+        <dt>{{ r.label }}</dt>
+        <dd>{{ r.value ?? '—' }}</dd>
+      </div>
+    </dl>
   </div>
 </template>
 
 <style scoped>
-.dock-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.dock-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  justify-content: space-between;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
-}
-
-.dock-row:last-child {
-  border-bottom: none;
-}
-
-.dock-label {
-  color: var(--text-muted);
-}
-
-.dock-value {
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
+.dock-grid {
+  --kv-min: 84px;
+  grid-template-columns: repeat(auto-fit, minmax(var(--kv-min), 1fr));
 }
 </style>

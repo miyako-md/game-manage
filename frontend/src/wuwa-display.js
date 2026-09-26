@@ -10,6 +10,18 @@ export const value = (v) =>
 export const list = (v) =>
   Array.isArray(v) ? v.filter((item) => item != null) : []
 export const stamp = (v) => formatBeijingDateTime(v)
+const DATE_TIME = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/
+/** A source date-time string as Beijing wall time; null for anything else. */
+export function sourceDateTime(v) {
+  if (typeof v !== 'string' || !DATE_TIME.test(v)) return null
+  const formatted = stamp(v)
+  return formatted === '未知' ? null : formatted
+}
+/** A rarity or star level as a whole number of stars (1–6), or 0 when unknown. */
+export function starCount(v) {
+  const n = Number(v)
+  return Number.isInteger(n) && n > 0 && n <= 6 ? n : 0
+}
 export const fieldLabels = {
   weapon_type_name: '武器类型',
   is_main_role: '当前主角',

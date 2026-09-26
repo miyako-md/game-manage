@@ -1,10 +1,12 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
 import { useWuwaRequest } from '../wuwa-api.js'
-import { list, stamp, label, value } from '../wuwa-display.js'
+import { fieldLabels, list, stamp, value } from '../wuwa-display.js'
 import WuwaTower from './WuwaTower.vue'
 import WuwaFields from './WuwaFields.vue'
 import WuwaRoleDetail from './WuwaRoleDetail.vue'
+import InfoHint from './InfoHint.vue'
+import { vGlide } from '../motion.js'
 const props = defineProps({
   roleNames: { type: Object, default: () => ({}) },
   accountKey: { type: String, default: '' },
@@ -66,54 +68,74 @@ watch(
     load()
   },
 )
+// Delta keys are dotted source paths ("extra.total_skill_level"): label the leaf.
+const deltaLabel = (key) =>
+  fieldLabels[key] || fieldLabels[key.split('.').pop()] || key
+const isScalar = (v) => v == null || typeof v !== 'object'
+const scalarDeltas = (delta) =>
+  Object.entries(delta || {}).filter(
+    ([, d]) => isScalar(d?.before) && isScalar(d?.after),
+  )
+const nestedDeltas = (delta) =>
+  Object.entries(delta || {}).filter(
+    ([, d]) => !isScalar(d?.before) || !isScalar(d?.after),
+  )
+const signed = (n) => (typeof n === 'number' && n > 0 ? `+${n}` : n)
 </script>
 <template>
   <section class="wuwa-panel">
-    <header class="wuwa-heading">
-      <div>
-        <p class="wuwa-kicker">OBSERVATION HISTORY</p>
-        <h2>成长记录</h2>
-      </div>
-      <button :disabled="busy" @click="backfill">回补本地快照</button>
-    </header>
-    <p class="wuwa-muted">
-      从成功观测开始记录。同一角色首次记录是基线，不计作练度提升；一次观测不能说明趋势。完整详情仅在你打开角色面板后记录。
-    </p>
-    <nav class="wuwa-tabs" aria-label="历史类型">
+    <header class="cap-title">
+      <h2>成长记录</h2>
+      <InfoHint
+        text="从成功观测开始记录。同一角色首次记录是基线，不计作练度提升；一次观测不能说明趋势。完整详情仅在你打开角色面板后记录。"
+      />
       <button
-        v-for="[key, name] in [
-          ['tower', '跨期深塔'],
-          ['roles', '角色练度变化'],
-          ['role_detail', '完整面板变化'],
-        ]"
-        :key="key"
-        :aria-pressed="kind === key"
-        @click="change(key)"
+        type="button"
+        class="ui-button small-button wuwa-title-end"
+        :disabled="busy"
+        @click="backfill"
       >
-        {{ name }}
+        回补本地快照
       </button>
-    </nav>
-    <p v-if="busy" role="status">正在读取历史…</p>
+    </header>
+    <div class="wuwa-history-bar">
+      <nav v-glide class="segmented" aria-label="历史类型">
+        <button
+          v-for="[key, name] in [
+            ['tower', '跨期深塔'],
+            ['roles', '角色练度变化'],
+            ['role_detail', '完整面板变化'],
+          ]"
+          :key="key"
+          type="button"
+          :aria-pressed="kind === key"
+          @click="change(key)"
+        >
+          {{ name }}
+        </button>
+      </nav>
+      <p v-if="archive" class="wuwa-meta wuwa-bar-end">
+        开始记录 {{ stamp(archive.archive_started_at) }}（北京时间） ·
+        {{ value(archive.total) }} 条观测，非变化次数<InfoHint
+          :text="typeof archive.coverage === 'string' && archive.coverage ? archive.coverage : '仅保存成功观测；首次记录之前未知。'"
+          align="end"
+        />
+      </p>
+    </div>
+    <p v-if="busy" role="status" class="wuwa-meta">正在读取历史…</p>
     <p v-if="error" class="wuwa-error" role="alert">{{ error }}</p>
     <p v-if="outcome" class="wuwa-notice">
       回补新增 {{ value(outcome.inserted) }} 条。{{ outcome.message }}
     </p>
     <template v-if="archive"
-      ><p class="wuwa-meta">
-        开始记录：{{ stamp(archive.archive_started_at) }}（北京时间） ·
-        {{ value(archive.total) }} 条观测，非变化次数
+      ><p v-if="!list(archive.items).length" class="wuwa-notice">
+        尚无此类历史。<InfoHint
+          text="官方旧成绩不可用不代表没有成绩；可尝试回补已有同账号快照。"
+        />
       </p>
-      <p>{{ archive.coverage || '仅保存成功观测；首次记录之前未知。' }}</p>
-      <p v-if="!list(archive.items).length" class="wuwa-notice">
-        尚无此类历史。官方旧成绩不可用不代表没有成绩；可尝试回补已有同账号快照。
-      </p>
-      <div class="wuwa-stack">
-        <article
-          v-for="item in list(archive.items)"
-          :key="item.id"
-          class="wuwa-inset"
-        >
-          <header class="wuwa-heading">
+      <ul v-else class="wuwa-history">
+        <li v-for="item in list(archive.items)" :key="item.id">
+          <header class="wuwa-history-head">
             <h3 v-if="kind === 'tower'">
               赛季结束 {{ stamp(item.season) }}（北京时间）
             </h3>
@@ -125,32 +147,64 @@ watch(
                 `角色 ${item.subject}`
               }}
             </h3>
-            <span class="wuwa-tag">{{
-              item.delta == null ? '首次观测 · 基线' : '观测到变化'
-            }}</span>
+            <span
+              class="badge"
+              :class="item.delta == null ? 'wuwa-badge-off' : 'wuwa-badge-on'"
+              >{{
+                item.delta == null ? '首次观测 · 基线' : '观测到变化'
+              }}</span
+            >
+            <span class="wuwa-meta wuwa-history-times"
+              >来源 {{ stamp(item.source_at) }} · 观测
+              {{ stamp(item.observed_at) }} · 入档
+              {{ stamp(item.archived_at) }}（北京时间）</span
+            >
           </header>
-          <p class="wuwa-meta">
-            来源时间 {{ stamp(item.source_at) }} · 观测
-            {{ stamp(item.observed_at) }} · 入档
-            {{ stamp(item.archived_at) }}（北京时间）
-          </p>
-          <div v-if="item.delta" class="wuwa-stack">
-            <details v-for="(delta, key) in item.delta" :key="key" open>
-              <summary>{{ label(key) }}</summary>
-              <div class="wuwa-grid">
-                <section>
-                  <h4>之前</h4>
-                  <WuwaFields :data="delta.before" />
-                </section>
-                <section>
-                  <h4>之后</h4>
-                  <WuwaFields :data="delta.after" />
-                </section>
-              </div>
-              <p v-if="delta.delta != null">变化量 {{ delta.delta }}</p>
-            </details>
-          </div>
-          <details>
+          <table
+            v-if="scalarDeltas(item.delta).length"
+            class="data-table wuwa-deltas"
+          >
+            <thead>
+              <tr>
+                <th>项目</th>
+                <th class="num">之前</th>
+                <th class="num">之后</th>
+                <th class="num">变化量</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="[key, delta] in scalarDeltas(item.delta)" :key="key">
+                <td>{{ deltaLabel(key) }}</td>
+                <td class="num">{{ value(delta?.before) }}</td>
+                <td class="num">{{ value(delta?.after) }}</td>
+                <td class="num">
+                  {{ delta?.delta == null ? '—' : signed(delta.delta) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <details
+            v-for="[key, delta] in nestedDeltas(item.delta)"
+            :key="key"
+            class="wuwa-supplement"
+            open
+          >
+            <summary>{{ deltaLabel(key) }}</summary>
+            <div class="wuwa-compare">
+              <section>
+                <p class="wuwa-field-label" role="heading" aria-level="5">之前</p>
+                <WuwaFields :data="delta?.before" />
+              </section>
+              <section>
+                <p class="wuwa-field-label" role="heading" aria-level="5">之后</p>
+                <WuwaFields :data="delta?.after" />
+              </section>
+            </div>
+            <p v-if="delta?.delta != null" class="wuwa-meta">
+              变化量 {{ delta.delta }}
+            </p>
+          </details>
+          <details class="wuwa-supplement">
             <summary>查看本次观测详情</summary>
             <WuwaTower
               v-if="kind === 'tower'"
@@ -161,22 +215,33 @@ watch(
               :data="item.payload?.data || item.payload"
             /><WuwaFields v-else :data="item.payload" />
           </details>
-        </article>
-      </div>
+        </li>
+      </ul>
       <nav class="wuwa-pager" aria-label="历史分页">
         <button
+          type="button"
+          class="ui-button small-button"
           :disabled="busy || offset === 0"
           @click="load(Math.max(0, offset - 50))"
         >
           上一页</button
         ><span>第 {{ Math.floor(offset / 50) + 1 }} 页</span
         ><button
+          type="button"
+          class="ui-button small-button"
           :disabled="busy || offset + 50 >= archive.total"
           @click="load(offset + 50)"
         >
           下一页
         </button>
       </nav></template
-    ><button v-else-if="!busy" @click="load()">重试读取历史</button>
+    ><button
+      v-else-if="!busy"
+      type="button"
+      class="ui-button small-button"
+      @click="load()"
+    >
+      重试读取历史
+    </button>
   </section>
 </template>

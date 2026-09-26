@@ -1,6 +1,10 @@
 import logging
+from typing import TYPE_CHECKING
 
 import httpx
+
+if TYPE_CHECKING:
+    from game_assistant.config import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +51,6 @@ class WeChatPushNotifier:
             return False
 
 
-def build_notifier(settings) -> WeChatPushNotifier:
+def build_notifier(settings: "Settings") -> WeChatPushNotifier:
     return WeChatPushNotifier(provider=settings.notify_provider,
                               send_key=settings.notify_send_key)
-

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { nextTick } from 'vue'
-import { loadVue, mount, content, nodes } from '../test-utils/vue.js'
+import { loadVue, mount, content, nodes, choose } from '../test-utils/vue.js'
 
 const NteAssetsPanel = await loadVue(new URL('./NteAssetsPanel.vue', import.meta.url))
 const snap = (payload) => ({ payload: { schema_version: 1, ...payload }, fetched_at: '2026-09-14T10:00:00+08:00', stale: false })
@@ -28,12 +28,12 @@ test('asset search combines with owned state without counting unknown as unowned
   nodes(root, 'input')[0].props.onInput({ target: { value: '海景' } })
   await nextTick()
   assert.equal(nodes(root, 'details').length, 2)
-  nodes(root, 'select')[0].props.onChange({ target: { value: 'unowned' } })
+  choose(root, '拥有状态', 'unowned')
   await nextTick()
   assert.equal(nodes(root, 'details').length, 1)
   assert.match(content(nodes(root, 'details')[0]), /海景别墅/)
   nodes(root, 'input')[0].props.onInput({ target: { value: '' } })
-  nodes(root, 'select')[0].props.onChange({ target: { value: 'unknown' } })
+  choose(root, '拥有状态', 'unknown')
   await nextTick()
   assert.match(content(nodes(root, 'details')[0]), /山间小屋/)
 })
@@ -53,7 +53,7 @@ test('official recommendations display safe linked images and descriptions as te
     icon_url: 'javascript:bad', image_urls: ['https://example.com/team.png', 'data:image/png,bad', 'https://user:pass@example.com/x'] }] })
   assert.match(content(root), /来源：塔吉多官方配队推荐/)
   assert.match(content(root), /<img onerror="bad">配队描述/)
-  assert.equal(nodes(root, 'select').length, 0)
+  assert.equal(nodes(root, 'ul').filter(n => n.props.role === 'listbox').length, 0)
   const images = nodes(root, 'img')
   assert.equal(images.length, 1)
   assert.equal(images[0].props.src, 'https://example.com/team.png')

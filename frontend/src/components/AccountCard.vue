@@ -1,11 +1,13 @@
 <script setup>
 import { computed } from 'vue'
+import { fetchedLabel } from '../time.js'
 
 const props = defineProps({
   snap: { type: Object, default: null },
 })
 
 const payload = computed(() => props.snap?.payload ?? null)
+const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 
 const rankedSolo = computed(() => {
   const rs = payload.value?.extra?.ranked_solo ?? null
@@ -16,40 +18,37 @@ const rankedSolo = computed(() => {
 
 <template>
   <div class="cap-card">
-    <div class="cap-title">账号</div>
+    <div class="cap-title">
+      账号
+      <span v-if="snap?.stale" class="badge badge-stale">数据可能过期</span>
+      <span v-if="fetchedAt" class="cap-meta">更新于 {{ fetchedAt }}</span>
+    </div>
 
     <p v-if="payload == null" class="empty">暂无数据</p>
-    <ul v-else class="account-info">
-      <li>
-        <span class="label">昵称</span>
-        <span>{{ payload.nickname || '未知' }}</span>
-      </li>
-      <li>
-        <span class="label">等级</span>
-        <span>{{ payload.level ?? '未知' }}</span>
-      </li>
-      <li v-if="rankedSolo">
-        <span class="label">段位</span>
-        <span>{{ rankedSolo.tier }} {{ rankedSolo.division }} · {{ rankedSolo.league_points }}LP</span>
-      </li>
-    </ul>
+    <div v-else class="identity">
+      <p class="identity-name">{{ payload.nickname || '未知' }}</p>
+      <ul class="chip-list">
+        <li class="chip">Lv{{ payload.level ?? '未知' }}</li>
+        <li v-if="rankedSolo" class="chip"><b>{{ rankedSolo.tier }}</b>{{ rankedSolo.division ? ' ' + rankedSolo.division : '' }} · {{ rankedSolo.league_points }}LP</li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.account-info {
+/* Name and chips on one line; the card reads as an identity strip. */
+.identity {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
 }
 
-.account-info li {
-  display: flex;
-  gap: 12px;
-}
-
-.label {
-  color: var(--text-muted);
-  flex-shrink: 0;
+.identity-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--text);
 }
 </style>

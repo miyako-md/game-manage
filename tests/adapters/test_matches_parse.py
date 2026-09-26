@@ -51,6 +51,36 @@ def test_empty_history():
     assert parse_match_history({}, "ME") == []
 
 
+def test_remake_from_early_surrender_flag():
+    game = {**GAME, "participants": [
+        {**GAME["participants"][0],
+         "stats": {**GAME["participants"][0]["stats"], "gameEndedInEarlySurrender": True}}]}
+    assert parse_match_history({"games": {"games": [game]}}, "ME")[0].remake is True
+
+
+def test_remake_from_short_duration_and_normal_game():
+    short = {**GAME, "gameDuration": 211}
+    items = parse_match_history({"games": {"games": [short, GAME]}}, "ME")
+    assert [m.remake for m in items] == [True, False]
+
+
+def test_remake_duration_boundary_and_missing_duration():
+    games = [{**GAME, "gameDuration": d} for d in (299, 300, None, -5, False, True)]
+    items = parse_match_history({"games": {"games": games}}, "ME")
+    # 布尔值不是时长（bool 是 int 的子类，False 不能当 0 秒）
+    assert [m.remake for m in items] == [True, False, False, False, False, False]
+    assert [m.duration_seconds for m in items[-2:]] == [None, None]
+
+
+def test_champion_name_comes_from_the_catalog_when_given():
+    catalog = {GAME["participants"][0]["championId"]: {"name": "黑暗之女"}}
+    named = parse_match_history({"games": {"games": [GAME]}}, "ME", catalog)[0]
+    bare = parse_match_history({"games": {"games": [GAME]}}, "ME")[0]
+    assert named.champion_name == "黑暗之女"
+    assert bare.champion_name is None
+    assert parse_match_history({"games": {"games": [GAME]}}, "ME", {999: {"name": "别人"}})[0].champion_name is None
+
+
 def test_damage_extracted():
     game = {**GAME, "participants": [
         {**GAME["participants"][0],
@@ -145,11 +175,11 @@ def test_parse_match_detail_empty_raw():
 
 
 def _summary(n, *, win=True, kills=2, deaths=1, assists=3, damage=1000,
-             duration=1000, champion_id=157, match_id=None):
+             duration=1000, champion_id=157, match_id=None, remake=False):
     return MatchSummary(
         match_id=match_id or str(n), queue_id=450, mode="ARAM",
         duration_seconds=duration, win=win, champion_id=champion_id,
-        kills=kills, deaths=deaths, assists=assists, damage=damage,
+        kills=kills, deaths=deaths, assists=assists, damage=damage, remake=remake,
     )
 
 
@@ -170,6 +200,28 @@ def test_compute_stats_rates_and_averages():
     assert (s.total_games, s.wins) == (5, 3)
     assert s.winrate == 60.0
     assert (s.avg_kills, s.avg_deaths, s.avg_assists) == (4.8, 4.0, 6.0)
+
+
+def test_compute_stats_leaves_out_remakes_and_unknown_results():
+    summaries = [
+        _summary(1, win=True, kills=10, deaths=2, assists=4),
+        _summary(2, win=False, kills=0, deaths=0, assists=0, duration=200, remake=True),
+        _summary(3, win=None, kills=4, deaths=4, assists=4),
+        _summary(4, win=False, kills=2, deaths=6, assists=2),
+    ]
+    s = compute_stats(summaries, CATALOG)
+    assert (s.total_games, s.remakes, s.decided_games, s.wins) == (4, 1, 2, 1)
+    assert s.winrate == 50.0  # 1 胜 1 负；重开与未知结果都不当负场
+    assert s.avg_kills == round((10 + 4 + 2) / 3, 1)  # 重开不拉低场均
+    assert (s.top_champions[0].games, s.top_champions[0].wins, s.top_champions[0].losses) == (3, 1, 1)
+    assists = [r for r in s.records if r["label"] == "单场最高助攻"]
+    assert assists and assists[0]["match_id"] == "1"
+
+
+def test_compute_stats_all_remakes_has_no_rate():
+    s = compute_stats([_summary(1, win=False, duration=180, remake=True)], CATALOG)
+    assert (s.total_games, s.remakes, s.decided_games, s.winrate) == (1, 1, 0, None)
+    assert s.records == [] and s.top_champions == []
 
 
 def test_compute_stats_top_champions_order_and_names():

@@ -27,83 +27,37 @@ const rows = computed(() => {
 })
 
 const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
+// Sibling bars in one card cycle through the chart series so neighbours never share a hue.
+// total=0 (e.g. 终焉矩阵 with no record yet): the bar stays full but in the track grey.
+const series = (it, n) => (it.hasTotal ? `var(--chart-${n % 6 + 1})` : 'var(--track)')
 </script>
 
 <template>
-  <div class="cap-card">
+  <div class="cap-card wuwa-cq">
     <div class="cap-title">
       周期进度
       <span v-if="snap?.stale" class="badge badge-stale">
         数据可能过期
       </span>
+      <span v-if="fetchedAt" class="cap-meta">更新于 {{ fetchedAt }}</span>
     </div>
 
     <p v-if="rows.length === 0" class="empty">暂无数据</p>
-    <ul v-else class="progress-list">
-      <li v-for="(it, i) in rows" :key="i" class="progress-row">
-        <div class="row-head">
-          <span class="row-name">{{ it.name || '-' }}</span>
-          <span class="row-value">
-            {{ it.curText }}<template v-if="it.pctText">（{{ it.pctText }}）</template>
-            <span v-if="it.refresh" class="row-refresh">{{ it.refresh }}</span>
-          </span>
-        </div>
-        <div class="progress-bar" :class="{ 'no-total': !it.hasTotal }">
-          <div class="progress-fill" :style="{ width: it.pct + '%' }"></div>
-        </div>
+    <ul v-else class="bar-list wuwa-bars with-note">
+      <li v-for="(it, i) in rows" :key="i" class="bar-row has-note">
+        <span class="k" :title="it.name || undefined">{{ it.name || '-' }}</span>
+        <span class="meter"><i :style="{ '--pct': it.pct + '%', '--series': series(it, i) }"></i></span>
+        <span class="v">{{ it.curText }}<small v-if="it.pctText"> {{ it.pctText }}</small></span>
+        <span class="note">{{ it.refresh || '' }}</span>
       </li>
     </ul>
-
-    <p v-if="fetchedAt" class="fetched-at">更新于 {{ fetchedAt }}</p>
   </div>
 </template>
 
 <style scoped>
-.progress-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.row-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  justify-content: space-between;
-  margin-bottom: 4px;
-  font-size: 13px;
-}
-
-.row-name {
-  font-weight: 500;
-}
-
-.row-value {
-  font-variant-numeric: tabular-nums;
-  color: var(--text-muted);
-}
-
-.row-refresh {
-  margin-left: 6px;
-  font-size: 12px;
-}
-
-.progress-bar {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--border);
-  overflow: hidden;
-}
-
-/* total=0（如终焉矩阵"暂无挑战记录"）：进度条置满但用灰色弱化 */
-.progress-bar.no-total .progress-fill {
-  background: var(--border);
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--accent);
-  transition: width 0.3s ease;
+.bar-row > .v small {
+  display: inline-block;
+  min-width: 3.4em;
+  text-align: right;
 }
 </style>

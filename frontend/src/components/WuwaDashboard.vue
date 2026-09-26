@@ -12,6 +12,8 @@ import ExplorationCard from './ExplorationCard.vue'
 import CalabashCard from './CalabashCard.vue'
 import ProgressCard from './ProgressCard.vue'
 import AnnouncementList from './AnnouncementList.vue'
+import AppIcon from './AppIcon.vue'
+import { vGlide } from '../motion.js'
 const props = defineProps({
   snaps: { type: Object, default: () => ({}) },
   initialSection: { type: String, default: 'overview' },
@@ -80,36 +82,51 @@ const roleNames = computed(() =>
 <template>
   <div class="wuwa-dashboard">
     <div class="wuwa-nav">
-      <nav class="wuwa-tabs" aria-label="鸣潮数据分区">
+      <nav v-glide class="segmented" aria-label="鸣潮数据分区">
         <button
           v-for="[key, name] in tabs"
           :key="key"
+          type="button"
           :aria-pressed="section === key"
           @click="section = key"
         >
           {{ name }}
         </button>
       </nav>
-      <button class="wuwa-calendar" @click="$emit('calendar')">
-        活动日历 ↗
+      <button
+        type="button"
+        class="text-link wuwa-calendar"
+        @click="$emit('calendar')"
+      >
+        <AppIcon name="calendar" :size="15" />活动日历<AppIcon
+          name="arrow"
+          :size="15"
+        />
       </button>
     </div>
-    <div :key="accountKey" class="wuwa-stack">
+    <div :key="`${accountKey}:${section}`" class="wuwa-stack t-panel">
       <template v-if="section === 'news'"
         ><AnnouncementList
           :snap="snaps.news?.payload ? snaps.news : snaps.announcement"
       /></template>
-      <p v-else-if="!configured" class="wuwa-panel">
+      <p v-else-if="!configured" class="wuwa-panel wuwa-empty">
         请先登录鸣潮账号以查看私人档案。
       </p>
       <template v-else-if="section === 'profile'"
         ><WuwaProfile :snap="current.account" />
         <div class="wuwa-grid">
-          <StaminaCard :snap="current.stamina" /><ProgressCard
-            :snap="current.progress"
-          /><ExplorationCard :snap="current.exploration" /><CalabashCard
-            :snap="current.calabash"
-          /></div></template
+          <div class="wuwa-column">
+            <StaminaCard class="wuwa-slot-1" :snap="current.stamina" /><ExplorationCard
+              class="wuwa-slot-3"
+              :snap="current.exploration"
+            />
+          </div>
+          <div class="wuwa-column">
+            <ProgressCard class="wuwa-slot-2" :snap="current.progress" /><CalabashCard
+              class="wuwa-slot-4"
+              :snap="current.calabash"
+            />
+          </div></div></template
       ><WuwaRoles
         v-else-if="section === 'roles'"
         :snap="current.roles"
@@ -133,7 +150,7 @@ const roleNames = computed(() =>
           :account-key="accountKey"
           :role-names="roleNames"
       /></template>
-      <p v-else class="wuwa-panel">
+      <p v-else class="wuwa-panel wuwa-empty">
         尚未读取到当前账号标识，请刷新数据后重试。
       </p>
     </div>

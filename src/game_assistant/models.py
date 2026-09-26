@@ -127,10 +127,13 @@ class MatchSummary(BaseModel):
     duration_seconds: int | None = None
     win: bool | None = None
     champion_id: int | None = None
+    champion_name: str | None = None  # 英雄目录不可用时为空，前端退回生涯统计里的常用英雄
     kills: int | None = None
     deaths: int | None = None
     assists: int | None = None
     damage: int | None = None  # totalDamageDealtToChampions（生涯"最高伤害"纪录用）
+    # 重开 / 开局即中止的对局：不算胜负，也不进场均与名场面（见 matches.is_remake）
+    remake: bool = False
 
 
 class MatchParticipant(BaseModel):
@@ -168,15 +171,18 @@ class ChampionStat(BaseModel):
     # 常用英雄（生涯统计近 20 场口径）
     champion_id: int | None = None
     champion_name: str | None = None
-    games: int = 0
+    games: int = 0  # 不含重开
     wins: int = 0
+    losses: int | None = None  # 旧快照没有；games - wins - losses 为结果未知的场数
 
 
 class StatsSummary(BaseModel):
     # 生涯统计+名场面（国服 match history 不支持翻页，口径 = 最近 20 场）
-    total_games: int = 0
+    total_games: int = 0  # 含重开的全部对局
     wins: int = 0
-    winrate: float | None = None  # 0-100
+    winrate: float | None = None  # 0-100，分母 = decided_games
+    decided_games: int = 0  # 有胜负结果且不是重开的对局
+    remakes: int = 0
     avg_kills: float | None = None
     avg_deaths: float | None = None
     avg_assists: float | None = None

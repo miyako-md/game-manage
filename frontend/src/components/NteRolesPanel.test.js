@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { reactive, nextTick } from 'vue'
-import { loadVue, mount, content, nodes } from '../test-utils/vue.js'
+import { loadVue, mount, content, nodes, choose } from '../test-utils/vue.js'
 const Panel = await loadVue(new URL('./NteRolesPanel.vue', import.meta.url))
 const entries = Array.from({ length: 5 }, (_, i) => ({ id: String(i + 1), name: `角色${i + 1}`, quality: i ? 'A' : 'S', element: i ? '光' : '灵', level: i, awaken_level: 0, mix_level: 1, affinity_exp: 650, weapon: { name: '弧光', level: 30, quality: 'A', mix_level: 2 }, properties: [{ name: '攻击', value: '320' }], skills: [{ name: '战技一', level: 5 }], city_skills: [{ name: '城区一', level: 2 }] }))
 const snap = (items = entries) => ({ payload: { schema_version: 1, entries: items }, stale: true, fetched_at: '2026-09-16T10:00:00+08:00' })
@@ -14,7 +14,7 @@ test('search and filter inputs update visible cards while retaining full role de
   nodes(root, 'input').find(n => n.props['aria-label'] === '搜索角色').props.onInput({ target: { value: '角色1' } })
   await nextTick(); assert.equal(cards(root).length, 1)
   assert.ok(content(cards(root)[0]).includes('角色1'))
-  nodes(root, 'select').find(n => n.props['aria-label'] === '品质筛选').props.onChange({ target: { value: 'A' } })
+  choose(root, '品质筛选', 'A')
   await nextTick(); assert.equal(cards(root).length, 0); assert.match(content(root), /没有符合/)
 })
 test('comparison keeps selections across filters, enforces four, removes selections, and needs two', async t => {
@@ -37,11 +37,11 @@ test('element, sort direction and favorites filter control the card list', async
   t.after(() => previous ? Object.defineProperty(globalThis, 'localStorage', previous) : delete globalThis.localStorage)
   const root = mount(t, Panel, { snap: snap(), accountId: 'a' })
   assert.match(content(cards(root)[0]), /角色5/)
-  nodes(root, 'select').find(n => n.props['aria-label'] === '排序方向').props.onChange({ target: { value: 'asc' } }); await nextTick()
+  choose(root, '排序方向', 'asc'); await nextTick()
   assert.match(content(cards(root)[0]), /角色1/)
-  nodes(root, 'select').find(n => n.props['aria-label'] === '元素筛选').props.onChange({ target: { value: '灵' } }); await nextTick()
+  choose(root, '元素筛选', '灵'); await nextTick()
   assert.equal(cards(root).length, 1)
-  nodes(root, 'select').find(n => n.props['aria-label'] === '元素筛选').props.onChange({ target: { value: '' } })
+  choose(root, '元素筛选', '')
   nodes(root, 'input').find(n => n.props['aria-label'] === '仅收藏').props.onChange({ target: { checked: true } }); await nextTick()
   assert.equal(cards(root).length, 1); assert.match(content(cards(root)[0]), /角色1/)
   button(root, '取消收藏角色1').props.onClick(); await nextTick(); assert.equal(cards(root).length, 0)

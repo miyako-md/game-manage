@@ -5,7 +5,7 @@ from game_assistant.adapters.wuthering_waves.endpoints import (
 )
 
 # Codes that mean a login or roleBox ticket must be renewed, or the user must
-# log in again: Kuro 220 and 10900-10903, and HTTP 401-403.
+# log in again: Kuro 220, 10900, 10901 and 10903, and HTTP 401-403.
 AUTH_EXPIRED_CODES = (220, 401, 402, 403, 10900, 10901, 10903)
 
 
@@ -38,7 +38,7 @@ class KuroClient:
                 # 若上游改回 JSON 在此切换
                 resp = await client.post(url, headers=self._headers(), data=body)
         except httpx.HTTPError as e:
-            raise KuroError(-1, f"网络错误: {e}") from e
+            raise KuroError(-1, f"网络错误: {type(e).__name__}") from e
         if resp.status_code != 200:
             raise KuroError(resp.status_code, f"HTTP {resp.status_code}")
         try:

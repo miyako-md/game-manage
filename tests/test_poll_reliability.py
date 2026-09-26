@@ -166,10 +166,14 @@ async def test_restart_preserves_failure_threshold_for_notifications(tmp_path):
     assert len(eng.notifier.sent) == 1
 
 
-async def test_unhandled_source_exception_records_failure_without_sensitive_details():
+async def test_unhandled_source_exception_records_failure_without_sensitive_details(caplog):
     async def fetch(_):
         raise RuntimeError('https://secret.example/?token=secret-token')
     sched = scheduler(SimpleNamespace(fetch=fetch, display_name='G'))
-    result = await sched.poll_once('g', Capability.ACCOUNT)
+    with caplog.at_level('WARNING'):
+        result = await sched.poll_once('g', Capability.ACCOUNT)
     assert not result.ok and result.error_kind == 'source_error'
     assert 'secret-token' not in sched.store.get_poll_status('g', 'account')['error']
+    assert 'secret-token' not in caplog.text
+    assert 'Traceback' not in caplog.text
+    assert 'RuntimeError' in caplog.text

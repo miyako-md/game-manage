@@ -7,6 +7,23 @@ from game_assistant.models import (
 from game_assistant.adapters.league_of_legends.champions import ChampionCatalog
 
 
+# 召唤师峡谷最早 15 分钟才能投降，5 分钟内结束的只会是重开或中途中止。
+REMAKE_SECONDS = 300
+
+
+def is_remake(stats: dict, duration_seconds) -> bool:
+    if stats.get("gameEndedInEarlySurrender") is True:
+        return True
+    # bool 是 int 的子类，False 不能当成 0 秒。
+    return (isinstance(duration_seconds, (int, float)) and not isinstance(duration_seconds, bool)
+            and 0 <= duration_seconds < REMAKE_SECONDS)
+
+
+def _duration(game: dict):
+    value = game.get("gameDuration")
+    return None if isinstance(value, bool) else value  # bool 是 int 的子类，不是时长
+
+
 def _win_from(stats: dict, team_id: int | None, team_win: dict[int, bool]) -> bool | None:
     # 复用现有口径：stats.win(bool) 优先，否则 teams[].win=="Win" 兜底
     if isinstance(stats.get("win"), bool):
@@ -14,7 +31,8 @@ def _win_from(stats: dict, team_id: int | None, team_win: dict[int, bool]) -> bo
     return team_win.get(team_id)
 
 
-def _own_summary(game: dict, own_puuid: str) -> MatchSummary:
+def _own_summary(game: dict, own_puuid: str,
+                 catalog: dict[int, dict] | None = None) -> MatchSummary:
     creation = game.get("gameCreation")
     start_at = (datetime.fromtimestamp(creation / 1000, tz=timezone.utc)
                 if creation else None)
@@ -24,6 +42,7 @@ def _own_summary(game: dict, own_puuid: str) -> MatchSummary:
             ident_pid = ident.get("participantId")
             break
     champion = kills = deaths = assists = damage = team = win = None
+    stats: dict = {}
     for p in game.get("participants") or []:
         if p.get("participantId") != ident_pid:
             continue
@@ -37,19 +56,22 @@ def _own_summary(game: dict, own_puuid: str) -> MatchSummary:
     return MatchSummary(
         match_id=str(game.get("gameId")), queue_id=game.get("queueId"),
         mode=game.get("gameMode") or "", start_at=start_at,
-        duration_seconds=game.get("gameDuration"),
+        duration_seconds=_duration(game),
         win=win, champion_id=champion,
+        champion_name=ChampionCatalog.name_for(catalog, champion) if catalog else None,
         kills=kills, deaths=deaths, assists=assists, damage=damage,
+        remake=is_remake(stats, _duration(game)),
     )
 
 
-def parse_match_history(raw: dict, own_puuid: str) -> list[MatchSummary]:
+def parse_match_history(raw: dict, own_puuid: str,
+                        catalog: dict[int, dict] | None = None) -> list[MatchSummary]:
     games = ((raw or {}).get("games") or {}).get("games") or []
     out = []
     for game in games:
         if not game.get("gameId"):
             continue
-        out.append(_own_summary(game, own_puuid))
+        out.append(_own_summary(game, own_puuid, catalog))
     return out
 
 
@@ -109,7 +131,7 @@ def parse_match_detail(raw: dict, own_puuid: str,
                                participants=members))
     return MatchDetail(
         match_id=str(raw.get("gameId")), mode=raw.get("gameMode") or "",
-        start_at=start_at, duration_seconds=raw.get("gameDuration"),
+        start_at=start_at, duration_seconds=_duration(raw),
         teams=teams,
     )
 
@@ -134,15 +156,18 @@ def compute_stats(summaries: list[MatchSummary],
     total = len(summaries)
     if total == 0:
         return StatsSummary()
-    wins = sum(1 for s in summaries if s.win is True)
+    # 重开不算真正的一局；结果未知的对局只是不进胜率分母，不能按负场算。
+    played = [s for s in summaries if not s.remake]
+    decided = [s for s in played if s.win is not None]
+    wins = sum(1 for s in decided if s.win is True)
 
     def avg(field: str) -> float | None:
-        vals = [getattr(s, field) for s in summaries
+        vals = [getattr(s, field) for s in played
                 if getattr(s, field) is not None]
         return round(sum(vals) / len(vals), 1) if vals else None
 
     groups: dict[int, list[MatchSummary]] = {}
-    for s in summaries:
+    for s in played:
         if s.champion_id is not None:
             groups.setdefault(s.champion_id, []).append(s)
     top = sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:5]
@@ -151,12 +176,13 @@ def compute_stats(summaries: list[MatchSummary],
         champion_name=(ChampionCatalog.name_for(catalog, cid) if catalog else None)
         or f"英雄 #{cid}",
         games=len(games), wins=sum(1 for s in games if s.win is True),
+        losses=sum(1 for s in games if s.win is False),
     ) for cid, games in top]
 
     records = []
     for label, field, fmt in _RECORDS:
         best = None
-        for s in summaries:
+        for s in played:
             v = getattr(s, field, None)
             if v is None:  # damage=None 的场次跳过该纪录
                 continue
@@ -168,7 +194,8 @@ def compute_stats(summaries: list[MatchSummary],
 
     return StatsSummary(
         total_games=total, wins=wins,
-        winrate=round(wins / total * 100, 1),
+        winrate=round(wins / len(decided) * 100, 1) if decided else None,
+        decided_games=len(decided), remakes=total - len(played),
         avg_kills=avg("kills"), avg_deaths=avg("deaths"), avg_assists=avg("assists"),
         top_champions=top_champions, records=records,
     )
