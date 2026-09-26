@@ -372,44 +372,49 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.login-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; box-shadow: var(--shadow); }
+.login-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: var(--card-shadow); }
 .panel-header, .form-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-h2 { font-size: 16px; margin-bottom: 4px; }
-h3 { font-size: 15px; }
+h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+h3 { font-size: 15px; font-weight: 600; }
 .muted, .field-hint { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
 .accounts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
-.account-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.account-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
 .account-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .account-message { flex-basis: 100%; overflow-wrap: anywhere; }
 .nickname { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-actions { display: flex; flex-shrink: 0; gap: 6px; }
-.state { font-size: 12px; border-radius: 999px; padding: 2px 7px; color: var(--text-muted); background: var(--bg); }
+.state { font-size: 11px; font-weight: 500; line-height: 18px; border-radius: 5px; padding: 1px 7px; color: var(--text-muted); background: var(--overlay-3); }
 .connected { color: var(--success); background: var(--success-bg); }
 .expired { color: var(--danger); background: var(--danger-bg); }
 .configured { color: var(--stale-text); background: var(--stale-bg); }
-button { border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); color: var(--text); padding: 8px 12px; cursor: pointer; box-shadow: var(--btn-shadow); transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
-button:not(:disabled):hover { border-color: #627081; background: var(--surface-soft); }
-button:not(:disabled):active { transform: scale(var(--scale-small)); box-shadow: var(--btn-shadow-pressed); }
+button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--card-bg); color: var(--text-body); padding: 5px 12px; font-size: 12px; font-weight: 500; line-height: 18px; cursor: pointer; box-shadow: var(--btn-shadow); transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), box-shadow var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
+@media (hover: hover) and (pointer: fine) { button:not(:disabled):hover { background: var(--button-hover-bg); color: var(--text); } }
+button:not(:disabled):active { transform: scale(var(--scale-medium)); box-shadow: var(--btn-shadow-pressed); }
 .text-button, .text-button:not(:disabled):hover { box-shadow: none; background: transparent; border-color: transparent; }
 button:disabled { opacity: .5; cursor: not-allowed; }
-button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.text-button { border: 0; color: var(--accent); padding: 4px; white-space: nowrap; background: transparent; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.text-button { border: 0; color: var(--accent); min-height: 0; padding: 4px; white-space: nowrap; background: transparent; }
+@media (hover: hover) and (pointer: fine) { .text-button:not(:disabled):hover { color: var(--accent-strong); } }
 .logout { color: var(--text-muted); }
-.primary { color: var(--accent-ink, white); background: var(--accent); border-color: var(--accent); box-shadow: var(--btn-primary-shadow); }
-.primary:not(:disabled):hover { background: #e6cc9a; border-color: #e6cc9a; }
+.primary { color: var(--accent-ink); background: var(--accent-fill); border-color: transparent; box-shadow: var(--btn-primary-shadow); }
+@media (hover: hover) and (pointer: fine) { .primary:not(:disabled):hover { color: var(--accent-ink); background: var(--accent-hover); } }
+.primary:not(:disabled):active { transform: scale(var(--scale-small)); box-shadow: var(--btn-primary-pressed); }
 .login-form { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px; display: flex; flex-direction: column; align-items: stretch; gap: 10px; max-width: 560px; }
 label { font-size: 13px; font-weight: 600; margin-top: 4px; }
-input { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font: inherit; color: var(--text); background: var(--card-bg); }
-input[readonly] { background: var(--bg); }
+input { width: 100%; min-width: 0; border: 1px solid var(--border-strong); border-radius: 7px; padding: 9px 12px; font: inherit; color: var(--text); background: var(--card-bg); box-shadow: inset 0 1px 2px rgba(16, 24, 40, .04); }
+input::placeholder { color: var(--text-faint); }
+input:focus-visible { border-color: var(--accent); outline: none; box-shadow: var(--ring); }
+input[readonly] { background: var(--panel-bg); }
 .session-row, .sms-row { display: flex; align-items: center; gap: 12px; }
 .session-row { flex-wrap: wrap; }
 .sms-row button { flex-shrink: 0; }
 .captcha-area { min-height: 64px; display: flex; flex-direction: column; gap: 8px; }
 .submit-button { align-self: flex-start; min-width: 132px; }
-.error, .success { font-size: 13px; line-height: 1.6; margin-top: 12px; overflow-wrap: anywhere; animation: t-rise var(--duration-medium) var(--ease-smooth-out) both; }
+.error, .success { font-size: 13px; line-height: 1.6; margin-top: 12px; overflow-wrap: anywhere; animation: t-rise var(--duration-medium) var(--ease-smooth-out) backwards; }
 .success { display: flex; align-items: flex-start; gap: 8px; }
 .error.is-shaking { animation: t-shake var(--duration-slow) var(--ease-smooth-out) both; }
 .error { color: var(--danger); }
 .success { color: var(--success); }
+@media (pointer: coarse) { button:not(.text-button) { min-height: 44px; } }
 @media (max-width: 640px) { .accounts { grid-template-columns: 1fr; } .login-panel { padding: 12px; } }
 </style>

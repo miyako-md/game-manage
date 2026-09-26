@@ -11,6 +11,12 @@ const payload = computed(() => props.snap?.payload ?? null)
 
 const expectedFullAt = computed(() => fetchedLabel(payload.value?.expected_full_at))
 const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
+const pct = computed(() => {
+  const { current, maximum } = payload.value || {}
+  return typeof current === 'number' && typeof maximum === 'number' && maximum > 0
+    ? Math.max(0, Math.min(100, (current / maximum) * 100))
+    : 0
+})
 </script>
 
 <template>
@@ -20,38 +26,56 @@ const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
       <span v-if="snap?.stale" class="badge badge-stale">
         数据可能过期
       </span>
+      <span v-if="fetchedAt" class="cap-meta">更新于 {{ fetchedAt }}</span>
     </div>
 
     <p v-if="payload == null" class="empty">暂无数据</p>
     <template v-else>
-      <div class="stamina-big" v-pop>
-        {{ payload.current ?? '-' }}<span class="sep">/</span>{{ payload.maximum ?? '-' }}
+      <div class="stamina-line">
+        <span class="stamina-big" v-pop>
+          {{ payload.current ?? '-' }}<span class="sep">/</span>{{ payload.maximum ?? '-' }}
+        </span>
+        <span v-if="expectedFullAt" class="stamina-eta">
+          预计 {{ expectedFullAt }} 恢复满
+        </span>
       </div>
-      <p v-if="expectedFullAt" class="stamina-eta">
-        预计 {{ expectedFullAt }} 恢复满
-      </p>
+      <span class="meter stamina-meter"><i :style="{ '--pct': pct + '%' }"></i></span>
     </template>
-
-    <p v-if="fetchedAt" class="fetched-at">更新于 {{ fetchedAt }}</p>
   </div>
 </template>
 
 <style scoped>
+.stamina-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+}
+
 .stamina-big {
-  font-size: 34px;
-  font-weight: 700;
-  line-height: 1.2;
+  display: inline-block;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 32px;
   font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
 
 .sep {
-  margin: 0 4px;
-  color: var(--text-muted);
+  margin: 0 3px;
+  color: var(--text-faint);
+  font-weight: 400;
 }
 
 .stamina-eta {
-  margin-top: 4px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
+}
+
+.stamina-meter {
+  margin-top: 8px;
+  --series: var(--game-wuwa);
 }
 </style>

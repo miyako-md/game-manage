@@ -5,6 +5,8 @@ import { safeUrl } from '../calendar.js'
 import { list, value } from '../wuwa-display.js'
 import WuwaRoleDetail from './WuwaRoleDetail.vue'
 import WuwaStatus from './WuwaStatus.vue'
+import InfoHint from './InfoHint.vue'
+import AppIcon from './AppIcon.vue'
 const props = defineProps({
   snap: { default: null },
   accountKey: { type: String, default: '' },
@@ -48,6 +50,11 @@ const filtered = computed(() =>
       return (read(b) ?? -1) - (read(a) ?? -1)
     }),
 )
+// Rarity as stars: 5★ in the game gold, 4★ in the purple series (same as the gacha split).
+const starCount = (r) => {
+  const n = Number(r.star_level)
+  return Number.isInteger(n) && n > 0 && n <= 6 ? n : 0
+}
 async function open(role) {
   selected.value = role
   detail.value = null
@@ -74,56 +81,69 @@ function close() {
 </script>
 <template>
   <section class="wuwa-panel">
-    <header class="wuwa-heading">
-      <div>
-        <p class="wuwa-kicker">RESONATORS</p>
-        <h2>角色档案</h2>
-      </div>
-      <span class="wuwa-meta">已记录 {{ roles.length }} 位</span>
+    <header class="cap-title">
+      <h2>角色档案</h2>
+      <InfoHint text="点击角色按需读取完整面板。武器类型不代表实际装备。" />
+      <WuwaStatus :snap="snap" />
     </header>
-    <div class="wuwa-toolbar">
-      <label
-        >搜索角色<input
-          :value="search"
-          @input="search = $event.target.value"
-          placeholder="输入名字" /></label
-      ><label
-        >属性<select
-          :value="attribute"
-          @change="attribute = $event.target.value"
-        >
-          <option value="">全部</option>
-          <option v-for="v in options('attribute')" :key="v" :value="v">
-            {{ v }}
-          </option>
-        </select></label
-      ><label
-        >武器类型<select :value="weapon" @change="weapon = $event.target.value">
-          <option value="">全部</option>
-          <option v-for="v in options('weapon')" :key="v" :value="v">
-            {{ v }}
-          </option>
-        </select></label
-      ><label
-        >稀有度<select :value="rarity" @change="rarity = $event.target.value">
-          <option value="">全部</option>
-          <option v-for="v in options('star_level')" :key="v" :value="v">
-            {{ v }} 星
-          </option>
-        </select></label
-      ><label
-        >排序<select :value="sort" @change="sort = $event.target.value">
-          <option value="level">等级优先</option>
-          <option value="chain">共鸣链优先</option>
-          <option value="total_skill_level">技能总等级优先</option>
-        </select></label
+    <div class="toolbar">
+      <input
+        class="grow"
+        type="search"
+        aria-label="搜索角色"
+        placeholder="搜索角色"
+        :value="search"
+        @input="search = $event.target.value"
+      /><select
+        class="quiet-select"
+        aria-label="属性"
+        :value="attribute"
+        @change="attribute = $event.target.value"
+      >
+        <option value="">全部属性</option>
+        <option v-for="v in options('attribute')" :key="v" :value="v">
+          {{ v }}
+        </option></select
+      ><select
+        class="quiet-select"
+        aria-label="武器类型"
+        :value="weapon"
+        @change="weapon = $event.target.value"
+      >
+        <option value="">全部武器类型</option>
+        <option v-for="v in options('weapon')" :key="v" :value="v">
+          {{ v }}
+        </option></select
+      ><select
+        class="quiet-select"
+        aria-label="稀有度"
+        :value="rarity"
+        @change="rarity = $event.target.value"
+      >
+        <option value="">全部稀有度</option>
+        <option v-for="v in options('star_level')" :key="v" :value="v">
+          {{ v }} 星
+        </option></select
+      ><select
+        class="quiet-select"
+        aria-label="排序"
+        :value="sort"
+        @change="sort = $event.target.value"
+      >
+        <option value="level">等级优先</option>
+        <option value="chain">共鸣链优先</option>
+        <option value="total_skill_level">技能总等级优先</option></select
+      ><span class="count"
+        ><template v-if="filtered.length !== roles.length"
+          >筛选 {{ filtered.length }} 位 · </template
+        >已记录 {{ roles.length }} 位</span
       >
     </div>
-    <p class="wuwa-muted">点击角色按需读取完整面板。武器类型不代表实际装备。</p>
     <div class="wuwa-role-grid">
       <button
         v-for="(r, index) in filtered"
         :key="r.role_id"
+        type="button"
         class="wuwa-role t-item"
         :style="{ '--i': Math.min(index, 11) }"
         :aria-pressed="selected?.role_id === r.role_id"
@@ -134,15 +154,31 @@ function close() {
           :src="safeUrl(r.icon_url)"
           :alt="r.name"
           loading="lazy"
-        /><span v-else class="wuwa-avatar-placeholder">{{
+        /><span v-else class="wuwa-avatar-placeholder" aria-hidden="true">{{
           (r.name || '?').slice(0, 1)
         }}</span
-        ><strong>{{ r.name || r.role_id }}</strong
-        ><span>{{ value(r.attribute) }} · {{ value(r.star_level) }} 星</span
-        ><span>Lv.{{ value(r.level) }} · {{ value(r.chain) }} 链</span
-        ><span class="wuwa-meta">武器类型 {{ value(r.weapon) }}</span
-        ><span class="wuwa-meta"
-          >技能总等级 {{ value(r.extra?.total_skill_level) }}</span
+        ><span class="wuwa-role-body"
+          ><span class="wuwa-role-head"
+            ><strong>{{ r.name || r.role_id }}</strong
+            ><span
+              v-if="starCount(r)"
+              class="stars"
+              :class="{ 'is-four': starCount(r) === 4 }"
+              role="img"
+              :aria-label="`${r.star_level} 星`"
+              >{{ '★'.repeat(starCount(r)) }}</span
+            ><span v-else class="wuwa-meta">{{ value(r.star_level) }} 星</span></span
+          ><span class="wuwa-role-meta"
+            ><span class="wuwa-role-stats"
+              >Lv.{{ value(r.level) }} · {{ value(r.chain) }} 链 · 技能
+              {{ value(r.extra?.total_skill_level) }}</span
+            ><span class="wuwa-role-tags"
+              ><span v-if="r.attribute" class="chip">{{ r.attribute }}</span
+              ><span class="wuwa-role-weapon" title="武器类型">{{
+                value(r.weapon)
+              }}</span></span
+            ></span
+          ></span
         >
       </button>
     </div>
@@ -154,19 +190,31 @@ function close() {
       aria-label="角色完整面板"
       aria-live="polite"
     >
-      <header class="wuwa-heading">
+      <header class="cap-title">
         <h2>{{ selected.name }} · 完整面板</h2>
-        <button @click="close">关闭详情</button>
+        <WuwaStatus v-if="detail" :snap="detail" />
+        <button
+          type="button"
+          class="ui-button small-button ghost wuwa-close"
+          @click="close"
+        >
+          <AppIcon name="close" :size="14" />关闭详情
+        </button>
       </header>
-      <p v-if="loading" role="status">正在读取角色详情…</p>
-      <p v-if="error" class="wuwa-error" role="alert">
-        {{ error }} <button @click="open(selected)">重试</button>
+      <p v-if="loading" role="status" class="wuwa-meta">
+        正在读取角色详情…
       </p>
-      <template v-if="detail"
-        ><WuwaRoleDetail :data="detail.payload.data" /><WuwaStatus
-          :snap="detail"
-      /></template>
+      <p v-if="error" class="wuwa-error" role="alert">
+        {{ error }}
+        <button
+          type="button"
+          class="ui-button small-button"
+          @click="open(selected)"
+        >
+          重试
+        </button>
+      </p>
+      <WuwaRoleDetail v-if="detail" :data="detail.payload.data" />
     </section>
-    <WuwaStatus :snap="snap" />
   </section>
 </template>

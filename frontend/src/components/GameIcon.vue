@@ -1,16 +1,18 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { gameStyle } from '../dashboard.js'
+import { theme } from '../theme.js'
 
 const props = defineProps({ gameId: { type: String, required: true }, name: { type: String, default: '' } })
 const failed = ref(false)
 const style = computed(() => gameStyle(props.gameId))
+const icon = computed(() => theme.value === 'light' && style.value.iconLight || style.value.icon)
 watch(() => props.gameId, () => { failed.value = false })
 </script>
 
 <template>
   <span class="game-icon" :style="{ color: style.color }">
-    <img v-if="style.icon && !failed" :src="style.icon" :alt="`${name || gameId}图标`" decoding="async" @error="failed = true" />
+    <img v-if="icon && !failed" :src="icon" :alt="`${name || gameId}图标`" decoding="async" @error="failed = true" />
     <span v-else aria-hidden="true">{{ style.mark }}</span>
   </span>
 </template>

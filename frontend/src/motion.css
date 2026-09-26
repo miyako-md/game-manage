@@ -32,20 +32,19 @@
   --blur-small: 2px;
   --blur-medium: 3px;
   --blur-large: 8px;
-
-  /* Surface physics shared by buttons and cards (dark-theme version of the
-     option-pro inset-highlight + soft drop pair). */
-  --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.28);
-  --btn-shadow-pressed: inset 0 1.5px 3px rgba(0, 0, 0, 0.42);
-  --btn-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px -8px rgba(216, 187, 132, 0.55);
-  --card-hover-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 14px 32px -16px rgba(0, 0, 0, 0.6);
-  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
 }
 
 /* ── Entrances (CSS only, replay by re-keying the element) ─────────── */
+/* Fill mode is backwards, not both: a filled end frame would pin transform
+   and opacity and silently cancel later hover lifts and press scales. */
 @keyframes t-rise {
-  from { opacity: 0; transform: translateY(var(--distance-base)); filter: blur(var(--blur-small)); }
-  to { opacity: 1; transform: none; filter: none; }
+  from { opacity: 0; transform: translateY(var(--distance-base)); }
+  to { opacity: 1; transform: none; }
+}
+/* Page slide (Option Pro page-enter): transform only, so a starved animation
+   clock can at worst leave the page 8px low, never invisible. */
+@keyframes t-page-enter {
+  from { transform: translateY(var(--distance-base)); }
 }
 @keyframes t-fade-in {
   from { opacity: 0; }
@@ -55,27 +54,23 @@
   from { opacity: 0.35; transform: translateY(var(--distance-small)); filter: blur(var(--blur-small)); }
   to { opacity: 1; transform: none; filter: none; }
 }
-@keyframes t-pulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
 @keyframes t-shimmer {
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
 }
-/* Page frame: the routed page rises in on every navigation. */
-.t-page { animation: t-rise var(--duration-slow) var(--ease-smooth-out) both; }
+/* Page frame: the routed page slides up on every navigation. */
+.t-page { animation: t-page-enter var(--duration-fast) var(--ease-smooth-out); }
 /* Panel: a section that swaps inside a page (tabs, detail views). */
-.t-panel { animation: t-rise var(--duration-fast) var(--ease-smooth-out) both; }
+.t-panel { animation: t-rise var(--duration-fast) var(--ease-smooth-out) backwards; }
 /* Item in a list or grid: pass --i for a stagger. */
 .t-item {
-  animation: t-rise var(--duration-slow) var(--ease-smooth-out) both;
+  animation: t-rise var(--duration-slow) var(--ease-smooth-out) backwards;
   animation-delay: calc(var(--i, 0) * var(--duration-stagger));
 }
 /* Notices and errors rise in like a banner. */
-.t-notice { animation: t-rise var(--duration-medium) var(--ease-smooth-out) both; }
+.t-notice { animation: t-rise var(--duration-medium) var(--ease-smooth-out) backwards; }
 /* Replayed on a number when its text changes (v-pop). */
-.t-pop { animation: t-pop var(--duration-very-slow) var(--ease-smooth-out) both; }
+.t-pop { animation: t-pop var(--duration-very-slow) var(--ease-smooth-out) backwards; }
 /* Loading text: a highlight band sweeps across muted text. */
 .t-shimmer {
   color: transparent;
@@ -85,13 +80,24 @@
   background-clip: text;
   animation: t-shimmer 1.4s var(--ease-linear) infinite;
 }
-/* Skeleton placeholder blocks. */
+/* Skeleton placeholder blocks (Option Pro skeleton-shimmer): a sheen sweeps
+   across a quiet block instead of the whole block pulsing. */
 .t-skel-block {
+  position: relative;
   display: block;
+  overflow: hidden;
   border-radius: 6px;
   background: var(--surface-soft);
-  animation: t-pulse 1.2s var(--ease-in-out) infinite;
 }
+.t-skel-block::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--skeleton-sheen), transparent);
+  animation: t-skel-sweep 1.6s var(--ease-linear) infinite;
+}
+@keyframes t-skel-sweep { to { transform: translateX(100%); } }
 
 /* ── Sliding indicator for tabs and segmented controls (v-glide) ──── */
 .has-glide { position: relative; }
@@ -104,9 +110,9 @@
   width: 0;
   height: 0;
   opacity: 0;
-  border-radius: 6px;
-  background: var(--surface-soft);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.25);
+  border-radius: 7px;
+  background: var(--segment-active-bg);
+  box-shadow: var(--control-selected-shadow);
   pointer-events: none;
   will-change: transform, width;
   transition:
@@ -115,12 +121,22 @@
     height var(--duration-fast) var(--ease-smooth-out),
     opacity var(--duration-quick) var(--ease-smooth-out);
 }
-.t-glide.t-glide-underline {
-  border-radius: 999px;
-  background: var(--accent);
-  box-shadow: none;
+
+.t-glide-hover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0 !important;
+  opacity: 0;
+  border-radius: 8px;
+  background: var(--hover-bg);
+  pointer-events: none;
+  transition:
+    transform var(--duration-fast) var(--ease-smooth-out),
+    width var(--duration-fast) var(--ease-smooth-out),
+    height var(--duration-fast) var(--ease-smooth-out),
+    opacity var(--duration-quick) var(--ease-out);
 }
-.t-glide.t-glide-pill { border-radius: 6px; }
 
 /* ── Interactive surfaces ─────────────────────────────────────────── */
 .t-lift {
@@ -133,11 +149,44 @@
 @media (hover: hover) and (pointer: fine) {
   .t-lift:hover { transform: translateY(-2px); box-shadow: var(--card-hover-shadow); }
 }
-/* Chevron that slides on hover (transitions.dev "learn more"). */
-.t-chevron { transition: transform var(--duration-quick) var(--ease-smooth-out); }
-@media (hover: hover) and (pointer: fine) {
-  a:hover > .t-chevron, button:hover > .t-chevron { transform: translateX(3px); }
+/* Card glare (beUI / rareui tilt-lite): a diagonal sheen on hover, no 3D. */
+.t-glare { position: relative; isolation: isolate; }
+.t-glare::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(135deg, var(--glare), transparent 46%);
+  transition: opacity 300ms var(--ease-smooth-out);
 }
+@media (hover: hover) and (pointer: fine) {
+  .t-glare:hover::after { opacity: .32; }
+}
+/* Chevron that slides on hover (transitions.dev "learn more"). */
+.t-chevron { transition: transform 350ms var(--ease-smooth-out); }
+@media (hover: hover) and (pointer: fine) {
+  a:hover > .t-chevron, button:hover > .t-chevron { transform: translateX(2px); }
+}
+/* Accordion expand (transitions.dev 21) for every native disclosure. Browsers
+   without ::details-content keep the instant toggle; flow-root keeps child
+   margins inside the clip so nothing jumps when it closes. */
+details { interpolate-size: allow-keywords; }
+details::details-content {
+  display: flow-root;
+  block-size: 0;
+  overflow-y: clip;
+  opacity: 0;
+  transition:
+    block-size var(--duration-fast) var(--ease-smooth-out),
+    opacity var(--duration-fast) var(--ease-smooth-out),
+    content-visibility var(--duration-fast) allow-discrete;
+}
+details[open]::details-content { block-size: auto; opacity: 1; }
+/* Separate rule: browsers without ::details-content drop the whole list. */
+@media (prefers-reduced-motion: reduce) { details::details-content { transition: none; } }
+
 /* Disclosure arrow that flips when a details element opens. */
 .t-disclosure { display: inline-block; transition: transform var(--duration-fast) var(--ease-smooth-out); }
 details[open] > summary .t-disclosure { transform: rotate(180deg); }
@@ -163,5 +212,30 @@ details[open] > summary .t-disclosure { transform: rotate(180deg); }
 /* ── Quiet hover for list rows ───────────────────────────────────── */
 .t-row { transition: background-color var(--duration-quick) var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out); }
 @media (hover: hover) and (pointer: fine) {
-  .t-row:hover { background-color: rgba(255, 255, 255, 0.025); }
+  .t-row:hover { background-color: var(--overlay-2); }
 }
+
+/* ── Theme switch ─────────────────────────────────────────────────── */
+/* Icon swap (transitions.dev 09): sun and moon share one slot. */
+.icon-swap { display: inline-grid; place-items: center; }
+.icon-swap > svg {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--duration-fast) var(--ease-in-out),
+    filter var(--duration-fast) var(--ease-in-out),
+    transform var(--duration-fast) var(--ease-in-out);
+}
+.icon-swap > svg[data-active="false"] { opacity: 0; filter: blur(var(--blur-small)); transform: scale(0.25) rotate(-45deg); }
+
+/* beUI theme toggle: the new theme opens as a circle from the toggle through
+   the View Transitions API; colour transitions wait until it ends. */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-new(root) { animation: t-theme-wipe var(--duration-very-slow) var(--ease-smooth-out); }
+@keyframes t-theme-wipe {
+  from { clip-path: circle(0 at var(--theme-x, 50%) var(--theme-y, 0)); }
+  to { clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, 50%) var(--theme-y, 0)); }
+}
+[data-theme-switching] :not(.icon-swap > svg),
+[data-theme-switching] ::before,
+[data-theme-switching] ::after { transition: none !important; }

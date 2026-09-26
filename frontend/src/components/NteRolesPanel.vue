@@ -3,6 +3,8 @@ import { computed, reactive, ref, watch } from 'vue'
 import { fetchedLabel } from '../time.js'
 import { safeUrl } from '../calendar.js'
 import { filterRoles, comparisonGroups, favoritesKey, loadFavorites, saveFavorites, roleId, displayRoleValue as display } from '../nte-roles.js'
+import AppIcon from './AppIcon.vue'
+import InfoHint from './InfoHint.vue'
 
 const props = defineProps({ snap: { type: Object, default: null }, accountId: { type: String, default: '' } })
 const payload = computed(() => props.snap?.payload ?? null)
@@ -23,7 +25,14 @@ const qualities = computed(() => options('quality')), elements = computed(() => 
 const visible = computed(() => filterRoles(roles.value, { search: search.value, quality: quality.value, element: element.value, favoritesOnly: favoritesOnly.value, favorites: favorites.value, sort: sort.value, direction: direction.value }))
 const compared = computed(() => selected.value.map(key => roles.value.find(role => keyOf(role) === key)).filter(Boolean))
 const groups = computed(() => comparisonGroups(compared.value))
+const qualityCount = value => roles.value.filter(role => role.quality === value).length
 const isFavorite = role => favorites.value.includes(roleId(role))
+const isCompared = role => selected.value.includes(keyOf(role))
+function favoriteTitle(role) {
+  if (!roleId(role)) return '角色标识未提供，暂不可收藏'
+  if (!canPersist.value) return '当前账号身份未提供，暂不可收藏'
+  return isFavorite(role) ? '取消收藏' : '收藏'
+}
 function toggleFavorite(role) {
   const id = roleId(role)
   if (!canPersist.value || !id) return
@@ -40,96 +49,166 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
 
 <template>
   <section class="cap-card nte-roles-panel">
-    <div class="cap-title">角色练度 <span v-if="snap?.stale" class="badge badge-stale">数据可能过期</span></div>
+    <div class="cap-title">
+      角色练度
+      <InfoHint v-if="roles.length" text="未提供的排序值排在最后。收藏仅保存在当前浏览器，按异环账号区分。" />
+      <span v-if="snap?.stale" class="badge badge-stale">数据可能过期</span>
+      <span v-if="roles.length" class="chip-list summary">
+        <span class="chip">角色总数 <b>{{ roles.length }}</b></span>
+        <span class="chip">S级 <b>{{ qualityCount('S') }}</b></span>
+        <span class="chip">A级 <b>{{ qualityCount('A') }}</b></span>
+      </span>
+      <span v-if="fetchedLabel(snap?.fetched_at)" class="cap-meta">更新于 {{ fetchedLabel(snap?.fetched_at) }}</span>
+    </div>
     <p v-if="payload === null" class="empty">暂无数据，请登录后刷新</p>
     <p v-else-if="legacy" class="empty">数据格式已更新，请刷新</p>
     <p v-else-if="!roles.length" class="empty">暂无数据</p>
     <template v-else>
-      <p class="muted">角色总数 {{ roles.length }} · S级 {{ roles.filter(role => role.quality === 'S').length }} · A级 {{ roles.filter(role => role.quality === 'A').length }}</p>
-      <div class="role-toolbar">
-        <label class="search-label">名称<input aria-label="搜索角色" type="search" placeholder="搜索角色名称" :value="search" @input="search = $event.target.value" /></label>
-        <label>品质<select aria-label="品质筛选" :value="quality" @change="quality = $event.target.value"><option value="">全部品质</option><option v-for="item in qualities" :key="item" :value="item">{{ item }}</option></select></label>
-        <label>元素<select aria-label="元素筛选" :value="element" @change="element = $event.target.value"><option value="">全部元素</option><option v-for="item in elements" :key="item" :value="item">{{ item }}</option></select></label>
-        <label>排序<select aria-label="角色排序" :value="sort" @change="sort = $event.target.value"><option value="level">等级</option><option value="awaken_level">觉醒</option><option value="mix_level">混频</option><option value="name">名称</option></select></label>
-        <label>顺序<select aria-label="排序方向" :value="direction" @change="direction = $event.target.value"><option value="desc">降序</option><option value="asc">升序</option></select></label>
-        <label class="favorite-filter"><input type="checkbox" aria-label="仅收藏" :checked="favoritesOnly" @change="favoritesOnly = $event.target.checked" />仅收藏</label>
+      <div class="toolbar">
+        <input class="grow" type="search" aria-label="搜索角色" placeholder="搜索角色名称" :value="search" @input="search = $event.target.value" />
+        <select class="quiet-select" aria-label="品质筛选" :value="quality" @change="quality = $event.target.value"><option value="">全部品质</option><option v-for="item in qualities" :key="item" :value="item">{{ item }}</option></select>
+        <select class="quiet-select" aria-label="元素筛选" :value="element" @change="element = $event.target.value"><option value="">全部元素</option><option v-for="item in elements" :key="item" :value="item">{{ item }}</option></select>
+        <select class="quiet-select" aria-label="角色排序" :value="sort" @change="sort = $event.target.value"><option value="level">按等级</option><option value="awaken_level">按觉醒</option><option value="mix_level">按混频</option><option value="name">按名称</option></select>
+        <select class="quiet-select" aria-label="排序方向" :value="direction" @change="direction = $event.target.value"><option value="desc">降序</option><option value="asc">升序</option></select>
+        <label class="favorite-filter"><input type="checkbox" aria-label="仅收藏" :checked="favoritesOnly" @change="favoritesOnly = $event.target.checked" /><span>仅收藏</span></label>
+        <span class="count">显示 {{ visible.length }} / {{ roles.length }}</span>
       </div>
-      <p class="muted">显示 {{ visible.length }} / {{ roles.length }} · 未提供的排序值排在最后。收藏仅保存在当前浏览器，按异环账号区分。</p>
       <p v-if="!canPersist" class="notice">当前账号身份未提供，暂不可收藏。</p>
       <p v-if="storageError" class="notice" role="status">{{ storageError }}</p>
-      <div class="compare-tray" aria-label="角色对比选择">
-        <div class="compare-heading"><strong>角色对比</strong><span class="muted">已选 {{ selected.length }} / 4</span><button v-if="selected.length" type="button" @click="selected = []">清空对比</button></div>
-        <div v-if="compared.length" class="compare-chips"><button v-for="role in compared" :key="keyOf(role)" type="button" :aria-label="`移除对比${role.name || '角色'}`" @click="toggleCompare(role)">{{ display(role.name) }} ×</button></div>
-        <p v-if="selected.length < 2" class="muted">至少选择 2 名角色，最多 4 名。切换筛选后保留对比选择。</p>
-        <template v-else>
-          <p class="muted">按字段名称对齐；战技与城区技能数值为等级，属性保留来源值与单位。未提供不等于零。</p>
-          <div class="comparison-scroll" tabindex="0" role="region" aria-label="角色对比表，可横向滚动">
-            <table><caption class="sr-only">已选角色的基础、弧盘、属性、战技和城区技能</caption><thead><tr><th scope="col">字段</th><th v-for="role in compared" :key="keyOf(role)" scope="col">{{ display(role.name) }}</th></tr></thead>
-              <tbody v-for="group in groups" :key="group.name"><tr class="group-row"><th :colspan="compared.length + 1" scope="colgroup">{{ group.name }}</th></tr>
-                <tr v-for="(row, i) in group.rows" :key="i"><th scope="row">{{ row.name }}</th><td v-for="(value, index) in row.values" :key="index">{{ value }}</td></tr>
-                <tr v-if="!group.rows.length"><th scope="row">数据</th><td v-for="role in compared" :key="keyOf(role)">未提供</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </template>
+      <div class="compare-tray" role="group" aria-label="角色对比选择">
+        <div class="compare-heading">
+          <strong>角色对比</strong>
+          <span class="compare-count">已选 {{ selected.length }} / 4</span>
+          <InfoHint v-if="selected.length < 2" text="至少选择 2 名角色，最多 4 名。切换筛选后保留对比选择。" />
+          <InfoHint v-else text="按字段名称对齐；战技与城区技能数值为等级，属性保留来源值与单位。未提供不等于零。" />
+          <span v-if="compared.length" class="compare-chips">
+            <button v-for="role in compared" :key="keyOf(role)" type="button" class="compare-chip" :aria-label="`移除对比${role.name || '角色'}`" @click="toggleCompare(role)">{{ display(role.name) }}<AppIcon name="close" :size="11" /></button>
+          </span>
+          <button v-if="selected.length" type="button" class="ui-button ghost small-button clear-compare" @click="selected = []">清空对比</button>
+        </div>
+        <div v-if="selected.length >= 2" class="comparison-scroll" tabindex="0" role="region" aria-label="角色对比表，可横向滚动">
+          <table class="data-table"><caption class="sr-only">已选角色的基础、弧盘、属性、战技和城区技能</caption><thead><tr><th scope="col">字段</th><th v-for="role in compared" :key="keyOf(role)" scope="col">{{ display(role.name) }}</th></tr></thead>
+            <tbody v-for="group in groups" :key="group.name"><tr class="group-row"><th :colspan="compared.length + 1" scope="colgroup">{{ group.name }}</th></tr>
+              <tr v-for="(row, i) in group.rows" :key="i"><th scope="row">{{ row.name }}</th><td v-for="(value, index) in row.values" :key="index">{{ value }}</td></tr>
+              <tr v-if="!group.rows.length"><th scope="row">数据</th><td v-for="role in compared" :key="keyOf(role)">未提供</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       <p v-if="!visible.length" class="empty">没有符合筛选条件的角色</p>
       <ul v-else class="role-grid">
-        <li v-for="(role, index) in visible" :key="keyOf(role)" class="role-card t-item" :style="{ '--i': Math.min(index, 11) }">
-          <div class="role-overview">
+        <li v-for="(role, index) in visible" :key="keyOf(role)" class="role-card t-item" :class="{ compared: isCompared(role) }" :style="{ '--i': Math.min(index, 11) }">
+          <div class="role-top">
             <img v-if="safeUrl(role.icon_url) && !failedImages.has(safeUrl(role.icon_url))" :key="safeUrl(role.icon_url)" :src="safeUrl(role.icon_url)" :alt="role.name || '角色'" loading="lazy" class="avatar" @error="imageFailed" />
             <span v-else class="avatar avatar-empty" aria-hidden="true">{{ (role.name || '?').slice(0, 1) }}</span>
-            <div class="role-heading"><strong>{{ display(role.name) }}</strong><span>{{ display(role.quality) }} · {{ display(role.element) }} · Lv{{ display(role.level) }}</span></div>
+            <div class="role-heading">
+              <strong :title="role.name">{{ display(role.name) }}</strong>
+              <span class="role-sub"><span class="rank" :class="`rank-${role.quality}`">{{ display(role.quality) }}</span><span>{{ display(role.element) }}</span><span class="level">Lv{{ display(role.level) }}</span></span>
+            </div>
+            <div class="role-actions">
+              <button type="button" class="icon-button favorite" :aria-label="`${isFavorite(role) ? '取消收藏' : '收藏'}${role.name || '角色'}`" :aria-pressed="isFavorite(role)" :disabled="!canPersist || !roleId(role)" :title="favoriteTitle(role)" @click="toggleFavorite(role)"><AppIcon name="star" :size="15" /></button>
+              <button type="button" class="icon-button" :aria-label="`对比${role.name || '角色'}`" :aria-pressed="isCompared(role)" :disabled="selected.length >= 4 && !isCompared(role)" :title="isCompared(role) ? '移出对比' : '加入对比'" @click="toggleCompare(role)"><AppIcon :name="isCompared(role) ? 'close' : 'plus'" :size="15" /></button>
+            </div>
           </div>
-          <p class="role-meta">觉醒 {{ display(role.awaken_level) }} · 混频 {{ display(role.mix_level) }}</p>
-          <p class="muted">羁遇累计经验 {{ display(role.affinity_exp) }}</p>
-          <div class="role-actions">
-            <button type="button" :aria-label="`${isFavorite(role) ? '取消收藏' : '收藏'}${role.name || '角色'}`" :aria-pressed="isFavorite(role)" :disabled="!canPersist || !roleId(role)" :title="!roleId(role) ? '角色标识未提供，暂不可收藏' : ''" @click="toggleFavorite(role)">{{ isFavorite(role) ? '★ 已收藏' : '☆ 收藏' }}</button>
-            <button type="button" :aria-label="`对比${role.name || '角色'}`" :aria-pressed="selected.includes(keyOf(role))" :disabled="selected.length >= 4 && !selected.includes(keyOf(role))" @click="toggleCompare(role)">{{ selected.includes(keyOf(role)) ? '移出对比' : '加入对比' }}</button>
-          </div>
-          <details><summary>{{ role.name || '角色' }}详情</summary><div class="detail-body">
-            <h4>弧盘</h4><template v-if="role.weapon"><strong>{{ display(role.weapon.name) }}</strong><p class="muted">{{ display(role.weapon.quality) }} · Lv{{ display(role.weapon.level) }} · 混频 {{ display(role.weapon.mix_level) }}</p></template><p v-else class="muted">暂无数据</p>
-            <template v-for="group in [{ name: '属性', rows: role.properties, value: 'value' }, { name: '战技', rows: role.skills, value: 'level' }, { name: '城区技能', rows: role.city_skills, value: 'level' }]" :key="group.name">
-              <h4>{{ group.name }}</h4><dl v-if="list(group.rows).length" class="detail-rows"><div v-for="(entry, index) in list(group.rows)" :key="index"><dt>{{ display(entry.name) }}</dt><dd>{{ group.value === 'level' && display(entry[group.value]) !== '未提供' ? 'Lv' : '' }}{{ display(entry[group.value]) }}</dd></div></dl><p v-else class="muted">暂无数据</p>
-            </template>
-          </div></details>
+          <details class="role-more">
+            <summary>
+              <span class="chip">觉醒 <b>{{ display(role.awaken_level) }}</b></span>
+              <span class="chip">混频 <b>{{ display(role.mix_level) }}</b></span>
+              <span class="chip">羁遇累计经验 <b>{{ display(role.affinity_exp) }}</b></span>
+              <span class="sr-only">{{ role.name || '角色' }}详情</span>
+              <AppIcon name="chevron" :size="14" class="t-disclosure" />
+            </summary>
+            <div class="detail-body">
+              <section class="detail-group">
+                <h4>弧盘</h4>
+                <p v-if="role.weapon" class="weapon"><strong>{{ display(role.weapon.name) }}</strong><span class="chip">{{ display(role.weapon.quality) }}</span><span class="chip">Lv{{ display(role.weapon.level) }}</span><span class="chip">混频 <b>{{ display(role.weapon.mix_level) }}</b></span></p>
+                <p v-else class="muted">暂无数据</p>
+              </section>
+              <section v-for="group in [{ name: '属性', rows: role.properties, value: 'value' }, { name: '战技', rows: role.skills, value: 'level' }, { name: '城区技能', rows: role.city_skills, value: 'level' }]" :key="group.name" class="detail-group">
+                <h4>{{ group.name }}</h4>
+                <dl v-if="list(group.rows).length" class="detail-rows"><div v-for="(entry, index) in list(group.rows)" :key="index"><dt>{{ display(entry.name) }}</dt><dd>{{ group.value === 'level' && display(entry[group.value]) !== '未提供' ? 'Lv' : '' }}{{ display(entry[group.value]) }}</dd></div></dl>
+                <p v-else class="muted">暂无数据</p>
+              </section>
+            </div>
+          </details>
         </li>
       </ul>
     </template>
-    <p v-if="fetchedLabel(snap?.fetched_at)" class="fetched-at">更新于 {{ fetchedLabel(snap?.fetched_at) }}</p>
   </section>
 </template>
 
 <style scoped>
 .nte-roles-panel { min-width: 0; overflow-wrap: anywhere; }
+.cap-title { position: relative; }
+.summary { gap: 4px; }
 .muted { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
-.role-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 16px 0 10px; }
-.role-toolbar label { display: grid; gap: 6px; color: var(--text-muted); font-size: 12px; }
-.role-toolbar .search-label { flex: 1 1 180px; }
-input, select, button { color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font: inherit; }
-input[type=search] { min-width: 0; width: 100%; box-sizing: border-box; }
-input[type=checkbox] { accent-color: var(--accent); }
-.role-toolbar .favorite-filter { display: flex; align-items: center; min-height: 36px; }
-button { cursor: pointer; font-size: 12px; transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
-button:not(:disabled):hover { border-color: #627081; }
-button:not(:disabled):active { transform: scale(var(--scale-small)); }
-button[aria-pressed=true] { color: var(--accent); border-color: var(--accent); }
-button:disabled { cursor: default; opacity: .45; }
-button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, .comparison-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.notice { color: var(--accent); padding: 10px 12px; background: var(--bg); border-radius: 6px; font-size: 12px; margin-top: 10px; }
-.compare-tray { margin-top: 16px; padding: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; }
-.compare-heading, .compare-chips, .role-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.compare-heading { margin-bottom: 8px; }.compare-heading strong { color: var(--accent); font-size: 14px; }.compare-heading > button { margin-left: auto; }
-.compare-chips { margin-bottom: 8px; }.compare-chips button { color: var(--accent); }
-.comparison-scroll { overflow-x: auto; margin-top: 12px; }
-table { width: 100%; min-width: 500px; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
-th, td { padding: 10px; border: 1px solid var(--border); text-align: left; font-variant-numeric: tabular-nums; }
-thead th { color: var(--accent); } tbody th { color: var(--text-muted); font-weight: 500; }.group-row th { color: var(--accent); background: var(--bg-card, var(--bg)); font-weight: 600; }
-.role-grid { margin: 16px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; align-items: start; }
-.role-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px; min-width: 0; }
-.role-overview { display: flex; align-items: center; gap: 10px; }.avatar { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; background: var(--bg); flex-shrink: 0; }.avatar-empty { display: grid; place-items: center; color: var(--text-muted); font-size: 20px; }
-.role-heading { display: grid; gap: 5px; }.role-heading > span { color: var(--text-muted); font-size: 12px; }.role-meta { font-size: 13px; margin: 10px 0 4px; }.role-actions { margin-top: 12px; }
-details { margin-top: 12px; border-top: 1px solid var(--border); } summary { color: var(--accent); cursor: pointer; padding: 10px 0 2px; font-size: 13px; }.detail-body h4 { margin: 12px 0 6px; font-size: 13px; }.detail-rows { margin: 0; }.detail-rows > div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; }.detail-rows dt { color: var(--text-muted); font-size: 12px; }.detail-rows dd { margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-@media (max-width: 560px) { .role-toolbar label:not(.search-label):not(.favorite-filter) { flex: 1 1 40%; }.role-toolbar .search-label { flex-basis: 100%; }.compare-tray { padding: 10px; } }
+input[type=checkbox] { margin: 0; accent-color: var(--accent); }
+.toolbar input[type=search] { min-width: 150px; }
+.favorite-filter { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 7px; color: var(--text-body); font-size: 12px; cursor: pointer; }
+.favorite-filter:has(input:checked) { border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: var(--accent-soft); color: var(--accent-strong); }
+.favorite-filter:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.notice { margin: 0 0 8px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel-bg); color: var(--text-muted); font-size: 12px; }
+
+/* Comparison: a one-line strip until two roles are picked, then the table. */
+.compare-tray { margin: 0 0 12px; padding: 6px 10px; border-radius: 8px; background: var(--overlay-2); }
+.compare-heading { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-height: 28px; font-size: 12px; }
+.compare-heading > strong { color: var(--text); font-size: 13px; font-weight: 600; }
+.compare-count { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.compare-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.compare-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 22px; padding: 0 6px 0 8px; border: 0; border-radius: 5px; background: var(--accent-soft); color: var(--accent-strong); font-size: 12px; font-weight: 500; }
+.compare-chip:not(:disabled):active { transform: scale(var(--scale-medium)); }
+.clear-compare { margin-left: auto; min-height: 24px; padding: 2px 8px; }
+.comparison-scroll { overflow-x: auto; margin: 6px -10px -6px; padding: 0 10px 6px; }
+.comparison-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+.comparison-scroll table { min-width: 460px; table-layout: fixed; font-variant-numeric: tabular-nums; }
+.comparison-scroll :is(th, td) { padding-top: 4px; padding-bottom: 4px; line-height: 18px; }
+.comparison-scroll thead th:first-child { width: 112px; }
+.comparison-scroll tbody tr:last-child th { border-bottom: 0; }
+.comparison-scroll tbody th { color: var(--text-muted); font-size: 12px; font-weight: 400; }
+.comparison-scroll .group-row th { padding-top: 10px; color: var(--text); font-size: 11px; font-weight: 600; letter-spacing: .03em; }
+
+/* Role cards: portrait, name and rank on one line; actions top-right; the
+   level chips double as the disclosure for the full sheet. */
+.role-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 8px; align-items: start; }
+.role-card { min-width: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); }
+.role-card.compared { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.role-top { display: flex; align-items: center; gap: 8px; }
+.avatar { width: 36px; height: 36px; flex-shrink: 0; border-radius: 8px; object-fit: cover; background: var(--surface-soft); }
+.avatar-empty { display: grid; place-items: center; color: var(--text-muted); font-size: 15px; }
+.role-heading { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.role-heading > strong { overflow: hidden; color: var(--text); font-size: 13px; line-height: 18px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.role-sub { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 11px; line-height: 16px; white-space: nowrap; }
+.rank { padding: 0 4px; border-radius: 3px; background: var(--overlay-3); color: var(--text-body); font-size: 10px; font-weight: 700; line-height: 14px; }
+/* Letters mix toward the text colour: lighter at night, darker by day, so the
+   10px glyph keeps its contrast on the tint in both themes. */
+.rank-S { background: color-mix(in srgb, var(--chart-4) 18%, transparent); color: color-mix(in srgb, var(--chart-4) 60%, var(--text)); }
+.rank-A { background: color-mix(in srgb, var(--chart-5) 16%, transparent); color: color-mix(in srgb, var(--chart-5) 75%, var(--text)); }
+.level { color: var(--text-body); font-variant-numeric: tabular-nums; }
+.role-actions { display: flex; gap: 4px; margin-left: auto; align-self: flex-start; }
+/* Quiet until used: 24 bordered buttons would outweigh the data. */
+.role-actions .icon-button { width: 28px; height: 28px; border-color: transparent; border-radius: 6px; background: transparent; box-shadow: none; color: var(--text-faint); }
+@media (hover: hover) and (pointer: fine) { .role-actions .icon-button:not(:disabled):not([aria-pressed=true]):hover { background: var(--hover-bg); color: var(--text); } }
+.role-actions .icon-button:disabled { opacity: .4; cursor: not-allowed; }
+.role-actions .icon-button[aria-pressed=true] { border-color: transparent; background: var(--accent-soft); color: var(--accent-strong); }
+.role-actions .favorite[aria-pressed=true] { background: color-mix(in srgb, var(--chart-4) 16%, transparent); color: var(--chart-4); }
+.role-actions .favorite[aria-pressed=true] svg { fill: currentColor; }
+.role-actions .icon-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.role-more { margin-top: 6px; }
+.role-more > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0 -4px; padding: 2px 4px; border-radius: 6px; list-style: none; cursor: pointer; }
+.role-more > summary::-webkit-details-marker { display: none; }
+.role-more > summary > svg { margin-left: auto; color: var(--text-faint); }
+.role-more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+@media (hover: hover) and (pointer: fine) { .role-more > summary:hover { background: var(--hover-bg); } .role-more > summary:hover > svg { color: var(--text-body); } }
+.detail-body { display: grid; gap: 8px; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
+.detail-group h4 { margin: 0 0 3px; color: var(--text-faint); font-size: 11px; font-weight: 500; letter-spacing: .03em; }
+.weapon { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; }
+.weapon > strong { margin-right: 2px; color: var(--text); font-weight: 600; }
+.detail-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; margin: 0; }
+.detail-rows > div { display: flex; justify-content: space-between; gap: 6px; min-width: 0; padding: 1px 0; font-size: 12px; line-height: 18px; }
+.detail-rows dt { overflow: hidden; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; }
+.detail-rows dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 560px) {
+  .toolbar .quiet-select { flex: 1 1 calc(25% - 8px); min-width: 0; max-width: none; }
+  .toolbar .count { margin-left: auto; }
+}
 </style>

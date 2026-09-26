@@ -68,9 +68,9 @@ async function selectEvent(event) {
 
 <template>
   <div class="calendar-page">
-    <header class="calendar-heading">
-      <div><p class="calendar-eyebrow">VERSION CALENDAR</p><h1>活动日历<span class="heading-dot">.</span></h1><p class="calendar-subtitle">把握每一段旅程，让值得期待的事有迹可循。</p></div>
-      <div class="calendar-timezone"><span aria-hidden="true">◷</span> 北京时间 <strong>UTC+8</strong></div>
+    <header class="page-heading">
+      <div class="page-heading-copy"><p class="page-kicker"><span class="section-no">§02</span><span class="eyebrow">Version calendar</span></p><h1>活动日历</h1><p class="page-description">把握每一段旅程，让值得期待的事有迹可循。</p></div>
+      <div class="page-meta calendar-timezone"><span aria-hidden="true">◷</span> 北京时间 <strong>UTC+8</strong></div>
     </header>
 
     <section class="calendar-board" aria-label="游戏活动时间轴" :aria-busy="loading">
@@ -81,8 +81,8 @@ async function selectEvent(event) {
           <button class="today-button" type="button" @click="goToday">今天</button>
         </div>
         <div class="calendar-filters">
-          <div v-glide class="range-toggle" aria-label="显示范围"><button type="button" :aria-pressed="mode === 'rolling'" @click="setMode('rolling')">近 30 天</button><button type="button" :aria-pressed="mode === 'month'" @click="setMode('month')">整月</button><button type="button" :aria-pressed="mode === 'fortnight'" @click="setMode('fortnight')">14 天</button></div>
-          <label class="game-filter"><span class="sr-only">筛选游戏</span><select v-model="filter" aria-label="筛选游戏"><option value="">全部游戏</option><option v-for="game in games" :key="game.game_id" :value="game.game_id">{{ game.display_name }}</option></select></label>
+          <div v-glide class="range-toggle segmented" aria-label="显示范围"><button type="button" :aria-pressed="mode === 'rolling'" @click="setMode('rolling')">近 30 天</button><button type="button" :aria-pressed="mode === 'month'" @click="setMode('month')">整月</button><button type="button" :aria-pressed="mode === 'fortnight'" @click="setMode('fortnight')">14 天</button></div>
+          <label class="game-filter"><span class="sr-only">筛选游戏</span><select v-model="filter" class="quiet-select" aria-label="筛选游戏"><option value="">全部游戏</option><option v-for="game in games" :key="game.game_id" :value="game.game_id">{{ game.display_name }}</option></select></label>
         </div>
       </div>
       <div class="calendar-meta"><span><strong>{{ visibleEvents.length }}</strong> 项活动位于当前范围<span v-if="events.length > visibleEvents.length"> · 共 {{ events.length }} 项</span></span><div class="calendar-legend"><span><i class="legend-range" />已知区间</span><span><i class="legend-point" />日期标记</span><span><i class="legend-today" />现在</span></div></div>
@@ -118,7 +118,7 @@ async function selectEvent(event) {
     <section v-if="undated.length || invalid.length" class="calendar-unplaced" aria-labelledby="unplaced-title"><div class="unplaced-heading"><h2 id="unplaced-title">待确认的时间</h2><p>原始数据未给出完整日期，或日期存在异常。</p></div><div class="unplaced-grid"><div v-for="bucket in [{ title: '日期未提供', events: undated }, { title: '日期异常', events: invalid }]" v-show="bucket.events.length" :key="bucket.title" class="unplaced-bucket"><h3>{{ bucket.title }} <span>{{ bucket.events.length }}</span></h3><button v-for="event in bucket.events" :key="event.id" type="button" class="unplaced-event" :aria-label="`查看活动详情：${event.name || '未命名活动'}`" @click="selectEvent(event)"><span><strong>{{ event.name || '未命名活动' }}</strong><small>{{ event.gameName }} · {{ event.category }}</small></span><span class="unknown-reason">{{ event.geometry.reason }} <b aria-hidden="true">↗</b></span></button></div></div></section>
 
     <section v-if="selected" ref="detailElement" class="calendar-detail t-panel" aria-labelledby="calendar-detail-title" tabindex="-1" :style="{ '--game-accent': gameAccent(selected.gameId) }">
-      <div class="detail-heading"><div><p class="calendar-eyebrow">{{ selected.gameName }} / {{ selected.category }}</p><h2 id="calendar-detail-title">{{ selected.name || '未命名活动' }}</h2></div><button type="button" class="detail-close" aria-label="关闭活动详情" @click="selectedId = null">×</button></div>
+      <div class="detail-heading"><div><p class="eyebrow">{{ selected.gameName }} / {{ selected.category }}</p><h2 id="calendar-detail-title">{{ selected.name || '未命名活动' }}</h2></div><button type="button" class="detail-close" aria-label="关闭活动详情" @click="selectedId = null">×</button></div>
       <div class="detail-status"><span>{{ selected.status }}</span><span v-if="selected.geometry.reason">{{ selected.geometry.reason }}</span><span v-if="selected.stale" class="calendar-stale">数据可能过期</span></div>
       <dl><div><dt>开始时间 · 北京时间</dt><dd>{{ selected.start_at ? formatBeijingDateTime(selected.start_at) : selected.start_text || '未知' }}</dd><small v-if="selected.geometry.approximateStart">仅知开始日期 {{ selected.start_date }}，具体时刻未知</small><small v-if="selected.start_at && selected.geometry.start === null">原始值：{{ selected.start_at }}</small></div><div><dt>截止时间 · 北京时间</dt><dd>{{ formatBeijingDateTime(selected.end_at) }}</dd><small v-if="selected.end_at && selected.geometry.end === null">原始值：{{ selected.end_at }}</small></div><div><dt>来源标题</dt><dd>{{ selected.source_name ? selected.source_name + ' · ' : '' }}{{ selected.source_title || '未提供' }}</dd></div><div><dt>快照抓取时间 · 北京时间</dt><dd>{{ formatBeijingDateTime(selected.fetchedAt) }}</dd></div></dl>
       <p v-if="selected.time_text" class="source-id">日期依据：{{ selected.time_text }}</p>
@@ -131,81 +131,72 @@ async function selectEvent(event) {
 
 <style scoped>
 .calendar-page { min-width: 0; display: grid; gap: 24px; color: var(--text); }
-.calendar-heading { display: flex; justify-content: space-between; gap: 24px; align-items: end; padding: 2px 0 7px; }
-.calendar-eyebrow { font-size: 10px; letter-spacing: .18em; color: var(--accent); font-weight: 650; margin-bottom: 10px; }
-.calendar-heading h1 { font-size: clamp(26px, 3vw, 36px); letter-spacing: -.04em; font-weight: 650; line-height: 1.3; }
-.heading-dot { color: var(--accent); margin-left: 3px; }
-.calendar-subtitle { margin-top: 10px; color: var(--text-muted); font-size: 13px; }
-.calendar-timezone { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); white-space: nowrap; padding-bottom: 3px; }
-.calendar-timezone strong { color: var(--accent); font-size: 10px; font-weight: 550; }
-.calendar-board { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; min-width: 0; }
-.calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding: 24px 24px 18px; }
-.calendar-navigation, .calendar-filters { display: flex; align-items: center; gap: 16px; }
-.calendar-navigation h2 { font-size: 19px; font-weight: 600; letter-spacing: -.02em; min-width: 141px; }
-.calendar-arrows { display: flex; gap: 2px; }
+.calendar-page > .page-heading { margin-bottom: 0; }
+.calendar-timezone { gap: 6px; white-space: nowrap; }
+.calendar-timezone strong { color: var(--text); font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+.calendar-board { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; min-width: 0; box-shadow: var(--card-shadow); }
+.calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 20px 20px 16px; }
+.calendar-navigation, .calendar-filters { display: flex; align-items: center; gap: 12px; }
+.calendar-navigation h2 { font-size: 18px; font-weight: 600; letter-spacing: -.02em; min-width: 141px; }
+.calendar-arrows { display: flex; gap: 4px; }
 .calendar-page button, .calendar-page select { cursor: pointer; font-family: inherit; }
-.calendar-arrows button, .today-button, .detail-close { border: 1px solid var(--border); background: transparent; color: var(--text-muted); border-radius: 7px; transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
-.calendar-arrows button:hover, .today-button:hover, .detail-close:hover { border-color: #627081; background: var(--surface-soft); }
-.calendar-arrows button:active, .today-button:active, .detail-close:active { transform: scale(var(--scale-small)); }
-.calendar-arrows button { height: 32px; width: 29px; font-size: 22px; line-height: 24px; }
-.today-button { padding: 6px 12px; font-size: 11px; }
-.range-toggle { display: flex; background: var(--bg); border-radius: 8px; padding: 4px; }
-.range-toggle button { border: 0; padding: 6px 13px; color: var(--text-muted); background: transparent; border-radius: 5px; font-size: 12px; transition: color var(--duration-quick) var(--ease-smooth-out); }
-.range-toggle button[aria-pressed="true"] { color: var(--accent); }
-.range-toggle :deep(.t-glide) { background: #35404b; border-radius: 5px; }
-.game-filter select { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 7px; padding: 8px 10px; font-size: 12px; max-width: 170px; }
-.calendar-meta { display: flex; justify-content: space-between; gap: 12px; padding: 0 24px 18px; font-size: 11px; color: var(--text-muted); }
-.calendar-meta strong { color: var(--text); font-size: 12px; font-weight: 500; }
+.calendar-arrows button, .today-button, .detail-close { border: 1px solid var(--border-strong); background: var(--card-bg); color: var(--text-body); border-radius: 7px; box-shadow: var(--btn-shadow); transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
+@media (hover: hover) and (pointer: fine) { .calendar-arrows button:hover, .today-button:hover, .detail-close:hover { background: var(--button-hover-bg); color: var(--text); } }
+.calendar-arrows button:active, .today-button:active, .detail-close:active { transform: scale(var(--scale-medium)); box-shadow: var(--btn-shadow-pressed); }
+.calendar-arrows button { height: 32px; width: 32px; font-size: 20px; line-height: 24px; }
+.today-button { min-height: 32px; padding: 5px 12px; font-size: 12px; font-weight: 500; }
+.calendar-meta { display: flex; justify-content: space-between; gap: 12px; padding: 0 20px 16px; font-size: 12px; color: var(--text-muted); }
+.calendar-meta strong { color: var(--text); font-size: 13px; font-weight: 600; }
 .calendar-legend { display: flex; gap: 16px; }
 .calendar-legend span { display: flex; align-items: center; gap: 6px; }
 .calendar-legend i { display: inline-block; }
-.legend-range { width: 12px; height: 7px; border-radius: 2px; background: #677785; }
-.legend-point { width: 6px; height: 6px; background: #a6b2c2; transform: rotate(45deg); }
+.legend-range { width: 12px; height: 7px; border-radius: 2px; background: var(--text-faint); }
+.legend-point { width: 6px; height: 6px; background: var(--text-muted); transform: rotate(45deg); }
 .legend-today { width: 2px; height: 10px; background: var(--accent); }
-.calendar-stale { color: #e2c38a; font-size: 11px; }
-.calendar-board > .calendar-stale { margin: 0 24px 16px; padding: 10px 12px; background: #d8bb840a; border-left: 2px solid #ad925c; }
-.calendar-read-error, .calendar-missing { margin: 0 24px 16px; padding: 10px 12px; font-size: 11px; line-height: 1.6; }
-.calendar-read-error { background: #dfaa8a0a; border-left: 2px solid #c39a7c; color: #e3ba9a; }
-.calendar-missing { color: var(--text-muted); border: 1px dashed var(--border); border-radius: 6px; }
-.timeline-scroll { overflow: auto; max-height: min(68vh, 560px); scrollbar-color: #4b5a68 var(--bg); scrollbar-width: thin; }
+.calendar-stale { color: var(--stale-text); font-size: 11px; }
+.calendar-board > .calendar-stale { margin: 0 20px 16px; padding: 10px 12px; background: var(--stale-bg); border: 1px solid color-mix(in srgb, var(--stale-text) 22%, transparent); border-radius: 8px; font-size: 12px; }
+.calendar-read-error, .calendar-missing { margin: 0 20px 16px; padding: 10px 12px; font-size: 12px; line-height: 1.6; border-radius: 8px; }
+.calendar-read-error { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+.calendar-missing { color: var(--text-muted); border: 1px dashed var(--border-strong); }
+.timeline-scroll { overflow: auto; max-height: min(68vh, 560px); scrollbar-color: var(--scrollbar) var(--bg); scrollbar-width: thin; }
 .timeline-canvas { min-width: var(--timeline-min); }
 .timeline-header, .timeline-group { display: grid; grid-template-columns: 184px minmax(0, 1fr); }
 .timeline-header { position: sticky; top: 0; z-index: 5; background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .timeline-label { position: sticky; left: 0; z-index: 3; background: var(--card-bg); border-right: 1px solid var(--border); }
-.header-label { display: flex; flex-direction: column; justify-content: center; gap: 5px; padding: 18px 20px; color: var(--text-muted); font-size: 11px; }
-.header-label small { color: #8393a4; font-size: 9px; }
+.header-label { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 18px 20px; color: var(--text-muted); font-size: 12px; font-weight: 500; }
+.header-label small { color: var(--text-faint); font-size: 10px; font-weight: 400; }
 .date-track, .grid-backdrop { display: grid; grid-template-columns: repeat(var(--day-count), minmax(0, 1fr)); }
-.date-cell { position: relative; min-height: 78px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 0 17px; border-right: 1px solid #ffffff05; font-variant-numeric: tabular-nums; }
-.date-cell small { font-size: 9px; color: #8191a3; }
+.date-cell { position: relative; min-height: 78px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 0 17px; border-right: 1px solid var(--overlay-2); font-variant-numeric: tabular-nums; }
+.date-cell small { font-size: 10px; color: var(--text-faint); }
 .date-cell strong { font-size: 14px; font-weight: 500; }
-.date-cell.weekend { background: #ffffff03; }
-.date-cell.is-today { color: var(--accent); background: #d8bb840c; }
-.date-cell.is-today strong { border-radius: 50%; background: var(--accent); color: #1c242d; width: 25px; height: 25px; line-height: 25px; margin-top: -3px; }
-.day-today { font-size: 8px; position: absolute; bottom: 5px; color: var(--accent); }
+.date-cell.weekend { background: var(--overlay-1); }
+.date-cell.is-today { color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.date-cell.is-today strong { border-radius: 50%; background: var(--accent); color: var(--accent-ink); width: 25px; height: 25px; line-height: 25px; margin-top: -3px; }
+.day-today { font-size: 9px; font-weight: 500; position: absolute; bottom: 4px; color: var(--accent); }
 .timeline-group { border-bottom: 1px solid var(--border); }
 .timeline-group:last-child { border-bottom: 0; }
 .group-label { display: flex; align-items: center; gap: 10px; padding: 0 16px; }
-.game-monogram { width: 28px; height: 28px; background: color-mix(in srgb, var(--game-accent) 13%, transparent); border-radius: 5px; font-size: 15px; }
-.group-label strong { display: block; font-size: 12px; line-height: 17px; }
-.group-label small { display: block; color: #8292a4; font-size: 9px; line-height: 13px; }
+.game-monogram { width: 28px; height: 28px; background: color-mix(in srgb, var(--game-accent) 13%, transparent); border-radius: 7px; font-size: 15px; }
+.group-label strong { display: block; font-size: 13px; font-weight: 600; line-height: 18px; }
+.group-label small { display: block; color: var(--text-faint); font-size: 11px; line-height: 15px; }
 .group-track { position: relative; overflow: hidden; }
 .grid-backdrop { position: absolute; inset: 0; pointer-events: none; }
-.grid-backdrop > div { border-right: 1px solid #ffffff05; }
-.grid-backdrop .weekend { background: #ffffff02; }
-.grid-backdrop .today-column { background: #d8bb8407; }
-.today-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #d8bb8475; z-index: 2; pointer-events: none; }
+.grid-backdrop > div { border-right: 1px solid var(--overlay-2); }
+.grid-backdrop .weekend { background: var(--overlay-1); }
+.grid-backdrop .today-column { background: color-mix(in srgb, var(--accent) 3%, transparent); }
+.today-line { position: absolute; top: 0; bottom: 0; width: 1px; background: color-mix(in srgb, var(--accent) 46%, transparent); z-index: 2; pointer-events: none; }
 .event-lane { height: 32px; position: relative; }
-.timeline-event { position: absolute; top: 0; height: 32px; min-width: 0; border: 0; box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--game-accent) 20%, transparent); border-radius: 0; color: var(--text); background: repeating-linear-gradient(125deg, transparent, transparent 12px, #ffffff03 12px, #ffffff03 14px), linear-gradient(100deg, color-mix(in srgb, var(--game-accent) 26%, #19232e), color-mix(in srgb, var(--game-accent) 9%, #19232e)); padding: 0 10px; display: flex; align-items: center; gap: 9px; text-align: left; overflow: hidden; transition: filter var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
+.timeline-event { position: absolute; top: 0; height: 32px; min-width: 0; border: 0; box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--game-accent) 20%, transparent); border-radius: 0; color: var(--text); background: repeating-linear-gradient(125deg, transparent, transparent 12px, var(--overlay-1) 12px, var(--overlay-1) 14px), linear-gradient(100deg, color-mix(in srgb, var(--game-accent) 26%, var(--card-bg)), color-mix(in srgb, var(--game-accent) 9%, var(--card-bg))); padding: 0 10px; display: flex; align-items: center; gap: 9px; text-align: left; overflow: hidden; transition: filter var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
 .timeline-event:not(.is-point)::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--game-accent); }
-.timeline-event:hover { filter: brightness(1.2); }
+@media (hover: hover) and (pointer: fine) { .timeline-event:hover { filter: brightness(1.12) saturate(1.08); } }
 .timeline-event:not(.is-point):active { transform: scaleY(0.94); }
 .timeline-event.is-ended { opacity: .56; }
 .event-summary { display: flex; align-items: center; gap: 9px; min-width: 0; width: 100%; }
 .timeline-event.is-short { overflow: visible; }
-.is-short .event-summary { position: absolute; left: 10px; width: max-content; max-width: 330px; text-shadow: 0 1px 3px #111b25; }
+.is-short .event-summary { position: absolute; left: 10px; width: max-content; max-width: 330px; text-shadow: 0 1px 3px var(--bg); }
 .is-short.label-left .event-summary { left: auto; right: 10px; }
 .timeline-event.is-short::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 1px; background: var(--game-accent); opacity: .5; }
-.event-bar-title { display: block; font-size: 11px; font-weight: 550; min-width: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event-bar-title { display: block; font-size: 11px; font-weight: 600; min-width: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .event-category, .event-status { flex-shrink: 0; font-size: 10px; white-space: nowrap; }
 .event-category { color: var(--text-muted); }
 .event-status { color: var(--game-accent); }
@@ -216,46 +207,45 @@ async function selectEvent(event) {
 .timeline-event.is-selected { outline: 2px solid var(--accent); outline-offset: 2px; z-index: 2; }
 .timeline-event.is-point { width: 16px; transform: translateX(-50%); padding: 0; background: transparent; border: 0; box-shadow: none; overflow: visible; justify-content: center; }
 .point-diamond { display: block; height: 9px; width: 9px; background: var(--game-accent); transform: rotate(45deg); border: 2px solid var(--card-bg); box-shadow: 0 0 0 1px var(--game-accent); }
-.point-label { position: absolute; left: 20px; max-width: 330px; display: flex; align-items: center; gap: 9px; height: 32px; color: var(--text); padding: 0 7px; background: #19232eeb; }
+.point-label { position: absolute; left: 20px; max-width: 330px; display: flex; align-items: center; gap: 9px; height: 32px; color: var(--text); padding: 0 7px; background: color-mix(in srgb, var(--card-bg) 92%, transparent); }
 .point-label strong { min-width: 24px; font-size: 11px; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .point-label-left { left: auto; right: 20px; text-align: right; }
 .calendar-empty { padding: 42px 24px; text-align: center; color: var(--text-muted); font-size: 12px; }
 .timeline-empty { display: grid; gap: 13px; justify-items: center; min-height: 245px; align-content: center; }
 .timeline-empty > span { font-size: 27px; color: var(--accent); opacity: .7; }
 .timeline-empty strong { color: var(--text); font-size: 14px; font-weight: 500; }
-.calendar-footer { padding: 14px 24px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border); font-size: 10px; color: #93a1b1; }
-.calendar-unplaced { border: 1px solid var(--border); padding: 23px; border-radius: 14px; background: #151e28; }
+.calendar-footer { padding: 12px 20px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-faint); }
+.calendar-unplaced { border: 1px solid var(--border); padding: 20px; border-radius: 12px; background: var(--card-bg); box-shadow: var(--card-shadow); }
 .unplaced-heading { display: flex; gap: 16px; align-items: baseline; margin-bottom: 20px; flex-wrap: wrap; }
-.unplaced-heading h2 { font-size: 15px; font-weight: 550; }
-.unplaced-heading p { font-size: 11px; color: var(--text-muted); }
+.unplaced-heading h2 { font-size: 15px; font-weight: 600; }
+.unplaced-heading p { font-size: 12px; color: var(--text-muted); }
 .unplaced-grid { display: grid; gap: 24px; }
-.unplaced-bucket h3 { font-size: 11px; color: #a4b0bf; margin: 0 0 10px; font-weight: 500; }
-.unplaced-bucket h3 span { margin-left: 7px; color: var(--accent); }
-.unplaced-event { transition: background-color var(--duration-quick) var(--ease-smooth-out); display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 13px 0; width: 100%; border: 0; border-top: 1px solid #ffffff08; color: var(--text); background: transparent; text-align: left; }
+.unplaced-bucket h3 { font-size: 12px; color: var(--text-muted); margin: 0 0 10px; font-weight: 500; }
+.unplaced-bucket h3 span { margin-left: 6px; color: var(--text); font-family: var(--font-mono); }
+.unplaced-event { transition: background-color var(--duration-quick) var(--ease-smooth-out); display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 13px 0; width: 100%; border: 0; border-top: 1px solid var(--overlay-3); color: var(--text); background: transparent; text-align: left; }
 .unplaced-event > span:first-child { display: grid; gap: 6px; }
-.unplaced-event strong { font-weight: 500; font-size: 12px; }
-.unplaced-event small, .unknown-reason { color: var(--text-muted); font-size: 10px; }
+.unplaced-event strong { font-weight: 500; font-size: 13px; }
+.unplaced-event small, .unknown-reason { color: var(--text-muted); font-size: 11px; }
 .unknown-reason b { margin-left: 18px; color: var(--accent); }
-.calendar-detail { background: var(--card-bg); border: 1px solid color-mix(in srgb, var(--game-accent) 38%, var(--border)); border-radius: 14px; padding: 25px; scroll-margin: 22px; }
+.calendar-detail { background: var(--card-bg); border: 1px solid color-mix(in srgb, var(--game-accent) 38%, var(--border)); border-radius: 12px; padding: 24px; scroll-margin: 80px; box-shadow: var(--card-shadow); }
 .detail-heading { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
-.detail-heading h2 { font-size: 20px; font-weight: 550; line-height: 1.5; }
-.detail-close { height: 30px; width: 30px; font-size: 20px; flex-shrink: 0; }
-.detail-status { display: flex; gap: 10px; margin: 15px 0 22px; color: var(--game-accent); font-size: 11px; flex-wrap: wrap; }
-.detail-status > span { background: #ffffff06; padding: 4px 8px; border-radius: 4px; }
+.detail-heading h2 { margin-top: 6px; font-size: 20px; font-weight: 600; line-height: 1.4; }
+.detail-close { height: 32px; width: 32px; font-size: 20px; flex-shrink: 0; }
+.detail-status { display: flex; gap: 8px; margin: 14px 0 22px; color: var(--text-body); font-size: 11px; font-weight: 500; flex-wrap: wrap; }
+.detail-status > span { background: var(--overlay-3); padding: 2px 8px; border-radius: 5px; line-height: 18px; }
+.detail-status > span:first-child { background: color-mix(in srgb, var(--game-accent) 14%, transparent); color: var(--text); }
 .calendar-detail dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin: 0; }
-.calendar-detail dt { color: var(--text-muted); font-size: 10px; margin-bottom: 8px; }
+.calendar-detail dt { color: var(--text-muted); font-size: 11px; margin-bottom: 6px; }
 .calendar-detail dd { margin: 0; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .calendar-detail dl small { display: block; color: var(--text-muted); margin-top: 6px; }
-.clipping-note { margin-top: 20px; padding: 12px; background: #d8bb8409; color: var(--accent); font-size: 11px; line-height: 1.6; }
-.source-id { color: var(--text-muted); margin-top: 20px; font-size: 10px; overflow-wrap: anywhere; }
-.source-link { display: inline-block; margin-top: 15px; color: var(--accent); font-size: 12px; }
+.clipping-note { margin-top: 20px; padding: 10px 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 8px; color: var(--accent-strong); font-size: 12px; line-height: 1.6; }
+.source-id { color: var(--text-muted); margin-top: 20px; font-size: 11px; overflow-wrap: anywhere; }
+.source-link { display: inline-block; margin-top: 16px; color: var(--accent); font-size: 13px; font-weight: 500; text-decoration: none; }
 .calendar-page button:focus-visible, .calendar-page select:focus-visible, .timeline-scroll:focus-visible, .calendar-detail:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.calendar-page button:hover { color: var(--text); }
-.unplaced-event:hover { background-color: rgba(255, 255, 255, 0.025); }
+@media (hover: hover) and (pointer: fine) { .unplaced-event:hover { background-color: var(--overlay-2); } .source-link:hover { color: var(--accent-strong); } }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 760px) {
-  .calendar-heading { align-items: start; flex-direction: column; gap: 14px; }
-  .calendar-toolbar { padding: 18px 16px; gap: 17px; }
+  .calendar-toolbar { padding: 16px; gap: 14px; }
   .calendar-navigation { gap: 10px; }
   .calendar-navigation h2 { font-size: 16px; min-width: 121px; }
   .calendar-filters { justify-content: space-between; width: 100%; }

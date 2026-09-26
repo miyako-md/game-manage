@@ -40,9 +40,15 @@ const groups = computed(() => [
   { id: 'gacha', label: '抽卡统计', caps: ['gacha'] },
   { id: 'news', label: '公告与资讯', caps: ['announcement', 'news'] },
 ].filter(group => group.caps.some(cap => cap !== 'events' && props.game.capabilities.includes(cap))))
+// 「全部」按页签顺序排（概览类在前、对局和公告在后），不按后端能力列表的顺序。
+const TAB_ORDER = groups => groups.filter(group => group.id !== 'all').flatMap(group => group.caps)
 const visibleCaps = computed(() => {
   const current = groups.value.find(group => group.id === activeSection.value) || groups.value[0]
-  return props.game.capabilities.filter(cap => cap !== 'events' && current?.caps.includes(cap))
+  const caps = props.game.capabilities.filter(cap => cap !== 'events' && current?.caps.includes(cap))
+  if (current?.id !== 'all') return caps
+  const order = TAB_ORDER(groups.value)
+  const rank = cap => (order.includes(cap) ? order.indexOf(cap) : order.length)
+  return caps.map((cap, index) => ({ cap, index })).sort((a, b) => rank(a.cap) - rank(b.cap) || a.index - b.index).map(item => item.cap)
 })
 
 const CAP_COMPONENTS = {
@@ -67,7 +73,7 @@ function capComponent(cap) {
 </script>
 
 <template>
-  <section class="game-card">
+  <section class="game-card" :class="`game-${game.game_id}`">
     <div v-if="externalError" class="error-bar" role="alert">
       {{ externalError }}
     </div>
@@ -80,6 +86,7 @@ function capComponent(cap) {
       >
         未配置凭据
       </span>
+      <SourceStatusPanel :game="game" :collection="collectionStatus" />
       <button
         type="button"
         class="ui-button refresh-btn"
@@ -89,9 +96,7 @@ function capComponent(cap) {
         <AppIcon name="refresh" :size="15" :class="{ spinning: externalRefreshing }" /><span :class="{ 't-shimmer': externalRefreshing }">{{ externalRefreshing ? '刷新中…' : '刷新数据' }}</span>
       </button>
     </header>
-
-    <SourceStatusPanel :game="game" :collection="collectionStatus" />
-    <div v-if="game.game_id !== 'wuthering_waves'" class="detail-navigation"><nav v-glide.underline class="detail-tabs" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
+    <div v-if="game.game_id !== 'wuthering_waves'" class="detail-navigation"><nav v-glide class="detail-tabs segmented" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
     <WuwaDashboard v-if="game.game_id === 'wuthering_waves'" :snaps="externalSnapshots" :configured="game.credentials_configured" :initial-section="initialSection" @calendar="emit('calendar')" />
     <div v-else :key="activeSection" class="cap-list t-panel">
       <template v-for="(cap, index) in visibleCaps" :key="cap">
@@ -103,6 +108,7 @@ function capComponent(cap) {
           :capability="cap"
           :account-id="game.game_id === 'nte' ? externalSnapshots.account?.payload?.role_id || '' : ''"
           :roles="externalSnapshots.roles?.payload?.entries || []"
+          v-bind="cap === 'match' ? { stats: externalSnapshots.stats?.payload ?? null } : {}"
           :class="['detail-cap', 't-item', `detail-cap-${cap}`]"
           :style="{ '--i': index }"
         />
@@ -120,46 +126,33 @@ function capComponent(cap) {
 
 .error-bar {
   background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
   color: var(--danger);
-  padding: 13px 16px;
+  padding: 12px 16px;
   font-size: 12px;
-  border-radius: 7px;
+  border-radius: 10px;
   margin-bottom: 20px;
   overflow-wrap: anywhere;
 }
 
-.card-head {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 0 28px;
-  flex-wrap: wrap;
-}
-.game-heading { display:flex; align-items:center; gap:17px; margin-right:auto; }
-.detail-monogram { display:grid; place-items:center; font-size:32px; width:58px; height:58px; border:1px solid var(--border); border-radius:10px; background:var(--card-bg); }
-.game-heading .eyebrow { font-size:9px; }
-
-.game-name {
-  font-size: 30px;
-  font-weight: 550;
-  margin-top: 5px;
-}
-
-.refresh-btn { background:var(--bg); }
+.card-head { display:flex; align-items:center; gap:8px 10px; padding:0 0 14px; margin-bottom:16px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.game-heading { display:flex; align-items:center; gap:12px; margin-right:auto; min-width:0; }
+.detail-monogram { display:grid; place-items:center; font-size:22px; width:40px; height:40px; border-radius:10px; box-shadow:0 1px 2px rgba(16, 24, 40, .06); }
+.game-name { margin-top:2px; font-size:24px; line-height:30px; font-weight:700; letter-spacing:-.02em; }
 
 .cap-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  gap: 12px;
   align-items: start;
 }
-.detail-navigation { display:flex; justify-content:space-between; gap:15px; align-items:center; border-bottom:1px solid var(--border); margin-bottom:25px; flex-wrap:wrap; }
-.detail-tabs { display:flex; gap:5px; flex-wrap:wrap; }.detail-tabs button { color:var(--text-muted); background:none; border:0; padding:11px 13px; font-size:12px; border-bottom:2px solid transparent; }.detail-tabs button.active { color:var(--accent); }.detail-tabs button { transition:color var(--duration-quick) var(--ease-smooth-out); }.detail-tabs button:not(.active):hover { color:var(--text); }
+.detail-navigation { display:flex; justify-content:space-between; gap:10px 16px; align-items:center; margin:0 0 16px; flex-wrap:wrap; }
 .detail-cap-roles,.detail-cap-match,.detail-cap-gacha,.detail-cap-exploration { grid-column:1/-1; }
-.detail-cap-match :deep(.item-main),.detail-cap-match :deep(.item-sub) { font-size:13px; }
+/* 英雄联盟 has one short identity card and one wide stats card: stack them full width. */
+.game-league_of_legends .detail-cap-account,.game-league_of_legends .detail-cap-stats { grid-column:1/-1; }
 .detail-cap-roles :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
-@media(max-width:950px) { .cap-list { grid-template-columns:1fr; gap:16px; } }
-@media(max-width:600px) { .card-head { gap:12px; }.game-heading { gap:11px; }.game-name { font-size:25px; }.detail-monogram { width:43px; height:43px; font-size:25px; }.detail-tabs button { padding:10px 8px; font-size:11px; }.detail-navigation>.text-link { margin-bottom:12px; }.game-heading .eyebrow { font-size:8px; letter-spacing:.7px; } }
+@media(max-width:950px) { .cap-list { grid-template-columns:1fr; } }
+@media(max-width:600px) { .card-head { padding-bottom:12px; margin-bottom:14px; }.game-heading { gap:10px; flex-basis:100%; }.game-name { font-size:22px; line-height:28px; }.detail-monogram { width:36px; height:36px; font-size:20px; }.detail-tabs button { padding:4px 9px; } }
 
 .cap-coming {
   color: var(--text-muted);
