@@ -73,3 +73,25 @@ test('games are shown newest first even when the snapshot is out of order', t =>
   assert.match(content(cards[1]), /09-20/)
   assert.match(content(root), /1\s*连胜/)
 })
+
+test('an expanded remake shows 重开 for both teams instead of the recorded win and loss', async t => {
+  const teams = [{ team_id: 100, win: true, participants: [{ champion_name: '安妮', is_own: true }] }, { team_id: 200, win: false, participants: [{ champion_name: '盖伦' }] }]
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ payload: { teams } })))
+  const root = mount(t, MatchList, { gameId: 'lol', snap: { payload: [game('remake', true, { remake: true, duration_seconds: 200 }), game('played', true)] } })
+  const detailButton = name => nodes(root, 'button').find(b => b.props['aria-expanded'] !== undefined && content(b) === name)
+  detailButton('详情').props.onClick(); await new Promise(setImmediate); await nextTick()
+  const results = () => nodes(root, 'span').filter(n => /team-result/.test(n.props.class ?? '')).map(content)
+  assert.deepEqual(results(), ['重开', '重开'])
+  nodes(root, 'button').find(b => content(b) === '收起').props.onClick(); await nextTick()
+  nodes(root, 'button').filter(b => content(b) === '详情')[1].props.onClick(); await new Promise(setImmediate); await nextTick()
+  assert.deepEqual(results(), ['胜利', '失败'])
+})
+
+test('a champion name on the match wins over the career top-five list', t => {
+  const root = mount(t, MatchList, { gameId: 'lol', stats: { top_champions: [{ champion_id: 1, champion_name: '旧名' }] }, snap: { payload: [
+    game('named', true, { champion_id: 1, champion_name: '安妮' }),
+    game('rare', true, { champion_id: 99 }),
+  ] } })
+  assert.match(content(root), /安妮/)
+  assert.doesNotMatch(content(root), /旧名/)
+})

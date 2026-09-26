@@ -85,3 +85,21 @@ async def test_corrupt_cache_falls_back_to_fetch(tmp_path):
         return_value=httpx.Response(200, json=RAW))
     cat = await ChampionCatalog(cache_path=str(cache_file)).get()
     assert sorted(cat) == [1, 157]
+
+
+def test_cached_reads_the_file_without_network(tmp_path):
+    cache_file = tmp_path / "c.json"
+    assert ChampionCatalog(cache_path=str(cache_file)).cached() == {}  # 没有缓存文件
+    _write_cache(cache_file, {"157": {"name": "疾风剑豪"}}, fetched_at=1.0)  # 早已过期
+    assert ChampionCatalog(cache_path=str(cache_file)).cached() == {157: {"name": "疾风剑豪"}}
+
+
+@respx.mock
+async def test_wrongly_shaped_cache_counts_as_missing(tmp_path):
+    respx.get(CHAMPION_SUMMARY_URL).mock(return_value=httpx.Response(500))
+    cache_file = tmp_path / "c.json"
+    for content in ("[]", '{"champions": {"1": "Annie"}}', '{"champions": []}'):
+        cache_file.write_text(content, encoding="utf-8")
+        catalog = ChampionCatalog(cache_path=str(cache_file))
+        assert catalog.cached() == {}, content
+        assert await catalog.get() == {}, content

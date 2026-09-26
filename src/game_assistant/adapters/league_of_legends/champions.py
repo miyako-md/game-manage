@@ -1,6 +1,8 @@
 """英雄 id→中文名目录（CommunityDragon zh_cn champion-summary）。
 
 2026-09-13 实测：源 JSON 为数组 [{id, name, alias, ...}]，id=-1 为占位项（"无"）需跳过。
+图标还没接入；同日实测 champion-icons 在 zh_cn 目录下 404，要用
+global/default/v1/champion-icons/{id}.png。
 
 网络失败 → 读缓存（哪怕已过期）→ 再失败返回 {}：映射失败降级为空表，
 调用方显示"英雄 #id"，不得因此影响对局主流程。
@@ -30,15 +32,20 @@ class ChampionCatalog:
         self._catalog: dict[int, dict] | None = None  # None = 尚未加载
 
     def _read_cache(self) -> tuple[dict[int, dict], bool]:
-        """返回 (目录, 是否新鲜)；文件缺失/损坏返回 ({}, False)。"""
+        """返回 (目录, 是否新鲜)；文件缺失、损坏或形状不对都返回 ({}, False)。"""
         try:
             raw = json.loads(self._cache_path.read_text(encoding="utf-8"))
-            champions = {int(k): v for k, v in (raw.get("champions") or {}).items()}
+            champions = {int(k): v for k, v in (raw.get("champions") or {}).items()
+                         if isinstance(v, dict)}
             fetched_at = float(raw.get("fetched_at") or 0)
             fresh = fetched_at > 0 and time.time() - fetched_at < CACHE_TTL_SECONDS
             return champions, fresh
-        except (OSError, ValueError):
+        except (OSError, ValueError, TypeError, AttributeError):
             return {}, False
+
+    def cached(self) -> dict[int, dict]:
+        """只读缓存文件（可能过期或为空），不联网。"""
+        return self._read_cache()[0]
 
     def _write_cache(self, catalog: dict[int, dict]) -> None:
         try:

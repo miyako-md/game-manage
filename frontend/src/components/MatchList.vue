@@ -8,7 +8,7 @@ import MatchDetailPanel from './MatchDetailPanel.vue'
 const props = defineProps({
   snap: { type: Object, default: null },
   gameId: { type: String, default: '' },
-  // 生涯统计快照：用来给对局补英雄名和名场面标记（没有就不显示）
+  // 生涯统计快照：提供名场面标记，并给没有英雄名的旧快照补名（没有就不显示）
   stats: { type: Object, default: null },
 })
 
@@ -56,6 +56,7 @@ function agoText(day) {
 }
 
 const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
+// 旧快照的对局没有英雄名，退回生涯统计里的常用英雄（只有前 5 个）。
 const championNames = computed(() => new Map((props.stats?.top_champions ?? []).map((c) => [c.champion_id, c.champion_name])))
 const recordLabels = computed(() => {
   const byMatch = new Map()
@@ -87,7 +88,7 @@ const rows = computed(() => {
       durationText: fmtDuration(it.duration_seconds),
       hasKda,
       ratio: hasKda && status !== 'remake' ? (it.kills + it.assists) / Math.max(it.deaths, 1) : null,
-      champion: championNames.value.get(it.champion_id) ?? '',
+      champion: it.champion_name || championNames.value.get(it.champion_id) || '',
       damageText: status === 'remake' ? null : fmtDamage(it.damage),
       damageShare: known(it.damage) && maxDamage > 0 ? Math.round((it.damage / maxDamage) * 100) : null,
       records: recordLabels.value.get(it.match_id) ?? [],
@@ -245,8 +246,16 @@ const detailAfter = computed(() => {
   const per = columns.value
   return Math.min(rows.value.length - 1, Math.floor(index / per) * per + per - 1)
 })
+// The column count follows the grid's own width, which also changes when the
+// sidebar or a scrollbar comes and goes. Measuring in the next frame keeps the
+// detail's move out of the observer's own delivery.
+let widthObserver = null
 function watchWidth(on) {
-  if (typeof window !== 'undefined') window[on ? 'addEventListener' : 'removeEventListener']('resize', measureColumns)
+  widthObserver?.disconnect()
+  widthObserver = null
+  if (!on || typeof ResizeObserver !== 'function' || !grid.value) return
+  widthObserver = new ResizeObserver(() => requestAnimationFrame(measureColumns))
+  widthObserver.observe(grid.value)
 }
 const detail = ref(null)
 const detailLoading = ref(false)
@@ -392,7 +401,7 @@ async function toggleDetail(row) {
             </div>
           </article>
           <div v-if="i === detailAfter" :id="detailId" class="match-detail" :aria-label="`对局详情 ${expandedRow?.dateText ?? ''}`" role="region">
-            <MatchDetailPanel :detail="detail" :loading="detailLoading" :error="detailError" />
+            <MatchDetailPanel :detail="detail" :loading="detailLoading" :error="detailError" :remake="expandedRow?.status === 'remake'" />
           </div>
         </template>
       </div>

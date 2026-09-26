@@ -6,6 +6,8 @@ const props = defineProps({
   detail: { type: Object, default: null },
   loading: { type: Boolean, default: false },
   error: { type: String, default: '' },
+  // 重开局客户端仍记了一方胜一方负，这里不当胜负显示（与列表口径一致）。
+  remake: { type: Boolean, default: false },
 })
 
 const championName = (p) => p.champion_name || `英雄 #${p.champion_id ?? '?'}`
@@ -23,6 +25,7 @@ const teams = computed(() => {
 
 const isOwnTeam = (team) => team.participants.some((p) => p.is_own)
 const teamResult = (team) => {
+  if (props.remake) return { text: '重开', cls: 'team-remake' }
   if (team.win === true) return { text: '胜利', cls: 'team-win' }
   if (team.win === false) return { text: '失败', cls: 'team-lose' }
   return { text: '-', cls: '' }
@@ -129,6 +132,10 @@ const teamResult = (team) => {
 
 .team-lose {
   color: var(--danger);
+}
+
+.team-remake {
+  color: var(--text-muted);
 }
 
 .team-own-tag {

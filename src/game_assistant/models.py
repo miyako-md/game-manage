@@ -127,6 +127,7 @@ class MatchSummary(BaseModel):
     duration_seconds: int | None = None
     win: bool | None = None
     champion_id: int | None = None
+    champion_name: str | None = None  # 英雄目录不可用时为空，前端退回生涯统计里的常用英雄
     kills: int | None = None
     deaths: int | None = None
     assists: int | None = None

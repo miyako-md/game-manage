@@ -65,9 +65,20 @@ def test_remake_from_short_duration_and_normal_game():
 
 
 def test_remake_duration_boundary_and_missing_duration():
-    games = [{**GAME, "gameDuration": d} for d in (299, 300, None, -5)]
+    games = [{**GAME, "gameDuration": d} for d in (299, 300, None, -5, False, True)]
     items = parse_match_history({"games": {"games": games}}, "ME")
-    assert [m.remake for m in items] == [True, False, False, False]
+    # 布尔值不是时长（bool 是 int 的子类，False 不能当 0 秒）
+    assert [m.remake for m in items] == [True, False, False, False, False, False]
+    assert [m.duration_seconds for m in items[-2:]] == [None, None]
+
+
+def test_champion_name_comes_from_the_catalog_when_given():
+    catalog = {GAME["participants"][0]["championId"]: {"name": "黑暗之女"}}
+    named = parse_match_history({"games": {"games": [GAME]}}, "ME", catalog)[0]
+    bare = parse_match_history({"games": {"games": [GAME]}}, "ME")[0]
+    assert named.champion_name == "黑暗之女"
+    assert bare.champion_name is None
+    assert parse_match_history({"games": {"games": [GAME]}}, "ME", {999: {"name": "别人"}})[0].champion_name is None
 
 
 def test_damage_extracted():

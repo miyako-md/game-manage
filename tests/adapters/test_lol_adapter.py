@@ -4,6 +4,7 @@ LCU 走 127.0.0.1 respx mock，凭据发现 monkeypatch 为受控值（adapter �
 官网公告/资讯走 CMC 接口 mock（分类过滤由端点 target 参数完成，见 test_lol_news.py）。
 """
 import httpx
+import pytest
 import respx
 
 import game_assistant.adapters.league_of_legends.adapter as adapter_mod
@@ -52,6 +53,8 @@ async def test_fetch_account_ok(monkeypatch):
 async def test_fetch_match_ok(monkeypatch):
     monkeypatch.setattr(adapter_mod, "discover_lcu_credentials",
                         lambda: ("54321", "tok"))
+    monkeypatch.setattr(adapter_mod, "ChampionCatalog", _FakeCatalog)
+    _FakeCatalog.catalog = {}
     respx.get(f"{BASE}/lol-summoner/v1/current-summoner").mock(
         return_value=httpx.Response(200, json=SUMMONER))
     respx.get(f"{BASE}/lol-match-history/v1/products/lol/P1/matches").mock(
@@ -59,6 +62,25 @@ async def test_fetch_match_ok(monkeypatch):
     a = LeagueOfLegendsAdapter(Settings())
     r = await a.fetch(Capability.MATCH)
     assert r.ok is True and r.payload == []
+
+
+@respx.mock
+@pytest.mark.parametrize("catalog,name", [
+    ({157: {"name": "疾风剑豪", "icon": None}}, "疾风剑豪"),
+    ({}, None),  # 还没有目录缓存：对局照常返回，只是没有英雄名
+])
+async def test_fetch_match_names_each_champion(monkeypatch, catalog, name):
+    monkeypatch.setattr(adapter_mod, "discover_lcu_credentials",
+                        lambda: ("54321", "tok"))
+    monkeypatch.setattr(adapter_mod, "ChampionCatalog", _CacheOnlyCatalog)
+    _FakeCatalog.catalog = catalog
+    respx.get(f"{BASE}/lol-summoner/v1/current-summoner").mock(
+        return_value=httpx.Response(200, json=SUMMONER))
+    respx.get(f"{BASE}/lol-match-history/v1/products/lol/P1/matches").mock(
+        return_value=httpx.Response(200, json={"games": {"games": [HISTORY_GAME]}}))
+    r = await LeagueOfLegendsAdapter(Settings()).fetch(Capability.MATCH)
+    assert r.ok is True
+    assert [(m.match_id, m.champion_id, m.champion_name) for m in r.payload] == [("111", 157, name)]
 
 
 @respx.mock
@@ -125,6 +147,16 @@ class _FakeCatalog:
 
     async def get(self) -> dict:
         return type(self).catalog
+
+    def cached(self) -> dict:
+        return type(self).catalog
+
+
+class _CacheOnlyCatalog(_FakeCatalog):
+    """取对局只许读缓存：一联网就让测试失败。"""
+
+    async def get(self) -> dict:
+        raise AssertionError("fetch_match must not download the champion catalog")
 
 
 async def test_stats_capability_registered(monkeypatch):

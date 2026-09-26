@@ -14,7 +14,14 @@ REMAKE_SECONDS = 300
 def is_remake(stats: dict, duration_seconds) -> bool:
     if stats.get("gameEndedInEarlySurrender") is True:
         return True
-    return isinstance(duration_seconds, (int, float)) and 0 <= duration_seconds < REMAKE_SECONDS
+    # bool 是 int 的子类，False 不能当成 0 秒。
+    return (isinstance(duration_seconds, (int, float)) and not isinstance(duration_seconds, bool)
+            and 0 <= duration_seconds < REMAKE_SECONDS)
+
+
+def _duration(game: dict):
+    value = game.get("gameDuration")
+    return None if isinstance(value, bool) else value  # bool 是 int 的子类，不是时长
 
 
 def _win_from(stats: dict, team_id: int | None, team_win: dict[int, bool]) -> bool | None:
@@ -24,7 +31,8 @@ def _win_from(stats: dict, team_id: int | None, team_win: dict[int, bool]) -> bo
     return team_win.get(team_id)
 
 
-def _own_summary(game: dict, own_puuid: str) -> MatchSummary:
+def _own_summary(game: dict, own_puuid: str,
+                 catalog: dict[int, dict] | None = None) -> MatchSummary:
     creation = game.get("gameCreation")
     start_at = (datetime.fromtimestamp(creation / 1000, tz=timezone.utc)
                 if creation else None)
@@ -48,20 +56,22 @@ def _own_summary(game: dict, own_puuid: str) -> MatchSummary:
     return MatchSummary(
         match_id=str(game.get("gameId")), queue_id=game.get("queueId"),
         mode=game.get("gameMode") or "", start_at=start_at,
-        duration_seconds=game.get("gameDuration"),
+        duration_seconds=_duration(game),
         win=win, champion_id=champion,
+        champion_name=ChampionCatalog.name_for(catalog, champion) if catalog else None,
         kills=kills, deaths=deaths, assists=assists, damage=damage,
-        remake=is_remake(stats, game.get("gameDuration")),
+        remake=is_remake(stats, _duration(game)),
     )
 
 
-def parse_match_history(raw: dict, own_puuid: str) -> list[MatchSummary]:
+def parse_match_history(raw: dict, own_puuid: str,
+                        catalog: dict[int, dict] | None = None) -> list[MatchSummary]:
     games = ((raw or {}).get("games") or {}).get("games") or []
     out = []
     for game in games:
         if not game.get("gameId"):
             continue
-        out.append(_own_summary(game, own_puuid))
+        out.append(_own_summary(game, own_puuid, catalog))
     return out
 
 
@@ -121,7 +131,7 @@ def parse_match_detail(raw: dict, own_puuid: str,
                                participants=members))
     return MatchDetail(
         match_id=str(raw.get("gameId")), mode=raw.get("gameMode") or "",
-        start_at=start_at, duration_seconds=raw.get("gameDuration"),
+        start_at=start_at, duration_seconds=_duration(raw),
         teams=teams,
     )
 
