@@ -52,8 +52,8 @@ class EndfieldAdapter(BaseGameAdapter):
                                error_kind="auth_expired" if error.expired else "source_error")
         except ValueError:
             return FetchResult(ok=False, error="终末地数据格式已变化，保留上次成功数据", error_kind="invalid_data")
-        except Exception:
-            logger.warning("终末地数据处理异常，保留上次成功数据")
+        except Exception as exc:
+            logger.warning("终末地数据处理异常，保留上次成功数据 (%s)", type(exc).__name__)
             return FetchResult(ok=False, error="数据处理异常，请稍后重试", error_kind="invalid_data")
 
     async def fetch_account(self) -> FetchResult:

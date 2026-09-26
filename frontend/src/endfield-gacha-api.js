@@ -12,9 +12,11 @@ export function pityText(pity) {
   if (!pity || !Number.isInteger(pity.count)) return '未知'
   return pity.status === 'exact' ? `${pity.count} 抽` : `≥${pity.count} 抽`
 }
+const pullDateFormatter = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+})
 export function pullDate(value) {
   if (!Number.isFinite(value)) return '时间未提供'
-  return new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(value))
+  return pullDateFormatter.format(new Date(value))
 }
 export const rarityLabel = value => Number.isInteger(value) ? `${value}★` : '稀有度未知'

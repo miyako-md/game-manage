@@ -92,3 +92,15 @@ async def test_account_uses_the_logged_in_official_role(tmp_path):
         {"appCode": "endfield", "bindingList": [{"uid": "hg-uid", "isOfficial": True, "roles": [{**ROLE, "roleId": "9"}]}]}]}})
     changed = await adapter(tmp_path).fetch(Capability.ACCOUNT)
     assert (changed.error_kind, changed.error) == ("auth_expired", "终末地绑定角色已变化，请在「社区账号」重新登录")
+
+
+async def test_unexpected_errors_are_logged_by_type_only(tmp_path, monkeypatch, caplog):
+    subject = adapter(tmp_path)
+
+    async def boom(*args, **kwargs):
+        raise RuntimeError("https://ef-webview.hypergryph.com/?token=hg-secret")
+
+    monkeypatch.setattr(subject, "fetch_gacha", lambda: subject._guarded_run(boom))
+    result = await subject.fetch(Capability.GACHA)
+    assert (result.ok, result.error_kind) == (False, "invalid_data")
+    assert "RuntimeError" in caplog.text and "hg-secret" not in caplog.text
