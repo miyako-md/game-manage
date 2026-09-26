@@ -18,3 +18,57 @@ test('B站面板不把异常空列表称为历史完成，能查看过滤原因'
   await nextTick()
   assert.match(content(root), /暂无符合条件的已采集记录/)
 })
+
+const status = () => ({ sources: [{ game_id: 'nte', uid: '1', status: 'ok', message: '', history_complete: true, total: 0, accepted: 0, running: false }], login: { configured: false } })
+const flush = async () => { await new Promise(resolve => setImmediate(resolve)); await nextTick() }
+function serve(t, handler) {
+  const previous = globalThis.fetch
+  globalThis.fetch = handler
+  t.after(() => { globalThis.fetch = previous })
+}
+const collect = root => nodes(root, 'button').find(n => content(n) === '采集新动态').props.onClick()
+
+test('refreshing during a timed status read keeps one polling loop', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let reads = 0, release
+  serve(t, async (path, options) => {
+    if (options?.method === 'POST') return { ok: true, json: async () => ({ queued: true }) }
+    if (++reads === 2) await new Promise(resolve => (release = resolve))
+    return { ok: true, json: async () => status() }
+  })
+  const root = mount(t, Panel, {})
+  await flush()
+  t.mock.timers.tick(30000); await flush()
+  await collect(root)
+  release(); await flush()
+  const before = reads
+  t.mock.timers.tick(30000); await flush()
+  assert.equal(reads - before, 1)
+})
+
+test('a failed status read stops showing its error once a later read succeeds', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let reads = 0
+  serve(t, async () => {
+    if (++reads === 2) throw new TypeError('network down')
+    return { ok: true, json: async () => status() }
+  })
+  const root = mount(t, Panel, {})
+  await flush()
+  t.mock.timers.tick(30000); await flush()
+  assert.match(content(root), /无法读取B站来源状态/)
+  t.mock.timers.tick(30000); await flush()
+  assert.doesNotMatch(content(root), /无法读取B站来源状态/)
+})
+
+test('a non-JSON error page is replaced by the fixed failure text', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  serve(t, async (path, options) => options?.method === 'POST'
+    ? { ok: false, status: 502, json: async () => { throw new SyntaxError("Unexpected token '<'") } }
+    : { ok: true, json: async () => status() })
+  const root = mount(t, Panel, {})
+  await flush()
+  await collect(root); await flush()
+  assert.match(content(root), /操作失败，请稍后重试/)
+  assert.doesNotMatch(content(root), /Unexpected token/)
+})

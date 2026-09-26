@@ -5,8 +5,11 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # Templates before 0.1.0 wrote these keys and existing config.toml files keep
+    # them. Unknown keys are rejected, so they stay accepted; the launcher always
+    # listens on 127.0.0.1:8010 and nothing reads them.
     app_host: str = "127.0.0.1"
-    app_port: int = 8010  # 8000 被 Windows HTTP.sys 系统服务永久占用
+    app_port: int = 8010
     db_path: str = "data/assistant.db"
     stamina_seconds: int = 300
     activity_seconds: int = 3600
@@ -17,7 +20,7 @@ class Settings(BaseSettings):
     bilibili_poll_seconds: int = 600
     notify_provider: str = "serverchan"  # serverchan | pushplus
     notify_send_key: str = ""
-    # 提醒规则（M3）：体力满推送 / 满阈值 / 活动临期天数 / 轮询失败告警阈值
+    # 提醒规则：体力满推送 / 满阈值 / 活动临期天数 / 轮询失败告警阈值
     notify_stamina_full: bool = True
     stamina_threshold_percent: int = 90
     activity_remind_days: int = 3

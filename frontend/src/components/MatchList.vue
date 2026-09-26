@@ -39,7 +39,7 @@ const rows = computed(() => {
   }))
 })
 
-// ---- 对局详情按需展开（同时只展开一行）----
+// 对局详情按需展开（同时只展开一行）
 const expandedId = ref(null)
 const detail = ref(null)
 const detailLoading = ref(false)

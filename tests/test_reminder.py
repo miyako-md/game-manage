@@ -23,6 +23,7 @@ class FakeNotify:
 
 class OffNotify(FakeNotify):
     async def send(self, title, body):
+        self.sent.append((title, body))
         return False
 
 
@@ -33,7 +34,7 @@ def _engine(tmp_path, notifier=None, settings=None):
 
 
 async def test_stamina_full_notifies_once_per_day(tmp_path):
-    eng, s = _engine(tmp_path)
+    eng, _ = _engine(tmp_path)
     r = FetchResult(ok=True, payload=StaminaInfo(
         current=240, maximum=240, updated_at=datetime.now(timezone.utc)))
     await eng.handle_poll("wuwa", "鸣潮", Capability.STAMINA, r)
@@ -43,7 +44,7 @@ async def test_stamina_full_notifies_once_per_day(tmp_path):
 
 
 async def test_stamina_threshold_below_full(tmp_path):
-    eng, s = _engine(tmp_path)
+    eng, _ = _engine(tmp_path)
     r = FetchResult(ok=True, payload=StaminaInfo(
         current=220, maximum=240, updated_at=datetime.now(timezone.utc)))  # ~92%
     await eng.handle_poll("wuwa", "鸣潮", Capability.STAMINA, r)
@@ -52,7 +53,7 @@ async def test_stamina_threshold_below_full(tmp_path):
 
 
 async def test_fail_threshold_triggers_once(tmp_path):
-    eng, s = _engine(tmp_path, settings=Settings(fail_notify_threshold=2))
+    eng, _ = _engine(tmp_path, settings=Settings(fail_notify_threshold=2))
     bad = FetchResult(ok=False, error="LOL 客户端未运行")
     await eng.handle_poll("lol", "英雄联盟", Capability.ACCOUNT, bad)  # 1次，不推
     await eng.handle_poll("lol", "英雄联盟", Capability.ACCOUNT, bad)  # 2次>=阈值，推
@@ -65,7 +66,7 @@ async def test_fail_threshold_triggers_once(tmp_path):
 
 
 async def test_success_resets_fail_counter(tmp_path):
-    eng, s = _engine(tmp_path, settings=Settings(fail_notify_threshold=2))
+    eng, _ = _engine(tmp_path, settings=Settings(fail_notify_threshold=2))
     ok = FetchResult(ok=True, payload=StaminaInfo(
         current=10, maximum=240, updated_at=datetime.now(timezone.utc)))
     bad = FetchResult(ok=False, error="x")
@@ -76,7 +77,7 @@ async def test_success_resets_fail_counter(tmp_path):
 
 
 async def test_event_naive_end_at_is_skipped_with_warning(tmp_path, caplog):
-    eng, s = _engine(tmp_path)
+    eng, _ = _engine(tmp_path)
     # 解析层契约是 aware UTC+8；naive 视为契约破坏：记警告并跳过，不贴北京时区。
     naive_end = (datetime.now(timezone.utc)
                  + timedelta(days=2, hours=12)).replace(tzinfo=None)
@@ -90,7 +91,7 @@ async def test_event_naive_end_at_is_skipped_with_warning(tmp_path, caplog):
 
 
 async def test_event_expiry_within_days_notifies_once(tmp_path):
-    eng, s = _engine(tmp_path)
+    eng, _ = _engine(tmp_path)
     # 2.5 天在 3 天窗口内；展示向上取整为 3 天。
     end = datetime.now(timezone.utc) + timedelta(days=2, hours=12)
     r = FetchResult(ok=True, payload=[GameEvent(
@@ -106,7 +107,7 @@ async def test_event_expiry_within_days_notifies_once(tmp_path):
 
 async def test_event_dedup_key_is_per_event(tmp_path):
     # 同批多个活动各自独立 key：一次轮询各推一条，去重互不吞并
-    eng, s = _engine(tmp_path)
+    eng, _ = _engine(tmp_path)
     end = datetime.now(timezone.utc) + timedelta(days=1, hours=12)
     r = FetchResult(ok=True, payload=[
         GameEvent(name="活动甲", end_at=end),
@@ -119,7 +120,7 @@ async def test_event_dedup_key_is_per_event(tmp_path):
 
 
 async def test_event_skipped_when_expired_far_or_undated(tmp_path):
-    eng, s = _engine(tmp_path)
+    eng, _ = _engine(tmp_path)
     r = FetchResult(ok=True, payload=[
         GameEvent(name="已结束", end_at=datetime.now(timezone.utc) - timedelta(days=1)),
         GameEvent(name="远期", end_at=datetime.now(timezone.utc) + timedelta(days=30)),
@@ -139,14 +140,14 @@ async def test_event_remind_disabled_by_zero_window(tmp_path):
 
 
 async def test_notifier_off_does_not_mark_sent(tmp_path):
-    eng, s = _engine(tmp_path, notifier=OffNotify())
+    eng, _ = _engine(tmp_path, notifier=OffNotify())
     r = FetchResult(ok=True, payload=StaminaInfo(
         current=240, maximum=240, updated_at=datetime.now(timezone.utc)))
     await eng.handle_poll("wuwa", "鸣潮", Capability.STAMINA, r)
-    assert eng.notifier.sent == []
+    assert [title for title, _ in eng.notifier.sent] == ["鸣潮体力已满"]
     # SendKey 未配置（send 返回 False）→ 不 mark_sent，配置后同 key 可再发
     assert eng.dedup.already_sent(
-        f"stamina_full:wuwa:{datetime.now(timezone.utc).strftime('%Y-%m-%d')}") is False
+        f"stamina_full:wuwa:{datetime.now(BEIJING_TZ).strftime('%Y-%m-%d')}") is False
 
 
 async def test_deliver_dedup(tmp_path):

@@ -4,6 +4,10 @@ from game_assistant.adapters.wuthering_waves.endpoints import (
     EVENT_LIST, POST_DETAIL, ROLE_LIST, WIDGET_DATA, WIDGET_REFRESH,
 )
 
+# Codes that mean a login or roleBox ticket must be renewed, or the user must
+# log in again: Kuro 220 and 10900-10903, and HTTP 401-403.
+AUTH_EXPIRED_CODES = (220, 401, 402, 403, 10900, 10901, 10903)
+
 
 class KuroError(Exception):
     def __init__(self, code: int, message: str):
@@ -13,9 +17,8 @@ class KuroError(Exception):
 
 
 class KuroClient:
-    def __init__(self, token: str, user_id: str, did: str = '', source: str = 'h5'):
+    def __init__(self, token: str, did: str = '', source: str = 'h5'):
         self.token = token
-        self.user_id = user_id
         self.did = did
         self.source = source
 

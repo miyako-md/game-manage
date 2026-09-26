@@ -1,35 +1,43 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { formatTime, safeUrl } from '../dashboard.js'
+import { formatTime } from '../dashboard.js'
+import { safeUrl } from '../calendar.js'
 const props = defineProps({ gameId: { type: String, default: '' } })
 const emit = defineEmits(['collected'])
 const sources = ref([]), rows = ref([]), error = ref(''), login = ref(false), showLogin = ref(false)
 const sessdata = ref(''), csrf = ref(''), buvid = ref(''), selected = ref(''), decision = ref('accepted'), busy = ref(false)
 const visible = computed(() => sources.value.filter(s => !props.gameId || s.game_id === props.gameId))
 const filtered = computed(() => rows.value.filter(r => !decision.value || r.decision === decision.value))
-let timer, stopped = false, wasRunning = false
+const STATUS_ERROR = '无法读取B站来源状态'
+let timer, stopped = false, wasRunning = false, latestLoad = 0
 async function request(path, options = {}) {
   const r = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', 'X-Game-Assistant': '1' } })
-  const data = await r.json()
-  if (!r.ok) throw new Error(data.detail || '操作失败，请稍后重试')
+  let data = null
+  try { data = await r.json() } catch { /* Never show a non-JSON error page, such as a proxy's. */ }
+  if (!r.ok) throw new Error(typeof data?.detail === 'string' && data.detail ? data.detail : '操作失败，请稍后重试')
   return data
 }
 async function load() {
+  // Only the newest read may update the panel and schedule the next poll, so
+  // a refresh during a timer read cannot leave two polling loops running.
+  const run = ++latestLoad
+  clearTimeout(timer)
   try {
     const data = await request('/api/sources/bilibili')
-    if (stopped) return
+    if (stopped || run !== latestLoad) return
+    if (error.value === STATUS_ERROR) error.value = ''
     sources.value = data.sources; login.value = data.login.configured
-    const running = data.sources.some(s => s.running)
-    if (wasRunning && !running) { emit('collected'); if (selected.value) await audit(selected.value) }
+    const running = data.sources.some(s => s.running), finished = wasRunning && !running
     wasRunning = running
-  } catch { if (!stopped) error.value = '无法读取B站来源状态' }
-  finally { if (!stopped) timer = setTimeout(load, wasRunning ? 2500 : 30000) }
+    if (finished) { emit('collected'); if (selected.value) await audit(selected.value) }
+  } catch { if (!stopped && run === latestLoad) error.value = STATUS_ERROR }
+  finally { if (!stopped && run === latestLoad) timer = setTimeout(load, wasRunning ? 2500 : 30000) }
 }
 async function refresh(game, backfill) {
   busy.value = true; error.value = ''
   try {
     await request(`/api/sources/bilibili/${game}/refresh?backfill=${backfill}`, { method: 'POST' })
-    wasRunning = true; clearTimeout(timer); await load()
+    wasRunning = true; await load()
   } catch (e) { error.value = e.message }
   finally { busy.value = false }
 }

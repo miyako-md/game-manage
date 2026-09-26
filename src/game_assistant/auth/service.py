@@ -8,11 +8,12 @@ import time
 import uuid
 from copy import deepcopy
 
-logger = logging.getLogger(__name__)
-
-from game_assistant.auth.providers import WuwaLoginProvider
+from game_assistant.adapters.wuthering_waves.kuro_client import AUTH_EXPIRED_CODES, KuroClient
+from game_assistant.auth.providers import AuthError, NteLoginProvider, WuwaLoginProvider
 from game_assistant.auth.store import CredentialStoreError
 from game_assistant.models import Capability, FetchResult
+
+logger = logging.getLogger(__name__)
 
 GAMES = ('wuthering_waves', 'nte')
 FIELDS = {
@@ -37,7 +38,6 @@ class LoginService:
     def __init__(self, settings, store, providers=None, clock=time.time):
         self.settings, self.store, self.clock = settings, store, clock
         if providers is None:
-            from .providers import WuwaLoginProvider, NteLoginProvider
             providers = {'wuthering_waves': WuwaLoginProvider(), 'nte': NteLoginProvider()}
         self.providers = providers
         self._locks = {g: asyncio.Lock() for g in GAMES}
@@ -66,6 +66,14 @@ class LoginService:
             if game == 'nte' and not self._accounts[game].get('device_id') and any(
                     self._accounts[game].get(k) for k in ('access_token', 'refresh_token')):
                 self._accounts[game]['device_id'] = 'HT' + uuid.uuid4().hex[:14].upper()
+                # A record already on disk keeps this id. Tokens that exist only
+                # in config.toml stay there until a successful login writes them.
+                if game in self._saved:
+                    self._saved[game] = deepcopy(self._accounts[game])
+                    try:
+                        self.store.save(self._saved)
+                    except CredentialStoreError:
+                        logger.warning("异环设备号未能写入凭据文件")
             self._apply(game)
 
     def attach(self, registry, snapshots):
@@ -95,8 +103,7 @@ class LoginService:
                 if adapter.game_id == game:
                     adapter.credentials_configured = self._configured(game)
                     if game == 'wuthering_waves':
-                        from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient
-                        adapter._client = (KuroClient(self.settings.wuwa_token, self.settings.wuwa_user_id,
+                        adapter._client = (KuroClient(self.settings.wuwa_token,
                                                       did=self.settings.wuwa_did,
                                                       source=self.settings.wuwa_token_source)
                                            if adapter.credentials_configured else None)
@@ -157,7 +164,6 @@ class LoginService:
     async def sms(self, game, sid, mobile, captcha=None):
         self._game(game)
         self._mobile(mobile)
-        from .providers import AuthError
         async with self._locks[game]:
             session = self._session(game, sid)
             if session['mobile'] and session['mobile'] != mobile:
@@ -185,14 +191,19 @@ class LoginService:
     def _persist(self, game, account, clear_snapshots=False):
         accounts = deepcopy(self._saved)
         accounts[game] = account
+        backup = None
         if clear_snapshots and self.snapshots:
             try:
+                backup = self.snapshots.export_private(game)
                 self.snapshots.clear_private(game)
-            except Exception:
+            except Exception as error:
+                logger.warning("旧账号快照清理失败 (%s)", type(error).__name__)
                 raise LoginError('旧账号快照清理失败，原登录状态已保留，请稍后重试', 500) from None
         try:
             self.store.save(accounts)
         except CredentialStoreError as error:
+            if backup is not None:
+                self.snapshots.restore_private(game, backup)
             raise LoginError(str(error), 500) from None
         self._saved = accounts
         self._accounts[game] = account
@@ -207,7 +218,6 @@ class LoginService:
         self._mobile(mobile)
         if not re.fullmatch(r'\d{4,8}', code):
             raise LoginError('请输入 4 至 8 位短信验证码')
-        from .providers import AuthError
         async with self._locks[game]:
             session = self._session(game, sid)
             if not session['sent'] or session['mobile'] != mobile:
@@ -235,15 +245,14 @@ class LoginService:
             return {'ok': True, 'account': self.status()['accounts'][game]}
 
     async def _renew(self, game):
-        from .providers import AuthError
         try:
             updated = await self.providers[game].renew(deepcopy(self._accounts[game]))
             updated['_updated_at'] = self.clock()
             self._persist(game, updated)
         except AuthError as error:
-            if error.code in (220, 401, 402, 403, 10900, 10901, 10903):
+            if error.code in AUTH_EXPIRED_CODES:
                 self._errors[game] = '登录已失效，请重新登录'
-            kind = ('auth_expired' if error.code in (220, 401, 402, 403, 10900, 10901, 10903)
+            kind = ('auth_expired' if error.code in AUTH_EXPIRED_CODES
                     else 'source_error')
             raise LoginError(error.message, error_kind=kind) from None
         except LoginError:
@@ -280,7 +289,7 @@ class LoginService:
                 if not result.ok and invalid and can_renew and not renewed:
                     await self._renew(game)
                     result = await action()
-                if not result.ok and result.error_code in (220, 401, 402, 403, 10900, 10901, 10903):
+                if not result.ok and result.error_code in AUTH_EXPIRED_CODES:
                     self._errors[game] = '登录已失效，请重新登录'
                     result.error_kind = 'auth_expired'
                 elif result.ok:

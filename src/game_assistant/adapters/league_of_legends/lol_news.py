@@ -1,22 +1,23 @@
 """英雄联盟官网新闻/公告客户端与解析。
 
-校准结论（Task 7 Step 5，2026-09-13 实测，证据与端点常量见 endpoints.py）：
+校准结论（2026-09-13 实测，证据与端点常量见 endpoints.py）：
 - news/index.shtml 为 JS 动态渲染的 GBK 页面，HTML 内无新闻数据；
 - 真实数据源是 /v3/js/newslist.js 引用的腾讯 CMC 内容接口，同一端点按 target
   参数区分分类（23=综合 24=公告，见 NEWS_CATEGORY_IDS）；
 - 条目真实键名：sTitle / sIdxTime / sRedirectURL / iDocID / sVID / sDesc；
   sRedirectURL 为空时按官方前端逻辑回退拼 detail.shtml?docid={iDocID}。
-解析函数对键名与响应形状做防御式兼容（含 Task 7 简报的假设形状）。
+解析函数对键名与响应形状做防御式兼容（部分回退形状未经实测）。
 """
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 import httpx
 
 from game_assistant.adapters.league_of_legends.endpoints import (
     NEWS_CATEGORY_IDS, NEWS_LIST_URL,
 )
+from game_assistant.event_calendar import BEIJING_TZ
 from game_assistant.models import AnnouncementItem
 
 _HEADERS = {
@@ -114,10 +115,8 @@ def _dt(*vals):
                 dt = datetime.fromisoformat(str(v))
             except ValueError:
                 continue
-            # sIdxTime 为北京时间（UTC+8），来源解析可能产出 naive datetime：
-            # 补 tzinfo → aware（与 reminder.py 对 naive end_at 的归一化口径一致）
-            return dt if dt.tzinfo else dt.replace(
-                tzinfo=timezone(timedelta(hours=8)))
+            # sIdxTime 是不带时区的北京时间（UTC+8），补上时区。
+            return dt if dt.tzinfo else dt.replace(tzinfo=BEIJING_TZ)
     return None
 
 
@@ -137,12 +136,11 @@ def _detail_url(item: dict) -> str | None:
     return None
 
 
-def parse_news_json(data: dict | list, category: str = "公告") -> list[AnnouncementItem]:
+def parse_news_json(data: dict | list) -> list[AnnouncementItem]:
     """解析官网新闻列表响应为 AnnouncementItem。
 
-    category（"公告"/"综合"等，映射见 NEWS_CATEGORY_IDS）：校准确认分类过滤由端点
-    target 参数在服务端完成（公告条目 sTagIds 中并不含分类 id，无法客户端过滤），
-    此参数仅为保持调用签名，不做二次过滤。
+    分类只能由请求端点的 target 参数在服务端过滤（公告条目 sTagIds 中并不含
+    分类 id），这里不做二次过滤。
     """
     items = []
     for it in _extract_list(data):

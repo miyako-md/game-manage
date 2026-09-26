@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useWuwaRequest } from '../wuwa-api.js'
-import { list, value, safeImage } from '../wuwa-display.js'
+import { safeUrl } from '../calendar.js'
+import { list, value } from '../wuwa-display.js'
 import WuwaRoleDetail from './WuwaRoleDetail.vue'
 import WuwaStatus from './WuwaStatus.vue'
 const props = defineProps({
@@ -128,8 +129,8 @@ function close() {
         @click="open(r)"
       >
         <img
-          v-if="safeImage(r.icon_url)"
-          :src="safeImage(r.icon_url)"
+          v-if="safeUrl(r.icon_url)"
+          :src="safeUrl(r.icon_url)"
           :alt="r.name"
           loading="lazy"
         /><span v-else class="wuwa-avatar-placeholder">{{

@@ -104,15 +104,15 @@ test('empty normalized collections show no-data rather than an empty card', (t) 
 
 test('GameCard routes only NTE private capabilities to the native cards', async (t) => {
   const GameCard = await loadVue(new URL('./GameCard.vue', import.meta.url))
-  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify(snap({ total_draws: 0, total_s: 0, pools: [], cards: [] }))))
-  const root = mount(t, GameCard, { game: { game_id: 'nte', display_name: '异环', capabilities: ['gacha', 'record', 'events', 'announcement'], credentials_configured: true } })
-  await new Promise(setImmediate)
+  const supplied = snap({ total_draws: 0, total_s: 0, pools: [], cards: [] })
+  const root = mount(t, GameCard, { game: { game_id: 'nte', display_name: '异环', capabilities: ['gacha', 'record', 'events', 'announcement'], credentials_configured: true },
+    externalSnapshots: { gacha: supplied, record: supplied, announcement: supplied } })
   await nextTick()
   assert.match(content(root), /抽卡统计/)
   assert.match(content(root), /社区名片/)
   assert.match(content(root), /公告/)
   assert.doesNotMatch(content(root), /敬请期待/)
-  const other = mount(t, GameCard, { game: { game_id: 'other', display_name: '其他', capabilities: ['gacha'], credentials_configured: true } })
+  const other = mount(t, GameCard, { game: { game_id: 'other', display_name: '其他', capabilities: ['gacha'], credentials_configured: true }, externalSnapshots: {} })
   assert.match(content(other), /敬请期待/)
 })
 

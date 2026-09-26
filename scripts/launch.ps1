@@ -22,7 +22,9 @@ try {
         foreach ($entry in @('src', 'public', 'index.html', 'package.json', 'package-lock.json', 'vite.config.js', 'vite.config.ts')) {
             $path = Join-Path $frontend $entry
             if (Test-Path -LiteralPath $path) {
-                if (@(Get-ChildItem -LiteralPath $path -Recurse -File | Where-Object { $_.LastWriteTimeUtc -gt $builtAt }).Count -gt 0) {
+                # Directories are included so deleting a nested file, which updates
+                # its parent directory time, still rebuilds.
+                if (@(Get-ChildItem -LiteralPath $path -Recurse -Force | Where-Object { $_.LastWriteTimeUtc -gt $builtAt }).Count -gt 0) {
                     $needsBuild = $true
                     break
                 }

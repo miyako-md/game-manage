@@ -8,10 +8,11 @@ from tests.test_reminder import FakeNotify
 
 
 def test_refresh_endpoint(tmp_path):
-    store = SnapshotStore(str(tmp_path / "t.db"))
+    settings = Settings(db_path=str(tmp_path / "t.db"))
+    store = SnapshotStore(settings.db_path)
     registry = build_dummy_registry()
-    sched = PollingScheduler(registry, store, Settings(), FakeNotify())
-    client = TestClient(create_app(registry=registry, store=store,
+    sched = PollingScheduler(registry, store, settings)
+    client = TestClient(create_app(registry=registry, store=store, settings=settings,
                                    scheduler=sched, notifier=FakeNotify()), base_url="http://127.0.0.1:8010")
     resp = client.post("/api/games/dummy/refresh", headers={'X-Game-Assistant': '1'})
     assert resp.status_code == 200
@@ -21,8 +22,9 @@ def test_refresh_endpoint(tmp_path):
 
 
 def test_refresh_unknown_game(tmp_path):
-    store = SnapshotStore(str(tmp_path / "t.db"))
-    client = TestClient(create_app(registry=build_dummy_registry(), store=store,
+    settings = Settings(db_path=str(tmp_path / "t.db"))
+    store = SnapshotStore(settings.db_path)
+    client = TestClient(create_app(registry=build_dummy_registry(), store=store, settings=settings,
                                    scheduler=None, notifier=None), base_url="http://127.0.0.1:8010")
     assert client.post("/api/games/nope/refresh", headers={'X-Game-Assistant': '1'}).status_code == 404
 

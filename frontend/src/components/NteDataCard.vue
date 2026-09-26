@@ -1,6 +1,7 @@
 <script setup>
-import { displayBeijing } from '../time.js'
+import { fetchedLabel } from '../time.js'
 import { safeUrl } from '../calendar.js'
+import { displayRoleValue } from '../nte-roles.js'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -8,12 +9,12 @@ const props = defineProps({
   capability: { type: String, required: true },
 })
 
-const titles = { account: '账号概览', stamina: '体力与日常', roles: '角色练度', progress: '成就进度', exploration: '探索进度', gacha: '抽卡统计', record: '社区名片' }
+const titles = { account: '账号概览', stamina: '体力与日常', progress: '成就进度', exploration: '探索进度', record: '社区名片' }
 const payload = computed(() => props.snap?.payload ?? null)
 const legacy = computed(() => payload.value !== null && payload.value.schema_version !== 1)
 const data = computed(() => legacy.value ? {} : payload.value ?? {})
 const list = (value) => Array.isArray(value) ? value : []
-const display = (value) => value === null || value === undefined || value === '' || (typeof value === 'number' && !Number.isFinite(value)) ? '未知' : value
+const display = (value) => displayRoleValue(value, '未知')
 const ratio = (current, total) => `${display(current)} / ${display(total)}`
 const measurable = (current, total) => Number.isFinite(current) && current >= 0 && Number.isFinite(total) && total > 0
 const percent = (current, total) => measurable(current, total) ? `${Math.min(100, Math.round(current / total * 100))}%` : null
@@ -21,7 +22,7 @@ const exceedsTarget = (current, total) => measurable(current, total) && current 
 
 const fetchedAt = computed(() => {
   const readAt = props.capability === 'stamina' ? data.value.updated_at || props.snap?.fetched_at : props.snap?.fetched_at
-  return readAt ? displayBeijing(readAt) : null
+  return fetchedLabel(readAt)
 })
 const accountStats = computed(() => [
   ['等级', display(data.value.level)], ['世界等级', display(data.value.world_level)],
@@ -130,31 +131,12 @@ progress { display: block; appearance: none; width: 100%; height: 6px; margin-to
 progress::-webkit-progress-bar { background: var(--border); border-radius: 99px; }
 progress::-webkit-progress-value { background: var(--accent); border-radius: 99px; }
 progress::-moz-progress-bar { background: var(--accent); border-radius: 99px; }
-.role-grid { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; align-items: start; }
-.role-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px; min-width: 0; }
-.role-overview { display: flex; align-items: center; gap: 10px; }
-.avatar { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: var(--bg); flex-shrink: 0; }
-.avatar-empty { display: grid; place-items: center; color: var(--text-muted); font-size: 20px; }
-.role-heading { display: flex; flex-direction: column; gap: 5px; }
-.role-heading > span { color: var(--text-muted); font-size: 12px; }
-.role-meta { font-size: 13px; margin: 8px 0 4px; }
-details { margin-top: 10px; border-top: 1px solid var(--border); }
-summary { color: var(--accent); cursor: pointer; padding: 8px 0 2px; font-size: 13px; }
-summary:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
-.detail-body h4, .pool h4 { margin: 12px 0 6px; font-size: 13px; }
-.detail-rows { margin: 0; }
-.detail-rows > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 3px 0; }
-.detail-rows dd { margin: 0; font-size: 12px; }
 .medals { margin: 10px 0 14px; color: var(--text-muted); font-size: 13px; }
 .area + .area { border-top: 1px solid var(--border); padding-top: 12px; }
 .area-details { margin-top: 8px; display: grid; gap: 5px; }
 .target-met { color: var(--text-muted); font-size: 12px; }
-.notice { background: var(--bg); color: var(--text-muted); padding: 10px; border-radius: 6px; font-size: 12px; line-height: 1.7; margin-bottom: 10px; }
-.pool { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 2px; }
-.compact { grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); }
-.draw-list { display: grid; gap: 10px; padding-top: 10px; }
-.draw-list .muted { margin-top: 3px; }
 .community-card { display: grid; gap: 5px; }
 a { color: var(--accent); font-size: 12px; width: fit-content; margin-top: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
 @media (max-width: 420px) { .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>

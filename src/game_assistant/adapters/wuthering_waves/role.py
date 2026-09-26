@@ -1,11 +1,9 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from game_assistant.models import AccountInfo, StaminaInfo
 from .widget import _data
 
 REGEN_MINUTES_PER_POINT = 6
-# 北京时间（UTC+8）：库街区服务器按中国时区运营，后续展示换算可用
-BEIJING_TZ = timezone(timedelta(hours=8))
 
 
 def _int_or_none(v):

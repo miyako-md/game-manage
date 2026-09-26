@@ -1,8 +1,10 @@
+import json
 import sqlite3
 import threading
 from datetime import datetime, timezone
 
 from game_assistant.models import FetchResult
+from game_assistant.wuwa_history import WuwaHistory
 
 
 class SnapshotStore:
@@ -10,7 +12,6 @@ class SnapshotStore:
         self._lock = threading.Lock()
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._ensure_schema()
-        from game_assistant.wuwa_history import WuwaHistory
         self.wuwa_history = WuwaHistory(self._conn, self._lock)
 
     def _ensure_schema(self) -> None:
@@ -94,7 +95,6 @@ class SnapshotStore:
             )
             self._conn.commit()
         if game_id == 'wuthering_waves' and capability in ('combat', 'roles'):
-            import json
             self.wuwa_history.capture(capability, json.loads(payload_json))
 
     def get(self, game_id: str, capability: str) -> dict | None:
@@ -106,13 +106,52 @@ class SnapshotStore:
             ).fetchone()
         return {"payload": row[0], "fetched_at": row[1]} if row else None
 
+    _PUBLIC_CAPABILITIES = ('announcement', 'events', 'news', 'teams')
+
+    def _private_clause(self):
+        marks = ','.join('?' for _ in self._PUBLIC_CAPABILITIES)
+        return f"capability NOT IN ({marks})", self._PUBLIC_CAPABILITIES
+
+    def export_private(self, game_id: str):
+        clause, public = self._private_clause()
+        with self._lock:
+            snapshots = self._conn.execute(
+                f"SELECT capability, payload, fetched_at FROM snapshots WHERE game_id = ? AND {clause}",
+                (game_id, *public)).fetchall()
+            status = self._conn.execute(
+                "SELECT capability, state, last_attempt_at, last_success_at, consecutive_failures, error, error_kind"
+                f" FROM poll_status WHERE game_id = ? AND {clause}",
+                (game_id, *public)).fetchall()
+        return snapshots, status
+
+    def restore_private(self, game_id: str, backup) -> None:
+        snapshots, status = backup
+        with self._lock:
+            for capability, payload, fetched_at in snapshots:
+                self._conn.execute(
+                    "INSERT INTO snapshots (game_id, capability, payload, fetched_at) VALUES (?, ?, ?, ?)"
+                    " ON CONFLICT(game_id, capability) DO UPDATE SET payload = excluded.payload,"
+                    " fetched_at = excluded.fetched_at",
+                    (game_id, capability, payload, fetched_at))
+            for row in status:
+                self._conn.execute(
+                    "INSERT INTO poll_status VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                    " ON CONFLICT(game_id, capability) DO UPDATE SET"
+                    " state=excluded.state, last_attempt_at=excluded.last_attempt_at,"
+                    " last_success_at=excluded.last_success_at,"
+                    " consecutive_failures=excluded.consecutive_failures,"
+                    " error=excluded.error, error_kind=excluded.error_kind",
+                    (game_id, *row))
+            self._conn.commit()
+
     def clear_private(self, game_id: str) -> None:
         """Account switching must never display the previous account's data."""
+        clause, public = self._private_clause()
         with self._lock:
             self._conn.execute(
-                "DELETE FROM snapshots WHERE game_id = ? AND capability NOT IN ('announcement','events','news','teams')",
-                (game_id,))
+                f"DELETE FROM snapshots WHERE game_id = ? AND {clause}",
+                (game_id, *public))
             self._conn.execute(
-                "DELETE FROM poll_status WHERE game_id = ? AND capability NOT IN ('announcement','events','news','teams')",
-                (game_id,))
+                f"DELETE FROM poll_status WHERE game_id = ? AND {clause}",
+                (game_id, *public))
             self._conn.commit()

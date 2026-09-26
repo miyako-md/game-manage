@@ -10,11 +10,13 @@ from game_assistant.models import Capability, FetchResult
 
 class Provider:
     def __init__(self):
+        self.started = 0
         self.sent = 0
         self.renewed = 0
         self.logins = 0
 
     async def start_context(self):
+        self.started += 1
         return {'device_id': 'device-1'}
 
     async def send_sms(self, context, mobile, captcha=None):
@@ -113,6 +115,40 @@ async def test_failed_save_keeps_live_account(tmp_path, monkeypatch):
     assert settings.nte_access_token == 'legacy-access'
 
 
+async def test_failed_save_restores_private_snapshots(tmp_path, monkeypatch):
+    from game_assistant.auth.store import CredentialStoreError
+    from game_assistant.snapshots import SnapshotStore
+    service, _, settings, _ = make_service(tmp_path)
+    snapshots = SnapshotStore(str(tmp_path / 'assistant.db'))
+    snapshots.save('nte', 'account', '{"nickname":"old"}')
+    snapshots.record_poll('nte', 'account', FetchResult(ok=False, error='旧错误', error_kind='source_error'))
+    service.snapshots = snapshots
+    def fail(_):
+        raise CredentialStoreError('本地凭据保存失败')
+    monkeypatch.setattr(service.store, 'save', fail)
+    with pytest.raises(LoginError):
+        await logged_in(service)
+    assert snapshots.get('nte', 'account')['payload'] == '{"nickname":"old"}'
+    assert snapshots.get_poll_status('nte', 'account')['error'] == '旧错误'
+    assert settings.nte_access_token == 'legacy-access'
+
+
+def test_saved_account_keeps_a_generated_device_id(tmp_path):
+    path = tmp_path / 'secrets.bin'
+    CredentialStore(path).save({'nte': {'access_token': 'kept', 'refresh_token': 'kept-r'}})
+    providers = {'nte': Provider(), 'wuthering_waves': Provider()}
+    LoginService(Settings(), CredentialStore(path), providers=providers)
+    device = CredentialStore(path).load()['nte']['device_id']
+    assert device.startswith('HT') and len(device) == 16
+    restarted = LoginService(Settings(), CredentialStore(path), providers=providers)
+    assert restarted.settings.nte_device_id == device
+    toml_only = tmp_path / 'toml.bin'
+    bare = LoginService(Settings(nte_access_token='toml', nte_refresh_token='toml-r'),
+                        CredentialStore(toml_only), providers=providers)
+    assert bare.settings.nte_device_id.startswith('HT')
+    assert CredentialStore(toml_only).load() == {}
+
+
 async def test_login_attempt_limit(tmp_path):
     service, provider, _, _ = make_service(tmp_path)
     from game_assistant.auth.providers import AuthError
@@ -158,12 +194,19 @@ async def test_server_reject_rotates_and_retries_once(tmp_path):
 
 
 async def test_public_nte_capability_never_requires_login(tmp_path):
-    service, provider, _, _ = make_service(tmp_path)
+    service, provider, settings, now = make_service(tmp_path)
+    await logged_in(service)
+    now[0] += 3601  # a private capability would renew this stale token first
+    async def rejected():
+        return FetchResult(ok=False, error='HTTP 401', error_code=401)
+    result = await service.fetch('nte', Capability.ANNOUNCEMENT, rejected)
+    assert result.error_kind is None and provider.renewed == 0
+    assert settings.nte_access_token == 'secret-access'
+    assert service.status()['accounts']['nte']['state'] == 'connected'
     await service.logout('nte')
     async def action():
         return FetchResult(ok=True, payload=[])
     assert (await service.fetch('nte', Capability.ANNOUNCEMENT, action)).ok
-    assert provider.renewed == 0
 
 
 async def test_auth_status_recovers_after_successful_private_request(tmp_path):

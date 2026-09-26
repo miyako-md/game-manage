@@ -19,7 +19,7 @@ import uuid
 import httpx
 
 from game_assistant.adapters.neverness.endpoints import (
-    APP_VERSION, GACHA, GET_ALL_COMMUNITY, GET_GAME_RECORD_CARD,
+    APP_VERSION, GACHA, GAME_ID, GET_ALL_COMMUNITY, GET_GAME_RECORD_CARD,
     GET_GAME_ROLES, GET_POST_FULL, GET_USER_FULL_INFO, ACHIEVE_PROGRESS,
     AREA_PROGRESS, CHARACTERS, OFFICIAL_POST_LIST, REALESTATE,
     ROLE_HOME, VEHICLES, TEAMS,
@@ -63,8 +63,8 @@ async def _request_json(client: httpx.AsyncClient, method: str, url: str, *,
                         authorized: bool = True) -> dict:
     """统一请求与错误契约：网络错误/HTTP 码/业务 code 检查 → TajiduoError。
 
-    成功码取 code∈(0, 200)（塔吉多为米哈游 BBS 风格接口，code=0 预期为主，
-    200 为防御；Phase 2 按真实响应校准）。业务错误码原样进 status_code。
+    成功码取 code∈(0, 200)（实测成功为 code=0，200 仅为防御）。
+    业务错误码原样进 status_code。
     """
     try:
         resp = await client.request(method, url, params=params, headers=headers)
@@ -136,20 +136,10 @@ class TajiduoClient:
     续期走 NteLoginProvider.renew（endpoints.py ④），客户端不自带续期路径。
     """
 
-    def __init__(self, access_token: str, refresh_token: str,
-                 device_id: str | None = None):
+    def __init__(self, access_token: str, device_id: str | None = None):
         self._access_token = access_token
-        self._refresh_token = refresh_token
         self._device_id = device_id or str(uuid.uuid4())
         self._client = httpx.AsyncClient(timeout=15)
-
-    @property
-    def access_token(self) -> str:
-        return self._access_token
-
-    @property
-    def refresh_token(self) -> str:
-        return self._refresh_token
 
     def _headers(self) -> dict:
         return {
@@ -171,7 +161,7 @@ class TajiduoClient:
         return await self._request("GET", GET_USER_FULL_INFO)
 
     async def get_game_roles(self) -> dict:
-        return await self._request("GET", GET_GAME_ROLES, params={"gameId": "1289"})
+        return await self._request("GET", GET_GAME_ROLES, params={"gameId": GAME_ID})
 
     async def get_game_record_card(self, uid: str) -> dict:
         return await self._request("GET", GET_GAME_RECORD_CARD, params={"uid": uid})

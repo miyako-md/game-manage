@@ -9,6 +9,7 @@ from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.neverness import tajiduo
 from game_assistant.adapters.neverness import parse
 from game_assistant.adapters.neverness import assets
+from game_assistant.adapters.neverness.endpoints import GAME_ID
 from game_assistant.adapters.neverness.tajiduo_client import (
     TajiduoClient, TajiduoError, TajiduoWebClient,
 )
@@ -56,7 +57,7 @@ class NteAdapter(BaseGameAdapter):
         s = self._settings
         if not (s.nte_access_token or s.nte_refresh_token):
             raise _UnconfiguredCredentialsError("未配置塔吉多凭据")
-        return TajiduoClient(s.nte_access_token, s.nte_refresh_token,
+        return TajiduoClient(s.nte_access_token,
                              device_id=s.nte_device_id or None)
 
     async def _guarded_run(self, run) -> FetchResult:
@@ -71,9 +72,9 @@ class NteAdapter(BaseGameAdapter):
         except ValueError:
             return FetchResult(ok=False, error='塔吉多数据格式已变化或角色不匹配，保留上次成功数据',
                                error_kind='invalid_data')
-        except Exception:
-            # 解析器异常不得穿透 fetch 破坏失效隔离
-            logger.warning("异环数据处理异常，保留上次成功数据")
+        except Exception as exc:
+            # 解析器异常不得穿透 fetch 破坏失效隔离。只记类型：异常文本可能带上游数据。
+            logger.warning("异环数据处理异常，保留上次成功数据 (%s)", type(exc).__name__)
             return FetchResult(ok=False, error="数据处理异常，请稍后重试", error_kind='invalid_data')
 
     async def fetch_announcement(self) -> FetchResult:
@@ -93,9 +94,9 @@ class NteAdapter(BaseGameAdapter):
 
     async def fetch_events(self) -> FetchResult:
         async def run():
-            # 主路径：config 手填（[[nte_events]]，长图 OCR 辅助人工抄写，
-            # 可靠）。配置非空即走手填（即使条目全部非法也不回退，避免配置
-            # 错误被自动扫描静默掩盖——坏项已 log.warning）
+            # config 手填的 [[nte_events]] 非空时优先于下面的公告扫描；API 层
+            # 再以 B站为主来源合并。配置非空即走手填（即使条目全部非法也不
+            # 回退，避免配置错误被自动扫描静默掩盖——坏项已 log.warning）
             if self._settings.nte_events:
                 events = event_calendar.parse_manual_events(self._settings.nte_events)
                 if not events:
@@ -113,7 +114,7 @@ class NteAdapter(BaseGameAdapter):
                     column_id, count=OFFICIAL_POST_COUNT)
                 post = event_calendar.find_version_post(
                     tajiduo._extract_rows(raw), VERSION_TITLE_KEYS,
-                    id_key="postId", title_key="subject", time_key="createTime")
+                    title_key="subject", time_key="createTime")
                 if not post:
                     return FetchResult(ok=False, error='未找到版本公告，保留上次成功日历',
                                        error_kind='source_error')
@@ -139,7 +140,7 @@ class NteAdapter(BaseGameAdapter):
         rows = data.get('roles', data.get('list', [])) if isinstance(data, dict) else data
         if isinstance(rows, list):
             for row in rows:
-                if not isinstance(row, dict) or str(row.get('gameId', '1289')) != '1289':
+                if not isinstance(row, dict) or str(row.get('gameId', GAME_ID)) != GAME_ID:
                     continue
                 role_id = str(row.get('roleId') or '')
                 if role_id and role_id != '0':

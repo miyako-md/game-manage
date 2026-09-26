@@ -4,13 +4,12 @@ import hashlib
 import logging
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from game_assistant.config import Settings
+from game_assistant.event_calendar import BEIJING_TZ
 from game_assistant.models import Capability, FetchResult, GameEvent, StaminaInfo
 from game_assistant.reminder_store import ReminderDedup
-
-BEIJING_TZ = timezone(timedelta(hours=8))
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ class Reminder:
 
 
 class ReminderEngine:
-    """轮询后提醒规则评估。去重语义见 Global Constraints。"""
+    """轮询后提醒规则评估；各规则的去重键见方法内注释。"""
 
     def __init__(self, dedup: ReminderDedup, notifier,
                  settings: Settings) -> None:

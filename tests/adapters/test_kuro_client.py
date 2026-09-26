@@ -36,7 +36,7 @@ POST_DETAIL_URL = "https://api.kurobbs.com/forum/getPostDetail"
 async def test_role_list_ok():
     route = respx.post("https://api.kurobbs.com/gamer/role/list").mock(
         return_value=httpx.Response(200, json=ROLE_LIST_RAW))
-    client = KuroClient(token="tok", user_id="123456")
+    client = KuroClient(token="tok")
     data = await client.role_list()
     assert data["data"][0]["roleId"] == "100000001"
     req = route.calls.last.request
@@ -49,7 +49,7 @@ async def test_role_list_ok():
 async def test_widget_data_ok():
     route = respx.post("https://api.kurobbs.com/gamer/widget/game3/getData").mock(
         return_value=httpx.Response(200, json=WIDGET_RAW))
-    client = KuroClient(token="tok", user_id="1")
+    client = KuroClient(token="tok")
     data = await client.widget_data("100000001", "76402e5b20be2c39f095a152090afddc")
     assert data["data"]["energyData"]["cur"] == 240
     body = route.calls.last.request.content.decode()
@@ -64,7 +64,7 @@ async def test_widget_data_refresh_uses_refresh_endpoint():
     # 体力专用，见 endpoints.py ⑧）；默认 False 保持 getData
     route = respx.post("https://api.kurobbs.com/gamer/widget/game3/refresh").mock(
         return_value=httpx.Response(200, json=WIDGET_RAW))
-    client = KuroClient(token="tok", user_id="1")
+    client = KuroClient(token="tok")
     data = await client.widget_data("100000001",
                                     "76402e5b20be2c39f095a152090afddc",
                                     refresh=True)
@@ -78,7 +78,7 @@ async def test_find_event_list_ok():
     route = respx.post(
         "https://api.kurobbs.com/forum/companyEvent/findEventList").mock(
         return_value=httpx.Response(200, json=EVENT_RAW))
-    client = KuroClient(token="tok", user_id="1")
+    client = KuroClient(token="tok")
     data = await client.find_event_list(3)
     assert data["data"]["list"][0]["postTitle"] == "2.6版本更新公告"
     body = route.calls.last.request.content.decode()
@@ -89,7 +89,7 @@ async def test_find_event_list_ok():
 async def test_get_post_detail_ok():
     route = respx.post(POST_DETAIL_URL).mock(
         return_value=httpx.Response(200, json=POST_DETAIL_RAW))
-    client = KuroClient(token="tok", user_id="1")
+    client = KuroClient(token="tok")
     detail = await client.get_post_detail("1539678546104307712")
     assert detail["postTitle"] == "「蜃云灯影，凡尘剑心」3.6版本内容说明"
     assert "postH5Content" in detail
@@ -103,7 +103,7 @@ async def test_get_post_detail_ok():
 async def test_get_post_detail_bad_shape_raises():
     respx.post(POST_DETAIL_URL).mock(return_value=httpx.Response(
         200, json={"code": 200, "data": {"postDetail": None}}))
-    client = KuroClient(token="tok", user_id="1")
+    client = KuroClient(token="tok")
     with pytest.raises(KuroError) as ei:
         await client.get_post_detail("1")
     assert ei.value.code == -3
@@ -113,7 +113,7 @@ async def test_get_post_detail_bad_shape_raises():
 async def test_error_raises_kuro_error():
     respx.post("https://api.kurobbs.com/gamer/role/list").mock(
         return_value=httpx.Response(200, json={"code": 220, "msg": "登录失效"}))
-    client = KuroClient(token="bad", user_id="1")
+    client = KuroClient(token="bad")
     with pytest.raises(KuroError) as ei:
         await client.role_list()
     assert ei.value.code == 220

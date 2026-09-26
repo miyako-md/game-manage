@@ -1,7 +1,7 @@
 # 异环（NTE / Neverness to Everness）塔吉多社区接口端点。
 # API 事实全部取自参考项目 github.com/tyql688/NTEUID 公开源码（逐字引用），
 # 2026-09-14 已以真实登录态校准私人数据结构，映射见 parse.py/data_models.py。
-# 已知事实（Phase 2 校准时以本文件头注释为准逐条核对）：
+# 已知事实：
 # ① BASE=https://bbs-api.tajiduo.com；异环 gameId="1289"；塔吉多社区 id="2"。
 # ② DS 签名（每个鉴权请求）：时间戳 int(time.time()) + 8 位随机 nonce（字母数字），
 #    md5(时间戳 + nonce + "1.2.4" + "pUds3dfMkl")，头 "ds": "{ts},{nonce},{md5hex}"。

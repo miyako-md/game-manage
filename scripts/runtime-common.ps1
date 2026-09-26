@@ -150,6 +150,10 @@ function Start-LocalRuntime {
         $verified = Get-VerifiedProcess (Read-State)
         if ($verified) { $verified.Kill(); $null = $verified.WaitForExit(5000) }
         Clear-RuntimeRecord
+    } elseif (-not $launcher.HasExited) {
+        # No handshake was written, so this is still the process we started.
+        $launcher.Kill()
+        $null = $launcher.WaitForExit(5000)
     }
     throw "Startup health/identity check failed. Logs: $script:RuntimeDir"
 }
@@ -201,7 +205,21 @@ function Invoke-LocalRuntime {
         try {
             $lock = [IO.File]::Open((Join-Path $script:RuntimeDir 'service.lock'),
                 [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-        } catch { throw 'Another runtime command is active. Retry after it finishes.' }
+        } catch {
+            # Only a lock held by another runtime command is a conflict.
+            # Path and permission failures keep their original error.
+            $sharing = $false
+            $ex = $_.Exception
+            while ($ex) {
+                if ($ex -is [System.IO.IOException]) {
+                    $code = $ex.HResult -band 0xFFFF
+                    if ($code -eq 32 -or $code -eq 33) { $sharing = $true }
+                }
+                $ex = $ex.InnerException
+            }
+            if (-not $sharing) { throw }
+            throw 'Another runtime command is active. Retry after it finishes.'
+        }
         switch ($Action) {
             'start' { Start-LocalRuntime }
             'stop' { Stop-LocalRuntime }

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { nextTick, reactive } from 'vue'
+import { nextTick } from 'vue'
 import { loadVue, mount, content, nodes } from '../test-utils/vue.js'
 
 const NteAssetsPanel = await loadVue(new URL('./NteAssetsPanel.vue', import.meta.url))

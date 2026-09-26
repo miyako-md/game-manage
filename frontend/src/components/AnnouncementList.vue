@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
-import { safeUrl, formatTime } from '../dashboard.js'
+import { formatTime } from '../dashboard.js'
+import { safeUrl } from '../calendar.js'
 
 const props = defineProps({
   snap: { type: Object, default: null },

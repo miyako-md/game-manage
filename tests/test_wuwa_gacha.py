@@ -7,17 +7,13 @@ from game_assistant import wuwa_gacha
 from game_assistant.snapshots import SnapshotStore
 
 
-def module():
-    return wuwa_gacha
-
-
 def record(**kw):
     return dict(cardPoolType='1', resourceId=1501, qualityLevel=5,
                 resourceType='角色', name='角色名', count=1, time='2026-01-01 12:00:00', **kw)
 
 
 def test_multiplicity_idempotency_unknowns_and_isolation(tmp_path):
-    g = module()
+    g = wuwa_gacha
     snapshots = SnapshotStore(str(tmp_path / 'db'))
     store = g.GachaStore(snapshots._conn, snapshots._lock)
     rows = [record(), record(), {**record(), 'cardPoolType': '99', 'qualityLevel': None}]
@@ -40,7 +36,7 @@ def test_multiplicity_idempotency_unknowns_and_isolation(tmp_path):
 
 
 def test_null_and_literal_unknown_rarity_counts_reconcile_without_losing_raw_values(tmp_path):
-    g = module()
+    g = wuwa_gacha
     snapshots = SnapshotStore(str(tmp_path / 'db'))
     store = g.GachaStore(snapshots._conn, snapshots._lock)
     rows = [{**record(), 'qualityLevel': rarity} for rarity in (None, 'unknown', 5)]
@@ -53,7 +49,7 @@ def test_null_and_literal_unknown_rarity_counts_reconcile_without_losing_raw_val
 
 
 def test_url_validation_fragment_aliases_and_secret_sanitization(tmp_path):
-    g = module()
+    g = wuwa_gacha
     for url in [
         'https://gmserver-api.aki-game2.com/gacha/record/query?record_id=SECRET&player_id=100&svr_id=S',
         'https://aki-gm-resources.aki-game.com/aki/gacha/index.html#/record?recordId=SECRET&playerId=100&serverId=S',
@@ -81,7 +77,7 @@ def test_url_validation_fragment_aliases_and_secret_sanitization(tmp_path):
 
 @pytest.mark.asyncio
 async def test_official_client_no_redirect_partial_and_fixed_destination():
-    g = module()
+    g = wuwa_gacha
     seen = []
     def handler(request):
         seen.append(str(request.url))
@@ -99,7 +95,7 @@ async def test_official_client_no_redirect_partial_and_fixed_destination():
 
 
 def test_explicit_draw_identity_and_conflicting_row_account(tmp_path):
-    g = module()
+    g = wuwa_gacha
     snapshots = SnapshotStore(str(tmp_path / 'db'))
     store = g.GachaStore(snapshots._conn, snapshots._lock)
     def wrapped(rows):

@@ -196,7 +196,7 @@ async def test_find_version_post_picks_latest():
         {"postId": "3", "postTitle": "维护完成公告", "publishTime": 999},
     ]
     got = find_version_post(posts, ("版本内容说明", "版本更新公告"),
-                            id_key="postId", title_key="postTitle",
+                            title_key="postTitle",
                             time_key="publishTime")
     assert got is not None and got["postId"] == "2"
 
@@ -213,13 +213,11 @@ async def test_find_version_post_tolerates_missing_time():
     # 带时间戳的帖子优先于缺时间戳的帖子
     posts = [{"postId": "9", "subject": "1.5版本内容说明"},
              {"postId": "8", "subject": "1.4版本内容说明"}]
-    got = find_version_post(posts, ("版本内容说明",), id_key="postId",
-                            title_key="subject", time_key="createTime")
+    got = find_version_post(posts, ("版本内容说明",), title_key="subject", time_key="createTime")
     assert got is not None and got["postId"] == "9"
     posts2 = [{"postId": "9", "subject": "1.5版本内容说明"},
               {"postId": "8", "subject": "1.4版本内容说明", "createTime": 50}]
-    got2 = find_version_post(posts2, ("版本内容说明",), id_key="postId",
-                             title_key="subject", time_key="createTime")
+    got2 = find_version_post(posts2, ("版本内容说明",), title_key="subject", time_key="createTime")
     assert got2 is not None and got2["postId"] == "8"
 
 

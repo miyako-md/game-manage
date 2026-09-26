@@ -1,7 +1,10 @@
 import { finiteValue } from './dashboard.js'
 
 export const roleId = role => role?.id === null || role?.id === undefined ? '' : String(role.id).trim()
-export const displayRoleValue = value => value === null || value === undefined || value === '' || (typeof value === 'number' && !Number.isFinite(value)) ? '未提供' : value
+export const displayRoleValue = (value, missing = '未提供', { numbers = true } = {}) => {
+  const badNumber = numbers && typeof value === 'number' && !Number.isFinite(value)
+  return value === null || value === undefined || value === '' || badNumber ? missing : value
+}
 
 export function filterRoles(entries, { search = '', quality = '', element = '', favoritesOnly = false, favorites = [], sort = 'level', direction = 'desc' } = {}) {
   const favoriteIds = new Set(favorites), query = search.trim().toLocaleLowerCase()

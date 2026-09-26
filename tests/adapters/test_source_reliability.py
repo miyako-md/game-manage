@@ -114,7 +114,7 @@ async def test_wuwa_network_exception_cannot_leak_request_secrets_to_status():
     respx.post(wuwa.ROLE_LIST_URL).mock(side_effect=httpx.ConnectError(
         'https://example.test/?token=secret-token'))
     sched = PollingScheduler(SimpleNamespace(get=lambda _: adapter), SnapshotStore(':memory:'),
-                            Settings(), None)
+                            Settings())
     result = await sched.poll_once(adapter.game_id, Capability.ACCOUNT)
     assert not result.ok and result.error_kind == 'source_error'
     assert 'secret-token' not in sched.store.get_poll_status(adapter.game_id, 'account')['error']
@@ -126,7 +126,7 @@ async def test_failed_manual_calendar_refresh_keeps_successful_snapshot():
     settings = Settings(nte_events=[{'name': '活动', 'end': '2026-09-18 04:00'}])
     adapter = NteAdapter(settings)
     sched = PollingScheduler(SimpleNamespace(get=lambda _: adapter), SnapshotStore(':memory:'),
-                            settings, None)
+                            settings)
     assert (await sched.poll_once('nte', Capability.EVENTS)).ok
     snapshot = sched.store.get('nte', 'events')
     settings.nte_events = [{'name': '坏项', 'end': 'invalid'}]
@@ -145,7 +145,7 @@ async def test_rolebox_network_error_cannot_leak_into_poll_status_or_log(caplog)
     respx.post(f'{wuwa.ROLEBOX_BASE_URL}/roleData').mock(side_effect=httpx.ConnectError(
         'https://example.test/?token=fake-secret-marker'))
     sched = PollingScheduler(SimpleNamespace(get=lambda _: adapter), SnapshotStore(':memory:'),
-                            Settings(), None)
+                            Settings())
     result = await sched.poll_once(adapter.game_id, Capability.ROLES)
     status = sched.store.get_poll_status(adapter.game_id, 'roles')
     assert result.error_kind == status['error_kind'] == 'source_error'
@@ -159,7 +159,7 @@ async def test_reversed_manual_calendar_preserves_last_success():
     settings = Settings(nte_events=[{'name': '活动', 'end': '2026-09-18 04:00'}])
     adapter = NteAdapter(settings)
     sched = PollingScheduler(SimpleNamespace(get=lambda _: adapter), SnapshotStore(':memory:'),
-                            settings, None)
+                            settings)
     assert (await sched.poll_once('nte', Capability.EVENTS)).ok
     snapshot = sched.store.get('nte', 'events')
     settings.nte_events = [{'name': '逆序活动', 'start': '2026-09-19 04:00', 'end': '2026-09-18 04:00'}]

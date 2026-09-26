@@ -1,9 +1,10 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 from game_assistant.api import create_app
 from game_assistant.config import Settings
+from game_assistant.event_calendar import BEIJING_TZ
 from game_assistant.adapters.neverness.adapter import NteAdapter
 from game_assistant.snapshots import SnapshotStore
 from tests.test_api import FakeRegistry
@@ -52,7 +53,13 @@ def test_mobile_calendar_primary_and_community_fallback_leave_native_storage_int
     native = [{'name':'环期赠礼签到','source_title':'手动配置','start_at':'2026-08-13T00:00:00+08:00','end_at':'2026-09-24T05:59:00+08:00'}]
     store.save('nte','events',json.dumps(native))
     from tests.test_public_content import notice
-    row=notice('《异环》1.3版本更新公告\n●「环期赠礼」签到活动\n活动时间：8月13日版本更新后-9月24日05:59',published=datetime.now(timezone.utc).isoformat())
+    # The calendar only keeps a version that has already started, and the store
+    # only keeps 60 days of posts, so the dates follow today's date.
+    start = datetime.now(BEIJING_TZ) - timedelta(days=5)
+    end = start + timedelta(days=30)
+    row=notice('《异环》1.3版本更新公告\n●「环期赠礼」签到活动\n'
+               f'活动时间：{start.month}月{start.day}日版本更新后-{end.month}月{end.day}日05:59',
+               published=start.astimezone(timezone.utc).isoformat())
     row.update(source_uid=UID, reason='accepted', reason_text='accepted')
     with TestClient(app, base_url="http://127.0.0.1:8010") as c:
         fallback=c.get('/api/games/nte/snapshot/events').json()

@@ -1,5 +1,4 @@
-import { displayBeijing } from './time.js'
-import { safeUrl } from './calendar.js'
+import { formatBeijingDateTime } from './calendar.js'
 export const value = (v) =>
   v === null || v === undefined || v === ''
     ? '未知'
@@ -10,17 +9,7 @@ export const value = (v) =>
       : v
 export const list = (v) =>
   Array.isArray(v) ? v.filter((item) => item != null) : []
-export function stamp(v) {
-  if (v == null || v === '') return '未知'
-  if (typeof v === 'number') {
-    const date = new Date(v)
-    if (!Number.isFinite(date.getTime())) return '未知'
-    v = date.toISOString()
-  }
-  const formatted = displayBeijing(v)
-  return formatted === '未提供' ? '未知' : formatted
-}
-export { safeUrl as safeImage }
+export const stamp = (v) => formatBeijingDateTime(v)
 export const fieldLabels = {
   weapon_type_name: '武器类型',
   is_main_role: '当前主角',

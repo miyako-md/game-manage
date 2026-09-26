@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { createRenderer, h } from 'vue'
-import { compileScript, parse } from '@vue/compiler-sfc'
+import { compileScript, parse } from 'vue/compiler-sfc'
 
 const modules = new Map()
 export async function loadVue(url) {

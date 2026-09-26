@@ -1,6 +1,6 @@
 """官网公告/资讯客户端与解析测试。
 
-fixture 为 Task 7 Step 5 在线校准真实样本（2026-09-13 实测
+fixture 为在线校准的真实样本（2026-09-13 实测
 apps.game.qq.com/cmc/zmMcnTargetContentList?target=24，即"公告"tab），见 endpoints.py 注释。
 """
 from datetime import datetime, timedelta
@@ -39,7 +39,7 @@ NEWS_LIST_BASE = "https://apps.game.qq.com/cmc/zmMcnTargetContentList"
 
 
 def test_parse_news_json_calibrated():
-    items = parse_news_json(RAW, "公告")
+    items = parse_news_json(RAW)
     for it in items:
         assert it.published_at is not None
         assert it.published_at.utcoffset() == timedelta(hours=8)
@@ -53,7 +53,7 @@ def test_parse_news_json_calibrated():
 
 def test_parse_news_json_fallback_url_from_docid():
     # 校准：公告 tab 多数条目 sRedirectURL 为空串，官方前端回退拼 detail.shtml?docid=
-    items = parse_news_json(RAW, "公告")
+    items = parse_news_json(RAW)
     assert items[1].url == "https://lol.qq.com/news/detail.shtml?docid=17083628231197355254"
     assert items[2].url == "https://lol.qq.com/news/detail.shtml?docid=16574079340694607129"
 
@@ -63,7 +63,7 @@ def test_parse_news_json_video_fallback_url():
         {"sTitle": "视频条目", "sIdxTime": "2026-09-10 08:00:00",
          "sRedirectURL": "", "sVID": "v123", "iDocID": "42"},
     ]}}
-    items = parse_news_json(raw, "综合")
+    items = parse_news_json(raw)
     assert items[0].url == "https://lol.qq.com/v/v2/detail.shtml?docid=42"
 
 
@@ -74,7 +74,7 @@ def test_parse_news_json_cross_items_shape():
          "sIdxTime": "2018-07-15 11:30:02", "sRedirectURL": "",
          "sVID": "", "iDocID": "14813918159521679375", "sDesc": "攻略解析"},
     ]}}
-    items = parse_news_json(raw, "综合")
+    items = parse_news_json(raw)
     assert len(items) == 1
     assert items[0].title == "秒杀能力直线提升 Faker岚切克烈全解析"
     assert items[0].published_at == datetime(2018, 7, 15, 11, 30, 2, tzinfo=BEIJING_TZ)
@@ -83,12 +83,12 @@ def test_parse_news_json_cross_items_shape():
 
 
 def test_parse_news_json_legacy_assumed_shape():
-    # Task 7 简报的假设形状（sDate/sUrl/title）仍需兼容
+    # 未经实测的回退形状（sDate/sUrl/title）仍需兼容
     raw = {"newsList": [
         {"title": "26.18版本更新公告", "sDate": "2026-09-11",
          "sUrl": "https://lol.qq.com/news/detail.shtml?nid=1"},
     ]}
-    items = parse_news_json(raw, "公告")
+    items = parse_news_json(raw)
     assert len(items) == 1
     assert items[0].title == "26.18版本更新公告"
     assert items[0].published_at == datetime(2026, 9, 11, tzinfo=BEIJING_TZ)
@@ -97,15 +97,15 @@ def test_parse_news_json_legacy_assumed_shape():
 
 def test_parse_news_json_root_list_and_bad_date():
     raw = [{"sTitle": "残缺条目", "sIdxTime": "not-a-date", "iDocID": "42"}]
-    items = parse_news_json(raw, "公告")
+    items = parse_news_json(raw)
     assert len(items) == 1
     assert items[0].published_at is None
     assert items[0].url == "https://lol.qq.com/news/detail.shtml?docid=42"
 
 
 def test_parse_news_json_empty_shape_returns_empty():
-    assert parse_news_json({}, "公告") == []
-    assert parse_news_json({"data": "garbage"}, "公告") == []
+    assert parse_news_json({}) == []
+    assert parse_news_json({"data": "garbage"}) == []
 
 
 def test_parse_news_json_protocol_relative_url():
@@ -113,7 +113,7 @@ def test_parse_news_json_protocol_relative_url():
         {"sTitle": "协议相对链接", "sIdxTime": "2026-09-10 08:00:00",
          "sRedirectURL": "//lol.qq.com/act/foo/index.html"},
     ]}}
-    items = parse_news_json(raw, "公告")
+    items = parse_news_json(raw)
     assert items[0].url == "https://lol.qq.com/act/foo/index.html"
 
 

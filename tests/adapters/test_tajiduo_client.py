@@ -133,7 +133,7 @@ async def test_authed_endpoints_headers_paths_params(method_name, args, url,
                                                      params):
     route = respx.get(url).mock(return_value=httpx.Response(
         200, json={"code": 0, "data": {"ok": method_name}}))
-    async with TajiduoClient("acc-token", "ref-token",
+    async with TajiduoClient("acc-token",
                              device_id="DEV-UUID") as client:
         data = await getattr(client, method_name)(*args)
     assert data["data"]["ok"] == method_name
@@ -152,9 +152,8 @@ async def test_authed_endpoints_headers_paths_params(method_name, args, url,
 
 
 def test_client_default_device_id_is_uuid():
-    client = TajiduoClient("acc", "ref")
+    client = TajiduoClient("acc")
     uuid.UUID(client._device_id)  # 合法 UUID（不抛异常）
-    assert client.access_token == "acc" and client.refresh_token == "ref"
 
 
 @pytest.mark.parametrize("status", [401, 402, 403])
@@ -162,7 +161,7 @@ def test_client_default_device_id_is_uuid():
 async def test_auth_session_expired_reports_recapture_hint(status):
     respx.get(f"{BASE}/usercenter/api/v2/getGameRoles").mock(
         return_value=httpx.Response(status, json={"message": "unauthorized"}))
-    client = TajiduoClient("acc", "ref")
+    client = TajiduoClient("acc")
     with pytest.raises(TajiduoError) as ei:
         await client.get_game_roles()
     await client.aclose()
@@ -175,7 +174,7 @@ async def test_auth_other_http_error_is_generic():
     # 非 401/402/403 不误报会话失效
     respx.get(f"{BASE}/usercenter/api/getUserFullInfo").mock(
         return_value=httpx.Response(500))
-    client = TajiduoClient("acc", "ref")
+    client = TajiduoClient("acc")
     with pytest.raises(TajiduoError) as ei:
         await client.get_user_full_info()
     await client.aclose()
@@ -187,7 +186,7 @@ async def test_business_code_error_raises():
     respx.get(f"{BASE}/usercenter/api/getUserFullInfo").mock(
         return_value=httpx.Response(200,
                                     json={"code": 1001, "message": "请先登录"}))
-    client = TajiduoClient("acc", "ref")
+    client = TajiduoClient("acc")
     with pytest.raises(TajiduoError) as ei:
         await client.get_user_full_info()
     await client.aclose()
@@ -198,7 +197,7 @@ async def test_business_code_error_raises():
 async def test_network_error_wrapped():
     respx.get(f"{BASE}/usercenter/api/getUserFullInfo").mock(
         side_effect=httpx.ConnectError("boom"))
-    client = TajiduoClient("acc", "ref")
+    client = TajiduoClient("acc")
     with pytest.raises(TajiduoError) as ei:
         await client.get_user_full_info()
     await client.aclose()

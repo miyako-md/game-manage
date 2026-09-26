@@ -196,14 +196,13 @@ def parse_manual_events(entries) -> list[GameEvent]:
     return events
 
 
-def find_version_post(posts: list[dict], title_keys, id_key: str = "postId",
+def find_version_post(posts: list[dict], title_keys,
                       title_key: str = "postTitle",
                       time_key: str = "publishTime") -> dict | None:
     """帖子列表 → 版本公告帖（标题含任一关键词，取发布时间最新），无则 None。
 
-    title_keys 传可迭代的关键词（也兼容单个字符串）；鸣潮传 id_key="postId"/
-    title_key="postTitle"/time_key="publishTime"，异环传 "postId"/"subject"/
-    "createTime"。
+    title_keys 传可迭代的关键词（也兼容单个字符串）；鸣潮传 title_key="postTitle"/
+    time_key="publishTime"，异环传 "subject"/"createTime"。
     """
     if isinstance(title_keys, str):
         title_keys = (title_keys,)

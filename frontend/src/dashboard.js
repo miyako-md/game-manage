@@ -1,6 +1,5 @@
 import { reactive } from 'vue'
-import { parseBeijingTime, safeUrl } from './calendar.js'
-export { safeUrl }
+import { DAY_MS, parseBeijingTime, safeUrl } from './calendar.js'
 
 const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams'])
 export const GAME_STYLE = {
@@ -12,10 +11,12 @@ export const gameStyle = (id) => GAME_STYLE[id] || { mark: '游', color: '#d8bb8
 export const finiteValue = (value) => typeof value === 'number' && Number.isFinite(value) ? value : null
 export function formatTime(value, options = {}) {
   const ts = typeof value === 'number' ? value : parseBeijingTime(value)
-  if (ts == null || !Number.isFinite(ts)) return '未提供'
+  // A finite number outside the Date range makes an Invalid Date, which Intl rejects.
+  const date = new Date(ts ?? NaN)
+  if (!Number.isFinite(date.getTime())) return '未提供'
   return new Intl.DateTimeFormat('zh-CN', {
     timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...options,
-  }).format(new Date(ts))
+  }).format(date)
 }
 export function summaryFor(game, snapshots = {}) {
   const validPayload = (cap) => {
@@ -45,10 +46,12 @@ export function upcomingEvents(games, snapshots, now = Date.now()) {
     if (!Array.isArray(snap?.payload)) return []
     return snap.payload.flatMap((ev, index) => {
       if (!ev || typeof ev !== 'object') return []
-      const end = parseBeijingTime(ev.end_at), start = parseBeijingTime(ev.start_at)
+      // Same start and staleness rules as the calendar (eventGeometry, collectCalendarEvents).
+      const end = parseBeijingTime(ev.end_at), start = parseBeijingTime(ev.start_at || ev.start_date)
       if (end == null || end <= now || (ev.start_at && start == null) || (start != null && start > end)) return []
       return [{ ...ev, id: `${game.game_id}:${index}`, gameId: game.game_id, gameName: game.display_name,
-        endTime: end, remainingDays: Math.ceil((end - now) / 86400000), upcoming: start != null && start > now, stale: !!snap.stale }]
+        endTime: end, remainingDays: Math.ceil((end - now) / DAY_MS), upcoming: start != null && start > now,
+        stale: Boolean(snap.stale || ev.source_stale) }]
     })
   }).sort((a, b) => a.endTime - b.endTime)
 }

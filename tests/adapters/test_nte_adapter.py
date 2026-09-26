@@ -309,7 +309,7 @@ async def test_session_expired_maps_to_recapture_hint():
 
 
 @respx.mock
-async def test_parser_exception_isolated(monkeypatch):
+async def test_parser_exception_isolated(monkeypatch, caplog):
     # 解析器异常不得穿透 fetch 破坏失效隔离
     def boom(raw):
         raise RuntimeError("解析炸了")
@@ -322,6 +322,7 @@ async def test_parser_exception_isolated(monkeypatch):
     a = _configured()
     r = await a.fetch(Capability.ANNOUNCEMENT)
     assert r.ok is False and "数据处理异常" in r.error
+    assert "RuntimeError" in caplog.text and "解析炸了" not in caplog.text
 
 
 def test_registry_includes_nte():

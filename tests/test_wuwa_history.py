@@ -101,7 +101,7 @@ async def test_scheduler_failed_and_switched_observations_never_archive(tmp_path
             epoch[0] += 1
         return response[0]
     adapter = SimpleNamespace(_auth=auth, fetch=fetch)
-    scheduler = PollingScheduler(SimpleNamespace(get=lambda _: adapter), store, Settings(), None)
+    scheduler = PollingScheduler(SimpleNamespace(get=lambda _: adapter), store, Settings())
     await scheduler.poll_once('wuthering_waves', Capability.COMBAT)
     response[0] = FetchResult(ok=True, payload=combat(), credential_version=1)
     result = await scheduler.poll_once('wuthering_waves', Capability.COMBAT)
