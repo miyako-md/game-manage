@@ -145,6 +145,22 @@ async def test_free_pulls_turn_the_count_into_a_lower_bound(tmp_path):
     assert special.since_last_six.model_dump() == {"count": 5, "status": "lower_bound"}
 
 
+@pytest.mark.parametrize('missing', ['rarity', 'isFree'])
+async def test_missing_pull_attributes_cannot_produce_exact_pity(tmp_path, missing):
+    store = EndfieldGachaStore(tmp_path / 'g.sqlite3')
+    rows = history(1, 3, six={1})
+    rows[1].pop(missing)
+    await sync(store, FakeClient(special=rows))
+    assert pool(store).since_last_six.model_dump() == {'count':1, 'status':'lower_bound'}
+    # A later known six-star establishes a new continuous segment.
+    rows = history(1, 6, six={1, 5})
+    rows[4].pop(missing)
+    await sync(store, FakeClient(special=rows))
+    summary = pool(store)
+    assert summary.history[0].status == 'lower_bound'
+    assert summary.since_last_six.model_dump() == {'count':1, 'status':'exact'}
+
+
 async def test_weapon_pools_roles_and_public_records_are_isolated(tmp_path):
     store = EndfieldGachaStore(tmp_path / "g.sqlite3")
     weapon = [{"seqId": "501", "weaponId": "w1", "weaponName": "寒夜幽影", "weaponType": "施术单元",

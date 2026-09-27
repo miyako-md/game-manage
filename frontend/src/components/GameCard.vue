@@ -19,6 +19,9 @@ import ProgressCard from './ProgressCard.vue'
 import StaminaCard from './StaminaCard.vue'
 import StatsCard from './StatsCard.vue'
 import WuwaDashboard from './WuwaDashboard.vue'
+import LolDashboard from './LolDashboard.vue'
+import NteGuides from './NteGuides.vue'
+import NteModuleCard from './NteModuleCard.vue'
 
 const props = defineProps({
   game: { type: Object, required: true },
@@ -37,10 +40,11 @@ const groups = computed(() => [
   { id: 'characters', label: '角色与探索', caps: ['roles', 'exploration', 'calabash'] },
   { id: 'assets', label: '房产与载具', caps: ['realestate', 'vehicles'] },
   { id: 'teams', label: '官方配队', caps: ['teams'] },
+  { id: 'guides', label: '角色攻略', caps: ['guides'] },
   { id: 'matches', label: '近期对局', caps: ['match'] },
   { id: 'gacha', label: '抽卡统计', caps: ['gacha'] },
   { id: 'news', label: '公告与资讯', caps: ['announcement', 'news'] },
-].filter(group => group.caps.some(cap => cap !== 'events' && props.game.capabilities.includes(cap))))
+].filter(group => group.id === 'guides' ? props.game.game_id === 'nte' : group.caps.some(cap => cap !== 'events' && props.game.capabilities.includes(cap))))
 // 「全部」按页签顺序排（概览类在前、对局和公告在后），不按后端能力列表的顺序。
 const TAB_ORDER = groups => groups.filter(group => group.id !== 'all').flatMap(group => group.caps)
 const visibleCaps = computed(() => {
@@ -114,13 +118,18 @@ function capProps(cap) {
         <AppIcon name="refresh" :size="15" :class="{ spinning: externalRefreshing }" /><span :class="{ 't-shimmer': externalRefreshing }">{{ externalRefreshing ? '刷新中…' : '刷新数据' }}</span>
       </button>
     </header>
-    <div v-if="game.game_id !== 'wuthering_waves'" class="detail-navigation"><nav v-glide class="detail-tabs segmented" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
+    <div v-if="!['wuthering_waves','league_of_legends'].includes(game.game_id)" class="detail-navigation"><nav v-glide class="detail-tabs segmented" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
     <WuwaDashboard v-if="game.game_id === 'wuthering_waves'" :snaps="externalSnapshots" :configured="game.credentials_configured" :initial-section="initialSection" @calendar="emit('calendar')" />
+    <LolDashboard v-else-if="game.game_id === 'league_of_legends'" :snaps="externalSnapshots" @refresh="emit('refresh')" />
+    <NteModuleCard v-else-if="game.game_id === 'nte' && activeSection === 'guides'" capability="guides"><NteGuides /></NteModuleCard>
     <div v-else class="cap-list">
       <template v-for="(cap, index) in visibleCaps" :key="cap">
+        <NteModuleCard v-if="game.game_id === 'nte' && capComponent(cap)" :capability="cap" :snap="externalSnapshots[cap]" :account-id="externalSnapshots.account?.payload?.role_id || ''" :class="['detail-cap', `detail-cap-${cap}`]">
+          <component :is="capComponent(cap)" v-bind="capProps(cap)" />
+        </NteModuleCard>
         <component
           :is="capComponent(cap)"
-          v-if="capComponent(cap)"
+          v-else-if="capComponent(cap)"
           v-bind="capProps(cap)"
           :class="['detail-cap', 't-item', `detail-cap-${cap}`]"
           :style="{ '--i': index }"

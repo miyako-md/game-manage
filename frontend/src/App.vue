@@ -23,6 +23,8 @@ const sidebar = ref(null)
 const menuToggle = ref(null)
 const mainContent = ref(null)
 const now = ref(Date.now())
+const clock = ref('')
+function tickClock() { clock.value = new Intl.DateTimeFormat('zh-CN', { timeZone:'Asia/Shanghai', hourCycle:'h23', hour:'2-digit',minute:'2-digit',second:'2-digit' }).format(Date.now()) }
 const accountRevisions = ref({})
 const selectedGame = computed(() => state.games.find(game => game.game_id === route.value.game))
 const pageTitle = computed(() => ({ overview: '今日总览', calendar: '活动日历', accounts: '社区账号', game: selectedGame.value?.display_name || '游戏档案' })[route.value.page])
@@ -32,7 +34,7 @@ const calendarErrors = computed(() => Object.fromEntries(state.games.map(g => {
   const source = state.collection.find(row => row.game_id === g.game_id && row.capability === 'events' && ['error', 'auth_expired'].includes(row.state))
   return [g.game_id, [state.readErrors[g.game_id], state.refreshErrors[g.game_id], source?.error].filter(Boolean).join('；')]
 })))
-let timer, stopFollowingSystem
+let timer, clockTimer, stopFollowingSystem
 function syncRoute() { route.value = readRoute(window.location.hash); menuOpen.value = false; window.scrollTo({ top: 0, behavior: 'instant' }); nextTick(() => mainContent.value?.focus({ preventScroll: true })) }
 async function openMenu() { menuOpen.value = true; await nextTick(); sidebar.value?.querySelector('.primary-nav a')?.focus() }
 async function closeMenu() { menuOpen.value = false; await nextTick(); menuToggle.value?.focus() }
@@ -95,8 +97,9 @@ onMounted(() => {
   window.addEventListener('keydown', handleKey)
   navigationMedia.addEventListener('change', mediaChanged)
   timer = setInterval(() => { now.value = Date.now(); dashboard.loadSnapshots(); dashboard.loadStatus() }, 60000)
+  tickClock(); clockTimer = setInterval(tickClock,1000)
 })
-onBeforeUnmount(() => { clearInterval(timer); stopFollowingSystem?.(); dashboard.dispose(); window.removeEventListener('hashchange', syncRoute); window.removeEventListener('keydown', handleKey); navigationMedia.removeEventListener('change', mediaChanged) })
+onBeforeUnmount(() => { clearInterval(timer); clearInterval(clockTimer); stopFollowingSystem?.(); dashboard.dispose(); window.removeEventListener('hashchange', syncRoute); window.removeEventListener('keydown', handleKey); navigationMedia.removeEventListener('change', mediaChanged) })
 </script>
 <template>
   <div class="workbench" :class="{ 'menu-open': menuOpen }">
@@ -115,7 +118,7 @@ onBeforeUnmount(() => { clearInterval(timer); stopFollowingSystem?.(); dashboard
       <div class="sidebar-bottom"><p class="local-status"><i :class="{ offline: state.loadError || state.serviceError }"></i>{{ state.loadError || state.serviceError ? '本地服务连接异常' : state.loadedAt ? '本地工作台已连接' : '正在连接本地服务' }}</p><p>{{ state.notify ? state.notify.enabled ? '微信推送已启用' : '微信推送未启用' : '提醒状态读取中' }}</p><div><AppIcon name="shield" :size="13" />个人使用 · 数据保存在本机</div></div>
     </aside>
     <div class="workspace-body" :inert="mobileNavigation && menuOpen">
-      <header class="workspace-topbar"><div class="topbar-left"><button ref="menuToggle" class="menu-toggle icon-button" :aria-expanded="menuOpen" aria-controls="workspace-sidebar" aria-label="打开导航" @click="openMenu"><AppIcon name="menu" /></button><span class="breadcrumb">个人空间 <span>/</span> <b>{{ pageTitle }}</b></span></div><div class="topbar-right"><span class="topbar-date">{{ today }}</span><button class="icon-button theme-toggle" :aria-label="theme === 'light' ? '切换到夜间模式' : '切换到白天模式'" :title="theme === 'light' ? '夜间模式' : '白天模式'" @click="toggleTheme"><span class="icon-swap"><AppIcon name="sun" :size="16" :data-active="theme !== 'light'" /><AppIcon name="moon" :size="16" :data-active="theme === 'light'" /></span></button><button class="ui-button small-button" @click="navigate('accounts')"><AppIcon name="user" :size="15" />社区账号</button></div></header>
+      <header class="workspace-topbar"><div class="topbar-left"><button ref="menuToggle" class="menu-toggle icon-button" :aria-expanded="menuOpen" aria-controls="workspace-sidebar" aria-label="打开导航" @click="openMenu"><AppIcon name="menu" /></button><span class="breadcrumb">个人空间 <span>/</span> <b>{{ pageTitle }}</b></span></div><div class="topbar-right"><span class="topbar-clock" aria-hidden="true">{{ clock }}</span><span class="topbar-date">{{ today }}</span><button class="icon-button theme-toggle" :aria-label="theme === 'light' ? '切换到夜间模式' : '切换到白天模式'" :title="theme === 'light' ? '夜间模式' : '白天模式'" @click="toggleTheme"><span class="icon-swap"><AppIcon name="sun" :size="16" :data-active="theme !== 'light'" /><AppIcon name="moon" :size="16" :data-active="theme === 'light'" /></span></button><button class="ui-button small-button" @click="navigate('accounts')"><AppIcon name="user" :size="15" />社区账号</button></div></header>
       <main id="main-content" ref="mainContent" tabindex="-1" class="workspace-main">
         <div v-if="state.loadError" class="service-error" role="alert"><div><strong>暂时无法读取游戏数据</strong><p>{{ state.loadError }}</p></div><button class="ui-button" :disabled="state.loading" @click="dashboard.load">重试连接</button></div>
         <OverviewPage v-if="route.page === 'overview'" class="t-page" :games="state.games" :snapshots="state.snapshots" :accounts="state.accounts" :collection="state.collection" :read-errors="state.readErrors" :refresh-errors="state.refreshErrors" :refreshing="state.refreshing" :now="now" :loading="state.loading" @navigate="navigate" @refresh="refreshAll" />

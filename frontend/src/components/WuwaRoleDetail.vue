@@ -4,6 +4,7 @@ import { safeUrl } from '../calendar.js'
 import { fieldLabels, list, starCount, value } from '../wuwa-display.js'
 import WuwaFields from './WuwaFields.vue'
 import InfoHint from './InfoHint.vue'
+import WuwaIcon from './WuwaIcon.vue'
 const props = defineProps({ data: { type: Object, default: () => ({}) } })
 const chains = computed(() => list(props.data.chain_list))
 const unlockedChains = computed(
@@ -41,7 +42,7 @@ const isAttributeList = (v) =>
 <template>
   <div class="wuwa-role-detail">
     <section class="wuwa-detail-section">
-      <h3 class="wuwa-subhead">角色基本信息</h3>
+      <h3 class="wuwa-subhead role-profile-heading"><WuwaIcon :src="data.role?.role_icon_url" :name="data.role?.role_name || '角色'" size="large" /><span>{{ data.role?.role_name }} · 角色基本信息</span></h3>
       <div class="wuwa-basics">
         <img
           v-if="safeUrl(data.role_skin?.skin_icon)"
@@ -79,7 +80,7 @@ const isAttributeList = (v) =>
         class="kv-grid wuwa-attrs"
       >
         <div v-for="(p, i) in list(data.role_attribute_list)" :key="i">
-          <dt>{{ p.attribute_name || '未知属性' }}</dt>
+          <dt class="role-profile-heading"><WuwaIcon :src="p.icon_url" :name="p.attribute_name || '属性'" size="small" />{{ p.attribute_name || '未知属性' }}</dt>
           <dd>{{ value(p.attribute_value) }}</dd>
         </div>
       </dl>
@@ -89,12 +90,7 @@ const isAttributeList = (v) =>
     <section class="wuwa-detail-section">
       <h3 class="wuwa-subhead">实际装备武器</h3>
       <div v-if="data.weapon_data" class="wuwa-equip">
-        <img
-          v-if="safeUrl(data.weapon_data.weapon?.weapon_icon)"
-          :src="safeUrl(data.weapon_data.weapon.weapon_icon)"
-          alt="装备武器"
-          loading="lazy"
-        />
+        <WuwaIcon :src="data.weapon_data.weapon?.weapon_icon" :name="data.weapon_data.weapon?.weapon_name || '武器'" />
         <div class="wuwa-equip-body">
           <p class="wuwa-equip-name">
             <strong>{{
@@ -173,6 +169,7 @@ const isAttributeList = (v) =>
           class="wuwa-tile"
         >
           <header class="wuwa-tile-head">
+            <WuwaIcon :src="entry.skill?.icon_url" :name="entry.skill?.name || '技能'" />
             <h4>{{ entry.skill?.name || '未知技能' }}</h4>
             <span v-if="entry.skill?.type" class="chip">{{
               entry.skill.type
@@ -225,6 +222,7 @@ const isAttributeList = (v) =>
           open
         >
           <summary>
+            <WuwaIcon :src="chain.icon_url" :name="chain.name || '共鸣链'" size="small" />
             <span class="wuwa-chain-order">{{ value(chain.order) }}</span
             ><span class="wuwa-chain-name">{{ chain.name }}</span
             ><span
@@ -260,12 +258,7 @@ const isAttributeList = (v) =>
       <div v-if="echoes.length" class="wuwa-tiles wuwa-echoes">
         <article v-for="(echo, i) in echoes" :key="i" class="wuwa-tile">
           <header class="wuwa-echo-head">
-            <img
-              v-if="safeUrl(echo.phantom_prop?.icon_url)"
-              :src="safeUrl(echo.phantom_prop.icon_url)"
-              alt="声骸"
-              loading="lazy"
-            />
+            <WuwaIcon :src="echo.phantom_prop?.icon_url" :name="echo.phantom_prop?.name || '声骸'" />
             <div>
               <h4>{{ echo.phantom_prop?.name || '未知声骸' }}</h4>
               <p class="wuwa-inline">
@@ -294,6 +287,7 @@ const isAttributeList = (v) =>
             </dl>
           </div>
           <p class="wuwa-set">
+            <WuwaIcon :src="echo.fetter_detail?.icon_url" :name="echo.fetter_detail?.name || '套装'" size="small" />
             <strong>{{ echo.fetter_detail?.name || '套装未知' }}</strong>
             <span class="wuwa-meta"
               >套装已装备数量 {{ value(echo.fetter_detail?.num) }}</span
@@ -404,3 +398,7 @@ const isAttributeList = (v) =>
     />
   </div>
 </template>
+
+<style scoped>
+.role-profile-heading{display:flex;align-items:center;gap:8px}
+</style>

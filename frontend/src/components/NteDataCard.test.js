@@ -130,6 +130,8 @@ test('managed game detail uses supplied snapshots and tabs without issuing dupli
   const tab = nodes(root, 'button').find(n => content(n) === '抽卡统计')
   assert.ok(tab)
   tab.props.onClick(); await nextTick()
+  assert.equal(nodes(root, 'dialog').length, 0)
+  nodes(root, 'button').find(n => content(n) === '查看抽卡统计').props.onClick(); await nextTick()
   assert.match(content(root), /近期抽卡记录/)
   assert.match(content(root), /暂无卡池统计/)
   assert.equal(reads, 0)

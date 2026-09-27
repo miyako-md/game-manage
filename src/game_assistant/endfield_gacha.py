@@ -217,7 +217,13 @@ def _pool_summary(key, kind, label, last_sync_at, rows, breaks) -> EndfieldGacha
     for row in rows:  # 由旧到新
         if row["seq_id"] in breaks:  # 这一条之前可能缺记录
             count, exact, free_in_count = 0, False, False
-        if row.get("is_free") is True:
+        if row.get("rarity") is None:
+            # This pull could itself have been a six-star: only later known
+            # pulls are a defensible lower bound for the next interval.
+            count, exact, free_in_count = 0, False, False
+            continue
+        if row.get("is_free") is not False:
+            # Missing free/paid status cannot be counted as a paid pull.
             free_in_count = True
         else:
             count += 1

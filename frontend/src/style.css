@@ -2,6 +2,10 @@
    graphite paper, slate cards, hairline borders, ultramarine only for
    interaction. Game colours are identity marks, never UI state. */
 :root {
+  /* Compatibility tokens used by the local guide and archive modules. */
+  --bg-deep: var(--panel-bg); --border-soft: var(--border);
+  --accent-dim: var(--accent-soft); --mono: var(--font-mono);
+  --mint: var(--chart-2); --coral: var(--chart-4);
   color-scheme: dark;
   --bg: #191b20; --panel-bg: #1d1f24; --card-bg: #24262d; --surface-soft: #2c3039; --control-track: #21242b;
   --sidebar-bg: #1d1f24; --topbar-bg: rgba(25, 27, 32, .88); --hover-bg: rgba(241, 243, 245, .05); --button-hover-bg: #2c3039;
@@ -188,3 +192,6 @@ button,a,input,select,summary { transition: color var(--duration-quick) var(--ea
 @media(max-width:1100px) { .workspace-sidebar { width:196px; padding:24px 12px 18px; }.workspace-body { margin-left:196px; }.workspace-main { padding:24px; }.workspace-topbar { padding:0 24px; }.brand { font-size:15px; }.workspace-main .accounts-page .accounts { grid-template-columns:1fr; } }
 @media(max-width:720px) { .workspace-sidebar { width:240px; transform:translateX(-100%); transition:transform var(--duration-medium) var(--ease-smooth-out), box-shadow var(--duration-medium) var(--ease-smooth-out); box-shadow:none; }.menu-open .workspace-sidebar { transform:translateX(0); box-shadow:var(--popover-shadow); transition-duration:var(--duration-slow); }.workspace-body { margin-left:0; }.menu-toggle { display:grid; }.mobile-sidebar-close { display:grid; position:absolute; right:12px; top:26px; }.sidebar-scrim { display:block; position:fixed; inset:0; background:var(--scrim); border:0; z-index:35; animation:t-fade-in var(--duration-fast) var(--ease-out) backwards; }.workspace-topbar { height:56px; padding:0 16px; }.topbar-date { display:none; }.topbar-left { gap:10px; }.breadcrumb { font-size:12px; }.breadcrumb>span { margin:0 6px; }.workspace-main { padding:20px 16px 32px; }.page-heading { margin-bottom:16px; padding-bottom:12px; }.page-heading h1 { font-size:24px; line-height:30px; }.cap-card { padding:14px; }.workspace-main .accounts-page .login-panel { padding:16px; }.workspace-main .accounts-page .account-row { padding:16px; }.workspace-main .accounts-page .account-info>strong { font-size:15px; }.service-error { align-items:flex-start; flex-direction:column; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
+
+.topbar-clock{font-family:var(--font-mono);font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+@media(max-width:720px){.topbar-clock{display:none}}

@@ -4,6 +4,7 @@ import { fieldLabels, value } from '../wuwa-display.js'
 import WuwaFields from './WuwaFields.vue'
 import WuwaStatus from './WuwaStatus.vue'
 import InfoHint from './InfoHint.vue'
+import WuwaModuleCard from './WuwaModuleCard.vue'
 const props = defineProps({ snap: { default: null } })
 const sections = computed(() =>
   Object.entries(props.snap?.payload?.sections || {}).sort(
@@ -18,7 +19,6 @@ const tiles = computed(() => {
   let bars = 0
   return sections.value.map(([key, raw]) => {
     const section = raw && typeof raw === 'object' ? raw : {}
-    const used = ['title']
     const pairs = []
     for (const [k, cur] of Object.entries(section)) {
       const capKey = `max_${k}`
@@ -26,7 +26,6 @@ const tiles = computed(() => {
       const cap = section[capKey]
       if (!countable(cur) || !countable(cap) || (cur == null && cap == null))
         continue
-      used.push(k, capKey)
       pairs.push({
         key: k,
         // Every bar on the page takes the next series colour.
@@ -44,8 +43,7 @@ const tiles = computed(() => {
       section.rank != null && typeof section.rank !== 'object'
         ? section.rank
         : null
-    if (rank != null) used.push('rank')
-    return { key, section, title: section.title || '未命名玩法', pairs, rank, used }
+    return { key, section, title: section.title || '未命名玩法', pairs, rank }
   })
 })
 </script>
@@ -57,9 +55,9 @@ const tiles = computed(() => {
       <WuwaStatus :snap="snap" />
     </header>
     <div v-if="tiles.length" class="wuwa-tiles wuwa-activities">
-      <article v-for="tile in tiles" :key="tile.key" class="wuwa-tile">
-        <header class="wuwa-tile-head">
-          <h3>{{ tile.title }}</h3>
+      <WuwaModuleCard v-for="tile in tiles" :key="tile.key" :title="tile.title" button-label="查看详情">
+        <template #preview>
+        <header v-if="tile.rank != null" class="wuwa-tile-head">
           <span v-if="tile.rank != null" class="badge wuwa-rank wuwa-tile-end"
             >{{ fieldLabels.rank }} {{ tile.rank }}</span
           >
@@ -77,8 +75,10 @@ const tiles = computed(() => {
             ></i
           ></span>
         </div>
-        <WuwaFields :data="tile.section" :exclude="tile.used" />
-      </article>
+        </template>
+        <WuwaFields :data="tile.section" :exclude="['title']" />
+        <WuwaStatus :snap="snap" />
+      </WuwaModuleCard>
     </div>
     <p v-else class="wuwa-muted">尚未获得玩法数据</p>
   </section>

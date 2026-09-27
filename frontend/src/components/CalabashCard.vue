@@ -1,13 +1,20 @@
 <script setup>
-import { fetchedLabel } from '../time.js'
+import { displayBeijing } from '../time.js'
 import { computed } from 'vue'
+import SummaryMetrics from './SummaryMetrics.vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
 })
 
+function toLocal(value) {
+  if (!value) return null
+  return displayBeijing(value)
+}
+
 const payload = computed(() => props.snap?.payload ?? null)
 
+// 简表行：null 显示 "—"；base_catch 自带 "%"，原样展示
 const rows = computed(() => {
   const p = payload.value
   return [
@@ -19,7 +26,7 @@ const rows = computed(() => {
   ]
 })
 
-const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
+const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
 </script>
 
 <template>
@@ -29,22 +36,41 @@ const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
       <span v-if="snap?.stale" class="badge badge-stale">
         数据可能过期
       </span>
-      <span v-if="fetchedAt" class="cap-meta">更新于 {{ fetchedAt }}</span>
     </div>
 
     <p v-if="payload == null" class="empty">暂无数据</p>
-    <dl v-else class="kv-grid dock-grid">
-      <div v-for="r in rows" :key="r.label">
-        <dt>{{ r.label }}</dt>
-        <dd>{{ r.value ?? '—' }}</dd>
-      </div>
-    </dl>
+    <SummaryMetrics v-else compact :metrics="rows" />
+
+    <p v-if="fetchedAt" class="fetched-at">更新于 {{ fetchedAt }}</p>
   </div>
 </template>
 
 <style scoped>
-.dock-grid {
-  --kv-min: 84px;
-  grid-template-columns: repeat(auto-fit, minmax(var(--kv-min), 1fr));
+.dock-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.dock-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.dock-row:last-child {
+  border-bottom: none;
+}
+
+.dock-label {
+  color: var(--text-muted);
+}
+
+.dock-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 </style>

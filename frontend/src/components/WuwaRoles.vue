@@ -6,8 +6,10 @@ import { list, starCount, value } from '../wuwa-display.js'
 import WuwaRoleDetail from './WuwaRoleDetail.vue'
 import WuwaStatus from './WuwaStatus.vue'
 import InfoHint from './InfoHint.vue'
-import AppIcon from './AppIcon.vue'
+import { vGlide } from '../motion.js'
 import MenuSelect from './MenuSelect.vue'
+import WuwaGuide from './WuwaGuide.vue'
+import WuwaRoleDialog from './WuwaRoleDialog.vue'
 const props = defineProps({
   snap: { default: null },
   accountKey: { type: String, default: '' },
@@ -21,8 +23,10 @@ const search = ref(''),
   detail = ref(null),
   error = ref(''),
   loading = ref(false)
+const detailTab = ref('panel')
 function reset() {
   selected.value = null
+  detailTab.value = 'panel'
   detail.value = null
   error.value = ''
   loading.value = false
@@ -80,7 +84,7 @@ function close() {
   <section class="wuwa-panel">
     <header class="cap-title">
       <h2>角色档案</h2>
-      <InfoHint text="点击角色按需读取完整面板。武器类型不代表实际装备。" />
+      <InfoHint text="点击角色查看实际面板与培养攻略。武器类型不代表实际装备。" />
       <WuwaStatus :snap="snap" />
     </header>
     <div class="toolbar">
@@ -165,38 +169,26 @@ function close() {
       </button>
     </div>
     <p v-if="!filtered.length" class="wuwa-muted">暂无符合条件的角色</p>
-    <section
+    <WuwaRoleDialog
       v-if="selected"
-      class="wuwa-detail"
-      role="region"
-      aria-label="角色完整面板"
-      aria-live="polite"
+      :title="`${selected.name} · 角色详情`"
+      @close="close"
     >
-      <header class="cap-title">
-        <h2>{{ selected.name }} · 完整面板</h2>
-        <WuwaStatus v-if="detail" :snap="detail" />
-        <button
-          type="button"
-          class="ui-button small-button ghost wuwa-close"
-          @click="close"
-        >
-          <AppIcon name="close" :size="14" />关闭详情
-        </button>
-      </header>
-      <p v-if="loading" role="status" class="wuwa-meta">
-        正在读取角色详情…
-      </p>
+      <div v-glide class="segmented wuwa-dialog-tabs" role="group" aria-label="角色详情视图">
+        <button type="button" :aria-pressed="detailTab === 'panel'" @click="detailTab = 'panel'">实际面板</button>
+        <button type="button" :aria-pressed="detailTab === 'guide'" @click="detailTab = 'guide'">培养攻略</button>
+      </div>
+      <WuwaGuide v-if="detailTab === 'guide'" :character-id="selected.role_id" />
+      <template v-else>
+      <p v-if="loading" role="status">正在读取角色详情…</p>
       <p v-if="error" class="wuwa-error" role="alert">
-        {{ error }}
-        <button
-          type="button"
-          class="ui-button small-button"
-          @click="open(selected)"
-        >
-          重试
-        </button>
+        {{ error }} <button type="button" class="ui-button small-button" @click="open(selected)">重试</button>
       </p>
-      <WuwaRoleDetail v-if="detail" :data="detail.payload.data" />
-    </section>
+      <template v-if="detail"
+        ><WuwaRoleDetail :data="detail.payload.data" /><WuwaStatus
+          :snap="detail"
+      /></template>
+      </template>
+    </WuwaRoleDialog>
   </section>
 </template>

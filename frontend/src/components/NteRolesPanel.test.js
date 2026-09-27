@@ -7,6 +7,19 @@ const entries = Array.from({ length: 5 }, (_, i) => ({ id: String(i + 1), name: 
 const snap = (items = entries) => ({ payload: { schema_version: 1, entries: items }, stale: true, fetched_at: '2026-09-16T10:00:00+08:00' })
 const button = (root, label) => nodes(root, 'button').find(n => n.props['aria-label'] === label)
 const cards = root => nodes(root, 'li').filter(n => n.props.class?.includes('role-card'))
+
+test('catalog icons accompany remote role filters and full collapsible equipment details', async t => {
+  const root = mount(t, Panel, { accountId: 'a', snap: snap([
+    { ...entries[0], id: '1010', name: '娜娜莉', level: 70, weapon: { name: '预备备', level: 60 }, skills: [{ name: '普通攻击', level: 5 }] },
+    { ...entries[1], name: '低等级角色', level: 1 },
+  ]) })
+  const role = cards(root)[0]
+  assert.match(content(role), /娜娜莉/)
+  assert.ok(nodes(role, 'img').length >= 3, 'role, weapon and role-specific skill use public catalog images')
+  assert.match(content(nodes(role, 'details')[0]), /弧盘.*预备备.*战技.*普通攻击.*Lv5/)
+  choose(root, '排序方向', 'asc'); await nextTick()
+  assert.match(content(cards(root)[0]), /低等级角色/)
+})
 test('search and filter inputs update visible cards while retaining full role details', async t => {
   const root = mount(t, Panel, { snap: snap(), accountId: 'a' })
   assert.equal(cards(root).length, 5)

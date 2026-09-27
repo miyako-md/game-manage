@@ -4,8 +4,36 @@ import { readFileSync, existsSync } from 'node:fs'
 import { nextTick, reactive } from 'vue'
 import { loadVue, mount, nodes, content } from '../test-utils/vue.js'
 import { gameStyle } from '../dashboard.js'
+import { theme } from '../theme.js'
 
 const GameIcon = await loadVue(new URL('./GameIcon.vue', import.meta.url))
+
+test('theme changes retry the correct bundled icon without losing local artwork', async t => {
+  t.after(()=>{theme.value='dark';delete globalThis.__LOCAL_GAME_ICONS__})
+  const root=mount(t,GameIcon,{gameId:'endfield'})
+  nodes(root,'img')[0].props.onError();await nextTick()
+  assert.equal(nodes(root,'img').length,0)
+  theme.value='light';await nextTick()
+  assert.equal(nodes(root,'img')[0].props.src,gameStyle('endfield').iconLight)
+  globalThis.__LOCAL_GAME_ICONS__={nte:'/local-game-icons/nte.jpg'}
+  const local=mount(t,GameIcon,{gameId:'nte'})
+  assert.equal(nodes(local,'img')[0].props.src,'/local-game-icons/nte.jpg')
+  theme.value='dark';await nextTick()
+  assert.equal(nodes(local,'img')[0].props.src,'/local-game-icons/nte.jpg')
+})
+
+test('local artwork overrides the public icon and failure retries the bundled icon', async t => {
+  globalThis.__LOCAL_GAME_ICONS__ = { nte: '/local-game-icons/nte.jpg' }
+  t.after(() => { delete globalThis.__LOCAL_GAME_ICONS__ })
+  const root = mount(t, GameIcon, { gameId: 'nte' })
+  assert.equal(nodes(root, 'img')[0].props.src, '/local-game-icons/nte.jpg')
+  nodes(root, 'img')[0].props.onError()
+  await nextTick()
+  assert.equal(nodes(root, 'img')[0].props.src, gameStyle('nte').icon)
+  nodes(root, 'img')[0].props.onError()
+  await nextTick()
+  assert.equal(nodes(root, 'img').length, 0)
+})
 test('each supported game uses a locally bundled icon with recorded provenance', () => {
   const sources = JSON.parse(readFileSync(new URL('../../public/game-icons/sources.json', import.meta.url)))
   for (const id of ['league_of_legends', 'wuthering_waves', 'nte', 'endfield']) {

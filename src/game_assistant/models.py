@@ -142,9 +142,9 @@ class MatchParticipant(BaseModel):
     champion_name: str | None = None
     role_name: str | None = None  # 游戏内昵称
     level: int | None = None  # stats.champLevel
-    kills: int = 0
-    deaths: int = 0
-    assists: int = 0
+    kills: int | None = None
+    deaths: int | None = None
+    assists: int | None = None
     items: list[int] = []  # item0..item6 过滤 0
     damage: int | None = None  # totalDamageDealtToChampions
     gold: int | None = None  # goldEarned

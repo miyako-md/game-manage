@@ -46,10 +46,14 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
     install_nte_gacha_routes(app, settings)
     from game_assistant.endfield_gacha_routes import install_endfield_gacha_routes
     install_endfield_gacha_routes(app, settings)
+    from game_assistant.nte_guides_routes import install_nte_guides_routes
+    install_nte_guides_routes(app, settings)
     from game_assistant.adapters.wuthering_waves.routes import install_wuwa_routes
     install_wuwa_routes(app)
     from game_assistant.wuwa_archive_routes import install_wuwa_archive_routes
     install_wuwa_archive_routes(app)
+    from game_assistant.lol_routes import install_lol_routes
+    install_lol_routes(app)
     from game_assistant.sources.bilibili_service import BilibiliService
     from game_assistant.sources.bilibili_routes import install_bilibili_routes
     from game_assistant.sources.public_content import MOBILE_GAMES, merge_events, merge_news

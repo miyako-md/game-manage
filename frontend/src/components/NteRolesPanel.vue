@@ -6,6 +6,8 @@ import { filterRoles, comparisonGroups, favoritesKey, loadFavorites, saveFavorit
 import AppIcon from './AppIcon.vue'
 import InfoHint from './InfoHint.vue'
 import MenuSelect from './MenuSelect.vue'
+import NteIcon from './NteIcon.vue'
+import { nteRoleIcon, nteNamedIcon, nteSkillIcon } from '../nte-icons.js'
 
 const props = defineProps({ snap: { type: Object, default: null }, accountId: { type: String, default: '' } })
 const payload = computed(() => props.snap?.payload ?? null)
@@ -102,7 +104,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
         <li v-for="(role, index) in visible" :key="keyOf(role)" class="role-card t-item" :class="{ compared: isCompared(role) }" :style="{ '--i': Math.min(index, 11) }">
           <div class="role-top">
             <img v-if="safeUrl(role.icon_url) && !failedImages.has(safeUrl(role.icon_url))" :key="safeUrl(role.icon_url)" :src="safeUrl(role.icon_url)" :alt="role.name || '角色'" loading="lazy" class="avatar" @error="imageFailed" />
-            <span v-else class="avatar avatar-empty" aria-hidden="true">{{ (role.name || '?').slice(0, 1) }}</span>
+            <NteIcon v-else :src="nteRoleIcon(role.id)" :name="role.name || '角色'" />
             <div class="role-heading">
               <strong :title="role.name">{{ display(role.name) }}</strong>
               <span class="role-sub"><span class="rank" :class="`rank-${role.quality}`">{{ display(role.quality) }}</span><span>{{ display(role.element) }}</span><span class="level">Lv{{ display(role.level) }}</span></span>
@@ -123,12 +125,12 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
             <div class="detail-body">
               <section class="detail-group">
                 <h4>弧盘</h4>
-                <p v-if="role.weapon" class="weapon"><strong>{{ display(role.weapon.name) }}</strong><span class="chip">{{ display(role.weapon.quality) }}</span><span class="chip">Lv{{ display(role.weapon.level) }}</span><span class="chip">混频 <b>{{ display(role.weapon.mix_level) }}</b></span></p>
+                <p v-if="role.weapon" class="weapon"><NteIcon :src="nteNamedIcon('weapons', role.weapon.name)" :name="role.weapon.name || '弧盘'" size="small" /><strong>{{ display(role.weapon.name) }}</strong><span class="chip">{{ display(role.weapon.quality) }}</span><span class="chip">Lv{{ display(role.weapon.level) }}</span><span class="chip">混频 <b>{{ display(role.weapon.mix_level) }}</b></span></p>
                 <p v-else class="muted">暂无数据</p>
               </section>
               <section v-for="group in [{ name: '属性', rows: role.properties, value: 'value' }, { name: '战技', rows: role.skills, value: 'level' }, { name: '城区技能', rows: role.city_skills, value: 'level' }]" :key="group.name" class="detail-group">
                 <h4>{{ group.name }}</h4>
-                <dl v-if="list(group.rows).length" class="detail-rows"><div v-for="(entry, index) in list(group.rows)" :key="index"><dt>{{ display(entry.name) }}</dt><dd>{{ group.value === 'level' && display(entry[group.value]) !== '未提供' ? 'Lv' : '' }}{{ display(entry[group.value]) }}</dd></div></dl>
+                <dl v-if="list(group.rows).length" class="detail-rows"><div v-for="(entry, index) in list(group.rows)" :key="index"><dt class="skill-name"><NteIcon v-if="group.value === 'level'" :src="nteSkillIcon(role.id, entry.name)" :name="entry.name || '技能'" size="small" /><span :title="display(entry.name)">{{ display(entry.name) }}</span></dt><dd>{{ group.value === 'level' && display(entry[group.value]) !== '未提供' ? 'Lv' : '' }}{{ display(entry[group.value]) }}</dd></div></dl>
                 <p v-else class="muted">暂无数据</p>
               </section>
             </div>
@@ -140,6 +142,8 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
 </template>
 
 <style scoped>
+.skill-name { display:flex;align-items:center;gap:6px;min-width:0; }
+.skill-name > span:last-child { overflow:hidden;text-overflow:ellipsis; }
 .nte-roles-panel { min-width: 0; overflow-wrap: anywhere; }
 .cap-title { position: relative; }
 .summary { gap: 4px; }

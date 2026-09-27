@@ -15,3 +15,4 @@ dist/
 *.credentials.json
 *.credentials.json.key
 private-backups/
+frontend/public/local-game-icons/

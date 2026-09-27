@@ -20,9 +20,28 @@ const filter = ref(props.initialGameId === 'all' ? '' : props.initialGameId)
 const gameOptions = computed(() => [{ value: '', label: '全部游戏' }, ...props.games.map(game => ({ value: game.game_id, label: game.display_name }))])
 const selectedId = ref(null)
 const detailElement = ref(null)
+const boardElement = ref(null)
+const boardTop = ref(240)
+let layoutObserver
+function fitWindow() {
+  if (typeof window === 'undefined' || !boardElement.value?.getBoundingClientRect) return
+  boardTop.value = Math.round(boardElement.value.getBoundingClientRect().top + window.scrollY)
+}
 let timer
-onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 60000) })
-onUnmounted(() => clearInterval(timer))
+onMounted(() => {
+  timer = setInterval(() => { now.value = Date.now() }, 60000)
+  fitWindow()
+  if (typeof window !== 'undefined') window.addEventListener('resize', fitWindow)
+  if (typeof ResizeObserver !== 'undefined' && boardElement.value?.parentElement) {
+    layoutObserver = new ResizeObserver(fitWindow)
+    layoutObserver.observe(boardElement.value.parentElement)
+  }
+})
+onUnmounted(() => {
+  clearInterval(timer)
+  if (typeof window !== 'undefined') window.removeEventListener('resize', fitWindow)
+  layoutObserver?.disconnect()
+})
 watch(() => props.initialGameId, (id) => { filter.value = id === 'all' ? '' : id })
 watch(filter, () => { selectedId.value = null })
 
@@ -33,9 +52,18 @@ const todayVisible = computed(() => now.value >= range.value.start && now.value 
 const rangeTitle = computed(() => mode.value === 'month'
   ? formatBeijingDateTime(range.value.start).slice(0, 7).replace('-', ' 年 ') + ' 月'
   : `${formatBeijingDateTime(range.value.start).slice(5, 10)} — ${formatBeijingDateTime(range.value.end - 1).slice(5, 10)}`)
-const events = computed(() => collectCalendarEvents(props.games, props.snapshots, filter.value).map(event => ({
-  ...event, geometry: eventGeometry(event, range.value), status: eventStatus(event, now.value),
-})))
+const events = computed(() => collectCalendarEvents(props.games, props.snapshots, filter.value).map(event => {
+  const geometry = eventGeometry(event, range.value)
+  const status = eventStatus(event, now.value)
+  let elapsed = null, remainingDays = null
+  if (geometry.kind === 'range' && status === '进行中') {
+    const start = Math.max(geometry.start, range.value.start)
+    const end = Math.min(geometry.end, range.value.end)
+    if (end > start) elapsed = Math.min(100, Math.max(0, (now.value-start)/(end-start)*100))
+    remainingDays = Math.max(0, Math.ceil((geometry.end-now.value)/86400000))
+  }
+  return {...event, geometry, status, elapsed, remainingDays}
+}))
 const visibleEvents = computed(() => events.value.filter(event => event.geometry.visible))
 const groups = computed(() => groupCalendarEvents(visibleEvents.value))
 const undated = computed(() => events.value.filter(event => event.geometry.kind === 'undated'))
@@ -75,7 +103,7 @@ async function selectEvent(event) {
       <div class="page-meta calendar-timezone"><span aria-hidden="true">◷</span> 北京时间 <strong>UTC+8</strong></div>
     </header>
 
-    <section class="calendar-board" aria-label="游戏活动时间轴" :aria-busy="loading">
+    <section ref="boardElement" class="calendar-board" aria-label="游戏活动时间轴" :aria-busy="loading" :style="{'--calendar-top':`${boardTop}px`}">
       <div class="calendar-toolbar">
         <div class="calendar-navigation">
           <div class="calendar-arrows"><button type="button" aria-label="上一时间范围" @click="shift(-1)">‹</button><button type="button" aria-label="下一时间范围" @click="shift(1)">›</button></div>
@@ -104,7 +132,7 @@ async function selectEvent(event) {
                 <div v-if="todayVisible" class="today-line" :style="{ left: `${todayPosition}%` }" aria-hidden="true" />
                 <div v-for="event in group.events" :key="event.id" class="event-lane">
                   <button type="button" class="timeline-event" :class="{ 'is-point': event.geometry.kind === 'point', 'is-short': event.geometry.kind === 'range' && event.geometry.width < 30, 'label-left': event.geometry.left > 70, 'is-ended': event.status === '已结束', 'clipped-start': event.geometry.clippedStart, 'clipped-end': event.geometry.clippedEnd, 'is-selected': selectedId === event.id }" :style="barStyle(event)" :title="eventDescription(event)" :aria-label="`查看活动详情：${event.name || '未命名活动'}`" @click="selectEvent(event)">
-                    <template v-if="event.geometry.kind === 'range'"><span class="event-summary"><span class="event-bar-title">{{ event.geometry.clippedStart ? '‹ ' : '' }}{{ event.name || '未命名活动' }}{{ event.geometry.clippedEnd ? ' ›' : '' }}</span><small class="event-category">{{ event.category }}</small><small class="event-status">{{ event.status }}{{ event.geometry.approximateStart ? ' · 更新后' : '' }}</small></span></template>
+                    <template v-if="event.geometry.kind === 'range'"><i v-if="event.elapsed != null" class="event-elapsed" :style="{width:`${event.elapsed}%`}" aria-hidden="true" /><span class="event-summary"><span class="event-bar-title">{{ event.geometry.clippedStart ? '‹ ' : '' }}{{ event.name || '未命名活动' }}{{ event.geometry.clippedEnd ? ' ›' : '' }}</span><small class="event-category">{{ event.category }}</small><small class="event-status">{{ event.status }}{{ event.geometry.approximateStart ? ' · 更新后' : '' }}</small><small v-if="event.remainingDays != null" class="event-remaining" :class="{urgent:event.remainingDays<=3}">剩 {{ event.remainingDays }} 天</small></span></template>
                     <template v-else><span class="point-diamond" aria-hidden="true" /><span class="point-label" :class="{ 'point-label-left': event.geometry.left > 70 }"><strong>{{ event.name || '未命名活动' }}</strong><small class="event-category">{{ event.category }}</small><small class="event-status">{{ event.status }}</small><span class="sr-only">{{ event.geometry.endpoint === 'end' ? '截止' : event.geometry.endpoint === 'start' ? '开始' : '时点' }} · {{ event.geometry.reason }}</span></span></template>
                   </button>
                 </div>
@@ -136,7 +164,8 @@ async function selectEvent(event) {
 .calendar-page > .page-heading { margin-bottom: 0; }
 .calendar-timezone { gap: 6px; white-space: nowrap; }
 .calendar-timezone strong { color: var(--text); font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
-.calendar-board { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; min-width: 0; box-shadow: var(--card-shadow); }
+.calendar-board { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: auto; min-width: 0; box-shadow: var(--card-shadow); display:flex; flex-direction:column; height:max(460px,calc(100dvh - var(--calendar-top) - 24px)); }
+.calendar-board > :not(.timeline-scroll){flex-shrink:0}
 .calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 20px 20px 16px; }
 .calendar-navigation, .calendar-filters { display: flex; align-items: center; gap: 12px; }
 .calendar-navigation h2 { font-size: 18px; font-weight: 600; letter-spacing: -.02em; min-width: 141px; }
@@ -160,7 +189,7 @@ async function selectEvent(event) {
 .calendar-read-error, .calendar-missing { margin: 0 20px 16px; padding: 10px 12px; font-size: 12px; line-height: 1.6; border-radius: 8px; }
 .calendar-read-error { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
 .calendar-missing { color: var(--text-muted); border: 1px dashed var(--border-strong); }
-.timeline-scroll { overflow: auto; max-height: min(68vh, 560px); scrollbar-color: var(--scrollbar) var(--bg); scrollbar-width: thin; }
+.timeline-scroll { overflow: auto; flex:1; min-height:140px; scrollbar-color: var(--scrollbar) var(--bg); scrollbar-width: thin; }
 .timeline-canvas { min-width: var(--timeline-min); }
 .timeline-header, .timeline-group { display: grid; grid-template-columns: 184px minmax(0, 1fr); }
 .timeline-header { position: sticky; top: 0; z-index: 5; background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
@@ -194,9 +223,13 @@ async function selectEvent(event) {
 @media (hover: hover) and (pointer: fine) { .timeline-event:hover { filter: brightness(1.12) saturate(1.08); } }
 .timeline-event:not(.is-point):active { transform: scaleY(0.94); }
 .timeline-event.is-ended { opacity: .56; }
-.event-summary { display: flex; align-items: center; gap: 9px; min-width: 0; width: 100%; }
+.event-summary { display: flex; align-items: center; gap: 9px; min-width: 0; width: 100%; position:relative; }
+.event-summary,.point-label {font-family:inherit;line-height:1.4;text-shadow:0 1px 3px var(--bg),0 0 6px var(--card-bg)}
+.event-elapsed{position:absolute;inset:0 auto 0 0;background:color-mix(in srgb,var(--game-accent) 20%,transparent);border-right:1px solid var(--game-accent);pointer-events:none}
+.event-remaining{flex-shrink:0;font-size:10px;color:var(--text-muted);border:1px solid var(--border-strong);border-radius:4px;padding:1px 5px;background:var(--card-bg)}
+.event-remaining.urgent{color:var(--stale-text);background:var(--stale-bg)}
 .timeline-event.is-short { overflow: visible; }
-.is-short .event-summary { position: absolute; left: 10px; width: max-content; max-width: 330px; text-shadow: 0 1px 3px var(--bg); }
+.is-short .event-summary { position: absolute; left: 10px; width: max-content; max-width: 330px; }
 .is-short.label-left .event-summary { left: auto; right: 10px; }
 .timeline-event.is-short::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 1px; background: var(--game-accent); opacity: .5; }
 .event-bar-title { display: block; font-size: 11px; font-weight: 600; min-width: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -211,7 +244,7 @@ async function selectEvent(event) {
 .timeline-event.is-point { width: 16px; transform: translateX(-50%); padding: 0; background: transparent; border: 0; box-shadow: none; overflow: visible; justify-content: center; }
 .point-diamond { display: block; height: 9px; width: 9px; background: var(--game-accent); transform: rotate(45deg); border: 2px solid var(--card-bg); box-shadow: 0 0 0 1px var(--game-accent); }
 .point-label { position: absolute; left: 20px; max-width: 330px; display: flex; align-items: center; gap: 9px; height: 32px; color: var(--text); padding: 0 7px; background: color-mix(in srgb, var(--card-bg) 92%, transparent); }
-.point-label strong { min-width: 24px; font-size: 11px; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.point-label strong { min-width: 24px; font-size: 11px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .point-label-left { left: auto; right: 20px; text-align: right; }
 .calendar-empty { padding: 42px 24px; text-align: center; color: var(--text-muted); font-size: 12px; }
 .timeline-empty { display: grid; gap: 13px; justify-items: center; min-height: 245px; align-content: center; }
