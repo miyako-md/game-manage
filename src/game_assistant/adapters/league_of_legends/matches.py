@@ -5,6 +5,7 @@ from game_assistant.models import (
     StatsSummary,
 )
 from game_assistant.adapters.league_of_legends.champions import ChampionCatalog
+from game_assistant.adapters.league_of_legends.analysis import participant_outcome
 
 
 def _win_from(stats: dict, team_id: int | None, team_win: dict[int, bool]) -> bool | None:
@@ -91,12 +92,12 @@ def parse_match_detail(raw: dict, own_puuid: str,
             if catalog else None,
             role_name=player.get("gameName") or player.get("name"),
             level=stats.get("champLevel"),
-            kills=stats.get("kills") or 0, deaths=stats.get("deaths") or 0,
-            assists=stats.get("assists") or 0,
+            kills=stats.get("kills"), deaths=stats.get("deaths"),
+            assists=stats.get("assists"),
             items=[it for it in items if it],
             damage=stats.get("totalDamageDealtToChampions"),
             gold=stats.get("goldEarned"),
-            win=_win_from(stats, team_id, team_win),
+            win=participant_outcome(raw, p),
             team_id=team_id, is_own=is_own,
         )
         by_team.setdefault(team_id, []).append((pid if pid is not None else 0, member))
@@ -105,7 +106,7 @@ def parse_match_detail(raw: dict, own_puuid: str,
     teams = []
     for tid in sorted(by_team, key=lambda t: (t != own_team, t if t is not None else 0)):
         members = [m for _, m in sorted(by_team[tid], key=lambda pm: pm[0])]
-        teams.append(MatchTeam(team_id=tid, win=team_win.get(tid),
+        teams.append(MatchTeam(team_id=tid, win=participant_outcome(raw, {'teamId':tid}),
                                participants=members))
     return MatchDetail(
         match_id=str(raw.get("gameId")), mode=raw.get("gameMode") or "",

@@ -4,6 +4,8 @@ import { useWuwaRequest } from '../wuwa-api.js'
 import { list, value, safeImage } from '../wuwa-display.js'
 import WuwaRoleDetail from './WuwaRoleDetail.vue'
 import WuwaStatus from './WuwaStatus.vue'
+import WuwaGuide from './WuwaGuide.vue'
+import WuwaRoleDialog from './WuwaRoleDialog.vue'
 const props = defineProps({
   snap: { default: null },
   accountKey: { type: String, default: '' },
@@ -17,6 +19,7 @@ const search = ref(''),
   detail = ref(null),
   error = ref(''),
   loading = ref(false)
+const detailTab = ref('panel')
 function reset() {
   selected.value = null
   detail.value = null
@@ -118,7 +121,7 @@ function close() {
         </select></label
       >
     </div>
-    <p class="wuwa-muted">点击角色按需读取完整面板。武器类型不代表实际装备。</p>
+    <p class="wuwa-muted">点击角色查看实际面板与培养攻略。</p>
     <div class="wuwa-role-grid">
       <button
         v-for="r in filtered"
@@ -145,17 +148,17 @@ function close() {
       </button>
     </div>
     <p v-if="!filtered.length" class="wuwa-muted">暂无符合条件的角色</p>
-    <section
+    <WuwaRoleDialog
       v-if="selected"
-      class="wuwa-detail"
-      role="region"
-      aria-label="角色完整面板"
-      aria-live="polite"
+      :title="`${selected.name} · 角色详情`"
+      @close="close"
     >
-      <header class="wuwa-heading">
-        <h2>{{ selected.name }} · 完整面板</h2>
-        <button @click="close">关闭详情</button>
-      </header>
+      <div class="wuwa-toolbar" role="group" aria-label="角色详情视图">
+        <button type="button" :aria-pressed="detailTab === 'panel'" @click="detailTab = 'panel'">实际面板</button>
+        <button type="button" :aria-pressed="detailTab === 'guide'" @click="detailTab = 'guide'">培养攻略</button>
+      </div>
+      <WuwaGuide v-if="detailTab === 'guide'" :character-id="selected.role_id" />
+      <template v-else>
       <p v-if="loading" role="status">正在读取角色详情…</p>
       <p v-if="error" class="wuwa-error" role="alert">
         {{ error }} <button @click="open(selected)">重试</button>
@@ -164,7 +167,8 @@ function close() {
         ><WuwaRoleDetail :data="detail.payload.data" /><WuwaStatus
           :snap="detail"
       /></template>
-    </section>
+      </template>
+    </WuwaRoleDialog>
     <WuwaStatus :snap="snap" />
   </section>
 </template>

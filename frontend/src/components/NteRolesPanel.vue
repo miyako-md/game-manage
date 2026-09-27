@@ -2,6 +2,8 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { displayBeijing } from '../time.js'
 import { filterRoles, comparisonGroups, favoritesKey, loadFavorites, saveFavorites, roleId, displayRoleValue as display } from '../nte-roles.js'
+import NteIcon from './NteIcon.vue'
+import { nteRoleIcon, nteNamedIcon, nteSkillIcon } from '../nte-icons.js'
 
 const props = defineProps({ snap: { type: Object, default: null }, accountId: { type: String, default: '' } })
 const payload = computed(() => props.snap?.payload ?? null)
@@ -81,7 +83,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
         <li v-for="role in visible" :key="keyOf(role)" class="role-card">
           <div class="role-overview">
             <img v-if="safeUrl(role.icon_url) && !failedImages.has(safeUrl(role.icon_url))" :key="safeUrl(role.icon_url)" :src="safeUrl(role.icon_url)" :alt="role.name || '角色'" loading="lazy" class="avatar" @error="imageFailed" />
-            <span v-else class="avatar avatar-empty" aria-hidden="true">{{ (role.name || '?').slice(0, 1) }}</span>
+            <NteIcon v-else :src="nteRoleIcon(role.id)" :name="role.name || '角色'" size="large" />
             <div class="role-heading"><strong>{{ display(role.name) }}</strong><span>{{ display(role.quality) }} · {{ display(role.element) }} · Lv{{ display(role.level) }}</span></div>
           </div>
           <p class="role-meta">觉醒 {{ display(role.awaken_level) }} · 混频 {{ display(role.mix_level) }}</p>
@@ -91,9 +93,9 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
             <button type="button" :aria-label="`对比${role.name || '角色'}`" :aria-pressed="selected.includes(keyOf(role))" :disabled="selected.length >= 4 && !selected.includes(keyOf(role))" @click="toggleCompare(role)">{{ selected.includes(keyOf(role)) ? '移出对比' : '加入对比' }}</button>
           </div>
           <details><summary>{{ role.name || '角色' }}详情</summary><div class="detail-body">
-            <h4>弧盘</h4><template v-if="role.weapon"><strong>{{ display(role.weapon.name) }}</strong><p class="muted">{{ display(role.weapon.quality) }} · Lv{{ display(role.weapon.level) }} · 混频 {{ display(role.weapon.mix_level) }}</p></template><p v-else class="muted">暂无数据</p>
+            <h4>弧盘</h4><template v-if="role.weapon"><div class="equipment-name"><NteIcon :src="nteNamedIcon('weapons', role.weapon.name)" :name="role.weapon.name || '弧盘'" /><strong>{{ display(role.weapon.name) }}</strong></div><p class="muted">{{ display(role.weapon.quality) }} · Lv{{ display(role.weapon.level) }} · 混频 {{ display(role.weapon.mix_level) }}</p></template><p v-else class="muted">暂无数据</p>
             <template v-for="group in [{ name: '属性', rows: role.properties, value: 'value' }, { name: '战技', rows: role.skills, value: 'level' }, { name: '城区技能', rows: role.city_skills, value: 'level' }]" :key="group.name">
-              <h4>{{ group.name }}</h4><dl v-if="list(group.rows).length" class="detail-rows"><div v-for="(entry, index) in list(group.rows)" :key="index"><dt>{{ display(entry.name) }}</dt><dd>{{ group.value === 'level' && display(entry[group.value]) !== '未提供' ? 'Lv' : '' }}{{ display(entry[group.value]) }}</dd></div></dl><p v-else class="muted">暂无数据</p>
+              <h4>{{ group.name }}</h4><dl v-if="list(group.rows).length" class="detail-rows"><div v-for="(entry, index) in list(group.rows)" :key="index"><dt class="skill-name"><NteIcon v-if="group.value === 'level'" :src="nteSkillIcon(role.id, entry.name)" :name="entry.name || '技能'" size="skill" />{{ display(entry.name) }}</dt><dd>{{ group.value === 'level' && display(entry[group.value]) !== '未提供' ? 'Lv' : '' }}{{ display(entry[group.value]) }}</dd></div></dl><p v-else class="muted">暂无数据</p>
             </template>
           </div></details>
         </li>
@@ -104,6 +106,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
 </template>
 
 <style scoped>
+.equipment-name,.skill-name { display:flex;align-items:center;gap:9px; }
 .nte-roles-panel { min-width: 0; overflow-wrap: anywhere; }
 .muted { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
 .role-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 16px 0 10px; }

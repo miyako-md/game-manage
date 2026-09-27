@@ -30,7 +30,7 @@ const summary = computed(() => {
   </details>
 </template>
 <style scoped>
-.source-panel { border:1px solid var(--border); border-radius:8px; background:#151f29; margin-bottom:22px; }
+.source-panel { border:1px solid var(--border); border-radius:8px; background:var(--bg-deep); margin-bottom:22px; }
 summary { display:flex; gap:12px; align-items:center; justify-content:space-between; padding:12px 15px; cursor:pointer; color:var(--text-muted); font-size:11px; }
 summary>span:first-child { color:var(--text); }summary small { font-size:10px; color:var(--text-muted); margin-left:8px; }summary:after { content:'⌄'; color:var(--accent); }summary>span:nth-child(2) { margin-left:auto; }summary .warning { color:var(--stale-text); }
 .source-table { border-top:1px solid var(--border); padding:0 15px; }.source-row { display:grid; grid-template-columns:1fr 1.35fr 1.15fr; gap:18px; padding:14px 0; border-bottom:1px solid var(--border); font-size:11px; }.source-row:last-child { border:0; }.source-kind strong { font-size:12px; font-weight:500; margin-right:8px; }.source-kind>small { display:block; margin-top:5px; color:var(--stale-text); font-size:10px; }.source-badge { font-size:10px; }.source-badge.good { color:var(--success); }.source-badge.danger,.source-error>span { color:var(--danger); }.source-badge.muted { color:var(--text-muted); }.source-times { color:var(--text-muted); line-height:1.9; font-size:10px; }.source-times time { margin-left:7px; color:var(--text); }.source-error { overflow-wrap:anywhere; font-size:10px; color:var(--text-muted); line-height:1.8; }.source-note { border-top:1px solid var(--border); padding:10px 15px; color:var(--text-muted); font-size:10px; }

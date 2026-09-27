@@ -1,21 +1,32 @@
 <script setup>
 import { list, value, safeImage } from '../wuwa-display.js'
 import WuwaFields from './WuwaFields.vue'
+import WuwaIcon from './WuwaIcon.vue'
 defineProps({ data: { type: Object, default: () => ({}) } })
 </script>
 <template>
   <div class="wuwa-stack">
     <section class="wuwa-inset">
-      <h3>角色基本信息</h3>
+      <div class="role-profile-heading">
+        <WuwaIcon :src="data.role?.role_icon_url" :name="data.role?.role_name || '角色'" size="large" />
+        <div>
+          <h3>{{ data.role?.role_name || '角色基本信息' }}</h3>
+          <p class="wuwa-meta">{{ data.role?.attribute_name }} · {{ data.role?.weapon_type_name }} · Lv.{{ value(data.role?.level) }}</p>
+          <p class="wuwa-meta">{{ value(data.role?.chain_unlock_num) }} 链 · 突破 {{ value(data.role?.breach) }}</p>
+        </div>
+      </div>
+      <details>
+      <summary>角色基本信息</summary>
       <WuwaFields :data="data.role" />
+      </details>
       <details>
         <summary>当前分支与来源资料</summary>
         <p>当前分支（来源编号） {{ value(data.active_branch_id) }}</p>
         <p class="wuwa-meta">分支编号仅为来源标识，不代表已解锁数量或练度。</p>
       </details>
     </section>
-    <section class="wuwa-inset">
-      <h3>角色外观</h3>
+    <details class="wuwa-inset">
+      <summary>角色外观</summary>
       <div class="wuwa-equipment">
         <img
           v-if="safeImage(data.role_skin?.skin_icon)"
@@ -25,12 +36,12 @@ defineProps({ data: { type: Object, default: () => ({}) } })
         />
         <WuwaFields :data="data.role_skin" />
       </div>
-    </section>
+    </details>
     <section>
       <h3>完整属性</h3>
       <dl class="wuwa-stat-grid">
         <div v-for="(p, i) in list(data.role_attribute_list)" :key="i">
-          <dt>{{ p.attribute_name || '未知属性' }}</dt>
+          <dt><WuwaIcon :src="p.icon_url" :name="p.attribute_name" size="small" /> {{ p.attribute_name || '未知属性' }}</dt>
           <dd>{{ value(p.attribute_value) }}</dd>
         </div>
       </dl>
@@ -41,12 +52,7 @@ defineProps({ data: { type: Object, default: () => ({}) } })
     <section class="wuwa-inset">
       <h3>实际装备武器</h3>
       <div v-if="data.weapon_data" class="wuwa-equipment">
-        <img
-          v-if="safeImage(data.weapon_data.weapon?.weapon_icon)"
-          :src="safeImage(data.weapon_data.weapon.weapon_icon)"
-          alt="装备武器"
-          loading="lazy"
-        />
+        <WuwaIcon :src="data.weapon_data.weapon?.weapon_icon" :name="data.weapon_data.weapon?.weapon_name || '武器'" size="large" />
         <div>
           <h4>{{ data.weapon_data.weapon?.weapon_name || '名称未知' }}</h4>
           <p>
@@ -64,10 +70,12 @@ defineProps({ data: { type: Object, default: () => ({}) } })
               <dd>{{ value(p.attribute_value) }}</dd>
             </div>
           </dl>
-          <strong>{{ data.weapon_data.weapon?.weapon_effect_name }}</strong>
+          <details>
+          <summary>{{ data.weapon_data.weapon?.weapon_effect_name || '武器效果' }}</summary>
           <p class="wuwa-description">
             {{ data.weapon_data.weapon?.effect_description }}
           </p>
+          </details>
           <details>
             <summary>武器来源补充资料</summary>
             <WuwaFields
@@ -105,18 +113,24 @@ defineProps({ data: { type: Object, default: () => ({}) } })
           :key="i"
           class="wuwa-inset"
         >
+          <div class="role-profile-heading">
+          <WuwaIcon :src="entry.skill?.icon_url" :name="entry.skill?.name || '技能'" />
           <h4>
             {{ entry.skill?.name || '未知技能' }}
             <span class="wuwa-gold">Lv.{{ value(entry.level) }}</span>
           </h4>
+          </div>
           <p class="wuwa-meta">
             {{ entry.skill?.type }} · 分支激活 {{ value(entry.active_branch) }}
           </p>
+          <details>
+          <summary>技能说明与分支</summary>
           <p class="wuwa-description">{{ entry.skill?.description }}</p>
           <WuwaFields
             v-if="list(entry.skill?.skill_branches).length"
             :data="entry.skill.skill_branches"
           />
+          </details>
           <details>
             <summary>技能来源补充资料</summary>
             <WuwaFields
@@ -140,6 +154,8 @@ defineProps({ data: { type: Object, default: () => ({}) } })
           class="wuwa-inset"
           :class="{ 'wuwa-locked': chain.unlocked === false }"
         >
+          <div class="role-profile-heading">
+          <WuwaIcon :src="chain.icon_url" :name="chain.name || '共鸣链'" />
           <h4>
             {{ value(chain.order) }} · {{ chain.name }}
             <span class="wuwa-meta">{{
@@ -150,11 +166,15 @@ defineProps({ data: { type: Object, default: () => ({}) } })
                   : '解锁状态未知'
             }}</span>
           </h4>
+          </div>
+          <details>
+          <summary>共鸣链效果</summary>
           <p class="wuwa-description">{{ chain.description }}</p>
           <WuwaFields
             :data="chain"
             :exclude="['order', 'name', 'unlocked', 'description']"
           />
+          </details>
         </article>
       </div>
       <p v-if="!list(data.chain_list).length" class="wuwa-muted">未提供</p>
@@ -173,12 +193,7 @@ defineProps({ data: { type: Object, default: () => ({}) } })
           class="wuwa-inset"
         >
           <div class="wuwa-equipment">
-            <img
-              v-if="safeImage(echo.phantom_prop?.icon_url)"
-              :src="safeImage(echo.phantom_prop.icon_url)"
-              alt="声骸"
-              loading="lazy"
-            />
+            <WuwaIcon :src="echo.phantom_prop?.icon_url" :name="echo.phantom_prop?.name || '声骸'" size="large" />
             <div>
               <h4>{{ echo.phantom_prop?.name || '未知声骸' }}</h4>
               <p>
@@ -203,8 +218,10 @@ defineProps({ data: { type: Object, default: () => ({}) } })
               <dd>{{ value(p.attribute_value) }}</dd>
             </div>
           </dl>
-          <h4>{{ echo.fetter_detail?.name || '套装未知' }}</h4>
+          <h4 class="role-profile-heading"><WuwaIcon :src="echo.fetter_detail?.icon_url" :name="echo.fetter_detail?.name || '套装'" size="small" />{{ echo.fetter_detail?.name || '套装未知' }}</h4>
           <p>套装已装备数量 {{ value(echo.fetter_detail?.num) }}</p>
+          <details>
+          <summary>套装效果</summary>
           <p
             v-for="key in [
               'first_description',
@@ -216,6 +233,7 @@ defineProps({ data: { type: Object, default: () => ({}) } })
           >
             {{ echo.fetter_detail?.[key] }}
           </p>
+          </details>
           <details v-if="echo.phantom_prop?.skill_description">
             <summary>声骸技能</summary>
             <p class="wuwa-description">
@@ -291,3 +309,12 @@ defineProps({ data: { type: Object, default: () => ({}) } })
     />
   </div>
 </template>
+
+<style scoped>
+.role-profile-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.role-profile-heading h3, .role-profile-heading h4 { margin: 0; }
+.wuwa-stat-grid dt { display: flex; align-items: center; gap: 6px; }
+details { margin-top: 12px; }
+summary { color: var(--text-muted); cursor: pointer; font-size: 12px; }
+summary:hover { color: var(--accent); }
+</style>

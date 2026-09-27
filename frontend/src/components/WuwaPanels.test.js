@@ -59,7 +59,7 @@ test('history season heading converts UTC across Beijing midnight', async (t) =>
   assert.doesNotMatch(content(heading), /2026-10-11|\+00:00/)
 })
 
-test('holograms group every difficulty under collapsed boss summaries without losing source status', async (t) => {
+test('holograms group every difficulty inside their dialog without losing source status', async (t) => {
   const root = mount(t, await component('WuwaCombat'), {
     snap: snap({
       hologram: {
@@ -81,6 +81,7 @@ test('holograms group every difficulty under collapsed boss summaries without lo
       },
     }),
   })
+  await click(root, '查看战术全息')
   const groups = nodes(root, 'details').filter((n) =>
     nodes(n, 'summary').some((s) => /首领[甲乙]/.test(content(s))),
   )
@@ -294,6 +295,7 @@ test('combat defaults deep realm and preserves independent error and stale sibli
       },
     }),
   })
+  await click(root, '查看逆境深塔')
   assert.match(content(root), /深境测试/)
   assert.doesNotMatch(content(root), /不要默认显示/)
   assert.match(content(root), /0 \/ 3/)
@@ -506,6 +508,7 @@ test('dynamic activity nested progress, unlock and null values render with Chine
       },
     }),
   })
+  await click(root, '查看详情')
   for (const text of [
     '新的玩法',
     '高难进度',
@@ -536,6 +539,7 @@ test('combat resolves ID-only teams through current account role names', async (
       },
     }),
   })
+  await click(root, '查看逆境深塔')
   assert.match(content(root), /今汐/)
 })
 test('news-only snapshots stay accessible through Wuwa announcement tab', async (t) => {
@@ -655,6 +659,7 @@ test('leaving gacha during file read cancels deferred import before it sends a P
     snaps: { account },
   })
   await click(root, '抽卡历史')
+  await click(root, '查看抽卡历史')
   let finish
   const input = nodes(root, 'input').find((n) => n.props.type === 'file')
   input.props.onChange({
@@ -666,6 +671,7 @@ test('leaving gacha during file read cancels deferred import before it sends a P
   })
   await tick()
   await click(root, '导入文件')
+  await click(root, '关闭详情')
   await click(root, '成长记录')
   finish('{"uid":"account","list":[]}')
   await tick()

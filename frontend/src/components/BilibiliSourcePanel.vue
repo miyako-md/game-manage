@@ -83,7 +83,7 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
 <style scoped>
 .bili-panel { margin-top:24px; padding:20px; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; font-size:12px; color:var(--text); }
 summary { cursor:pointer; font-weight:550; } summary span { margin-left:12px; font-size:11px; color:var(--text-muted); }
-p { margin-top:10px; line-height:1.7; }.muted,small { color:var(--text-muted); }.warning,[role=alert] { color:#e3ba9a; }
+p { margin-top:10px; line-height:1.7; }.muted,small { color:var(--text-muted); }.warning,[role=alert] { color:var(--stale-text); }
 .bili-status { padding:16px 0; border-bottom:1px solid var(--border); }.bili-status small { display:block; margin-top:5px; }
 .bili-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
 button,select { background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--accent); padding:7px 12px; cursor:pointer; }button:disabled { opacity:.5; cursor:wait; }

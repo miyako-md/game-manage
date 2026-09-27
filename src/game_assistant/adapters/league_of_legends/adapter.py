@@ -4,6 +4,7 @@
 catch-all 兜底防解析异常穿透破坏失效隔离，M1 最终审查裁定）。
 """
 import logging
+from datetime import datetime, timezone
 
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.league_of_legends.champions import ChampionCatalog
@@ -44,6 +45,11 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
     def __init__(self, settings: Settings):
         # 凭据来自本机 LCU 进程发现（非存储凭据），credentials_configured 恒 True
         self.credentials_configured = True
+        self.history = None  # API attaches the existing local SQLite archive.
+
+    def _archive(self, summoner, games, started_at, *, history_observed=True):
+        if self.history is not None:
+            self.history.save(summoner, games, started_at, history_observed=history_observed)
 
     def _discover(self) -> tuple[str, str]:
         # 每次拉取重新发现：客户端重启后端口/token 都会变，psutil 扫描很轻
@@ -69,6 +75,7 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
 
     async def fetch_account(self) -> FetchResult:
         async def run():
+            started_at = datetime.now(timezone.utc).isoformat()
             port, token = self._discover()
             async with LcuClient(port=port, token=token) as lcu:
                 raw = await lcu.current_summoner()
@@ -76,16 +83,19 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
                     ranked_raw = await lcu.ranked_stats(raw.get("puuid") or "")
                 except LcuError:
                     ranked_raw = None  # 排位信息失败不致命，账号信息仍可用
+                self._archive(raw, [], started_at, history_observed=False)
                 return FetchResult(ok=True, payload=parse_summoner(raw, ranked_raw))
         return await self._guarded_run(run)
 
     async def fetch_match(self) -> FetchResult:
         async def run():
+            started_at = datetime.now(timezone.utc).isoformat()
             port, token = self._discover()
             async with LcuClient(port=port, token=token) as lcu:
                 raw = await lcu.current_summoner()
                 puuid = raw.get("puuid") or ""
                 history = await lcu.match_history(puuid)
+                self._archive(raw, (history.get('games') or {}).get('games') or [], started_at)
                 return FetchResult(ok=True,
                                    payload=parse_match_history(history, puuid))
         return await self._guarded_run(run)
@@ -94,11 +104,13 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
         # 生涯统计：近 20 场口径（国服 match history 不支持翻页）；
         # 英雄目录网络失败自动降级（champions.py），不影响统计主流程
         async def run():
+            started_at = datetime.now(timezone.utc).isoformat()
             port, token = self._discover()
             async with LcuClient(port=port, token=token) as lcu:
                 raw = await lcu.current_summoner()
                 puuid = raw.get("puuid") or ""
                 history = await lcu.match_history(puuid)
+                self._archive(raw, (history.get('games') or {}).get('games') or [], started_at)
                 summaries = parse_match_history(history, puuid)
                 catalog = await ChampionCatalog().get()
                 return FetchResult(ok=True,
@@ -108,11 +120,13 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
     async def fetch_match_detail(self, match_id: str) -> FetchResult:
         # 按需拉取（非 capability 轮询），由 /api/.../detail 路由直接调用
         async def run():
+            started_at = datetime.now(timezone.utc).isoformat()
             port, token = self._discover()
             async with LcuClient(port=port, token=token) as lcu:
                 raw = await lcu.current_summoner()
                 puuid = raw.get("puuid") or ""
                 detail = await lcu.game_detail(match_id)
+                self._archive(raw, [detail], started_at)
                 catalog = await ChampionCatalog().get()
                 return FetchResult(
                     ok=True,

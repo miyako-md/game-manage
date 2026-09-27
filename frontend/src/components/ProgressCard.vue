@@ -1,6 +1,7 @@
 <script setup>
 import { displayBeijing, resetLabel } from '../time.js'
 import { computed } from 'vue'
+import SummaryMetrics from './SummaryMetrics.vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
@@ -19,21 +20,10 @@ function refreshText(value) {
 const rows = computed(() => {
   const payload = props.snap?.payload
   const items = Array.isArray(payload) ? payload : []
-  return items.map((it) => {
-    const total = it.total ?? 0
-    const hasTotal = total > 0
-    const pct = hasTotal
-      ? Math.min(100, Math.round(((it.cur ?? 0) / total) * 100))
-      : 100
-    return {
-      ...it,
-      hasTotal,
-      pct,
-      curText: hasTotal ? `${it.cur ?? 0}/${total}` : `${it.cur ?? 0}`,
-      pctText: hasTotal ? `${pct}%` : null,
-      refresh: refreshText(it.refresh_at),
-    }
-  })
+  return items.map(it => ({ label:it.name || '未命名项目',
+    ...(it.total > 0 ? {current:it.cur,total:it.total} : {value:it.cur}),
+    icon:'calendar',note:refreshText(it.refresh_at),
+  }))
 })
 
 const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
@@ -49,20 +39,7 @@ const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
     </div>
 
     <p v-if="rows.length === 0" class="empty">暂无数据</p>
-    <ul v-else class="progress-list">
-      <li v-for="(it, i) in rows" :key="i" class="progress-row">
-        <div class="row-head">
-          <span class="row-name">{{ it.name || '-' }}</span>
-          <span class="row-value">
-            {{ it.curText }}<template v-if="it.pctText">（{{ it.pctText }}）</template>
-            <span v-if="it.refresh" class="row-refresh">{{ it.refresh }}</span>
-          </span>
-        </div>
-        <div class="progress-bar" :class="{ 'no-total': !it.hasTotal }">
-          <div class="progress-fill" :style="{ width: it.pct + '%' }"></div>
-        </div>
-      </li>
-    </ul>
+    <SummaryMetrics v-else rows :metrics="rows" />
 
     <p v-if="fetchedAt" class="fetched-at">更新于 {{ fetchedAt }}</p>
   </div>

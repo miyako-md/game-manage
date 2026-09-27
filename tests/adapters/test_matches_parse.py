@@ -227,3 +227,17 @@ def test_compute_stats_damage_record_skipped_when_all_none():
     labels = [r["label"] for r in s.records]
     assert "最高伤害" not in labels
     assert set(labels) == {"单场最高击杀", "单场最高助攻", "最长对局"}
+
+
+def test_detail_unknown_metrics_and_objective_boolean_results():
+    game = _detail_game()
+    game['teams'] = [{'teamId':100,'win':None},{'teamId':200,'win':None}]
+    game['participants'][0]['stats'].pop('kills')
+    detail = parse_match_detail(game, 'ME')
+    assert detail.teams[0].win is None
+    assert detail.teams[0].participants[0].kills is None
+    assert detail.teams[0].participants[0].win is None
+    game['teams'] = [{'teamId':100,'win':True},{'teamId':200,'win':False}]
+    detail = parse_match_detail(game, 'ME')
+    assert detail.teams[0].win is True
+    assert detail.teams[0].participants[0].win is True

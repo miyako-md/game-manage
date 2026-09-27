@@ -1,6 +1,7 @@
 <script setup>
 import { displayBeijing } from '../time.js'
 import { computed } from 'vue'
+import SummaryMetrics from './SummaryMetrics.vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
@@ -38,12 +39,7 @@ const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
     </div>
 
     <p v-if="payload == null" class="empty">暂无数据</p>
-    <ul v-else class="dock-list">
-      <li v-for="r in rows" :key="r.label" class="dock-row">
-        <span class="dock-label">{{ r.label }}</span>
-        <span class="dock-value">{{ r.value ?? '—' }}</span>
-      </li>
-    </ul>
+    <SummaryMetrics v-else compact :metrics="rows" />
 
     <p v-if="fetchedAt" class="fetched-at">更新于 {{ fetchedAt }}</p>
   </div>

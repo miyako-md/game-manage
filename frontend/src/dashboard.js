@@ -3,11 +3,11 @@ import { parseBeijingTime } from './calendar.js'
 
 const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams'])
 export const GAME_STYLE = {
-  wuthering_waves: { mark: '鸣', icon: '/game-icons/wuthering_waves-mark.svg', color: '#d8bb84', english: 'WUTHERING WAVES', resource: '结晶波片' },
+  wuthering_waves: { mark: '鸣', icon: '/game-icons/wuthering_waves-mark.svg', color: '#e9c46a', english: 'WUTHERING WAVES', resource: '结晶波片' },
   nte: { mark: '异', icon: '/game-icons/nte-mark.svg', color: '#b6a3d4', english: 'NEVERNESS TO EVERNESS', resource: '本性像素' },
-  league_of_legends: { mark: 'L', icon: '/game-icons/league_of_legends-mark.svg', color: '#87b9ce', english: 'LEAGUE OF LEGENDS' },
+  league_of_legends: { mark: 'L', icon: '/game-icons/league_of_legends-mark.svg', color: '#8fb9c9', english: 'LEAGUE OF LEGENDS' },
 }
-export const gameStyle = (id) => GAME_STYLE[id] || { mark: '游', color: '#d8bb84', english: 'MY GAME', resource: '体力' }
+export const gameStyle = (id) => GAME_STYLE[id] || { mark: '游', color: '#e9c46a', english: 'MY GAME', resource: '体力' }
 export const finiteValue = (value) => typeof value === 'number' && Number.isFinite(value) ? value : null
 export function timestamp(value) {
   return parseBeijingTime(value)

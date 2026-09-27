@@ -1,9 +1,11 @@
 <script setup>
 import { displayBeijing } from '../time.js'
 import { computed } from 'vue'
+import SummaryMetrics from './SummaryMetrics.vue'
 
 const props = defineProps({
   snap: { type: Object, default: null },
+  label: { type: String, default: '体力' },
 })
 
 const payload = computed(() => props.snap?.payload ?? null)
@@ -28,9 +30,7 @@ const fetchedAt = computed(() => toLocal(props.snap?.fetched_at))
 
     <p v-if="payload == null" class="empty">暂无数据</p>
     <template v-else>
-      <div class="stamina-big">
-        {{ payload.current ?? '-' }}<span class="sep">/</span>{{ payload.maximum ?? '-' }}
-      </div>
+      <SummaryMetrics :metrics="[{label,current:payload.current,total:payload.maximum,icon:'spark'}]" />
       <p v-if="expectedFullAt" class="stamina-eta">
         预计 {{ expectedFullAt }} 恢复满
       </p>

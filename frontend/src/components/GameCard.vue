@@ -15,11 +15,14 @@ import NteDataCard from './NteDataCard.vue'
 import NteAssetsPanel from './NteAssetsPanel.vue'
 import NteRolesPanel from './NteRolesPanel.vue'
 import NteGachaPanel from './NteGachaPanel.vue'
+import NteGuides from './NteGuides.vue'
+import NteModuleCard from './NteModuleCard.vue'
 import ProgressCard from './ProgressCard.vue'
 import RoleWallCard from './RoleWallCard.vue'
 import StaminaCard from './StaminaCard.vue'
 import StatsCard from './StatsCard.vue'
 import WuwaDashboard from './WuwaDashboard.vue'
+import LolDashboard from './LolDashboard.vue'
 
 const props = defineProps({
   game: { type: Object, required: true },
@@ -30,7 +33,7 @@ const props = defineProps({
   collectionStatus: { type: Array, default: () => [] },
 })
 const emit = defineEmits(['refresh', 'calendar'])
-const activeSection = ref(props.initialSection)
+const activeSection = ref(props.game.game_id === 'nte' && props.initialSection === 'guides' ? 'characters' : props.initialSection)
 const style = computed(() => gameStyle(props.game.game_id))
 const groups = computed(() => [
   { id: 'all', label: '全部', caps: props.game.capabilities },
@@ -41,7 +44,7 @@ const groups = computed(() => [
   { id: 'matches', label: '近期对局', caps: ['match'] },
   { id: 'gacha', label: '抽卡统计', caps: ['gacha'] },
   { id: 'news', label: '公告与资讯', caps: ['announcement', 'news'] },
-].filter(group => group.caps.some(cap => cap !== 'events' && props.game.capabilities.includes(cap))))
+].filter(group => (props.game.game_id === 'nte' && group.id === 'characters') || group.caps.some(cap => cap !== 'events' && props.game.capabilities.includes(cap))))
 const visibleCaps = computed(() => {
   const current = groups.value.find(group => group.id === activeSection.value) || groups.value[0]
   return props.game.capabilities.filter(cap => cap !== 'events' && current?.caps.includes(cap))
@@ -139,7 +142,7 @@ defineExpose({ loadSnapshots })
 </script>
 
 <template>
-  <section class="game-card">
+  <section class="game-card" :style="{ '--accent': style.color, '--accent-dim': style.color + '2b' }">
     <div v-if="displayedError" class="error-bar" role="alert">
       {{ displayedError }}
     </div>
@@ -163,13 +166,17 @@ defineExpose({ loadSnapshots })
     </header>
 
     <SourceStatusPanel v-if="externalSnapshots !== null" :game="game" :collection="collectionStatus" />
-    <div v-if="game.game_id !== 'wuthering_waves'" class="detail-navigation"><nav class="detail-tabs" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
+    <div v-if="!['wuthering_waves', 'league_of_legends'].includes(game.game_id)" class="detail-navigation"><nav class="detail-tabs" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
     <WuwaDashboard v-if="game.game_id === 'wuthering_waves'" :snaps="snaps" :configured="game.credentials_configured" :initial-section="initialSection" @calendar="emit('calendar')" />
+    <LolDashboard v-else-if="game.game_id === 'league_of_legends'" :snaps="snaps" @refresh="onRefresh" />
     <div v-else class="cap-list">
       <template v-for="cap in visibleCaps" :key="cap">
+        <NteModuleCard v-if="game.game_id === 'nte' && capComponent(cap)" :capability="cap" :snap="snaps[cap]" :account-id="snaps.account?.payload?.role_id || ''">
+          <component :is="capComponent(cap)" :snap="snaps[cap]" :game-id="game.game_id" :capability="cap" :account-id="snaps.account?.payload?.role_id || ''" :roles="snaps.roles?.payload?.entries || []" />
+        </NteModuleCard>
         <component
           :is="capComponent(cap)"
-          v-if="capComponent(cap)"
+          v-else-if="capComponent(cap)"
           :snap="snaps[cap]"
           :game-id="game.game_id"
           :capability="cap"
@@ -179,6 +186,7 @@ defineExpose({ loadSnapshots })
         />
         <div v-else class="cap-card cap-coming">敬请期待</div>
       </template>
+      <NteModuleCard v-if="game.game_id === 'nte' && ['all', 'characters'].includes(activeSection)" capability="guides" :account-id="snaps.account?.payload?.role_id || ''"><NteGuides :roles="snaps.roles?.payload?.entries || []" /></NteModuleCard>
     </div>
   </section>
 </template>
@@ -245,14 +253,12 @@ defineExpose({ loadSnapshots })
   gap: 20px;
   align-items: start;
 }
-.detail-navigation { display:flex; justify-content:space-between; gap:15px; align-items:center; border-bottom:1px solid var(--border); margin-bottom:25px; flex-wrap:wrap; }
-.detail-tabs { display:flex; gap:5px; flex-wrap:wrap; }.detail-tabs button { color:var(--text-muted); background:none; border:0; padding:11px 13px; font-size:12px; border-bottom:2px solid transparent; }.detail-tabs button.active { color:var(--accent); border-bottom-color:var(--accent); }
 .detail-cap-roles,.detail-cap-match,.detail-cap-gacha,.detail-cap-exploration { grid-column:1/-1; }
 .detail-cap-match :deep(.item-main),.detail-cap-match :deep(.item-sub) { font-size:13px; }
 .detail-cap-roles :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
 .detail-cap-roles:not(.nte-card):not(.nte-roles-panel) :deep(.role-grid) { grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); }
 @media(max-width:950px) { .cap-list { grid-template-columns:1fr; gap:16px; } }
-@media(max-width:600px) { .card-head { gap:12px; }.game-heading { gap:11px; }.game-name { font-size:25px; }.detail-monogram { width:43px; height:43px; font-size:25px; }.detail-tabs button { padding:10px 8px; font-size:11px; }.detail-navigation>.text-link { margin-bottom:12px; }.game-heading .eyebrow { font-size:8px; letter-spacing:.7px; } }
+@media(max-width:600px) { .card-head { gap:12px; }.game-heading { gap:11px; }.game-name { font-size:25px; }.detail-monogram { width:43px; height:43px; font-size:25px; }.detail-navigation>.text-link { margin-bottom:12px; }.game-heading .eyebrow { font-size:8px; letter-spacing:.7px; } }
 
 .cap-coming {
   color: var(--text-muted);
