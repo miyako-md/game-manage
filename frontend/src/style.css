@@ -1,6 +1,4 @@
-/* Palette shared with Option Pro and Cloud Monitor ("paper terminal"): cool
-   graphite paper, slate cards, hairline borders, ultramarine only for
-   interaction. Game colours are identity marks, never UI state. */
+/* Neutral paper-terminal surfaces; each game scopes its own interaction colour. */
 :root {
   /* Compatibility tokens used by the local guide and archive modules. */
   --bg-deep: var(--panel-bg); --border-soft: var(--border);
@@ -19,7 +17,7 @@
   /* Translucent layers that lift a surface: white at night, ink by day. */
   --overlay-1: rgba(241, 243, 245, .02); --overlay-2: rgba(241, 243, 245, .04); --overlay-3: rgba(241, 243, 245, .06);
   --scrim: rgba(0, 0, 0, .55); --paper-dot: rgba(241, 243, 245, .045); --glare: rgba(241, 243, 245, .08); --skeleton-sheen: rgba(241, 243, 245, .08);
-  --game-wuwa: #d8bb84; --game-nte: #b6a3d4; --game-lol: #87b9ce; --game-endfield: #e6d45c;
+  --game-wuwa: #e9c46a; --game-nte: #b6a3d4; --game-lol: #8fb9c9; --game-endfield: #e6d45c;
   /* Series colours for data (shadcn --chart-N naming): sibling bars in one card
      take the next colour so neighbours never share a hue. */
   --chart-1: #8b9cff; --chart-2: #4ec4d4; --chart-3: #62d0a5; --chart-4: #f2b544; --chart-5: #b69cff; --chart-6: #ff8fb1;
@@ -61,6 +59,24 @@
   --btn-shadow: 0 1px 2px rgba(16, 24, 40, .07), inset 0 1px 0 rgba(255, 255, 255, .75); --btn-shadow-pressed: inset 0 1px 2px rgba(16, 24, 40, .08);
   --btn-primary-shadow: 0 1px 2px rgba(16, 24, 40, .03), inset 0 1px 0 rgba(255, 255, 255, .18); --btn-primary-pressed: inset 0 1.5px 3px rgba(13, 22, 38, .28), 0 1px 2px rgba(16, 24, 40, .1);
 }
+/* Define derived tokens at the game boundary so dialogs and controls inherit
+   the game colour instead of root's already-resolved blue aliases. */
+.game-theme {
+  --accent: var(--game-accent);
+  --accent-fill: var(--game-accent);
+  --accent-strong: var(--game-accent);
+  --accent-hover: color-mix(in srgb, var(--game-accent) 80%, var(--text));
+  --accent-ink: var(--bg);
+  --accent-soft: color-mix(in srgb, var(--game-accent) 12%, var(--card-bg));
+  --accent-dim: var(--accent-soft);
+  --nav-active-bg: var(--accent-soft);
+  --nav-game-active-bg: var(--accent-soft);
+  --nav-active-shadow: 0 2px 4px color-mix(in srgb, var(--game-accent) 8%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--game-accent) 14%, transparent);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--game-accent) 25%, transparent);
+  --chart-1: var(--game-accent);
+}
+.game-nav a:is(.active, :hover) { color: var(--game-accent); }
+.game-card.game-theme .game-heading .eyebrow { color: var(--accent); }
 * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 /* The sticky top bar must not cover whatever keyboard focus scrolls into view. */
 html { scroll-padding-top: 72px; }

@@ -95,7 +95,7 @@ function capProps(cap) {
 </script>
 
 <template>
-  <section class="game-card" :class="`game-${game.game_id}`">
+  <section class="game-card game-theme" :class="`game-${game.game_id}`" :style="{ '--game-accent': style.color }">
     <div v-if="externalError" class="error-bar" role="alert">
       {{ externalError }}
     </div>
