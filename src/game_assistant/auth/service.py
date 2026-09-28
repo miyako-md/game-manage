@@ -29,7 +29,7 @@ FIELDS = {
 # Public feeds remain available without a community session.
 PUBLIC_CAPABILITIES = {
     'nte': (Capability.ANNOUNCEMENT, Capability.EVENTS, Capability.TEAMS),
-    'endfield': (Capability.ANNOUNCEMENT, Capability.EVENTS),
+    'endfield': (Capability.ANNOUNCEMENT, Capability.NEWS, Capability.EVENTS),
 }
 
 

@@ -1,12 +1,12 @@
-"""明日方舟：终末地（官服）：鹰角通行证账号与寻访记录。
+"""终末地官服账号、寻访账本与官网资讯日历。
 
-理智、练度等森空岛数据尚未接入（需先按实施指导 M0 确认不伪造设备指纹的路径）；
-公告与活动日历来自 B站官方动态，由 API 层按手游主来源规则提供。
+森空岛档案使用独立授权和角色选择，在 endfield_skland 中按账号隔离。
 """
 import logging
 
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.endfield import parse
+from game_assistant.adapters.endfield.data_models import EndfieldEvent
 from game_assistant.adapters.endfield.hypergryph import EndfieldError, HypergryphClient
 from game_assistant.config import Settings
 from game_assistant.endfield_gacha import EndfieldGachaStore, store_path
@@ -19,7 +19,7 @@ class EndfieldAdapter(BaseGameAdapter):
     game_id = "endfield"
     display_name = "终末地"
     section = "mobile"
-    capabilities = [Capability.ACCOUNT, Capability.GACHA]
+    capabilities = [Capability.ACCOUNT, Capability.GACHA, Capability.NEWS, Capability.EVENTS]
     # 每次同步最多请求的页数与页间隔；首次同步没翻完的部分下次续传。
     sync_budget = 120
     sync_interval = 0.3
@@ -27,7 +27,33 @@ class EndfieldAdapter(BaseGameAdapter):
     def __init__(self, settings: Settings):
         self._settings = settings
         self._store: EndfieldGachaStore | None = None
+        self._public = None
+        self._public_force = False
         self.credentials_configured = bool(settings.endfield_hg_token)
+
+    def prepare_refresh(self):
+        self._public_force = True
+
+    async def _public_rows(self, capability):
+        from game_assistant.endfield_public import EndfieldPublicService, PublicSourceError
+        if self._public is None:
+            self._public = EndfieldPublicService(self._settings.db_path)
+        force, self._public_force = self._public_force, False
+        try:
+            method = self._public.news if capability == Capability.NEWS else self._public.events
+            rows = await method(force=force)
+            payload = rows if capability == Capability.NEWS else [EndfieldEvent(**row) for row in rows]
+            return FetchResult(ok=True, payload=payload)
+        except PublicSourceError as error:
+            return FetchResult(ok=False, error=str(error), error_kind='source_error')
+        except ValueError:
+            return FetchResult(ok=False, error='官网数据格式已变化，保留上次成功数据', error_kind='invalid_data')
+
+    async def fetch_news(self):
+        return await self._public_rows(Capability.NEWS)
+
+    async def fetch_events(self):
+        return await self._public_rows(Capability.EVENTS)
 
     def _credentials(self) -> tuple[str, str, str]:
         s = self._settings

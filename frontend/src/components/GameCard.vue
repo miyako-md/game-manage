@@ -15,6 +15,7 @@ import NteAssetsPanel from './NteAssetsPanel.vue'
 import NteRolesPanel from './NteRolesPanel.vue'
 import NteGachaPanel from './NteGachaPanel.vue'
 import EndfieldGachaPanel from './EndfieldGachaPanel.vue'
+import EndfieldDashboard from './EndfieldDashboard.vue'
 import ProgressCard from './ProgressCard.vue'
 import StaminaCard from './StaminaCard.vue'
 import StatsCard from './StatsCard.vue'
@@ -103,7 +104,7 @@ function capProps(cap) {
     <header class="card-head">
       <div class="game-heading"><GameIcon class="detail-monogram" :game-id="game.game_id" :name="game.display_name" /><div><p class="eyebrow">{{ style.english }}</p><h1 class="game-name">{{ game.display_name }}</h1></div></div>
       <span
-        v-if="!game.credentials_configured"
+        v-if="!game.credentials_configured && game.game_id !== 'endfield'"
         class="badge badge-danger"
       >
         未配置凭据
@@ -118,9 +119,10 @@ function capProps(cap) {
         <AppIcon name="refresh" :size="15" :class="{ spinning: externalRefreshing }" /><span :class="{ 't-shimmer': externalRefreshing }">{{ externalRefreshing ? '刷新中…' : '刷新数据' }}</span>
       </button>
     </header>
-    <div v-if="!['wuthering_waves','league_of_legends'].includes(game.game_id)" class="detail-navigation"><nav v-glide class="detail-tabs segmented" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
+    <div v-if="!['wuthering_waves','league_of_legends','endfield'].includes(game.game_id)" class="detail-navigation"><nav v-glide class="detail-tabs segmented" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
     <WuwaDashboard v-if="game.game_id === 'wuthering_waves'" :snaps="externalSnapshots" :configured="game.credentials_configured" :initial-section="initialSection" @calendar="emit('calendar')" />
     <LolDashboard v-else-if="game.game_id === 'league_of_legends'" :snaps="externalSnapshots" @refresh="emit('refresh')" />
+    <EndfieldDashboard v-else-if="game.game_id === 'endfield'" :snaps="externalSnapshots" :initial-section="initialSection" @calendar="emit('calendar')" />
     <NteModuleCard v-else-if="game.game_id === 'nte' && activeSection === 'guides'" capability="guides"><NteGuides /></NteModuleCard>
     <div v-else class="cap-list">
       <template v-for="(cap, index) in visibleCaps" :key="cap">
