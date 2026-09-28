@@ -169,7 +169,8 @@ def parse_post_events(post, version):
                 extra = dict(phase=phase)
             events.append(dict(
                 name=name, category=item['category'], aliases=aliases if not sub else [name], version=version,
-                **times, **extra, source='bilibili', source_name='B站官方动态', source_url=post.get('url'),
+                **times, **extra, source=post.get('source', 'bilibili'),
+                source_name=post.get('source_name', 'B站官方动态'), source_url=post.get('url'),
                 source_post_id=post['id'], source_title=content_title(post), published_at=post['published_at'],
                 fetched_at=post.get('fetched_at'), source_stale=post.get('source_stale', False)))
     return events

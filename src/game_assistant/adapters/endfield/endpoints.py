@@ -39,6 +39,9 @@ USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 # 同步只能查询已知类型，因此遇到新卡池时须在此补充并更新文档。
 CHAR_POOL_TYPES = {
     "E_CharacterGachaPoolType_Special": "特许寻访",
+    # 官方记录页 commons.893c8e.js 的 rerun 映射，2026-09-28 读取确认：
+    # https://web.hycdn.cn/endfield/webview/_gacha/commons.893c8e.js
+    "E_CharacterGachaPoolType_Rerun": "重构寻访",
     "E_CharacterGachaPoolType_Standard": "基础寻访",
     "E_CharacterGachaPoolType_Beginner": "启程寻访",
     "E_CharacterGachaPoolType_Joint": "辉光庆典",

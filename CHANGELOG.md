@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Endfield toolbox: official-site news/calendar with stale-cache fallback, public map search and marker details, encrypted local Skland connection with explicit role selection, profile/operator/region/ship and challenge views, manual attendance, official reference tools, and local blueprint CRUD/export. Shared dashboard themes and controls are preserved.
+- Added the official `E_CharacterGachaPoolType_Rerun` headhunting category. Public news/map reads and the official record-page enum were verified on 2026-09-28; private account flows remain covered by simulated tests rather than live-account verification. See `docs/endfield-toolbox.md`.
 - Arknights: Endfield (official server): Hypergryph account SMS login, account card, headhunting records synced from the official API into a local ledger (seqId de-duplication, resumable first sync, gap-aware pity counts), record list and export.
 - Endfield Bilibili source (UID 1265652806) with an announcement parser for version-name titles, relative starts, “until the next version update” ends resolved from the next maintenance notice, dependent ends and multi-phase times.
 - Bilibili rule version 5 keeps Endfield notices whose body mentions web events.

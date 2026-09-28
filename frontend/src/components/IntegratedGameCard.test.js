@@ -15,8 +15,11 @@ test('integrated NTE keeps inline resources and the independent guide entry', as
   assert.ok(nodes(root,'button').some(n=>content(n)==='查看角色攻略'))
 })
 
-test('integrated shell retains the upstream Endfield gacha panel', t => {
+test('integrated shell retains the upstream Endfield gacha panel', async t => {
+  t.mock.method(globalThis,'fetch',async()=>({ok:true,json:async()=>({connected:false,roles:[]})}))
   const root=mount(t,Card,{game:game('endfield',['gacha']),externalSnapshots:{}})
+  nodes(root,'button').find(n=>content(n)==='抽卡统计').props.onClick()
+  await nextTick()
   assert.match(content(root),/登录终末地后/)
   assert.match(content(root),/寻访记录/)
   assert.doesNotMatch(content(root),/敬请期待/)

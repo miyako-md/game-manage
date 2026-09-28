@@ -1,7 +1,14 @@
 """终末地看板载荷（带 schema_version，前端据此拒绝旧格式快照）。"""
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+
+from game_assistant.models import GameEvent
+
+
+class EndfieldEvent(GameEvent):
+    """Keep the source and imprecise-date annotations used by the calendar UI."""
+    model_config = ConfigDict(extra='allow')
 
 
 class EndfieldPayload(BaseModel):

@@ -46,6 +46,15 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
     install_nte_gacha_routes(app, settings)
     from game_assistant.endfield_gacha_routes import install_endfield_gacha_routes
     install_endfield_gacha_routes(app, settings)
+    from game_assistant.endfield_blueprint_routes import install_endfield_blueprint_routes
+    install_endfield_blueprint_routes(app, settings)
+    from game_assistant.endfield_public_routes import install_endfield_public_routes
+    install_endfield_public_routes(app, settings)
+    from game_assistant.endfield_skland_routes import install_endfield_skland_routes
+    install_endfield_skland_routes(app, settings)
+    for adapter in app.state.registry.all():
+        if adapter.game_id == 'endfield':
+            adapter._public = app.state.endfield_public
     from game_assistant.nte_guides_routes import install_nte_guides_routes
     install_nte_guides_routes(app, settings)
     from game_assistant.adapters.wuthering_waves.routes import install_wuwa_routes
@@ -104,6 +113,17 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
             raise HTTPException(status_code=404, detail="未注册的游戏")
         snap = app.state.store.get(game_id, capability)
         source_status = poll_status(game_id, capability, snap)
+        # Endfield's own website supplies the calendar. Bilibili is the fallback
+        # until the first successful official snapshot, not a replacement for it.
+        if game_id == 'endfield' and capability in ('news', 'events') and snap:
+            rows = json.loads(snap['payload'])
+            interval = interval_for(Capability(capability), settings)
+            stale = _stale(snap['fetched_at'], interval) or source_status['state'] in ('error', 'auth_expired')
+            return {'game_id': game_id, 'capability': capability,
+                    'payload': [{**row, 'source_stale': stale} for row in rows],
+                    'fetched_at': snap['fetched_at'], 'stale': stale,
+                    'poll_status': source_status, 'primary_source': 'official',
+                    'version': next((row.get('version') for row in rows if row.get('version')), None)}
         if capability in ('news', 'events') and bili and game_id in sources and game_id in MOBILE_GAMES:
             state = bili.store.state(game_id, sources[game_id])
             rows = json.loads(snap['payload']) if snap else []
@@ -179,6 +199,7 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
             await app.state.scheduler.shutdown()
         if bili:
             await bili.close()
+        app.state.endfield_public.close()
 
     @app.get("/api/games/{game_id}/match/{match_id}/detail")
     async def match_detail(game_id: str, match_id: str) -> dict:

@@ -64,7 +64,7 @@ async def test_first_sync_walks_to_window_end_and_counts_since_last_six_star(tmp
     store = EndfieldGachaStore(tmp_path / "g.sqlite3")
     client = FakeClient(special=history(101, 112, six={105}))
     used = await sync(store, client)
-    assert used == 1 + 3 + 3  # 武器池列表 + 特许三页 + 其余三类各一页空结果
+    assert used == 1 + 3 + 4  # 武器池列表 + 特许三页 + 其余四类各一页空结果
     special = pool(store)
     assert (special.total, special.six_star, special.gaps, special.pending) == (12, 1, 0, False)
     assert special.since_last_six.model_dump() == {"count": 7, "status": "exact"}
@@ -80,7 +80,7 @@ async def test_incremental_sync_stops_at_known_records(tmp_path):
     client.special = history(101, 115, six={105})
     client.cursors = []
     await sync(store, client)
-    assert client.cursors == [None, None, None, None]  # 每个角色池只请求最新一页
+    assert client.cursors == [None] * 5  # 每个角色池只请求最新一页
     assert pool(store).total == 15 and pool(store).since_last_six.count == 10
 
 
@@ -132,7 +132,7 @@ async def test_window_moving_past_old_records_leaves_a_permanent_gap(tmp_path):
     assert special.since_last_six.model_dump() == {"count": 11, "status": "lower_bound"}
     client.cursors = []
     await sync(store, client)
-    assert client.cursors == [None] * 4  # 永久断档不再续传
+    assert client.cursors == [None] * 5  # 永久断档不再续传
 
 
 async def test_free_pulls_turn_the_count_into_a_lower_bound(tmp_path):
@@ -143,6 +143,25 @@ async def test_free_pulls_turn_the_count_into_a_lower_bound(tmp_path):
     special = pool(store)
     assert special.free == 1
     assert special.since_last_six.model_dump() == {"count": 5, "status": "lower_bound"}
+
+
+async def test_rerun_is_fetched_and_kept_separate_from_special(tmp_path):
+    rerun = 'E_CharacterGachaPoolType_Rerun'
+
+    class RerunClient(FakeClient):
+        async def char_records(self, u8_token, pool_type, seq_id=None):
+            if pool_type == rerun:
+                rows = [{**row, 'poolId': 'rerun_1', 'poolName': '绚丽异彩'}
+                        for row in history(10, 12, six={11})]
+                return self._page(rows, seq_id)
+            return await super().char_records(u8_token, pool_type, seq_id)
+
+    store = EndfieldGachaStore(tmp_path / 'g.sqlite3')
+    await sync(store, RerunClient(special=history(1, 4)))
+    assert [(entry.label, entry.total) for entry in store.summary('r1').pools] == [
+        ('特许寻访', 4), ('重构寻访', 3)]
+    assert pool(store, rerun).since_last_six.count == 1
+    assert len(store.export('r1')['records']) == 7
 
 
 @pytest.mark.parametrize('missing', ['rarity', 'isFree'])
