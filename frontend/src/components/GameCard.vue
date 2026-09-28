@@ -159,7 +159,7 @@ function capProps(cap) {
   overflow-wrap: anywhere;
 }
 
-.card-head { display:flex; align-items:center; gap:8px 10px; padding:0 0 14px; margin-bottom:16px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.card-head { display:flex; align-items:center; gap:8px 10px; padding:16px 18px; margin-bottom:18px; border:1px solid color-mix(in srgb,var(--accent) 18%,var(--border)); border-radius:14px; background:linear-gradient(110deg,color-mix(in srgb,var(--accent) 7%,var(--card-bg)),var(--card-bg) 65%); box-shadow:var(--card-shadow); flex-wrap:wrap; }
 .game-heading { display:flex; align-items:center; gap:12px; margin-right:auto; min-width:0; }
 .detail-monogram { display:grid; place-items:center; font-size:22px; width:40px; height:40px; border-radius:10px; box-shadow:0 1px 2px rgba(16, 24, 40, .06); }
 .game-name { margin-top:2px; font-size:24px; line-height:30px; font-weight:700; letter-spacing:-.02em; }
@@ -174,7 +174,7 @@ function capProps(cap) {
 /* 英雄联盟 has one short identity card and one wide stats card: stack them full width. */
 .game-league_of_legends .detail-cap-account,.game-league_of_legends .detail-cap-stats { grid-column:1/-1; }
 @media(max-width:950px) { .cap-list { grid-template-columns:1fr; } }
-@media(max-width:600px) { .card-head { padding-bottom:12px; margin-bottom:14px; }.game-heading { gap:10px; flex-basis:100%; }.game-name { font-size:22px; line-height:28px; }.detail-monogram { width:36px; height:36px; font-size:20px; }.detail-tabs button { padding:4px 9px; } }
+@media(max-width:600px) { .card-head { padding:14px; margin-bottom:14px; }.game-heading { gap:10px; flex-basis:100%; }.game-name { font-size:22px; line-height:28px; }.detail-monogram { width:36px; height:36px; font-size:20px; }.detail-tabs button { padding:4px 9px; } }
 
 .cap-coming {
   color: var(--text-muted);

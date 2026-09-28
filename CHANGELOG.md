@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed game navigation labels and icons disappearing after selection: animated backgrounds now keep their own stacking context when Vue updates theme classes. Game-specific colors remain intact in both themes.
+- Refined sidebar selection, game headers and overview cards, with ObsidianUI-inspired hover lighting, soft corner transitions, restrained entrance motion and animated progress updates. Pointer effects respect reduced-motion preferences; navigation motion cleans up pending frames on unmount.
 - Endfield toolbox: official-site news/calendar with stale-cache fallback, public map search and marker details, encrypted local Skland connection with explicit role selection, profile/operator/region/ship and challenge views, manual attendance, official reference tools, and local blueprint CRUD/export. Shared dashboard themes and controls are preserved.
 - Added the official `E_CharacterGachaPoolType_Rerun` headhunting category. Public news/map reads and the official record-page enum were verified on 2026-09-28; private account flows remain covered by simulated tests rather than live-account verification. See `docs/endfield-toolbox.md`.
 - Arknights: Endfield (official server): Hypergryph account SMS login, account card, headhunting records synced from the official API into a local ledger (seqId de-duplication, resumable first sync, gap-aware pity counts), record list and export.

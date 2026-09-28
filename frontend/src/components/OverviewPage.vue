@@ -5,7 +5,7 @@ import GameIcon from './GameIcon.vue'
 import MenuSelect from './MenuSelect.vue'
 import { gameStyle, summaryFor, upcomingEvents, recentNews, formatTime } from '../dashboard.js'
 import { sourceForGame } from '../source-status.js'
-import { vPop } from '../motion.js'
+import { vPop, vSpotlight } from '../motion.js'
 
 const props = defineProps({ games: { type: Array, default: () => [] }, snapshots: { type: Object, default: () => ({}) },
   accounts: { type: Object, default: () => ({}) }, readErrors: { type: Object, default: () => ({}) }, refreshErrors: { type: Object, default: () => ({}) },
@@ -63,7 +63,7 @@ function resourceNote(card) {
 
     <div class="section-heading"><h2>我的游戏 <span class="count-label">/ {{ String(games.length).padStart(2, '0') }}</span></h2><span class="muted small">各游戏独立同步</span></div>
     <div class="game-summary-grid" :class="{ many: cards.length > 3 }" :style="{ '--cards': Math.min(cards.length, 4) }">
-      <button v-for="(card, index) in cards" :key="card.game_id" class="game-summary game-theme t-item t-glare" :style="{ '--game-color': card.style.color, '--game-accent': card.style.color, '--i': index }" @click="emit('navigate', 'game', card.game_id)">
+      <button v-for="(card, index) in cards" :key="card.game_id" v-spotlight class="game-summary game-theme t-item t-glare" :style="{ '--game-color': card.style.color, '--game-accent': card.style.color, '--i': index }" @click="emit('navigate', 'game', card.game_id)">
         <div class="summary-header"><GameIcon class="game-monogram" :game-id="card.game_id" :name="card.display_name" /><div class="game-identity"><h3>{{ card.display_name }}</h3><p>{{ platform(card.game_id) }}</p></div><span class="summary-state" :class="{ warn: card.summary.stale || card.auth?.state === 'expired' || readErrors[card.game_id] || card.source?.tone === 'danger' }"><i></i>{{ status(card) }}</span></div>
         <div class="summary-metric"><div><p>{{ metricLabel(card) }}</p><div class="summary-number" v-pop>{{ card.summary.metric === 'gacha' && card.summary.pityStatus === 'lower_bound' && card.summary.value != null ? '≥' : '' }}{{ card.summary.value ?? '—' }}<small>{{ card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : METRIC_UNITS[card.summary.metric] }}</small></div></div><p class="summary-note">{{ resourceNote(card) }}</p></div>
         <div v-if="card.summary.percent != null" class="summary-meter" role="meter" :aria-label="metricLabel(card)" :aria-valuenow="card.summary.percent" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.min(100, card.summary.percent)}%` }"></i></div>
@@ -93,18 +93,19 @@ function resourceNote(card) {
 .attention-strip p { flex:1; font-size:13px; }.attention-strip .text-link { color:var(--attention-text); }
 .section-heading { margin:20px 0 10px; }.page-heading + .section-heading { margin-top:0; }
 /* One row of up to four games; four fall to 2 × 2 before they get too narrow. */
-.game-summary-grid { display:grid; grid-template-columns:repeat(var(--cards, 3),minmax(0,1fr)); gap:12px; }
+.game-summary-grid { display:grid; grid-template-columns:repeat(var(--cards, 3),minmax(0,1fr)); gap:16px; }
 @media(max-width:1280px) { .game-summary-grid.many { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-.game-summary { display:flex; flex-direction:column; text-align:left; border:1px solid var(--border); border-radius:12px; padding:14px 16px; background:var(--card-bg); color:var(--text); min-width:0; box-shadow:var(--card-shadow); transition:border-color var(--duration-fast) var(--ease-smooth-out),transform var(--duration-fast) var(--ease-smooth-out),box-shadow var(--duration-fast) var(--ease-smooth-out); cursor:pointer; }
-@media(hover:hover) and (pointer:fine) { .game-summary:hover { border-color:color-mix(in srgb, var(--game-color) 40%, var(--border)); transform:translateY(-2px); box-shadow:var(--card-hover-shadow); } }
+.game-summary { display:flex; flex-direction:column; text-align:left; border:1px solid var(--border); border-radius:14px; padding:18px; background:linear-gradient(145deg,color-mix(in srgb,var(--game-color) 4%,var(--card-bg)),var(--card-bg) 60%); color:var(--text); min-width:0; box-shadow:var(--card-shadow); transition:border-color var(--duration-fast) var(--ease-smooth-out),border-radius var(--duration-medium) var(--ease-smooth-out),transform var(--duration-medium) var(--ease-smooth-out),box-shadow var(--duration-medium) var(--ease-smooth-out); cursor:pointer; }
+.game-summary:focus-visible { border-color:var(--game-color); outline-color:var(--game-color); box-shadow:var(--card-hover-shadow); }
+@media(hover:hover) and (pointer:fine) { .game-summary:hover { border-color:color-mix(in srgb, var(--game-color) 45%, var(--border)); border-radius:18px; transform:translateY(-3px); box-shadow:var(--card-hover-shadow); } }
 .game-summary:active { transform:scale(var(--scale-small)); }.game-summary.is-skeleton { pointer-events:none; }
-.summary-header { display:flex; align-items:center; gap:10px; }
+.summary-header { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
 .game-monogram { display:grid; place-items:center; flex-shrink:0; width:32px; height:32px; border-radius:8px; color:var(--game-color); font-size:17px; box-shadow:0 1px 2px rgba(16, 24, 40, .06); }
-.game-identity { min-width:0; margin-right:auto; }.game-identity h3 { font-size:14px; line-height:20px; font-weight:600; }.game-identity p { color:var(--text-faint); font-size:11px; line-height:15px; }
+.game-identity { min-width:0; flex:1; }.game-identity h3 { font-size:14px; line-height:20px; font-weight:600; white-space:nowrap; }.game-identity p { color:var(--text-faint); font-size:11px; line-height:15px; }
 .summary-state { display:flex; align-items:center; gap:5px; flex-shrink:0; padding:1px 7px 1px 6px; border-radius:5px; background:var(--success-bg); color:var(--success); font-size:11px; font-weight:500; line-height:18px; }.summary-state.warn { background:var(--stale-bg); color:var(--stale-text); }.summary-state i { width:5px; height:5px; background:currentColor; border-radius:50%; }
 .summary-metric { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-top:14px; }.summary-metric p { font-size:11px; color:var(--text-muted); }.summary-number { font-size:28px; line-height:32px; font-weight:600; letter-spacing:-.035em; }.summary-number small { font-size:12px; color:var(--text-muted); font-weight:400; margin-left:4px; letter-spacing:0; }
 .summary-note { max-width:52%; padding-bottom:3px; text-align:right; font-size:11px; line-height:16px; color:var(--text-muted); }
-.summary-meter { height:6px; border-radius:999px; background:var(--track); margin:10px 0 12px; overflow:hidden; }.summary-meter i { display:block; height:100%; border-radius:inherit; background:var(--game-color); }.summary-meter.unknown { background:repeating-linear-gradient(120deg,var(--track) 0 4px,transparent 4px 8px); }
+.summary-meter { height:5px; border-radius:999px; background:var(--track); margin:14px 0; overflow:hidden; }.summary-meter i { display:block; height:100%; border-radius:inherit; background:var(--game-color); transition:width var(--duration-slow) var(--ease-smooth-out); }.summary-meter.unknown { background:repeating-linear-gradient(120deg,var(--track) 0 4px,transparent 4px 8px); }
 .summary-account { display:flex; align-items:center; gap:8px; margin-top:auto; padding-top:10px; border-top:1px solid var(--border); color:var(--text); font-size:12px; font-weight:500; }.summary-account>span:first-child { min-width:0; margin-right:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.summary-account small { margin-left:6px; color:var(--text-muted); font-size:11px; font-weight:400; }.summary-updated { color:var(--text-faint); font-size:11px; font-weight:400; white-space:nowrap; }.summary-account svg { color:var(--text-faint); transition:transform 350ms var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out); }
 @media(hover:hover) and (pointer:fine) { .game-summary:hover .summary-account svg { color:var(--accent); transform:translateX(2px); } }
 .overview-lower { display:grid; grid-template-columns:1.1fr 1fr; gap:16px; }.overview-lower>section { min-width:0; }.overview-list { border:1px solid var(--border); border-radius:12px; background:var(--card-bg); padding:4px 16px; box-shadow:var(--card-shadow); }
@@ -121,4 +122,5 @@ function resourceNote(card) {
 @media(max-width:1200px) { .hero-count { display:none; } }
 @media(max-width:940px) { .game-summary-grid,.game-summary-grid.many { grid-template-columns:1fr; }.overview-lower { grid-template-columns:1fr; } }
 @media(max-width:600px) { .attention-strip { flex-wrap:wrap; gap:8px; padding:10px 12px; }.attention-strip p { flex-basis:80%; }.attention-strip .text-link { margin-left:26px; }.summary-number { font-size:26px; line-height:30px; }.overview-footer { flex-wrap:wrap; } }
+@media(prefers-reduced-motion:reduce) { .game-summary:hover,.game-summary:active { transform:none; } }
 </style>

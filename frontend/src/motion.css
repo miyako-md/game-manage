@@ -61,11 +61,11 @@
 /* Page frame: the routed page slides up on every navigation. */
 .t-page { animation: t-page-enter var(--duration-fast) var(--ease-smooth-out); }
 /* Panel: a section that swaps inside a page (tabs, detail views). */
-.t-panel { animation: t-rise var(--duration-fast) var(--ease-smooth-out) backwards; }
+.t-panel { animation: t-page-enter var(--duration-fast) var(--ease-smooth-out); }
 /* Item in a list or grid: pass --i for a stagger. */
 .t-item {
-  animation: t-rise var(--duration-slow) var(--ease-smooth-out) backwards;
-  animation-delay: calc(var(--i, 0) * var(--duration-stagger));
+  animation: t-page-enter var(--duration-medium) var(--ease-smooth-out) backwards;
+  animation-delay: calc(min(var(--i, 0), 5) * var(--duration-stagger));
 }
 /* Replayed on a number when its text changes (v-pop). */
 .t-pop { animation: t-pop var(--duration-very-slow) var(--ease-smooth-out) backwards; }
@@ -98,60 +98,52 @@
 @keyframes t-skel-sweep { to { transform: translateX(100%); } }
 
 /* ── Sliding indicator for tabs and segmented controls (v-glide) ──── */
-.has-glide { position: relative; }
-.has-glide > * { position: relative; z-index: 1; }
-.t-glide {
+[data-glide] { position: relative; isolation: isolate; }
+[data-glide] > :is(a, button) { position: relative; z-index: 1; }
+[data-glide] > :is(.t-glide, .t-glide-hover) {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 0 !important;
+  z-index: 0;
   width: 0;
   height: 0;
   opacity: 0;
   border-radius: 7px;
+  pointer-events: none;
+  transition:
+    transform var(--duration-fast) var(--ease-smooth-out),
+    width var(--duration-fast) var(--ease-smooth-out),
+    height var(--duration-fast) var(--ease-smooth-out),
+    opacity var(--duration-quick) var(--ease-smooth-out),
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+.t-glide {
   background: var(--segment-active-bg);
   box-shadow: var(--control-selected-shadow);
-  pointer-events: none;
-  will-change: transform, width;
-  transition:
-    transform var(--duration-fast) var(--ease-smooth-out),
-    width var(--duration-fast) var(--ease-smooth-out),
-    height var(--duration-fast) var(--ease-smooth-out),
-    opacity var(--duration-quick) var(--ease-smooth-out);
 }
-
 .t-glide-hover {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 0 !important;
-  opacity: 0;
-  border-radius: 8px;
   background: var(--hover-bg);
-  pointer-events: none;
-  transition:
-    transform var(--duration-fast) var(--ease-smooth-out),
-    width var(--duration-fast) var(--ease-smooth-out),
-    height var(--duration-fast) var(--ease-smooth-out),
-    opacity var(--duration-quick) var(--ease-out);
 }
 
 /* ── Interactive surfaces ─────────────────────────────────────────── */
-/* Card glare (beUI / rareui tilt-lite): a diagonal sheen on hover, no 3D. */
+/* Soft pointer-following light, kept behind the card's content. */
 .t-glare { position: relative; isolation: isolate; }
 .t-glare::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  z-index: -1;
   pointer-events: none;
   opacity: 0;
-  background: linear-gradient(135deg, var(--glare), transparent 46%);
+  background: radial-gradient(320px circle at var(--spotlight-x, 50%) var(--spotlight-y, 0%), color-mix(in srgb, var(--game-accent, var(--accent)) 12%, transparent), transparent 75%);
   transition: opacity 300ms var(--ease-smooth-out);
 }
 @media (hover: hover) and (pointer: fine) {
-  .t-glare:hover::after { opacity: .32; }
+  .t-glare[data-spotlight-active]::after { opacity: 1; }
 }
+.t-glare:focus-visible::after { opacity: 1; }
 /* Accordion expand (transitions.dev 21) for every native disclosure. Browsers
    without ::details-content keep the instant toggle; flow-root keeps child
    margins inside the clip so nothing jumps when it closes. */
