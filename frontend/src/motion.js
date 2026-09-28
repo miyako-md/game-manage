@@ -9,6 +9,20 @@ function domReady(el) {
 
 const FINE_POINTER = '(hover: hover) and (pointer: fine)'
 
+export function prefersReducedMotion() {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function revealControl(el, active, smooth) {
+  if (!active || !el.clientWidth || el.scrollWidth <= el.clientWidth) return
+  const left = active.offsetLeft, right = left + active.offsetWidth
+  if (left >= el.scrollLeft && right <= el.scrollLeft + el.clientWidth) return
+  el.scrollTo({
+    left: Math.max(0, Math.min(el.scrollWidth - el.clientWidth, left - (el.clientWidth - active.offsetWidth) / 2)),
+    behavior: smooth && !prefersReducedMotion() ? 'smooth' : 'auto',
+  })
+}
+
 function placeSlip(slip, item) {
   if (!item?.offsetWidth) { slip.style.opacity = '0'; return }
   const first = slip.style.opacity !== '1'
@@ -54,11 +68,16 @@ export const vGlide = {
     el.setAttribute('data-glide', '')
     el.prepend(pill)
     const hover = binding?.modifiers?.hover ? hoverSlip(el) : null
-    let frame = 0
+    let frame = 0, lastActive = null, lastWidth = 0
     const observed = new Set()
-    const measure = () => {
+    const measure = (initial = false) => {
       const controls = [...el.children].filter(child => child.matches('a, button'))
-      placeSlip(pill, controls.find(child => child.matches(ACTIVE)))
+      const active = controls.find(child => child.matches(ACTIVE))
+      placeSlip(pill, active)
+      // Scroll only the control strip, and leave a user's manual browsing alone.
+      if (active !== lastActive || el.clientWidth !== lastWidth) revealControl(el, active, !initial && active !== lastActive)
+      lastActive = active
+      lastWidth = el.clientWidth
       hover?.measure()
       for (const child of observed) {
         if (!controls.includes(child)) { resizer?.unobserve(child); observed.delete(child) }
@@ -74,7 +93,7 @@ export const vGlide = {
     observer.observe(el, { attributes: true, subtree: true, childList: true, attributeFilter: ['aria-current', 'aria-pressed', 'aria-selected', 'class'] })
     const resizer = typeof ResizeObserver === 'function' ? new ResizeObserver(schedule) : null
     resizer?.observe(el)
-    measure()
+    measure(true)
     el.__glide = { measure: schedule, destroy() {
       observer.disconnect()
       resizer?.disconnect()

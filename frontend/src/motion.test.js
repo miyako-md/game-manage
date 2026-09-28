@@ -22,11 +22,13 @@ after(() => window.happyDOM.close())
 
 const { createApp, h, nextTick, ref, withDirectives } = await import('vue')
 const { vGlide, vSpotlight } = await import('./motion.js')
+const { loadVue } = await import('./test-utils/vue.js')
+const GameDialog = await loadVue(new URL('./components/GameDialog.vue', import.meta.url))
 const style = document.createElement('style')
 style.textContent = readFileSync(new URL('./motion.css', import.meta.url), 'utf8')
 document.head.append(style)
 
-function navigation(t, initial = '') {
+function navigation(t, initial = '', horizontal = false) {
   const selected = ref(initial)
   const games = ref(['鸣潮', '英雄联盟', '异环', '终末地'])
   const root = document.createElement('div')
@@ -42,8 +44,8 @@ function navigation(t, initial = '') {
   // happy-dom runs Vue's real DOM patcher; geometry is supplied because it has no layout engine.
   for (const [index, link] of [...nav.querySelectorAll('a')].entries()) {
     Object.defineProperties(link, {
-      offsetWidth: { get: () => 184 }, offsetHeight: { get: () => 42 },
-      offsetLeft: { get: () => 0 }, offsetTop: { get: () => index * 46 },
+      offsetWidth: { get: () => horizontal ? 90 : 184 }, offsetHeight: { get: () => 42 },
+      offsetLeft: { get: () => horizontal ? index * 100 : 0 }, offsetTop: { get: () => horizontal ? 0 : index * 46 },
     })
   }
   const unmount = () => { app.unmount(); root.remove() }
@@ -126,6 +128,35 @@ test('removing the selected game hides the indicator', async t => {
   assert.equal(nav.querySelector('.t-glide').style.opacity, '0')
 })
 
+test('an offscreen selected tab scrolls into view without overriding manual scrolling', async t => {
+  const { nav, selected } = navigation(t, '', true)
+  Object.defineProperties(nav, { clientWidth: { value: 180 }, scrollWidth: { value: 400 } })
+  const scroll = t.mock.method(nav, 'scrollTo', ({ left }) => { nav.scrollLeft = left })
+  selected.value = '异环'
+  await nextTick()
+  flushFrames()
+  assert.deepEqual(scroll.mock.calls[0].arguments[0], { left: 155, behavior: 'smooth' })
+  nav.scrollLeft = 0
+  vGlide.updated(nav)
+  flushFrames()
+  assert.equal(scroll.mock.callCount(), 1)
+  selected.value = '鸣潮'
+  await nextTick()
+  flushFrames()
+  assert.equal(scroll.mock.callCount(), 1, 'visible controls must not move the strip')
+})
+
+test('tab scrolling respects reduced motion and clamps at the end of the strip', async t => {
+  t.mock.method(globalThis, 'matchMedia', query => ({ matches: query.includes('prefers-reduced-motion') }))
+  const { nav, selected } = navigation(t, '', true)
+  Object.defineProperties(nav, { clientWidth: { value: 180 }, scrollWidth: { value: 400 } })
+  const scroll = t.mock.method(nav, 'scrollTo', () => {})
+  selected.value = '终末地'
+  await nextTick()
+  flushFrames()
+  assert.deepEqual(scroll.mock.calls[0].arguments[0], { left: 220, behavior: 'auto' })
+})
+
 test('card spotlight coalesces movement, honors reduced motion, and cleans up', t => {
   const media = new window.EventTarget()
   media.matches = true
@@ -172,4 +203,80 @@ test('reduced-motion styles disable transitions and entrances while retaining na
   } finally {
     await reduced.happyDOM.close()
   }
+})
+
+function modal(t, reducedMotion = false) {
+  t.mock.method(globalThis, 'matchMedia', () => ({ matches: reducedMotion }))
+  const trigger = document.createElement('button')
+  const root = document.createElement('div')
+  document.body.append(trigger, root)
+  trigger.focus()
+  const open = ref(true)
+  let closes = 0
+  const app = createApp({ render: () => open.value ? h(GameDialog, {
+    title: '账号档案', eyebrow: 'WUTHERING WAVES', onClose() { closes++; open.value = false },
+  }, () => h('p', '账号详情')) : null })
+  app.mount(root)
+  const dialog = root.querySelector('dialog')
+  const button = dialog.querySelector('button')
+  t.after(() => { app.unmount(); root.remove(); trigger.remove() })
+  return { dialog, button, trigger, open, closes: () => closes }
+}
+
+test('dialog keeps its modal state through the exit, then restores focus and scrolling once', async t => {
+  const { dialog, button, trigger, closes } = modal(t)
+  assert.equal(dialog.open, true)
+  assert.equal(document.body.style.overflow, 'hidden')
+  assert.equal(document.getElementById(dialog.getAttribute('aria-labelledby')).textContent, '账号档案')
+  button.focus()
+  button.click(); button.click()
+  await nextTick()
+  assert.equal(closes(), 0)
+  assert.equal(dialog.open, true)
+  assert.equal(dialog.hasAttribute('data-closing'), true)
+  button.dispatchEvent(new window.AnimationEvent('animationend', { bubbles: true, animationName: 't-dialog-exit' }))
+  assert.equal(closes(), 0, 'a child animation must not close the dialog')
+  dialog.dispatchEvent(new window.AnimationEvent('animationend', { animationName: 't-dialog-exit' }))
+  await nextTick()
+  assert.equal(closes(), 1)
+  assert.equal(dialog.isConnected, false)
+  assert.equal(document.activeElement, trigger)
+  assert.equal(document.body.style.overflow, '')
+})
+
+test('Escape closes a reduced-motion dialog immediately and backdrop drags do not dismiss it', async t => {
+  const { dialog, button, closes } = modal(t, true)
+  button.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }))
+  dialog.click()
+  await nextTick()
+  assert.equal(closes(), 0)
+  dialog.dispatchEvent(new window.Event('cancel', { cancelable: true }))
+  await nextTick()
+  assert.equal(closes(), 1)
+  assert.equal(dialog.isConnected, false)
+})
+
+test('dialog close has a bounded fallback when animation events do not arrive', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const { dialog, closes } = modal(t)
+  dialog.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }))
+  dialog.click()
+  await nextTick()
+  assert.equal(closes(), 0)
+  t.mock.timers.tick(220)
+  await nextTick()
+  assert.equal(closes(), 1)
+})
+
+test('unmounting during dialog exit cancels the deferred close', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const { dialog, button, open, closes } = modal(t)
+  button.click()
+  await nextTick()
+  open.value = false
+  await nextTick()
+  t.mock.timers.tick(300)
+  dialog.dispatchEvent(new window.AnimationEvent('animationend', { animationName: 't-dialog-exit' }))
+  assert.equal(closes(), 0)
+  assert.equal(document.body.style.overflow, '')
 })

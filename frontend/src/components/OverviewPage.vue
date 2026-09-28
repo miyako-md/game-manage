@@ -103,10 +103,17 @@ function resourceNote(card) {
 .game-monogram { display:grid; place-items:center; flex-shrink:0; width:32px; height:32px; border-radius:8px; color:var(--game-color); font-size:17px; box-shadow:0 1px 2px rgba(16, 24, 40, .06); }
 .game-identity { min-width:0; flex:1; }.game-identity h3 { font-size:14px; line-height:20px; font-weight:600; white-space:nowrap; }.game-identity p { color:var(--text-faint); font-size:11px; line-height:15px; }
 .summary-state { display:flex; align-items:center; gap:5px; flex-shrink:0; padding:1px 7px 1px 6px; border-radius:5px; background:var(--success-bg); color:var(--success); font-size:11px; font-weight:500; line-height:18px; }.summary-state.warn { background:var(--stale-bg); color:var(--stale-text); }.summary-state i { width:5px; height:5px; background:currentColor; border-radius:50%; }
-.summary-metric { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-top:14px; }.summary-metric p { font-size:11px; color:var(--text-muted); }.summary-number { font-size:28px; line-height:32px; font-weight:600; letter-spacing:-.035em; }.summary-number small { font-size:12px; color:var(--text-muted); font-weight:400; margin-left:4px; letter-spacing:0; }
-.summary-note { max-width:52%; padding-bottom:3px; text-align:right; font-size:11px; line-height:16px; color:var(--text-muted); }
+.summary-metric { margin-top:20px; }
+.summary-metric p { font-size:11px; color:var(--text-muted); }
+.summary-number { margin-top:3px; font-size:34px; line-height:40px; font-weight:600; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
+.summary-number small { font-size:12px; color:var(--text-muted); font-weight:400; margin-left:5px; letter-spacing:0; }
+.summary-note { margin-top:8px; min-height:32px; font-size:11px; line-height:16px; color:var(--text-muted); }
 .summary-meter { height:5px; border-radius:999px; background:var(--track); margin:14px 0; overflow:hidden; }.summary-meter i { display:block; height:100%; border-radius:inherit; background:var(--game-color); transition:width var(--duration-slow) var(--ease-smooth-out); }.summary-meter.unknown { background:repeating-linear-gradient(120deg,var(--track) 0 4px,transparent 4px 8px); }
-.summary-account { display:flex; align-items:center; gap:8px; margin-top:auto; padding-top:10px; border-top:1px solid var(--border); color:var(--text); font-size:12px; font-weight:500; }.summary-account>span:first-child { min-width:0; margin-right:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.summary-account small { margin-left:6px; color:var(--text-muted); font-size:11px; font-weight:400; }.summary-updated { color:var(--text-faint); font-size:11px; font-weight:400; white-space:nowrap; }.summary-account svg { color:var(--text-faint); transition:transform 350ms var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out); }
+.summary-account { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:3px 12px; margin-top:auto; padding-top:12px; border-top:1px solid var(--border); color:var(--text); font-size:12px; font-weight:500; }
+.summary-account>span:first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.summary-account small { margin-left:6px; color:var(--text-muted); font-size:11px; font-weight:400; }
+.summary-updated { grid-column:1; color:var(--text-faint); font-size:11px; font-weight:400; white-space:nowrap; }
+.summary-account svg { grid-column:2; grid-row:1 / 3; color:var(--text-faint); transition:transform var(--duration-fast) var(--ease-smooth-out),color var(--duration-quick) var(--ease-smooth-out); }
 @media(hover:hover) and (pointer:fine) { .game-summary:hover .summary-account svg { color:var(--accent); transform:translateX(2px); } }
 .overview-lower { display:grid; grid-template-columns:1.1fr 1fr; gap:16px; }.overview-lower>section { min-width:0; }.overview-list { border:1px solid var(--border); border-radius:12px; background:var(--card-bg); padding:4px 16px; box-shadow:var(--card-shadow); }
 .news-filters { display:flex; gap:8px; margin-left:auto; min-width:0; }

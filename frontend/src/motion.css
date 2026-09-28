@@ -144,6 +144,23 @@
   .t-glare[data-spotlight-active]::after { opacity: 1; }
 }
 .t-glare:focus-visible::after { opacity: 1; }
+
+/* Native dialogs keep focus containment until their short exit finishes. */
+.t-dialog { --dialog-shift:12px; --dialog-scale:.98; }
+.t-dialog[open] { animation:t-dialog-enter var(--duration-fast) var(--ease-smooth-out); }
+.t-dialog[data-closing] { animation:t-dialog-exit var(--duration-quick) var(--ease-out) both; }
+.t-dialog::backdrop { animation:t-fade-in var(--duration-fast) var(--ease-out); }
+.t-dialog[data-closing]::backdrop { animation:t-fade-in var(--duration-quick) var(--ease-out) reverse both; }
+@keyframes t-dialog-enter {
+  from { opacity:.6; transform:translateY(var(--dialog-shift)) scale(var(--dialog-scale)); }
+  to { opacity:1; transform:none; }
+}
+@keyframes t-dialog-exit {
+  from { opacity:1; transform:none; }
+  to { opacity:0; transform:translateY(var(--dialog-shift)) scale(var(--dialog-scale)); }
+}
+@media (max-width:640px) { .t-dialog { --dialog-shift:24px; --dialog-scale:1; } }
+
 /* Accordion expand (transitions.dev 21) for every native disclosure. Browsers
    without ::details-content keep the instant toggle; flow-root keeps child
    margins inside the clip so nothing jumps when it closes. */
