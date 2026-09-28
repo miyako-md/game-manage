@@ -55,6 +55,20 @@ test('navigation changes displayed time range and allows returning to today', as
   await nextTick()
   assert.ok(nodes(root, 'button').find(n => n.text === '14 天').props['aria-pressed'])
 })
+test('closing calendar details restores the event trigger and clears its selected state', async (t) => {
+  const now = Date.now()
+  const root = mount(t, CalendarPage, { games, snapshots: { nte: { events: { payload: [
+    { name: '限时活动', start_at: new Date(now - 86400000).toISOString(), end_at: new Date(now + 86400000).toISOString() },
+  ] } } } })
+  const eventButton = nodes(root, 'button').find(n => n.props['aria-label'] === '查看活动详情：限时活动')
+  let focusCount = 0
+  await eventButton.props.onClick({ currentTarget: { isConnected: true, focus() { focusCount++ } } })
+  assert.equal(eventButton.props['aria-pressed'], true)
+  await nodes(root, 'button').find(n => n.props['aria-label'] === '关闭活动详情').props.onClick()
+  assert.equal(focusCount, 1)
+  assert.equal(eventButton.props['aria-pressed'], false)
+  assert.equal(nodes(root, 'section').some(n => n.props['aria-labelledby'] === 'calendar-detail-title'), false)
+})
 test('calendar puts different activity types in one game group and includes type and status on each bar', (t) => {
   const now = Date.now()
   const iso = delta => new Date(now + delta * 86400000).toISOString()

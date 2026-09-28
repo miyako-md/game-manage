@@ -51,7 +51,7 @@ function resourceNote(card) {
 <template>
   <div class="overview-page">
     <header class="page-heading">
-      <div class="page-heading-copy"><p class="page-kicker"><span class="section-no">§01</span><span class="eyebrow">Your daily check-in</span></p><h1>今日总览</h1><p class="page-description">你的游戏、活动与进度，都在这张工作台。</p></div>
+      <div class="page-heading-copy"><p class="page-kicker"><span class="section-no">01</span><span class="eyebrow">Daily overview</span></p><h1>今日总览</h1><p class="page-description">游戏进度与近期活动，一处查看。</p></div>
       <div class="page-meta"><span class="hero-count"><b>{{ String(games.length).padStart(2, '0') }}</b>个游戏正在关注</span><button class="ui-button" :disabled="loading || anyRefreshing || !games.length" @click="emit('refresh')"><AppIcon name="refresh" :size="15" :class="{ spinning: anyRefreshing }" /><span :class="{ 't-shimmer': anyRefreshing }">{{ anyRefreshing ? '同步中…' : '刷新数据' }}</span></button></div>
     </header>
 
@@ -89,45 +89,39 @@ function resourceNote(card) {
 <style scoped>
 .hero-count { display:flex; align-items:baseline; gap:6px; color:var(--text-muted); font-size:12px; }
 .hero-count b { font-size:18px; line-height:1; font-weight:600; letter-spacing:-.02em; color:var(--text); }
-.attention-strip { display:flex; align-items:center; gap:10px; padding:9px 14px; margin-bottom:4px; background:var(--attention-bg); border:1px solid var(--attention-border); border-radius:10px; color:var(--attention-text); }
+.attention-strip { display:flex; align-items:center; gap:10px; padding:10px 14px; margin-bottom:4px; background:color-mix(in srgb,var(--attention-bg) 55%,var(--card-bg)); border:1px solid color-mix(in srgb,var(--attention-border) 60%,var(--border)); border-radius:8px; color:var(--attention-text); }
 .attention-strip p { flex:1; font-size:13px; }.attention-strip .text-link { color:var(--attention-text); }
 .section-heading { margin:20px 0 10px; }.page-heading + .section-heading { margin-top:0; }
 /* One row of up to four games; four fall to 2 × 2 before they get too narrow. */
 .game-summary-grid { display:grid; grid-template-columns:repeat(var(--cards, 3),minmax(0,1fr)); gap:16px; }
 @media(max-width:1280px) { .game-summary-grid.many { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-.game-summary { display:flex; flex-direction:column; text-align:left; border:1px solid var(--border); border-radius:14px; padding:18px; background:linear-gradient(145deg,color-mix(in srgb,var(--game-color) 4%,var(--card-bg)),var(--card-bg) 60%); color:var(--text); min-width:0; box-shadow:var(--card-shadow); transition:border-color var(--duration-fast) var(--ease-smooth-out),border-radius var(--duration-medium) var(--ease-smooth-out),transform var(--duration-medium) var(--ease-smooth-out),box-shadow var(--duration-medium) var(--ease-smooth-out); cursor:pointer; }
+.game-summary { display:flex; flex-direction:column; text-align:left; border:1px solid var(--border); border-radius:12px; padding:18px; background:var(--card-bg); color:var(--text); min-width:0; box-shadow:var(--card-shadow); transition:border-color var(--duration-fast) var(--ease-smooth-out),transform var(--duration-medium) var(--ease-smooth-out),box-shadow var(--duration-medium) var(--ease-smooth-out); cursor:pointer; }
 .game-summary:focus-visible { border-color:var(--game-color); outline-color:var(--game-color); box-shadow:var(--card-hover-shadow); }
-@media(hover:hover) and (pointer:fine) { .game-summary:hover { border-color:color-mix(in srgb, var(--game-color) 45%, var(--border)); border-radius:18px; transform:translateY(-3px); box-shadow:var(--card-hover-shadow); } }
+@media(hover:hover) and (pointer:fine) { .game-summary:hover { border-color:color-mix(in srgb, var(--game-color) 30%, var(--border)); transform:translateY(-2px); box-shadow:var(--card-hover-shadow); } }
 .game-summary:active { transform:scale(var(--scale-small)); }.game-summary.is-skeleton { pointer-events:none; }
 .summary-header { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
 .game-monogram { display:grid; place-items:center; flex-shrink:0; width:32px; height:32px; border-radius:8px; color:var(--game-color); font-size:17px; box-shadow:0 1px 2px rgba(16, 24, 40, .06); }
 .game-identity { min-width:0; flex:1; }.game-identity h3 { font-size:14px; line-height:20px; font-weight:600; white-space:nowrap; }.game-identity p { color:var(--text-faint); font-size:11px; line-height:15px; }
 .summary-state { display:flex; align-items:center; gap:5px; flex-shrink:0; padding:1px 7px 1px 6px; border-radius:5px; background:var(--success-bg); color:var(--success); font-size:11px; font-weight:500; line-height:18px; }.summary-state.warn { background:var(--stale-bg); color:var(--stale-text); }.summary-state i { width:5px; height:5px; background:currentColor; border-radius:50%; }
-.summary-metric { margin-top:20px; }
-.summary-metric p { font-size:11px; color:var(--text-muted); }
-.summary-number { margin-top:3px; font-size:34px; line-height:40px; font-weight:600; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
-.summary-number small { font-size:12px; color:var(--text-muted); font-weight:400; margin-left:5px; letter-spacing:0; }
-.summary-note { margin-top:8px; min-height:32px; font-size:11px; line-height:16px; color:var(--text-muted); }
-.summary-meter { height:5px; border-radius:999px; background:var(--track); margin:14px 0; overflow:hidden; }.summary-meter i { display:block; height:100%; border-radius:inherit; background:var(--game-color); transition:width var(--duration-slow) var(--ease-smooth-out); }.summary-meter.unknown { background:repeating-linear-gradient(120deg,var(--track) 0 4px,transparent 4px 8px); }
-.summary-account { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:3px 12px; margin-top:auto; padding-top:12px; border-top:1px solid var(--border); color:var(--text); font-size:12px; font-weight:500; }
-.summary-account>span:first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.summary-account small { margin-left:6px; color:var(--text-muted); font-size:11px; font-weight:400; }
-.summary-updated { grid-column:1; color:var(--text-faint); font-size:11px; font-weight:400; white-space:nowrap; }
-.summary-account svg { grid-column:2; grid-row:1 / 3; color:var(--text-faint); transition:transform var(--duration-fast) var(--ease-smooth-out),color var(--duration-quick) var(--ease-smooth-out); }
+.summary-metric { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-top:14px; }.summary-metric p { font-size:11px; color:var(--text-muted); }.summary-number { font-size:28px; line-height:32px; font-weight:600; letter-spacing:-.035em; }.summary-number small { font-size:12px; color:var(--text-muted); font-weight:400; margin-left:4px; letter-spacing:0; }
+.summary-note { max-width:52%; padding-bottom:3px; text-align:right; font-size:11px; line-height:16px; color:var(--text-muted); }
+.summary-meter { height:4px; border-radius:999px; background:var(--track); margin:16px 0; overflow:hidden; }.summary-meter i { display:block; height:100%; border-radius:inherit; background:var(--game-color); transition:width var(--duration-slow) var(--ease-smooth-out); }.summary-meter.unknown { opacity:.5; }
+.summary-account { display:flex; align-items:center; gap:8px; margin-top:auto; padding-top:10px; border-top:1px solid var(--border); color:var(--text); font-size:12px; font-weight:500; }.summary-account>span:first-child { min-width:0; margin-right:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.summary-account small { margin-left:6px; color:var(--text-muted); font-size:11px; font-weight:400; }.summary-updated { color:var(--text-faint); font-size:11px; font-weight:400; white-space:nowrap; }.summary-account svg { color:var(--text-faint); transition:transform 350ms var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out); }
 @media(hover:hover) and (pointer:fine) { .game-summary:hover .summary-account svg { color:var(--accent); transform:translateX(2px); } }
-.overview-lower { display:grid; grid-template-columns:1.1fr 1fr; gap:16px; }.overview-lower>section { min-width:0; }.overview-list { border:1px solid var(--border); border-radius:12px; background:var(--card-bg); padding:4px 16px; box-shadow:var(--card-shadow); }
+.overview-lower { display:grid; grid-template-columns:1.1fr 1fr; gap:16px; margin-top:22px; }.overview-lower>section { min-width:0; border:1px solid var(--border); border-radius:12px; background:var(--card-bg); box-shadow:var(--card-shadow); }.overview-lower .section-heading { margin:0; min-height:58px; padding:12px 18px; border-bottom:1px solid var(--border); }.overview-lower .section-heading h2 { font-size:14px; white-space:nowrap; }.overview-list { padding:3px 18px; }
 .news-filters { display:flex; gap:8px; margin-left:auto; min-width:0; }
-.event-summary { width:100%; display:flex; align-items:center; gap:10px; border:0; border-bottom:1px solid var(--border); background:transparent; color:var(--text); text-align:left; padding:9px 0; cursor:pointer; }.event-summary:last-child { border:0; }
+.event-summary { width:100%; display:flex; align-items:center; gap:10px; border:0; border-bottom:1px solid var(--border); background:transparent; color:var(--text); text-align:left; padding:12px 0; cursor:pointer; }.event-summary:last-child { border:0; }
 @media(hover:hover) and (pointer:fine) { .event-summary:hover strong { color:var(--accent); } }
 .event-mark { align-self:stretch; width:3px; flex-shrink:0; margin:2px 0; border-radius:2px; background:var(--game-color); }
 .event-copy { flex:1; min-width:0; }.event-copy strong { display:block; font-size:13px; line-height:19px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.event-copy small { display:block; margin-top:1px; font-size:11px; line-height:16px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .deadline-label { flex-shrink:0; padding:1px 7px; border-radius:5px; background:var(--overlay-3); font-size:11px; font-weight:500; line-height:18px; color:var(--text-body); white-space:nowrap; }.deadline-label.urgent { background:var(--stale-bg); color:var(--stale-text); }
-.news-summary { border-bottom:1px solid var(--border); padding:9px 0; }.news-summary:last-child { border:0; }.news-summary a,.news-summary>p { display:block; color:var(--text); text-decoration:none; font-size:13px; line-height:19px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.news-summary a span { color:var(--text-faint); }
+.news-summary { border-bottom:1px solid var(--border); padding:12px 0; }.news-summary:last-child { border:0; }.news-summary a,.news-summary>p { display:block; color:var(--text); text-decoration:none; font-size:13px; line-height:19px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.news-summary a span { color:var(--text-faint); }
 .news-source { display:flex; align-items:center; gap:5px; margin-top:1px; color:var(--text-muted); font-size:11px; line-height:16px; min-width:0; }.news-source i { width:6px; height:6px; flex-shrink:0; border-radius:50%; }.news-source>span { color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.news-source time { margin-left:auto; flex-shrink:0; color:var(--text-faint); }
 @media(hover:hover) and (pointer:fine) { .news-summary a:hover,.news-summary a:hover span { color:var(--accent); } }
 .overview-footer { margin-top:24px; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:12px; color:var(--text-faint); font-size:11px; }.overview-footer>span { display:flex; align-items:center; gap:7px; }
 @media(max-width:1200px) { .hero-count { display:none; } }
 @media(max-width:940px) { .game-summary-grid,.game-summary-grid.many { grid-template-columns:1fr; }.overview-lower { grid-template-columns:1fr; } }
 @media(max-width:600px) { .attention-strip { flex-wrap:wrap; gap:8px; padding:10px 12px; }.attention-strip p { flex-basis:80%; }.attention-strip .text-link { margin-left:26px; }.summary-number { font-size:26px; line-height:30px; }.overview-footer { flex-wrap:wrap; } }
+@media(max-width:400px) { .overview-lower .section-heading { flex-wrap:wrap; gap:8px; padding:12px 14px; }.news-filters { width:100%; margin-left:0; }.overview-list { padding:3px 14px; } }
 @media(prefers-reduced-motion:reduce) { .game-summary:hover,.game-summary:active { transform:none; } }
 </style>

@@ -23,7 +23,7 @@ after(() => window.happyDOM.close())
 const { createApp, h, nextTick, ref, withDirectives } = await import('vue')
 const { vGlide, vSpotlight } = await import('./motion.js')
 const { loadVue } = await import('./test-utils/vue.js')
-const GameDialog = await loadVue(new URL('./components/GameDialog.vue', import.meta.url))
+const WuwaRoleDialog = await loadVue(new URL('./components/WuwaRoleDialog.vue', import.meta.url))
 const style = document.createElement('style')
 style.textContent = readFileSync(new URL('./motion.css', import.meta.url), 'utf8')
 document.head.append(style)
@@ -213,7 +213,7 @@ function modal(t, reducedMotion = false) {
   trigger.focus()
   const open = ref(true)
   let closes = 0
-  const app = createApp({ render: () => open.value ? h(GameDialog, {
+  const app = createApp({ render: () => open.value ? h(WuwaRoleDialog, {
     title: '账号档案', eyebrow: 'WUTHERING WAVES', onClose() { closes++; open.value = false },
   }, () => h('p', '账号详情')) : null })
   app.mount(root)
