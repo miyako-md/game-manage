@@ -140,14 +140,9 @@ async function closeDetail() {
                 <div class="grid-backdrop" aria-hidden="true"><div v-for="day in range.days" :key="day.timestamp" :class="{ weekend: day.weekend, 'today-column': day.timestamp === today }" /></div>
                 <div v-if="todayVisible" class="today-line" :style="{ left: `${todayPosition}%` }" aria-hidden="true" />
                 <div v-for="event in group.events" :key="event.id" class="event-lane">
-                  <button type="button" class="timeline-event" :class="{ 'is-point': event.geometry.kind === 'point', 'label-left': event.geometry.left > 60, 'is-ended': event.status === '已结束', 'clipped-start': event.geometry.clippedStart, 'clipped-end': event.geometry.clippedEnd, 'is-selected': selectedId === event.id }" :style="barStyle(event)" :title="eventDescription(event)" :aria-label="`查看活动详情：${event.name || '未命名活动'}`" :aria-pressed="selectedId === event.id" @click="selectEvent(event, $event)">
-                    <span class="event-summary">
-                      <span class="event-bar-title">{{ event.name || '未命名活动' }}</span>
-                      <span class="event-meta"><small class="event-category">{{ event.category }}</small><small class="event-status">{{ event.status }}{{ event.geometry.approximateStart ? ' · 更新后' : '' }}</small><small v-if="event.remainingDays != null" class="event-remaining" :class="{urgent:event.remainingDays<=3}">剩 {{ event.remainingDays }} 天</small></span>
-                      <span v-if="event.geometry.kind === 'point'" class="sr-only">{{ event.geometry.endpoint === 'end' ? '截止' : event.geometry.endpoint === 'start' ? '开始' : '时点' }} · {{ event.geometry.reason }}</span>
-                    </span>
-                    <span v-if="event.geometry.kind === 'range'" class="event-duration" aria-hidden="true"><i v-if="event.elapsed != null" class="event-elapsed" :style="{width:`${event.elapsed}%`}" /></span>
-                    <span v-else class="point-diamond" aria-hidden="true" />
+                  <button type="button" class="timeline-event" :class="{ 'is-point': event.geometry.kind === 'point', 'is-short': event.geometry.kind === 'range' && event.geometry.width < 30, 'label-left': event.geometry.left > 70, 'is-ended': event.status === '已结束', 'clipped-start': event.geometry.clippedStart, 'clipped-end': event.geometry.clippedEnd, 'is-selected': selectedId === event.id }" :style="barStyle(event)" :title="eventDescription(event)" :aria-label="`查看活动详情：${event.name || '未命名活动'}`" :aria-pressed="selectedId === event.id" @click="selectEvent(event, $event)">
+                    <template v-if="event.geometry.kind === 'range'"><i v-if="event.elapsed != null" class="event-elapsed" :style="{width:`${event.elapsed}%`}" aria-hidden="true" /><span class="event-summary"><span class="event-bar-title">{{ event.geometry.clippedStart ? '‹ ' : '' }}{{ event.name || '未命名活动' }}{{ event.geometry.clippedEnd ? ' ›' : '' }}</span><small class="event-category">{{ event.category }}</small><small class="event-status">{{ event.status }}{{ event.geometry.approximateStart ? ' · 更新后' : '' }}</small><small v-if="event.remainingDays != null" class="event-remaining" :class="{urgent:event.remainingDays<=3}">剩 {{ event.remainingDays }} 天</small></span></template>
+                    <template v-else><span class="point-diamond" aria-hidden="true" /><span class="point-label" :class="{ 'point-label-left': event.geometry.left > 70 }"><strong>{{ event.name || '未命名活动' }}</strong><small class="event-category">{{ event.category }}</small><small class="event-status">{{ event.status }}</small><span class="sr-only">{{ event.geometry.endpoint === 'end' ? '截止' : event.geometry.endpoint === 'start' ? '开始' : '时点' }} · {{ event.geometry.reason }}</span></span></template>
                   </button>
                 </div>
               </div>
@@ -178,7 +173,7 @@ async function closeDetail() {
 .calendar-page > .page-heading { margin-bottom: 0; }
 .calendar-timezone { gap: 6px; white-space: nowrap; }
 .calendar-timezone strong { color: var(--text); font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
-.calendar-board { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; min-width: 0; box-shadow: var(--card-shadow); display:flex; flex-direction:column; }
+.calendar-board { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: auto; min-width: 0; box-shadow: var(--card-shadow); display:flex; flex-direction:column; height:max(460px,calc(100dvh - var(--calendar-top) - 24px)); }
 .calendar-board > :not(.timeline-scroll){flex-shrink:0}
 .calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 18px 20px 12px; }
 .calendar-navigation, .calendar-filters { display: flex; align-items: center; gap: 12px; }
@@ -205,63 +200,63 @@ async function closeDetail() {
 .calendar-read-error, .calendar-missing { margin: 0 20px 16px; padding: 10px 12px; font-size: 12px; line-height: 1.6; border-radius: 8px; }
 .calendar-read-error { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
 .calendar-missing { color: var(--text-muted); border: 1px dashed var(--border-strong); }
-.timeline-scroll { overflow: auto; min-height: 240px; max-height: max(300px, calc(100dvh - var(--calendar-top) - 152px)); scrollbar-color: var(--scrollbar) var(--bg); scrollbar-width: thin; }
+.timeline-scroll { overflow: auto; flex:1; min-height:140px; scrollbar-color: var(--scrollbar) var(--bg); scrollbar-width: thin; }
 .timeline-canvas { min-width: var(--timeline-min); }
 .timeline-header, .timeline-group { display: grid; grid-template-columns: 184px minmax(0, 1fr); }
 .timeline-header { position: sticky; top: 0; z-index: 5; background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .timeline-label { position: sticky; left: 0; z-index: 3; background: var(--card-bg); border-right: 1px solid var(--border); }
-.header-label { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 12px 20px; color: var(--text-muted); font-size: 12px; font-weight: 500; }
+.header-label { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 18px 20px; color: var(--text-muted); font-size: 12px; font-weight: 500; }
 .header-label small { color: var(--text-faint); font-size: 10px; font-weight: 400; }
 .date-track, .grid-backdrop { display: grid; grid-template-columns: repeat(var(--day-count), minmax(0, 1fr)); }
 .date-cell { min-height: 78px; display: grid; grid-template-rows: 14px 26px 14px; justify-items: center; align-content: center; gap: 3px; padding: 8px 0; border-right: 1px solid var(--overlay-1); font-family: var(--font-sans); }
 .date-cell small { font-size: 10px; line-height: 14px; color: var(--text-faint); }
-.date-cell strong { display: grid; place-items: center; min-width: 24px; height: 26px; padding: 0 2px; border-radius: 7px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 500; line-height: 1; }
-.date-cell.is-month-start strong { font-size: 10px; }
+.date-cell strong { display: grid; place-items: center; min-width: 26px; height: 26px; padding: 0 2px; border-radius: 13px; font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 500; line-height: 1; }
+.date-cell.is-month-start strong { font-size: 12px; }
 .date-cell.weekend { background: var(--overlay-1); }
 .date-cell.is-today { color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); }
 .date-cell.is-today strong { background: var(--accent); color: var(--accent-ink); }
 .day-today { font-size: 9px; font-weight: 500; line-height: 14px; white-space: nowrap; color: var(--accent); }
 .timeline-group { border-bottom: 1px solid var(--border); }
 .timeline-group:last-child { border-bottom: 0; }
-.group-label { display: flex; align-items: center; gap: 10px; padding: 16px; }
+.group-label { display: flex; align-items: center; gap: 10px; padding: 0 16px; }
 .game-monogram { width: 28px; height: 28px; background: color-mix(in srgb, var(--game-accent) 13%, transparent); border-radius: 7px; font-size: 15px; }
 .group-label strong { display: block; font-size: 13px; font-weight: 600; line-height: 18px; }
 .group-label small { display: block; color: var(--text-faint); font-size: 11px; line-height: 15px; }
 .group-track { position: relative; overflow: hidden; }
 .grid-backdrop { position: absolute; inset: 0; pointer-events: none; }
-.grid-backdrop > div { border-right: 1px solid var(--overlay-1); }
+.grid-backdrop > div { border-right: 1px solid var(--overlay-2); }
 .grid-backdrop .weekend { background: var(--overlay-1); }
 .grid-backdrop .today-column { background: color-mix(in srgb, var(--accent) 3%, transparent); }
-.today-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed color-mix(in srgb, var(--accent) 35%, transparent); pointer-events: none; }
-.event-lane { height: 84px; position: relative; }
-.timeline-event { position: absolute; top: 9px; height: 66px; min-width: 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text); text-align: left; overflow: visible; }
-.event-summary { position: absolute; top: 0; left: 0; display: grid; gap: 5px; width: max-content; max-width: 280px; padding: 4px 7px; border: 1px solid transparent; border-radius: 6px; background: color-mix(in srgb, var(--card-bg) 95%, transparent); line-height: 1.4; transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out); }
-.label-left .event-summary { left: auto; right: 0; }
-.event-bar-title { display: block; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.event-meta { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
-.event-category, .event-status, .event-remaining { font-size: 10px; font-weight: 400; }
+.today-line { position: absolute; top: 0; bottom: 0; width: 1px; background: color-mix(in srgb, var(--accent) 46%, transparent); z-index: 2; pointer-events: none; }
+.event-lane { height: 32px; position: relative; }
+.timeline-event { position: absolute; top: 0; height: 32px; min-width: 0; border: 0; box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--game-accent) 20%, transparent); border-radius: 0; color: var(--text); background: repeating-linear-gradient(125deg, transparent, transparent 12px, var(--overlay-1) 12px, var(--overlay-1) 14px), linear-gradient(100deg, color-mix(in srgb, var(--game-accent) 26%, var(--card-bg)), color-mix(in srgb, var(--game-accent) 9%, var(--card-bg))); padding: 0 10px; display: flex; align-items: center; gap: 9px; text-align: left; overflow: hidden; transition: filter var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
+.timeline-event:not(.is-point)::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--game-accent); }
+@media (hover: hover) and (pointer: fine) { .timeline-event:hover { filter: brightness(1.12) saturate(1.08); } }
+.timeline-event:not(.is-point):active { transform: scaleY(0.94); }
+.timeline-event.is-ended { opacity: .56; }
+.event-summary { display: flex; align-items: center; gap: 9px; min-width: 0; width: 100%; position:relative; }
+.event-summary,.point-label {font-family:inherit;line-height:1.4;text-shadow:0 1px 3px var(--bg),0 0 6px var(--card-bg)}
+.event-elapsed{position:absolute;inset:0 auto 0 0;background:color-mix(in srgb,var(--game-accent) 20%,transparent);border-right:1px solid var(--game-accent);pointer-events:none}
+.event-remaining{flex-shrink:0;font-size:10px;color:var(--text-muted);border:1px solid var(--border-strong);border-radius:4px;padding:1px 5px;background:var(--card-bg)}
+.event-remaining.urgent{color:var(--stale-text);background:var(--stale-bg)}
+.timeline-event.is-short { overflow: visible; }
+.is-short .event-summary { position: absolute; left: 10px; width: max-content; max-width: 330px; }
+.is-short.label-left .event-summary { left: auto; right: 10px; }
+.timeline-event.is-short::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 1px; background: var(--game-accent); opacity: .5; }
+.event-bar-title { display: block; font-size: 11px; font-weight: 600; min-width: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event-category, .event-status { flex-shrink: 0; font-size: 10px; white-space: nowrap; }
 .event-category { color: var(--text-muted); }
 .event-status { color: var(--game-accent); }
-.event-status::before { content: ''; display: inline-block; width: 3px; height: 3px; margin: 0 5px 2px 0; border-radius: 50%; background: currentColor; }
-.event-remaining { padding: 1px 5px; border-radius: 4px; color: var(--text-muted); background: var(--surface-soft); }
-.event-remaining.urgent { color: var(--stale-text); background: var(--stale-bg); }
-.event-duration { position: absolute; inset: auto 0 4px; height: 8px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--game-accent) 16%, var(--card-bg)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--game-accent) 18%, transparent); }
-.event-elapsed { position: absolute; inset: 0 auto 0 0; background: var(--game-accent); opacity: .65; border-radius: inherit; }
-.clipped-start .event-duration { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: 2px dotted var(--game-accent); }
-.clipped-end .event-duration { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: 2px dotted var(--game-accent); }
-.timeline-event.is-ended .event-duration { opacity: .55; }
-.timeline-event.is-ended .event-bar-title { color: var(--text-muted); }
-.timeline-event.is-selected .event-summary { border-color: color-mix(in srgb, var(--game-accent) 38%, var(--border)); background: color-mix(in srgb, var(--game-accent) 6%, var(--card-bg)); }
-.calendar-page .timeline-event:focus-visible { outline: none; }
-.timeline-event:focus-visible .event-summary { outline: 2px solid var(--accent); outline-offset: 2px; }
-.timeline-event.is-point { width: 16px; transform: translateX(-50%); }
-.is-point .event-summary { left: 8px; }
-.is-point.label-left .event-summary { left: auto; right: 8px; }
-.point-diamond { position: absolute; left: 4px; bottom: 4px; height: 8px; width: 8px; background: var(--game-accent); transform: rotate(45deg); border-radius: 2px; }
-@media (hover: hover) and (pointer: fine) {
-  .timeline-event:hover .event-summary { border-color: var(--border); background: var(--panel-bg); }
-  .timeline-event:hover .event-bar-title { color: var(--game-accent); }
-}
+.timeline-event.clipped-start { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.timeline-event.clipped-start::before { background: repeating-linear-gradient(to bottom, var(--game-accent) 0 3px, transparent 3px 6px); }
+.timeline-event.clipped-end { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.timeline-event.clipped-end::after { content: ''; position: absolute; inset: 0 0 0 auto; width: 2px; background: repeating-linear-gradient(to bottom, var(--game-accent) 0 3px, transparent 3px 6px); }
+.timeline-event.is-selected { outline: 2px solid var(--accent); outline-offset: 2px; z-index: 2; }
+.timeline-event.is-point { width: 16px; transform: translateX(-50%); padding: 0; background: transparent; border: 0; box-shadow: none; overflow: visible; justify-content: center; }
+.point-diamond { display: block; height: 9px; width: 9px; background: var(--game-accent); transform: rotate(45deg); border: 2px solid var(--card-bg); box-shadow: 0 0 0 1px var(--game-accent); }
+.point-label { position: absolute; left: 20px; max-width: 330px; display: flex; align-items: center; gap: 9px; height: 32px; color: var(--text); padding: 0 7px; background: color-mix(in srgb, var(--card-bg) 92%, transparent); }
+.point-label strong { min-width: 24px; font-size: 11px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.point-label-left { left: auto; right: 20px; text-align: right; }
 .calendar-empty { padding: 42px 24px; text-align: center; color: var(--text-muted); font-size: 12px; }
 .timeline-empty { display: grid; gap: 13px; justify-items: center; min-height: 245px; align-content: center; }
 .timeline-empty > span { font-size: 27px; color: var(--accent); opacity: .7; }
@@ -313,10 +308,6 @@ async function closeDetail() {
   .calendar-detail dl { grid-template-columns: 1fr; }
   .unplaced-event { gap: 10px; align-items: start; }
   .unknown-reason { max-width: 100px; line-height: 1.6; flex-shrink: 0; }
-}
-@media (max-width: 600px) {
-  .timeline-header, .timeline-group { grid-template-columns: 116px minmax(0, 1fr); }
-  .timeline-scroll { max-height: max(420px, 60dvh); }
 }
 @media (max-width: 400px) {
   .calendar-toolbar { padding: 12px; }
