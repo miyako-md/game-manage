@@ -1,34 +1,17 @@
 <script setup>
-import { onMounted, onBeforeUnmount, ref, useId } from 'vue'
+import { useId } from 'vue'
+import { useDialog } from '../use-dialog.js'
 defineProps({ title: { type: String, required: true }, eyebrow: { type: String, default: 'WUTHERING WAVES' } })
 const headingId = `wuwa-dialog-${useId()}`
 const emit = defineEmits(['close'])
-const dialog = ref(null)
-let previousFocus, previousOverflow, pressedBackdrop = false
-onMounted(() => {
-  if (typeof document === 'undefined' || !dialog.value?.showModal) return
-  previousFocus = document.activeElement
-  previousOverflow = document.body.style.overflow
-  dialog.value.showModal()
-  document.body.style.overflow = 'hidden'
-})
-onBeforeUnmount(() => {
-  dialog.value?.close?.()
-  if (typeof document !== 'undefined' && previousOverflow !== undefined) document.body.style.overflow = previousOverflow
-  if (previousFocus?.isConnected) previousFocus.focus?.()
-})
-function backdropDown(event) { pressedBackdrop = event.target === dialog.value }
-function backdropClick(event) {
-  if (pressedBackdrop && event.target === dialog.value) emit('close')
-  pressedBackdrop = false
-}
+const { dialog, closing, requestClose, backdropDown, backdropClick, animationEnded } = useDialog(() => emit('close'))
 </script>
 
 <template>
-  <dialog ref="dialog" class="wuwa-role-dialog" aria-modal="true" :aria-labelledby="headingId" @cancel.prevent="emit('close')" @pointerdown="backdropDown" @click="backdropClick">
+  <dialog ref="dialog" class="wuwa-role-dialog t-dialog" :data-closing="closing ? '' : undefined" aria-modal="true" :aria-labelledby="headingId" @cancel.prevent="requestClose" @pointerdown="backdropDown" @click="backdropClick" @animationend="animationEnded">
     <header class="role-dialog-heading">
       <div><p class="wuwa-kicker">{{ eyebrow }}</p><h2 :id="headingId">{{ title }}</h2></div>
-      <button type="button" class="ui-button small-button" autofocus @click="emit('close')">关闭详情</button>
+      <button type="button" class="ui-button small-button" autofocus @click="requestClose">关闭详情</button>
     </header>
     <div class="role-dialog-body"><slot /></div>
   </dialog>

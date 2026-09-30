@@ -1,23 +1,13 @@
 <script setup>
-import { onMounted, onBeforeUnmount, ref, useId } from 'vue'
+import { useId } from 'vue'
+import { useDialog } from '../use-dialog.js'
 defineProps({title:{type:String,required:true}})
-const emit=defineEmits(['close']), dialog=ref(null), titleId=`nte-detail-${useId()}`
-let focusBefore,overflowBefore,backdropDown=false
-onMounted(()=>{
-  if(typeof document==='undefined'||!dialog.value?.showModal)return
-  focusBefore=document.activeElement;overflowBefore=document.body.style.overflow
-  dialog.value.showModal();document.body.style.overflow='hidden'
-})
-onBeforeUnmount(()=>{
-  dialog.value?.close?.()
-  if(typeof document!=='undefined'&&overflowBefore!==undefined)document.body.style.overflow=overflowBefore
-  if(focusBefore?.isConnected)focusBefore.focus?.()
-})
-function closeFromBackdrop(event){if(backdropDown&&event.target===dialog.value)emit('close');backdropDown=false}
+const emit=defineEmits(['close']), titleId=`nte-detail-${useId()}`
+const { dialog, closing, requestClose, backdropDown, backdropClick, animationEnded } = useDialog(() => emit('close'))
 </script>
 <template>
-  <dialog ref="dialog" class="nte-dialog" aria-modal="true" :aria-labelledby="titleId" @cancel.prevent="emit('close')" @pointerdown="backdropDown = $event.target === dialog" @click="closeFromBackdrop">
-    <header class="nte-dialog-head"><div><p>NEVERNESS TO EVERNESS</p><h2 :id="titleId">{{ title }}</h2></div><button type="button" autofocus @click="emit('close')">关闭详情</button></header>
+  <dialog ref="dialog" class="nte-dialog t-dialog" :data-closing="closing ? '' : undefined" aria-modal="true" :aria-labelledby="titleId" @cancel.prevent="requestClose" @pointerdown="backdropDown" @click="backdropClick" @animationend="animationEnded">
+    <header class="nte-dialog-head"><div><p>NEVERNESS TO EVERNESS</p><h2 :id="titleId">{{ title }}</h2></div><button type="button" autofocus @click="requestClose">关闭详情</button></header>
     <div class="nte-dialog-body"><slot /></div>
   </dialog>
 </template>

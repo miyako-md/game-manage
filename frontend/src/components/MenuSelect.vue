@@ -177,7 +177,7 @@ onBeforeUnmount(() => { if (open.value) listen(false) })
 
 <style scoped>
 .menu-select { display: inline-flex; position: relative; min-width: 0; max-width: 100%; vertical-align: middle; }
-.menu-select-trigger { display: inline-flex; align-items: center; gap: 6px; width: 100%; min-width: 0; min-height: 30px; padding: 4px 8px 4px 10px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--card-bg); color: var(--text-body); font-size: 12px; font-weight: 400; line-height: 20px; text-align: left; box-shadow: 0 1px 2px rgba(24, 43, 68, .025); }
+.menu-select-trigger { display: inline-flex; align-items: center; gap: 6px; width: 100%; min-width: 0; min-height: 32px; padding: 4px 8px 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); color: var(--text-body); font-size: 12px; font-weight: 400; line-height: 20px; text-align: left; box-shadow: var(--btn-shadow); }
 .menu-select-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .menu-select-trigger svg { flex-shrink: 0; color: var(--text-faint); transition: transform var(--duration-fast) var(--ease-smooth-out); }
 .open .menu-select-trigger { border-color: color-mix(in srgb, var(--accent) 45%, var(--border-strong)); color: var(--accent-strong); }
