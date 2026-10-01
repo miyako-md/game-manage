@@ -98,12 +98,15 @@ def parse_post_events(post, game, version):
         return parse_endfield(post, version)
     if game not in MOBILE_GAMES or post.get('decision') != 'accepted':
         return []
+    from .bilibili import PROMOTION
     lines = [s.strip() for s in post.get('body', '').splitlines() if s.strip()]
     year = datetime.fromisoformat(post['published_at']).astimezone(BJ).year
     events = []
     for i, line in enumerate(lines):
         heading = _heading(line, game)
-        if not heading:
+        # Mixed version notes can mention external promotions. They still
+        # delimit sections below, so their dates cannot leak to another event.
+        if not heading or PROMOTION.search(line):
             continue
         for j in range(i + 1, min(i + 8, len(lines))):
             if _heading(lines[j], game):
@@ -220,6 +223,8 @@ def calendar_from_posts(posts, game, now=None):
 def merge_events(primary, community, version):
     result = [dict(e) for e in primary]
     for row in community:
+        if '网页活动' in (row.get('category') or ''):
+            continue
         item = {**row, 'source': 'community', 'source_name': '社区补充'}
         same = next((e for e in result if _same_event(e, item)), None)
         if same:

@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from game_assistant.auth.store import CredentialStore
-from .bilibili import BilibiliClient, SourceError, collect_pages
+from .bilibili import BilibiliClient, SourceError, collect_pages, RULE_VERSION
 from .bilibili_store import BilibiliStore
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,9 @@ class BilibiliService:
         previous = self.store.state(game, uid)
         if time.time() < previous.get('next_retry', 0): return
         now = datetime.now(timezone.utc)
-        full = backfill or not previous.get('history_complete')
+        # Re-read originals after rule changes; cached decisions may predate
+        # the incremental window and do not retain raw completeness flags.
+        full = backfill or not previous.get('history_complete') or previous.get('rule_version') != RULE_VERSION
         days = self.settings.bilibili_history_days
         if not full and previous.get('last_success'):
             days = min(days, max(2, math.ceil((now - datetime.fromisoformat(previous['last_success'])).total_seconds()/86400) + 1))
@@ -73,7 +75,7 @@ class BilibiliService:
             client = self.client_factory(uid, self.credentials.load().get('bilibili', {}))
             result = await collect_pages(client.page, uid, now, days=days, on_page=on_page)
             values = dict(status='ok', message='历史回补完成' if full else '增量采集完成',
-                          last_success=now.isoformat(), failures=0, next_retry=time.time()+30)
+                          last_success=now.isoformat(), failures=0, next_retry=time.time()+30, rule_version=RULE_VERSION)
             if full: values.update(history_complete=True, coverage_since=result['cutoff'])
             self.store.set_state(game, uid, **values)
         except asyncio.CancelledError:

@@ -170,11 +170,11 @@ async def test_parse_events_mutual_exclusion():
         "[活动甲]战斗活动",  # 同名复现：不再产出第二条
         "再提一下活动甲的时间：2026年1月3日00:00 ~ 2026年1月4日00:00",
         "[活动乙]休闲活动",
-        "[活动丙]休闲活动",  # 与乙共享的时间行：不重复消费
+        "[活动丙]休闲活动",  # 时间属于最近的丙标题，乙不得跨标题借用
         "✦活动时间：2026年2月1日00:00 ~ 2026年2月2日00:00",
     ]
     events = parse_events_from_lines(lines)
-    assert [e.name for e in events] == ["活动甲", "活动乙"]
+    assert [e.name for e in events] == ["活动甲", "活动丙"]
     assert events[1].end_at == _dt(2026, 2, 2, 0, 0)
 
 

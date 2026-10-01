@@ -114,21 +114,25 @@ def parse_events_from_lines(lines: list[str], source_post_id: str | None = None,
     """行序列扫描 → GameEvent 列表（互斥配对）。
 
     - 行首匹配 `[名称]类型` 视为活动名行；同名活动只产出一次；
-    - 名行之后 EVENT_TIME_WINDOW 行内的第一个含"活动时间"行提供起止
+    - 名行之后 EVENT_TIME_WINDOW 行内、下一个活动标题之前的第一个含"活动时间"行提供起止
       （该行被消费后不再配给其它活动名）；
-    - 窗口内无"活动时间"行的活动名不产出事件（干扰行不含该前缀，不会被扫描）。
+    - 无活动时间、永久开放及网页活动不产出限时游戏内事件。
     """
     events: list[GameEvent] = []
     seen_names: set[str] = set()
     used_time_lines: set[int] = set()
     for i, line in enumerate(lines):
         m = ACTIVITY_NAME_RE.match(line)
-        if not m or m.group(1) in seen_names:
+        if not m or m.group(1) in seen_names or '网页活动' in m.group(2):
             continue
         name = m.group(1)
         for j in range(i + 1, min(i + 1 + EVENT_TIME_WINDOW, len(lines))):
+            if ACTIVITY_NAME_RE.match(lines[j]):
+                break
             if j in used_time_lines or "活动时间" not in lines[j]:
                 continue
+            if '永久' in lines[j]:
+                break
             seen_names.add(name)
             used_time_lines.add(j)
             start, end = parse_cn_date_range(lines[j])
