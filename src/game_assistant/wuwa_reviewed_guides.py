@@ -1,0 +1,35 @@
+"""Source-bound public summaries checked against the original text and pictures."""
+
+REVIEWED = {
+    '1555005846752059392': {
+        'character_id': '1311',
+        'fingerprint': 'aab4ad748fee40b5a648302e4755e54446f8f6bf31eac80401cccf95e7f46587',
+        'reviewedAt': '2026-10-01',
+        'sections': [
+            {'key':'weapons',
+             'text':'首选玉阙玄华。同奏模态可选海的呢喃、琼枝冰绡，常驻漪澜浮录可用；电磁模态可用幽冥的忘忧章替代专武。四星可考虑曜光、今州守望。',
+             'locator':'原帖第 5 张图与武器正文',
+             'note':'推荐与原帖模态条件对应；谐振阶数、手法及配队会影响武器对比，未把不同阶数的数值混作统一排名。',
+             'evidence':[{'kind':'image','page':5},{'kind':'text','position':6}]},
+            {'key':'teams',
+             'text':'电磁：心／导电漂泊者／穗穗，心／千咲／穗穗，心／导电漂泊者／千咲，或心／琳奈／穗穗。同奏可选心／今汐／守岸人。',
+             'locator':'原帖第 6 张图与配队正文',
+             'note':'原帖另列心／锁暝／守岸人，但锁暝当时尚未上线，属于作者猜测，不作为已确认配队。三号位可按情况替换；卜灵替代穗穗时原帖提示伤害较低。',
+             'evidence':[{'kind':'image','page':6},{'kind':'text','position':7}]},
+            {'key':'echo_sets',
+             'text':'衔梦照世之心五件套，43311；首位使用共鸣回响·天滴溯心。',
+             'locator':'原帖第 2 张图', 'note':'原帖当前未推荐其他声骸套装。',
+             'evidence':[{'kind':'image','page':2}]},
+            {'key':'echo_stats',
+             'text':'4C：暴击率足够时选暴击伤害，注意避免暴击溢出。3C：同奏优先攻击＋导电，可用双导电；电磁优先双攻击，也可攻击＋导电。1C：双攻击。副词条先满足约 120—130% 以上共鸣效率，再按双暴＞攻击百分比＞共鸣技能伤害考虑。',
+             'locator':'原帖第 2、3 张图',
+             'note':'4C 暴伤结论以衔梦照世之心套装及守岸人提供足够暴击为条件；两种模态的 3C 推荐分别保留。',
+             'evidence':[{'kind':'image','page':2},{'kind':'image','page':3}]},
+            {'key':'skill_priority',
+             'text':'共鸣回路＞共鸣解放＞变奏技能＞常态攻击＞共鸣技能。前三项建议 10 级；常态攻击 6—10 级，共鸣技能 6 级。',
+             'locator':'原帖第 3 张图的技能升级优先级',
+             'note':'已按原图从左至右的升级顺序核对；没有用 OCR 的文本读取顺序或伤害类型占比替代加点顺序。',
+             'evidence':[{'kind':'image','page':3}]},
+        ],
+    },
+}

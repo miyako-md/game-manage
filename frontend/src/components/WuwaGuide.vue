@@ -1,30 +1,40 @@
 <script setup>
-import { computed } from 'vue'
-import { getWuwaGuide, guideSections, guideSourceUrl, guideUpdatedAt, guideVersion } from '../wuwa-guides.js'
-import { characterIcon } from '../wuwa-icons.js'
+import { computed, ref, watch } from 'vue'
+import { displayWuwaGuide, getWuwaGuide, guideSections, guideSourceUrl, guideUpdatedAt, guideVersion } from '../wuwa-guides.js'
+import { characterIcon, namedIcon } from '../wuwa-icons.js'
 import WuwaIcon from './WuwaIcon.vue'
 import WuwaGuideVisual from './WuwaGuideVisual.vue'
+import WuwaGuideUpdates from './WuwaGuideUpdates.vue'
 
-const props = defineProps({ characterId: { type: [String, Number], required: true } })
-const guide = computed(() => getWuwaGuide(props.characterId))
+const props = defineProps({ characterId: { type: [String, Number], required: true }, characterName: { type: String, default: '' }, attribute: { type: String, default: '' } })
+const update = ref(null)
+const original = computed(() => getWuwaGuide(props.characterId))
+const guide = computed(() => displayWuwaGuide(props.characterId, update.value))
+const draft = computed(() => update.value && guide.value !== update.value ? update.value : null)
+watch(() => props.characterId, () => { update.value = null }, { flush: 'sync' })
 const reviewedCount = computed(() => guide.value?.sections.filter(s => s.status === 'reviewed').length || 0)
 const sourceFor = section => guide.value?.sources.find(s => s.id === section.sourceId)
-const stateLabel = status => ({ reviewed: '已核对原帖', partial: '部分资料', pending: '待核验' }[status] || '待核验')
+const stateLabel = status => ({ reviewed: '已核对原帖', extracted: '自动提炼 · 待核查', partial: '部分资料', pending: '待核验' }[status] || '待核验')
+function receiveGuide(value) {
+  if (value && String(value.id) === String(props.characterId)) update.value = value
+}
 </script>
 
 <template>
   <section class="wuwa-guide" aria-label="角色培养攻略">
     <header class="guide-heading">
-      <WuwaIcon v-if="guide" :src="characterIcon(characterId)" :name="guide.name" size="large" />
+      <WuwaIcon v-if="guide" :src="characterIcon(characterId) || namedIcon('roles', guide.name)" :name="guide.name" size="large" />
       <div class="guide-title">
         <p class="wuwa-kicker">BUILD GUIDE</p>
         <h3>{{ guide ? `${guide.name} · 培养攻略` : '培养攻略' }}</h3>
       </div>
       <span v-if="guide" class="guide-version">{{ guide.attribute }}</span>
     </header>
+    <WuwaGuideUpdates :character-id="characterId" :name="original?.name || characterName" :attribute="original?.attribute || attribute" :sources="guide?.sources || []" @guide="receiveGuide" />
     <template v-if="guide">
-      <p class="guide-intro">社区攻略 · 较新优先 · 各项保留版本与适用条件</p>
-      <p class="wuwa-meta">资料核查于 {{ guideUpdatedAt }} · {{ reviewedCount }}/5 项已核对原帖<span v-if="reviewedCount < 5"> · 其余条目标明缺口</span></p>
+      <p class="guide-intro">培养建议 · 各项保留版本、适用条件与核查状态</p>
+      <p class="wuwa-meta">{{ guide.reviewedAt ? `资料核查于 ${guide.reviewedAt}` : guide.fetchedAt ? '原帖自动提炼，尚未人工核查' : `资料核查于 ${guideUpdatedAt}` }} · {{ reviewedCount }}/5 项已核对原帖<span v-if="reviewedCount < 5"> · 其余条目标明状态</span></p>
+      <p v-if="guide.extractionNote" class="guide-note">{{ guide.extractionNote }}</p>
       <div class="guide-grid">
         <article v-for="(section, index) in guide.sections" :key="section.key" class="guide-card" :class="{ 'guide-incomplete': section.status !== 'reviewed' }">
           <header>
@@ -40,11 +50,12 @@ const stateLabel = status => ({ reviewed: '已核对原帖', partial: '部分资
             <span>{{ sourceFor(section).author }}</span>
             <a v-if="guideSourceUrl(sourceFor(section).url)" :href="guideSourceUrl(sourceFor(section).url)" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">查看原帖 ↗</a>
           </footer>
+          <p v-if="section.locator" class="wuwa-meta guide-locator">出处：{{ section.locator }}</p>
         </article>
       </div>
       <details :key="guide.id" class="guide-sources">
         <summary>来源与补充资料 · {{ guide.sources.length }} 篇</summary>
-        <p class="wuwa-meta">适用版本与发布时间分别列出；补充链接不代表已完成内容核验。当前为已核查的资料快照，不会自动抓取新帖。</p>
+        <p class="wuwa-meta">适用版本与发布时间分别列出；每项显示核查状态。点击检查更新可读取新帖图文并提炼。</p>
         <article v-for="source in guide.sources" :key="source.id" class="guide-source">
           <span class="guide-version">{{ guideVersion(source) }}</span>
           <a v-if="guideSourceUrl(source.url)" :href="guideSourceUrl(source.url)" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">{{ source.title }} ↗</a>
@@ -54,7 +65,18 @@ const stateLabel = status => ({ reviewed: '已核对原帖', partial: '部分资
         </article>
       </details>
     </template>
-    <p v-else class="wuwa-muted">此角色形态暂未收录攻略。后续补充经过核查的资料，不套用其他形态的推荐。</p>
+    <details v-if="draft" class="guide-sources">
+      <summary>新攻略提炼结果 · 待核查</summary>
+      <p class="wuwa-meta">已有的核查建议保留。以下为新帖的自动提炼，需核对原帖后再替换。</p>
+      <article v-for="section in draft.sections" :key="section.key" class="guide-source">
+        <h4>{{ guideSections[section.key] }} · {{ stateLabel(section.status) }}</h4>
+        <WuwaGuideVisual v-if="section.text" :text="section.text" :section-key="section.key" :character-id="characterId" />
+        <p v-if="section.note" class="guide-note">{{ section.note }}</p>
+        <p class="wuwa-meta">出处：{{ section.locator || '尚未识别到明确来源' }}</p>
+      </article>
+      <a v-for="source in draft.sources" :key="source.id" :href="guideSourceUrl(source.url)" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">{{ source.title }} · {{ guideVersion(source) }} ↗</a>
+    </details>
+    <p v-if="!guide" class="wuwa-muted">此角色形态暂未收录攻略。点击检查更新可生成有出处的培养建议。</p>
   </section>
 </template>
 
@@ -80,6 +102,7 @@ const stateLabel = status => ({ reviewed: '已核对原帖', partial: '部分资
 .wuwa-guide a:hover { text-decoration: underline; }
 .wuwa-guide a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .guide-card footer a { margin-left: auto; }
+.guide-locator { margin-top: 8px; font-size: 11px; }
 .guide-sources { margin-top: 20px; border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
 .guide-sources summary { cursor: pointer; }
 .guide-source { padding: 14px 0; border-bottom: 1px solid var(--border); }

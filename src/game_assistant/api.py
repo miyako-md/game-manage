@@ -57,6 +57,8 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
             adapter._public = app.state.endfield_public
     from game_assistant.nte_guides_routes import install_nte_guides_routes
     install_nte_guides_routes(app, settings)
+    from game_assistant.wuwa_guide_updates import install_wuwa_guide_updates
+    install_wuwa_guide_updates(app, settings)
     from game_assistant.adapters.wuthering_waves.routes import install_wuwa_routes
     install_wuwa_routes(app)
     from game_assistant.wuwa_archive_routes import install_wuwa_archive_routes

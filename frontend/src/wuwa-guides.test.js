@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import catalog from './wuwa-guides-catalog.js'
-import { getWuwaGuide, guideSourceUrl, guideVersion, guideSections } from './wuwa-guides.js'
+import { getWuwaGuide, guideSourceUrl, guideVersion, guideSections, displayWuwaGuide } from './wuwa-guides.js'
 
 test('each published field retains a real source, version and explicit review state', () => {
   assert.equal(catalog.guides.length, 46)
@@ -49,4 +49,14 @@ test('known image reading-order traps and incomplete upstream fields stay correc
 test('source links only allow canonical Kurobbs public post URLs', () => {
   for (const url of ['javascript:alert(1)', 'https://www.kurobbs.com.evil.test/forum/post/1', 'https://www.kurobbs.com/forum/post/1?token=secret', 'http://www.kurobbs.com/forum/post/1']) assert.equal(guideSourceUrl(url), null)
   assert.equal(guideSourceUrl('https://www.kurobbs.com/forum/post/123'), 'https://www.kurobbs.com/forum/post/123')
+})
+
+test('automatic drafts do not replace reviewed advice or relabel the old version', () => {
+  const original = getWuwaGuide('1105')
+  const draft = {...original,sources:original.sources.map(s=>({...s,version:'3.7'})),sections:original.sections.map(s=>({...s,text:'OCR_NEW',status:'extracted'}))}
+  assert.equal(displayWuwaGuide('1105',draft),original)
+  assert.equal(displayWuwaGuide('1202',draft),getWuwaGuide('1202'))
+  const verified = {...draft,sections:draft.sections.map(s=>({...s,status:'reviewed'}))}
+  assert.equal(displayWuwaGuide('1105',verified),verified)
+  assert.equal(getWuwaGuide('1105').sources[0].version,original.sources[0].version)
 })

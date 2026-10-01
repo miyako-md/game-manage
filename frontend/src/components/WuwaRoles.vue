@@ -178,7 +178,7 @@ function close() {
         <button type="button" :aria-pressed="detailTab === 'panel'" @click="detailTab = 'panel'">实际面板</button>
         <button type="button" :aria-pressed="detailTab === 'guide'" @click="detailTab = 'guide'">培养攻略</button>
       </div>
-      <WuwaGuide v-if="detailTab === 'guide'" :character-id="selected.role_id" />
+      <WuwaGuide v-if="detailTab === 'guide'" :character-id="selected.role_id" :character-name="selected.name" :attribute="selected.attribute || ''" />
       <template v-else>
       <p v-if="loading" role="status">正在读取角色详情…</p>
       <p v-if="error" class="wuwa-error" role="alert">

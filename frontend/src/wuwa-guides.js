@@ -16,6 +16,15 @@ export function getWuwaGuide(characterId) {
   return catalog.guides.find(guide => guide.id === id) || null
 }
 
+// Source-matched reviewed updates replace the snapshot. Automatic drafts stay
+// visible for new forms, or alongside existing reviewed recommendations.
+export function displayWuwaGuide(characterId, update) {
+  const original = getWuwaGuide(characterId)
+  if (!update || String(update.id) !== String(characterId) || !Array.isArray(update.sections)) return original
+  if (!original || update.sections.length === 5 && update.sections.every(s => s.status === 'reviewed')) return update
+  return original
+}
+
 export function guideSourceUrl(url) {
   return typeof url === 'string' && /^https:\/\/www\.kurobbs\.com\/forum\/post\/\d+$/.test(url)
     ? url
