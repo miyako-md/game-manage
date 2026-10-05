@@ -1,5 +1,6 @@
 import json
 import logging
+import asyncio
 import time
 from datetime import datetime, timezone
 
@@ -173,7 +174,27 @@ class WutheringWavesAdapter(BaseGameAdapter):
     async def fetch_announcement(self) -> FetchResult:
         async def run():
             raw = await self._client.find_event_list(3)  # eventType 3=公告
-            return FetchResult(ok=True, payload=announcements.parse_announcement_list(raw))
+            items = announcements.parse_announcement_list(raw)
+            from game_assistant.sources.article_content import article_content
+            slots = asyncio.Semaphore(3)
+
+            async def enrich(item):
+                if not item.id.isdigit():
+                    return item
+                try:
+                    async with slots:
+                        detail = await self._client.get_post_detail(item.id)
+                    if detail.get('postId') is not None and str(detail['postId']) != item.id:
+                        raise ValueError('article identity mismatch')
+                    return item.model_copy(update=article_content(detail.get('postH5Content')))
+                except KuroError as error:
+                    if error.code in AUTH_EXPIRED_CODES:
+                        raise  # Keep the existing credential-renewal path.
+                except ValueError:
+                    pass
+                return item.model_copy(update={'content_status': 'error', 'content_error': '库街区正文暂时无法读取'})
+
+            return FetchResult(ok=True, payload=await asyncio.gather(*(enrich(item) for item in items)))
         return await self._guarded_run(run)
 
     async def fetch_events(self) -> FetchResult:

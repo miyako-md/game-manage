@@ -102,6 +102,8 @@ def classify_dynamic(item, uid, now):
     return {'id': id, 'source_uid': str(uid), 'source': 'bilibili', 'source_name': 'B站官方动态',
             'author': str(author.get('name') or uid), 'title': (text.splitlines() or ['未命名动态'])[0][:160],
             'body': text, 'summary': text, 'images': images, 'content_type': item.get('type'),
+            'content_status': 'video' if _video(item) else 'unavailable' if incomplete else 'full' if text or images else 'unavailable',
+            'content_error': '正文补全未成功，下方仅为已读取节选，请查看原文。' if incomplete else '',
             'published_at': published.isoformat(), 'fetched_at': now.isoformat(), 'url': f'https://t.bilibili.com/{id}',
             'decision': 'accepted' if reason == 'accepted' else 'excluded', 'reason': reason,
             'reason_text': REASONS[reason], 'time_evidence': evidence, 'rule_version': RULE_VERSION}

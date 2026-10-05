@@ -41,12 +41,15 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
     display_name = "英雄联盟"
     section = "pc"
     capabilities = [Capability.ACCOUNT, Capability.MATCH, Capability.STATS,
-                    Capability.ANNOUNCEMENT, Capability.NEWS]
+                    Capability.ANNOUNCEMENT, Capability.NEWS, Capability.ESPORTS]
 
     def __init__(self, settings: Settings):
         # 凭据来自本机 LCU 进程发现（非存储凭据），credentials_configured 恒 True
         self.credentials_configured = True
         self.history = None  # API attaches the existing local SQLite archive.
+        from .esports_service import LolEsportsService
+        self.esports = LolEsportsService(settings=settings)
+        self.esports_cached = lambda: None
         self._catalog_path = str(Path(settings.db_path).parent / 'champions.json')
 
     def _archive(self, summoner, games, started_at, *, history_observed=True):
@@ -59,6 +62,9 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
         if creds is None:
             raise _ClientNotRunningError("LOL 客户端未运行")
         return creds
+
+    async def fetch_esports(self) -> FetchResult:
+        return await self.esports.refresh(self.esports_cached())
 
     async def _guarded_run(self, run) -> FetchResult:
         """run 是零参协程工厂；统一处理客户端错误与解析兜底。"""
@@ -141,7 +147,8 @@ class LeagueOfLegendsAdapter(BaseGameAdapter):
         async def run():
             async with LoLNewsClient() as client:
                 data = await client.fetch_news(category)
-            return FetchResult(ok=True, payload=parse_news_json(data))
+                items = await client.enrich_articles(parse_news_json(data, category))
+            return FetchResult(ok=True, payload=items)
         return await self._guarded_run(run)
 
     async def fetch_announcement(self) -> FetchResult:

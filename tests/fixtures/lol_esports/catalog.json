@@ -1,0 +1,2465 @@
+{
+  "status": "0",
+  "msg": {
+    "bGameList": [
+      {
+        "GameId": "1",
+        "GameName": "全球总决赛",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170818191633/cb3438280784f9abf69d5d02b9c16d38/0"
+      },
+      {
+        "GameId": "220",
+        "GameName": "全球先锋赛",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20250227151138/150431e61af98a27b7534ffc31eff9d2/0"
+      },
+      {
+        "GameId": "182",
+        "GameName": "亚洲挑战者之星邀请赛",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220907172252/5d2ad0eaa72051c8b8d0614b66eae958/0"
+      },
+      {
+        "GameId": "180",
+        "GameName": "英雄联盟电竞经理",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220901142831/f6e3800e655418060a3a863702984faa/0"
+      },
+      {
+        "GameId": "178",
+        "GameName": "其他赛事",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20240520172302/76d5e462e3e4ea59133473111ce1c639/0"
+      },
+      {
+        "GameId": "164",
+        "GameName": "金铲铲之战双城杯",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20211217173029/cb0353c057e5c8db04102e01bbdcbdab/0"
+      },
+      {
+        "GameId": "227",
+        "GameName": "电竞世界杯",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20250701161510/2cb7a25a06840c1c134afed35e29def1/0"
+      },
+      {
+        "GameId": "5",
+        "GameName": "职业联赛",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200827173339/45104187d89c5e0dcd43503590255255/0"
+      },
+      {
+        "GameId": "51",
+        "GameName": "韩国职业联赛",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/167414e20399bab02b265d14aa60de1f/0"
+      },
+      {
+        "GameId": "55",
+        "GameName": "北美职业联赛",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/8ea564da5d125ddd63b76352b6a105da/0"
+      },
+      {
+        "GameId": "54",
+        "GameName": "欧洲职业联赛",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/d694fbefed012ec6c556401220c639a7/0"
+      },
+      {
+        "GameId": "75",
+        "GameName": "发展联赛",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170726114815/e66332b8028dab64868e0f52befc54f1/0"
+      },
+      {
+        "GameId": "6",
+        "GameName": "全明星赛",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/d64e00dff3dc34094e9cf1637f095dcd/0"
+      },
+      {
+        "GameId": "71",
+        "GameName": "洲际系列赛",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/201501/264edc947792e3808c8a5078e3302352/0"
+      },
+      {
+        "GameId": "8",
+        "GameName": "季中冠军赛",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20240501174811/d642ad5a1bb3affcfcc93230589b2367/0"
+      },
+      {
+        "GameId": "129",
+        "GameName": "LPL全明星",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20231128101946/8e8e3948c269d374eab0440c4f67cebe/0"
+      },
+      {
+        "GameId": "4",
+        "GameName": "德玛西亚杯",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20231212152342/467cc7342b62837f934d1674b30aa74e/0"
+      },
+      {
+        "GameId": "90",
+        "GameName": "年度颁奖盛典",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20171110115853/8f967ff3f00e4ca518b74ef398f80cc9/0"
+      },
+      {
+        "GameId": "9",
+        "GameName": "全国高校联赛",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/0b81b634d4d889479aaecebcb47991d7/0"
+      },
+      {
+        "GameId": "77",
+        "GameName": "周年庆狂欢盛典",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170726165244/0562cb1432198d75aa4ea222ee1d850c/0"
+      },
+      {
+        "GameId": "158",
+        "GameName": "城市英雄争霸赛",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20211011152046/2859510b763ba74c2915000854ed957a/0"
+      },
+      {
+        "GameId": "7",
+        "GameName": "甲级职业联赛",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/4389462299f1ce76e031ae24961448e8/0"
+      },
+      {
+        "GameId": "153",
+        "GameName": "英雄联盟手游赛事",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20210705171457/ca55fa78f66ca9d0c91fc81791f76d96/0"
+      },
+      {
+        "GameId": "138",
+        "GameName": "云顶之弈",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200310095849/f61d1f45c3dd4bc566f2b0d9706e20b0/0"
+      },
+      {
+        "GameId": "124",
+        "GameName": "英雄联盟云顶之弈全民争霸赛",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/20190814160058/67ae3e028b7b276f760b47e0931c6e5d/0"
+      },
+      {
+        "GameId": "18",
+        "GameName": "其他赛事",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/8132cd0262e8f257aa1522ede496ee50/0"
+      },
+      {
+        "GameId": "66",
+        "GameName": "城市冠军联赛",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/4b34903d820a7f986e7dac82887e74af/0"
+      },
+      {
+        "GameId": "45",
+        "GameName": "全球高校冠军杯",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/2011127f113a595546b2d244aad111d1/0"
+      },
+      {
+        "GameId": "39",
+        "GameName": "校际精英赛",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/aa9fac3ae08e9a5a6f7fceb77d948d02/0"
+      },
+      {
+        "GameId": "31",
+        "GameName": "储备联赛",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/0c6d227b9aef7455c6171515e6a085b9/0"
+      },
+      {
+        "GameId": "20",
+        "GameName": "城市英雄争霸赛",
+        "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/9984e694bd07bf40cc11834622b8943c/0"
+      },
+      {
+        "GameId": "68",
+        "GameName": "台港澳职业联赛",
+        "GameLogo": "//img.crawler.qq.com/lolwebvideo/201501/46bfd8450be95441f4767af506441b80/0"
+      }
+    ],
+    "sGameList": {
+      "1": [
+        {
+          "GameId": "229",
+          "GameName": "2025全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20251010153320/15028c793fcc0db031c9704573d4e4b2/0",
+          "bGameId": "1",
+          "GameYear": "2025",
+          "sDate": "2025-10-14",
+          "eDate": "2025-11-09",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "212",
+          "GameName": "2024全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20240918113456/536310dffc21a66e18a2e503678f9fd1/0",
+          "bGameId": "1",
+          "GameYear": "2024",
+          "sDate": "2024-09-25",
+          "eDate": "2024-11-02",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20240918113540/1be7f138a5af0323f96e8c15ef28d1b4/0"
+        },
+        {
+          "GameId": "201",
+          "GameName": "2023全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20231010123702/f2e8d747cac7d58781c6ec476aeca660/0",
+          "bGameId": "1",
+          "GameYear": "2023",
+          "sDate": "2023-10-10",
+          "eDate": "2023-11-19",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230921102826/36d92dc78caefa5c598b56a4ba1421cb/0"
+        },
+        {
+          "GameId": "184",
+          "GameName": "2022全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220913161251/bc2de5e05e25112eee2e38cff088bf2f/0",
+          "bGameId": "1",
+          "GameYear": "2022",
+          "sDate": "2022-09-30",
+          "eDate": "2022-11-06",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220913161338/381e1965d6568ce2bd482340c236ceba/0"
+        },
+        {
+          "GameId": "156",
+          "GameName": "2021全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20210924233026/a12e0f473c95eee5a8ac3235ab4f7d6e/0",
+          "bGameId": "1",
+          "GameYear": "2021",
+          "sDate": "2021-09-22",
+          "eDate": "2021-11-06",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20210922153121/66cb647c029e84847f26d574b66ad2ec/0"
+        },
+        {
+          "GameId": "143",
+          "GameName": "2020全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200907102339/e48e3c3559cc6e86ad99981b012d50fc/0",
+          "bGameId": "1",
+          "GameYear": "2020",
+          "sDate": "2020-09-25",
+          "eDate": "2020-10-31",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20200907102503/970bb428065e4fc800a520b540ca2845/0"
+        },
+        {
+          "GameId": "128",
+          "GameName": "2019全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20190911105146/c372b9036ffe10d8ba5895f563e5e73f/0",
+          "bGameId": "1",
+          "GameYear": "2019",
+          "sDate": "2019-10-02",
+          "eDate": "2019-11-10",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20190911102938/7924bb349d3d999c8eec6e31b7a09b45/0"
+        },
+        {
+          "GameId": "110",
+          "GameName": "2018全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180801132807/c113dcc7052777340391f4259f376917/0",
+          "bGameId": "1",
+          "GameYear": "2018",
+          "sDate": "2018-10-01",
+          "eDate": "2018-11-03",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180801133024/4f2966136732f904bd72331f62348391/0"
+        },
+        {
+          "GameId": "58",
+          "GameName": "2017全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170809110101/97feede1f040077f5019cf12d574b42c/0",
+          "bGameId": "1",
+          "GameYear": "2017",
+          "sDate": "2017-09-23",
+          "eDate": "2017-11-04",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170809110223/2baf00850f0d9c281d6cc1174adf1c8f/0"
+        },
+        {
+          "GameId": "34",
+          "GameName": "2016全球总决赛资格赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/a9aa78909d2c502b522f5352423f22f1/0",
+          "bGameId": "1",
+          "GameYear": "2016",
+          "sDate": "2016-08-27",
+          "eDate": "2016-08-28",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/823c255fd96700678fcb2b63d5396426/0"
+        },
+        {
+          "GameId": "35",
+          "GameName": "明星表演赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/f3748db61a4ae3988e1afb9d6b0a9b88/0",
+          "bGameId": "1",
+          "GameYear": "2016",
+          "sDate": "2016-08-28",
+          "eDate": "2016-08-28",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/b785308ec65ed4938cd41518ce523ae9/0"
+        },
+        {
+          "GameId": "38",
+          "GameName": "2016全球总决赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/6a5f47128efc3529be8d098391ea47db/0",
+          "bGameId": "1",
+          "GameYear": "2016",
+          "sDate": "2016-09-29",
+          "eDate": "2016-10-30",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/492c1e69bfefcc963c9f54f3b90d44b6/0"
+        },
+        {
+          "GameId": "2",
+          "GameName": "小组赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/68338baef27b7bbff01437931a143c76/0",
+          "bGameId": "1",
+          "GameYear": "2015",
+          "sDate": "2015-10-01",
+          "eDate": "2015-10-31",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/92f86c36739690a8ebf4e1f7957f55f1/0"
+        },
+        {
+          "GameId": "3",
+          "GameName": "淘汰赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/755c99030a5a35466bdac63a8eea87bb/0",
+          "bGameId": "1",
+          "GameYear": "2015",
+          "sDate": "2015-10-16",
+          "eDate": "2015-10-31",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/08a59c5a956d08f49319273363c72860/0"
+        }
+      ],
+      "4": [
+        {
+          "GameId": "245",
+          "GameName": "2026德玛西亚杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20260929223546/a50da0a6bdafc7bbbb022ec70cfc99b4/0",
+          "bGameId": "4",
+          "GameYear": "2026",
+          "sDate": "2026-10-03",
+          "eDate": "2026-10-17",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "236",
+          "GameName": "2025德玛西亚杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20251209153756/f19d02fc763af96c52071818e65ad5ef/0",
+          "bGameId": "4",
+          "GameYear": "2025",
+          "sDate": "2025-12-15",
+          "eDate": "2026-01-03",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "216",
+          "GameName": "2024德玛西亚杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20241204145639/45621dfa3e720f26384a33cd566c162f/0",
+          "bGameId": "4",
+          "GameYear": "2024",
+          "sDate": "2024-12-16",
+          "eDate": "2024-12-29",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20241204145643/fbfdc1f20f73118d9d8517f901979aa3/0"
+        },
+        {
+          "GameId": "204",
+          "GameName": "2023德玛西亚杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20231212154144/dd6cd27d4dd1d3ff94c7750f79f4d20a/0",
+          "bGameId": "4",
+          "GameYear": "2023",
+          "sDate": "2023-12-30",
+          "eDate": "2023-12-30",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20231213170621/a635b4823c24bf94828975c5c5102e41/0"
+        },
+        {
+          "GameId": "189",
+          "GameName": "2022德玛西亚杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20221128161537/3e8cc86bcf2bdf63a8099953727ad163/0",
+          "bGameId": "4",
+          "GameYear": "2022",
+          "sDate": "2022-12-10",
+          "eDate": "2022-12-24",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20221128161543/196e1db9e69ae927cec2a49494032283/0"
+        },
+        {
+          "GameId": "163",
+          "GameName": "2021德玛西亚杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20211218174541/6ac221a352a1a3e46b43f07b5c0b90dc/0",
+          "bGameId": "4",
+          "GameYear": "2021",
+          "sDate": "2021-12-17",
+          "eDate": "2021-12-27",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20211202141633/9725529657592415ebda4d5fa5747d43/0"
+        },
+        {
+          "GameId": "145",
+          "GameName": "2020德玛西亚杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20201124102029/e9d13f4828f716fe673a902b820d29bb/0",
+          "bGameId": "4",
+          "GameYear": "2020",
+          "sDate": "2020-12-21",
+          "eDate": "2020-11-27",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20201124102408/dcac7411d3dc6d0c06253847bed257a8/0"
+        },
+        {
+          "GameId": "132",
+          "GameName": "2019德玛西亚杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20191129161249/eef6dfeb181815fad78423141d8a4a5b/0",
+          "bGameId": "4",
+          "GameYear": "2019",
+          "sDate": "2019-12-21",
+          "eDate": "2019-12-29",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20191129161257/84f01f24fe58495ac26df2e5a73b686d/0"
+        },
+        {
+          "GameId": "93",
+          "GameName": "2017德玛西亚杯青岛站",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20171204193104/a46fa5a33494dcbab7fbf53e5455ffe4/0",
+          "bGameId": "4",
+          "GameYear": "2018",
+          "sDate": "2017-12-26",
+          "eDate": "2018-01-07",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20171204193243/28b5e5baf742584086bd9fedcbd7967e/0"
+        },
+        {
+          "GameId": "105",
+          "GameName": "2018德玛西亚杯珠海站",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180503122831/72cabea54a3e33341ff34fdd38676f43/0",
+          "bGameId": "4",
+          "GameYear": "2018",
+          "sDate": "2018-05-31",
+          "eDate": "2018-06-03",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180514120123/e3012d091150234c60e91fa224b7fec9/0"
+        },
+        {
+          "GameId": "113",
+          "GameName": "2018德玛西亚杯西安站",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20181120201059/a0b8438640e3c6b894e21788030a1286/0",
+          "bGameId": "4",
+          "GameYear": "2018",
+          "sDate": "2018-12-20",
+          "eDate": "2018-12-23",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20181120201219/0d41d23e5222f4f9949fbae15570c6cd/0"
+        },
+        {
+          "GameId": "70",
+          "GameName": "2017德玛西亚杯长沙站",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/201501/d792b01716e65d8e3b8bdaa4da102978/0",
+          "bGameId": "4",
+          "GameYear": "2017",
+          "sDate": "2017-05-23",
+          "eDate": "2017-06-04",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/201501/f86fc45f569bc2c4b1542895a7173462/0"
+        },
+        {
+          "GameId": "30",
+          "GameName": "2016德玛西亚杯",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/680302a2b0739064a7a5fa9769cbc18a/0",
+          "bGameId": "4",
+          "GameYear": "2016",
+          "sDate": "2016-06-29",
+          "eDate": "2016-11-13",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/5b6f3dbe3abce3f7614aa4d4088b2ac6/0"
+        },
+        {
+          "GameId": "14",
+          "GameName": "德玛西亚杯北京站淘汰赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/9c868adee7c9a5971b3e88d4c29a02eb/0",
+          "bGameId": "4",
+          "GameYear": "2015",
+          "sDate": "2015-07-10",
+          "eDate": "2015-07-12",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/7e84374aee4c10c12fec1be7f0328fe0/0"
+        }
+      ],
+      "5": [
+        {
+          "GameId": "237",
+          "GameName": "2026职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20251231110925/01f3101bca5118447a7986271ccb7c83/0",
+          "bGameId": "5",
+          "GameYear": "2026",
+          "sDate": "2026-01-01",
+          "eDate": "2026-06-01",
+          "GameStatus": "1",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "218",
+          "GameName": "2025职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20241230103423/4bb45a6bd7d6302a5545da70a915600a/0",
+          "bGameId": "5",
+          "GameYear": "2025",
+          "sDate": "2025-01-16",
+          "eDate": "2025-09-30",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20250109161728/9a2bb7776bb92f8cc6ac3b247151e3f7/0"
+        },
+        {
+          "GameId": "206",
+          "GameName": "2024职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20240112102424/20fa70b1695509542995d28de7675b0d/0",
+          "bGameId": "5",
+          "GameYear": "2024",
+          "sDate": "2024-01-22",
+          "eDate": "2024-09-30",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20240112102435/81044487585bf375777c433b98094817/0"
+        },
+        {
+          "GameId": "190",
+          "GameName": "2023职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230106100537/868f720935a4c93bb785b559355d397d/0",
+          "bGameId": "5",
+          "GameYear": "2023",
+          "sDate": "2023-01-14",
+          "eDate": "2023-03-26",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230106100542/86356cd8f6dbab72171ca240915b808b/0"
+        },
+        {
+          "GameId": "167",
+          "GameName": "2022职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20211230174258/df51ee7347eeaa18b42b447e950bc380/0",
+          "bGameId": "5",
+          "GameYear": "2022",
+          "sDate": "2022-01-10",
+          "eDate": "2022-04-20",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20211230174419/3506f969b0de3a4572f5be9bc5b75f7e/0"
+        },
+        {
+          "GameId": "148",
+          "GameName": "2021职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20201231142806/e327a5cb6ed3a6e202b74c5ddeb5cb88/0",
+          "bGameId": "5",
+          "GameYear": "2021",
+          "sDate": "2021-01-09",
+          "eDate": "2021-09-30",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20201231143020/f97b913438be89f0659200e5e6521cad/0"
+        },
+        {
+          "GameId": "134",
+          "GameName": "2020职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200601170252/2c32eeabaeba3f9aae5d498717a1469e/0",
+          "bGameId": "5",
+          "GameYear": "2020",
+          "sDate": "2020-01-13",
+          "eDate": "2020-08-30",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20200601170259/030880a2c9a8ae9989767dfd2f0719cd/0"
+        },
+        {
+          "GameId": "115",
+          "GameName": "2019职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20181225160520/663ca9a3d0f1db09f1dc53e9858c0216/0",
+          "bGameId": "5",
+          "GameYear": "2019",
+          "sDate": "2019-06-01",
+          "eDate": "2019-09-06",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20181225160748/e65492433fe2da0244986c91e94714fb/0"
+        },
+        {
+          "GameId": "95",
+          "GameName": "2018职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/2017122299/fe8680633aac7b774acd5b341d441c29/0",
+          "bGameId": "5",
+          "GameYear": "2018",
+          "sDate": "2018-06-11",
+          "eDate": "2018-09-14",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/2017122299/456c16d833f5ac3da243fe2ad574ae17/0"
+        },
+        {
+          "GameId": "49",
+          "GameName": "2017职业联赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/55bf96b10af859d33b06910414e68e5f/0",
+          "bGameId": "5",
+          "GameYear": "2017",
+          "sDate": "2017-06-08",
+          "eDate": "2017-09-03",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170604145809/ea518ed08bd5074a4eb9244d8779d005/0"
+        },
+        {
+          "GameId": "16",
+          "GameName": "2016职业联赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/c3814421581bf9a7a1de9d23b18906c3/0",
+          "bGameId": "5",
+          "GameYear": "2016",
+          "sDate": "2016-05-26",
+          "eDate": "2016-08-07",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/752a5a47e392b1e0553a0574c8e950d4/0"
+        },
+        {
+          "GameId": "15",
+          "GameName": "2015职业联赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/aafeb601d7cd7ab77033f65d3bba5dc4/0",
+          "bGameId": "5",
+          "GameYear": "2015",
+          "sDate": "2015-01-15",
+          "eDate": "2015-08-23",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/e3ff21845c690c0d9ec85d175f0ec029/0"
+        }
+      ],
+      "6": [
+        {
+          "GameId": "147",
+          "GameName": "2020全明星赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20201214132333/63d9d91ded7bda91031d479b31623eaf/0",
+          "bGameId": "6",
+          "GameYear": "2020",
+          "sDate": "2020-12-18",
+          "eDate": "2020-12-21",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20201214124552/19a2f38d089a0257283380117cec19c6/0"
+        },
+        {
+          "GameId": "131",
+          "GameName": "2019全明星赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20191206102428/87f75964d9742f0b5911c2f3efee420a/0",
+          "bGameId": "6",
+          "GameYear": "2019",
+          "sDate": "2019-12-06",
+          "eDate": "2019-12-08",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20191206102441/0352e40bf3e8ba52fef49cd89128d33d/0"
+        },
+        {
+          "GameId": "112",
+          "GameName": "2018全明星赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20181008153331/03ef54fefa0113fa5689886d03286584/0",
+          "bGameId": "6",
+          "GameYear": "2018",
+          "sDate": "2018-12-06",
+          "eDate": "2018-12-08",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20181008153338/6e80553b03d3d5e4b4f0c7d1b05dd4fd/0"
+        },
+        {
+          "GameId": "86",
+          "GameName": "2017全明星赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20171026155555/664debf352a8f645d124b90f5bfaf8a3/0",
+          "bGameId": "6",
+          "GameYear": "2017",
+          "sDate": "2017-12-08",
+          "eDate": "2017-12-11",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20171026155614/77755bbe651a9d176fa7d1dafe583ba2/0"
+        },
+        {
+          "GameId": "47",
+          "GameName": "2016全明星赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/98e0a7de18e473b154f76633b7c3cf81/0",
+          "bGameId": "6",
+          "GameYear": "2016",
+          "sDate": "2016-12-08",
+          "eDate": "2016-12-11",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/33d01c883adbc794dc8ef9a3d8e8076f/0"
+        },
+        {
+          "GameId": "12",
+          "GameName": "全明星赛表演赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/871c375d2cf2a3b15ca5dad7d65f20e7/0",
+          "bGameId": "6",
+          "GameYear": "2014",
+          "sDate": "2014-05-08",
+          "eDate": "2014-05-11",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/2e0da66682ce60a7969cc826e95083d9/0"
+        },
+        {
+          "GameId": "13",
+          "GameName": "全明星赛正赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/ab21bd555dc7d636f8b624343a898b31/0",
+          "bGameId": "6",
+          "GameYear": "2014",
+          "sDate": "2014-05-08",
+          "eDate": "2014-05-11",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/e6591b54d05f19399c462c5046759918/0"
+        }
+      ],
+      "7": [
+        {
+          "GameId": "50",
+          "GameName": "2017甲级职业联赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/759fd18c7db0111ce18646aa1696bd13/0",
+          "bGameId": "7",
+          "GameYear": "2017",
+          "sDate": "2017-06-06",
+          "eDate": "2017-08-24",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/16a9ffa727c91efdcdd0518f89193a1b/0"
+        },
+        {
+          "GameId": "17",
+          "GameName": "2016甲级职业联赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/f76d6d94beb0e6fa0a6ea73bf91cbb76/0",
+          "bGameId": "7",
+          "GameYear": "2016",
+          "sDate": "2016-05-23",
+          "eDate": "2016-08-03",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/6feaf9e5bbe288353367bd2ac6588ed7/0"
+        }
+      ],
+      "8": [
+        {
+          "GameId": "239",
+          "GameName": "2026季中冠军赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20260615102157/045b5d6a878b5160af344d63579af625/0",
+          "bGameId": "8",
+          "GameYear": "2026",
+          "sDate": "2026-06-28",
+          "eDate": "2026-07-12",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "226",
+          "GameName": "2025季中冠军赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20250618104504/d90a9051f914761eb8e53b45cbb871d1/0",
+          "bGameId": "8",
+          "GameYear": "2025",
+          "sDate": "2025-06-28",
+          "eDate": "2025-07-13",
+          "GameStatus": "2",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "208",
+          "GameName": "2024季中冠军赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20240419111259/0ccb72380c92eaaa9dbb2bbb438ed444/0",
+          "bGameId": "8",
+          "GameYear": "2024",
+          "sDate": "2024-05-01",
+          "eDate": "2024-05-19",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20240419111424/ed0d5ab5ea51fde529c2da510ff3e4d5/0"
+        },
+        {
+          "GameId": "194",
+          "GameName": "2023季中冠军赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230517155144/48807b5456ab5de0c81d442877eea467/0",
+          "bGameId": "8",
+          "GameYear": "2023",
+          "sDate": "2023-05-02",
+          "eDate": "2023-05-21",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230417162459/3f70259b87a8a4bb85293044694cb4f1/0"
+        },
+        {
+          "GameId": "175",
+          "GameName": "2022季中冠军赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220427113204/beb1cc3d256d6906e829505c95a3a2a5/0",
+          "bGameId": "8",
+          "GameYear": "2022",
+          "sDate": "2022-05-10",
+          "eDate": "2022-05-29",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220427113208/0a385ea981f0285ed723c96906143c70/0"
+        },
+        {
+          "GameId": "152",
+          "GameName": "2021季中冠军赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20210425163505/2541d2c0e30b2e1c9d5816fbb3f2386e/0",
+          "bGameId": "8",
+          "GameYear": "2021",
+          "sDate": "2021-05-06",
+          "eDate": "2021-05-22",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20210425163513/ea6414916f56f47c91a65532eb2d41f2/0"
+        },
+        {
+          "GameId": "120",
+          "GameName": "2019季中冠军赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20190422143528/0024ef8b8da63c3e65f0408bab34fecc/0",
+          "bGameId": "8",
+          "GameYear": "2019",
+          "sDate": "2019-05-01",
+          "eDate": "2019-05-19",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20190422143606/f7f53222476ce6fe8f511a56d82df047/0"
+        },
+        {
+          "GameId": "100",
+          "GameName": "2018季中冠军赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180227205343/e7ab60b13288110f22d062d13a4dd824/0",
+          "bGameId": "8",
+          "GameYear": "2018",
+          "sDate": "2018-05-03",
+          "eDate": "2018-05-20",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180227205345/83133b9a251369f2151d69bb7da5b726/0"
+        },
+        {
+          "GameId": "59",
+          "GameName": "2017季中冠军赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/201501/a092bafa5a42b2943a19422ef52ce9d3/0",
+          "bGameId": "8",
+          "GameYear": "2017",
+          "sDate": "2017-04-28",
+          "eDate": "2017-05-21",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/201501/b151823cade06da2fdcb58172c80d526/0"
+        },
+        {
+          "GameId": "26",
+          "GameName": "2016季中冠军赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/fd436649b145db3c6818585c49755f59/0",
+          "bGameId": "8",
+          "GameYear": "2016",
+          "sDate": "2016-05-04",
+          "eDate": "2016-05-15",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/351235d17dce71a07ae75ba39ea3f82b/0"
+        },
+        {
+          "GameId": "10",
+          "GameName": "季中邀请赛小组赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/abf623ac5e6cbd46733a610ac308c293/0",
+          "bGameId": "8",
+          "GameYear": "2015",
+          "sDate": "2015-05-08",
+          "eDate": "2015-05-11",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/5cf15bd7f5051fe0956a2ba1db009d8b/0"
+        },
+        {
+          "GameId": "11",
+          "GameName": "季中邀请赛淘汰赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/8458c70fe6d7b4d18332f2be9e43804d/0",
+          "bGameId": "8",
+          "GameYear": "2015",
+          "sDate": "2015-05-08",
+          "eDate": "2015-05-11",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/0e4a67d148cc8cf526462db4a1c9b649/0"
+        }
+      ],
+      "9": [
+        {
+          "GameId": "210",
+          "GameName": "第十二届英雄联盟高校联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20240512135804/daba21cfa88868bd665f9b7d7f0c29fb/0",
+          "bGameId": "9",
+          "GameYear": "2024",
+          "sDate": "2024-05-17",
+          "eDate": "2024-05-17",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20240512140510/101dbb7fbb65ec1e3ac6d89562a8b116/0"
+        },
+        {
+          "GameId": "193",
+          "GameName": "第十一届英雄联盟高校联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230331152101/5aa2dfa0072ec220fac95504c8a6e527/0",
+          "bGameId": "9",
+          "GameYear": "2023",
+          "sDate": "2023-04-02",
+          "eDate": "2023-04-22",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230331152458/4369e01cf0afda2955824b3facd1da55/0"
+        },
+        {
+          "GameId": "177",
+          "GameName": "第十届全国高校联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220513182554/9b10a56f40e15b95b5aaacf52fb06012/0",
+          "bGameId": "9",
+          "GameYear": "2022",
+          "sDate": "2022-05-21",
+          "eDate": "2022-05-22",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220513182815/db0cafe030126548bdaf9be7c70bf274/0"
+        },
+        {
+          "GameId": "111",
+          "GameName": "第七届全国高校联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180926182907/8158abaaae5f26fbcdac75c69c177153/0",
+          "bGameId": "9",
+          "GameYear": "2019",
+          "sDate": "2018-09-25",
+          "eDate": "2019-06-30",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180926183009/76ffa31662701a6bc9e3ef4557dbeb97/0"
+        },
+        {
+          "GameId": "80",
+          "GameName": "第六届全国高校联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170908183419/485c1680dc87df0f72b7e348e9577b1f/0",
+          "bGameId": "9",
+          "GameYear": "2018",
+          "sDate": "2017-09-16",
+          "eDate": "2018-06-30",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170908184036/38ace88ee9bcc9caaa6c5e27729dd747/0"
+        },
+        {
+          "GameId": "22",
+          "GameName": "2016高校区域赛长沙赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/45963080afa0c2f32800c0d06d54b26c/0",
+          "bGameId": "9",
+          "GameYear": "2016",
+          "sDate": "2016-03-27",
+          "eDate": "2016-05-08",
+          "GameStatus": "0",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/4d2c7292301dae43895f88f6843eae1f/0"
+        },
+        {
+          "GameId": "23",
+          "GameName": "2016高校区域赛成都赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/2b868d3b442528b0937d9b218de746e9/0",
+          "bGameId": "9",
+          "GameYear": "2016",
+          "sDate": "2016-03-31",
+          "eDate": "2016-05-01",
+          "GameStatus": "0",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/5388951dbfb955ba9e45817fc3f177a8/0"
+        },
+        {
+          "GameId": "24",
+          "GameName": "2016高校联赛上海A赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/d96fdb1922c813de7a959074c9c072f9/0",
+          "bGameId": "9",
+          "GameYear": "2016",
+          "sDate": "2016-03-31",
+          "eDate": "2016-05-01",
+          "GameStatus": "0",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/81009989fdf84f3fe2febad10b4c4307/0"
+        },
+        {
+          "GameId": "25",
+          "GameName": "2016高校联赛上海B赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/9e68f00bb825c762937f4f2211e26120/0",
+          "bGameId": "9",
+          "GameYear": "2016",
+          "sDate": "2016-03-31",
+          "eDate": "2016-05-01",
+          "GameStatus": "0",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/a4e8834eb53e4a4c66c2310b9d293edf/0"
+        },
+        {
+          "GameId": "27",
+          "GameName": "第四届英雄联盟全国高校联赛总决赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/ca2f42abc68826223dc684d4c4d71326/0",
+          "bGameId": "9",
+          "GameYear": "2016",
+          "sDate": "2016-05-20",
+          "eDate": "2016-05-22",
+          "GameStatus": "0",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/2959725534192eebd6350e936d208576/0"
+        },
+        {
+          "GameId": "37",
+          "GameName": "第五届全国高校联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/201501/6dd89bae869f2f3d3768217977f5ccce/0",
+          "bGameId": "9",
+          "GameYear": "2016",
+          "sDate": "2016-09-24",
+          "eDate": "2017-05-28",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/201501/6e95a1d7acf8917a9d10046926dbfeef/0"
+        }
+      ],
+      "18": [
+        {
+          "GameId": "223",
+          "GameName": "大乱斗全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20250401085256/eb7aeeb72c7f8849c0ce7f69b88267c5/0",
+          "bGameId": "18",
+          "GameYear": "2025",
+          "sDate": "2025-04-01",
+          "eDate": "2025-04-01",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "230",
+          "GameName": "英雄联盟亚洲邀请赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20250930104631/4dad636f87293cb452ccb227f4d9930a/0",
+          "bGameId": "18",
+          "GameYear": "2025",
+          "sDate": "2025-10-06",
+          "eDate": "2025-10-12",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "233",
+          "GameName": "2025解说主持杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20251103130035/0a663f40c5919ff9409c071e33ffe007/0",
+          "bGameId": "18",
+          "GameYear": "2025",
+          "sDate": "2025-11-11",
+          "eDate": "2025-11-23",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "211",
+          "GameName": "2024解说主持杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20240830140106/84fce7bc1386ad52c75d03c591445cf0/0",
+          "bGameId": "18",
+          "GameYear": "2024",
+          "sDate": "2024-09-06",
+          "eDate": "2024-09-30",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20240830140602/ce7146256052792991ad466aa09ad737/0"
+        },
+        {
+          "GameId": "191",
+          "GameName": "2023季前启航赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230106120022/77c6542c51ad15e7e463990d85cb6264/0",
+          "bGameId": "18",
+          "GameYear": "2023",
+          "sDate": "2023-01-11",
+          "eDate": "2023-01-12",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230106120108/33cfaa85ad8d5355709418ca969f22c0/0"
+        },
+        {
+          "GameId": "197",
+          "GameName": "2023解说主持杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230821160046/56aba86541f59a69727fcad459ba844b/0",
+          "bGameId": "18",
+          "GameYear": "2023",
+          "sDate": "2023-08-26",
+          "eDate": "2023-09-16",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230830153848/5c08b29ae780d9089a830c805c1c56ba/0"
+        },
+        {
+          "GameId": "199",
+          "GameName": "杭州亚运会电子竞技项目",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230912171548/e4a24bcd892d1bcfb8a3561dfc97209b/0",
+          "bGameId": "18",
+          "GameYear": "2023",
+          "sDate": "2023-09-01",
+          "eDate": "2023-09-30",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230912171207/28b7ad51a8f2aa04401df40030089430/0"
+        },
+        {
+          "GameId": "202",
+          "GameName": "2023全球总决赛资格赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230922143518/0ab39b876c3dce9d354778aec9327828/0",
+          "bGameId": "18",
+          "GameYear": "2023",
+          "sDate": "2023-10-09",
+          "eDate": "2023-10-09",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230922143531/e5c56ff2a07e64ab73b985fe7ed52805/0"
+        },
+        {
+          "GameId": "187",
+          "GameName": "2022解说主持杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20221101104007/3e259f3e6a79ac3719f4b52b2ac00ba8/0",
+          "bGameId": "18",
+          "GameYear": "2022",
+          "sDate": "2022-11-12",
+          "eDate": "2022-11-20",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20221101104137/c1803d71ee09f8a8db716f1e81d67bfc/0"
+        },
+        {
+          "GameId": "160",
+          "GameName": "2021英雄联盟解说主持杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20211124172554/05e60a3126c62223b3bb36d72cc8c52f/0",
+          "bGameId": "18",
+          "GameYear": "2021",
+          "sDate": "2021-11-26",
+          "eDate": "2021-11-26",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20211124172617/7b396eb2ba8c6753a6827199facab973/0"
+        },
+        {
+          "GameId": "136",
+          "GameName": "LPL百大经典战役",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200202152045/11d48a1a83783e1257a2407d6be11fe8/0",
+          "bGameId": "18",
+          "GameYear": "2020",
+          "sDate": "2020-02-05",
+          "eDate": "2020-02-29",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20200202152131/069f7365ecea53c9183c7c4c72b7535d/0"
+        },
+        {
+          "GameId": "137",
+          "GameName": "LPL公开训练赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200216140141/9482c84913d460d71c219617a1b76f2d/0",
+          "bGameId": "18",
+          "GameYear": "2020",
+          "sDate": "2020-02-26",
+          "eDate": "2020-02-29",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20200216140154/e53f9ca060d976479949ac5056de9d5f/0"
+        },
+        {
+          "GameId": "140",
+          "GameName": "2020季中杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200520170129/b96ca65dae9e67291510914c1ed57d8b/0",
+          "bGameId": "18",
+          "GameYear": "2020",
+          "sDate": "2020-05-28",
+          "eDate": "2020-05-31",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20200520170138/de4810f6b2b028102e9b094c45495af1/0"
+        },
+        {
+          "GameId": "146",
+          "GameName": "2020主播对抗赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20201127215312/935b7ebe3e4b13ab51c738c61a79bca1/0",
+          "bGameId": "18",
+          "GameYear": "2020",
+          "sDate": "2020-12-03",
+          "eDate": "2020-12-06",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20201127215319/c23ab61730db469dcfc496a3fc57e9a5/0"
+        },
+        {
+          "GameId": "116",
+          "GameName": "英雄联盟电竞真人秀",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20181226182705/17d27bda89876a144f47603e7558ae10/0",
+          "bGameId": "18",
+          "GameYear": "2019",
+          "sDate": "2018-12-27",
+          "eDate": "2019-01-30",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20181226182748/5caeb473c40b5f7a9b46cf8c8550fe3f/0"
+        },
+        {
+          "GameId": "119",
+          "GameName": "明星公益赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20190322151252/0ff326593b06e3609dad572b53015055/0",
+          "bGameId": "18",
+          "GameYear": "2019",
+          "sDate": "2019-03-22",
+          "eDate": "2019-03-22",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20190322151312/6a04e23c5b815603e1f92ade685755fb/0"
+        },
+        {
+          "GameId": "121",
+          "GameName": "iG战队冠军皮肤首秀",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20190426181922/16c6c49b7d3c8c3df138ba5103607424/0",
+          "bGameId": "18",
+          "GameYear": "2019",
+          "sDate": "2019-04-27",
+          "eDate": "2019-04-27",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20190426182000/d4d694482405d9118db694ae0453ae48/0"
+        },
+        {
+          "GameId": "133",
+          "GameName": "进击！季前赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20191204101733/0f9cbc09c2c44dd90bca91b68d1c36ec/0",
+          "bGameId": "18",
+          "GameYear": "2019",
+          "sDate": "2019-12-06",
+          "eDate": "2019-12-06",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20191204101743/c5ac321a00bca48be51cdcb8247544d5/0"
+        },
+        {
+          "GameId": "99",
+          "GameName": "2018英雄联盟拜年秀",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180207194342/2d08363b9f38779d57df251327662038/0",
+          "bGameId": "18",
+          "GameYear": "2018",
+          "sDate": "2018-02-11",
+          "eDate": "2018-02-11",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180207194502/c09f08dca95ad8a5c25efb03828317d4/0"
+        },
+        {
+          "GameId": "102",
+          "GameName": "城邦对抗表演赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180413162806/d7c11fec1a5896fb259abbe0e811adf0/0",
+          "bGameId": "18",
+          "GameYear": "2018",
+          "sDate": "2018-04-13",
+          "eDate": "2018-04-13",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180413163508/06d4be0b21962e6627ecab2a5dd9f180/0"
+        },
+        {
+          "GameId": "103",
+          "GameName": "明星召唤师L-LIVE首秀",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180417144104/6e5bcd1d585dad2869143f6b8f4b87dd/0",
+          "bGameId": "18",
+          "GameYear": "2018",
+          "sDate": "2018-04-22",
+          "eDate": "2018-04-22",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180417144141/494616d054bc0c8fd028efc45fc6377a/0"
+        },
+        {
+          "GameId": "106",
+          "GameName": "神王对决主播对抗赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180713200752/3adeafb7d274280095a6facf69f6b0c1/0",
+          "bGameId": "18",
+          "GameYear": "2018",
+          "sDate": "2018-07-15",
+          "eDate": "2018-07-15",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180713200829/0289c368b3d1f9602328e4a48da888f5/0"
+        },
+        {
+          "GameId": "114",
+          "GameName": "进击！季前赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20181206113105/71aaeb9bdc35aef47a7a13f91ead6620/0",
+          "bGameId": "18",
+          "GameYear": "2018",
+          "sDate": "2018-12-08",
+          "eDate": "2018-12-08",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20181206113129/2abd68ad62790e550a6eb87a3501b6c5/0"
+        },
+        {
+          "GameId": "79",
+          "GameName": "玩很6终极火拼",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170908163120/d18f47b918e2bfe58128b32b9e00c77b/0",
+          "bGameId": "18",
+          "GameYear": "2017",
+          "sDate": "2017-09-09",
+          "eDate": "2017-09-09",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170908163122/4437fbc1b85258926999d7b2276857b6/0"
+        },
+        {
+          "GameId": "85",
+          "GameName": "S7全民线下观赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170926115139/a37d561e74eb62d5c91bc71b81ebb769/0",
+          "bGameId": "18",
+          "GameYear": "2017",
+          "sDate": "2017-10-05",
+          "eDate": "2017-11-04",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170926115220/2707c77303a22be5ac91d173f602afa7/0"
+        },
+        {
+          "GameId": "92",
+          "GameName": "进击！季前赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20171113181103/ca6bc90045576ea4e08ed8ec4b3c4883/0",
+          "bGameId": "18",
+          "GameYear": "2017",
+          "sDate": "2017-11-15",
+          "eDate": "2017-11-15",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20171113181215/7278fffaa11e3b5bee20bdb28dc8eac6/0"
+        },
+        {
+          "GameId": "94",
+          "GameName": "2017TGC英雄联盟表演赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20171127175552/5a12f4ca0b6b7b076b8f44dbb82fdb9a/0",
+          "bGameId": "18",
+          "GameYear": "2017",
+          "sDate": "2017-12-01",
+          "eDate": "2017-11-02",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20171127175644/51d0765f9f7f2a2f14b1b63740f42a4e/0"
+        },
+        {
+          "GameId": "19",
+          "GameName": "其他赛事",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/0de310fc05d3688bf365b6629434bc5d/0",
+          "bGameId": "18",
+          "GameYear": "2016",
+          "sDate": "2015-03-01",
+          "eDate": "2015-03-16",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/1d602e458b7d8c7ad82b5a471ed9e0e1/0"
+        },
+        {
+          "GameId": "36",
+          "GameName": "明星表演赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/0b47668cfe6e5824eb9d8a832ddfcc19/0",
+          "bGameId": "18",
+          "GameYear": "2016",
+          "sDate": "2016-08-28",
+          "eDate": "2016-08-28",
+          "GameStatus": "0",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/94990d128f976a176f7e9c6512a2f2e4/0"
+        },
+        {
+          "GameId": "48",
+          "GameName": "进击！季前赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/7c3a1cca212cb21b30af45f07f9dc456/0",
+          "bGameId": "18",
+          "GameYear": "2016",
+          "sDate": "2016-11-23",
+          "eDate": "2016-11-21",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/5a3c40c6a17b304ebe2c43dd0af09021/0"
+        },
+        {
+          "GameId": "53",
+          "GameName": "英雄联盟拜年秀",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/5e41abfee4b5844010e13c3cf26967a6/0",
+          "bGameId": "18",
+          "GameYear": "2016",
+          "sDate": "2017-01-23",
+          "eDate": "2017-01-23",
+          "GameStatus": "0",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/f9b716be14c0012051da539df389ef9e/0"
+        },
+        {
+          "GameId": "73",
+          "GameName": "对决！巅峰",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170623144626/e22a0fcfcc5a8c34f97f79e5d37d478c/0",
+          "bGameId": "18",
+          "GameYear": "2005",
+          "sDate": "2017-06-28",
+          "eDate": "2017-06-28",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170623144659/c0f2039a99fc746d1e9a76e17a752ea9/0"
+        },
+        {
+          "GameId": "162",
+          "GameName": "青训表演赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20211201120149/1080e839f59a1fe97780d961602949e7/0",
+          "bGameId": "18",
+          "GameYear": "2005",
+          "sDate": "2021-12-03",
+          "eDate": "2021-12-03",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20211201120311/0693ba6ba8f18e895cb9d138ba3d0f57/0"
+        },
+        {
+          "GameId": "200",
+          "GameName": "测试专用",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230915155718/e65c646dd1fbd48f805491e9a64bcd58/0",
+          "bGameId": "18",
+          "GameYear": "2005",
+          "sDate": "2023-06-01",
+          "eDate": "2023-06-01",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230915155754/954c3ac7d1828caeb1018f24c4ac4b90/0"
+        }
+      ],
+      "20": [
+        {
+          "GameId": "60",
+          "GameName": "2017第12届城市英雄争霸赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/5b0a920bad6d51c7f2c7342596cb8c1d/0",
+          "bGameId": "20",
+          "GameYear": "2017",
+          "sDate": "2017-02-21",
+          "eDate": "2017-04-17",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/39558d27f263b3d352a98e117051a37b/0"
+        },
+        {
+          "GameId": "21",
+          "GameName": "2016第10届城市英雄争霸赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/5239467ccb39054952ce2e2ef879cf83/0",
+          "bGameId": "20",
+          "GameYear": "2016",
+          "sDate": "2016-03-05",
+          "eDate": "2016-04-24",
+          "GameStatus": "0",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/debb8f70aa80ed3bb2a1af9230d9407d/0"
+        },
+        {
+          "GameId": "33",
+          "GameName": "2016第11届城市英雄争霸赛",
+          "GameLogo": "",
+          "bGameId": "20",
+          "GameYear": "2016",
+          "sDate": "2016-07-30",
+          "eDate": "2016-11-20",
+          "GameStatus": "0",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/470b5217e5fb3b1f22865e0bb4873acf/0"
+        }
+      ],
+      "31": [
+        {
+          "GameId": "32",
+          "GameName": "2016储备联赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/0545c5f691f67b10fec68d740aed6e3f/0",
+          "bGameId": "31",
+          "GameYear": "2016",
+          "sDate": "2016-01-19",
+          "eDate": "2016-07-27",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/feb1a8b139bef4c10b8d98fba8cc4b28/0"
+        }
+      ],
+      "39": [
+        {
+          "GameId": "61",
+          "GameName": "16-17校际精英赛北京赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/6f223a3f6458d347acac7b20c790ae71/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2016-09-01",
+          "eDate": "2017-05-03",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/3d7ee532cbedacf5ce75921e34fc8219/0"
+        },
+        {
+          "GameId": "62",
+          "GameName": "16-17校际精英赛长沙赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/0090b4ecc4b4ac3808efc3ddf7e7a230/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2016-09-01",
+          "eDate": "2017-05-03",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/28b8638312713aa0e671c1c6d3dc951a/0"
+        },
+        {
+          "GameId": "63",
+          "GameName": "16-17校际精英赛武汉赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/5a36b02a960ad580d45906cd2dc8bf3a/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2016-09-01",
+          "eDate": "2017-05-03",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/6604da06a72bcad2d5f05131cb819257/0"
+        },
+        {
+          "GameId": "64",
+          "GameName": "16-17校际精英赛广州赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/faf64e54e455963a7d341c072af257c3/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2016-09-01",
+          "eDate": "2017-05-03",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/a201d4612243b6f0a474b300f088e8f3/0"
+        },
+        {
+          "GameId": "65",
+          "GameName": "16-17校际精英赛上海赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/bd30bc82423a10a5c557bed023d18fb1/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2016-09-01",
+          "eDate": "2017-05-03",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/b3ca5a3ccc48a27da08aa928bac978ec/0"
+        },
+        {
+          "GameId": "81",
+          "GameName": "第四届校际精英赛西安赛区",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170920102256/23bcff4e41c54d7d3fe81c56490e83d0/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2017-10-01",
+          "eDate": "2017-12-10",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170920103736/4e8955fee6b59952c3c16732663c2109/0"
+        },
+        {
+          "GameId": "82",
+          "GameName": "第四届校际精英赛武汉赛区",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170920104013/4c13ff20a8675bea423bc31d0769d4ed/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2017-10-01",
+          "eDate": "2017-12-10",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170920104046/eab4d95b6d1c900ad20d58b2df7af45c/0"
+        },
+        {
+          "GameId": "83",
+          "GameName": "第四届校际精英赛长沙赛区",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170920104548/4d8502cf5ed33873ebd9a728de2a4d85/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2017-10-01",
+          "eDate": "2017-12-10",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170920104621/e89051738371ddc3008a78f0bc63124c/0"
+        },
+        {
+          "GameId": "84",
+          "GameName": "第四届校际精英赛广州赛区",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170920104741/b84a7b6b2716c79eb8c754bf123c64fa/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2017-10-01",
+          "eDate": "2017-12-10",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170920104812/380ca7d146706358643ec94c2b0553c2/0"
+        },
+        {
+          "GameId": "87",
+          "GameName": "第四届校际精英赛郑州赛区",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20171110104150/8ede37f671285ad46232ae4fec0e849f/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2017-10-01",
+          "eDate": "2017-12-10",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20171110104244/79fea3da2be49f8769ba73be371a0e0d/0"
+        },
+        {
+          "GameId": "88",
+          "GameName": "第四届校际精英赛上海赛区",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20171110104321/55714a0ebfe0054d841f64b8a69dbe3a/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2017-10-01",
+          "eDate": "2017-12-10",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20171110104404/ae59bd936c1f4378f24091099bde1296/0"
+        },
+        {
+          "GameId": "89",
+          "GameName": "第四届校际精英赛太原赛区",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20171110104444/c375b13984568fe4ca94bb0ee808780a/0",
+          "bGameId": "39",
+          "GameYear": "2017",
+          "sDate": "2017-10-01",
+          "eDate": "2017-12-10",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20171110104520/af3df803302ac6fef89da11ce7672c9e/0"
+        },
+        {
+          "GameId": "40",
+          "GameName": "2016校际精英赛北京赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/1512d3acd80154e1d7ca0a151f5dc549/0",
+          "bGameId": "39",
+          "GameYear": "2016",
+          "sDate": "0000-00-00",
+          "eDate": "0000-00-00",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/bd88b488ff8a4fbba3d5f059434be804/0"
+        },
+        {
+          "GameId": "41",
+          "GameName": "2016校际精英赛上海赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/5310a942a15ba3023fba10a606760a93/0",
+          "bGameId": "39",
+          "GameYear": "2016",
+          "sDate": "0000-00-00",
+          "eDate": "0000-00-00",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/4a5f0c261a2af3eeffc96459aa6a0354/0"
+        },
+        {
+          "GameId": "42",
+          "GameName": "2016校际精英赛广州赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/c2ece615bb0f843c1a648858cdd2f914/0",
+          "bGameId": "39",
+          "GameYear": "2016",
+          "sDate": "0000-00-00",
+          "eDate": "0000-00-00",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/3afbd683b46265777f10b4137a8e05dd/0"
+        },
+        {
+          "GameId": "43",
+          "GameName": "2016校际精英赛武汉赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/fafd86c2d0023e787c78dd85df223fae/0",
+          "bGameId": "39",
+          "GameYear": "2016",
+          "sDate": "0000-00-00",
+          "eDate": "0000-00-00",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/7684954cf6d5ae4319ac0ea9b731e06c/0"
+        },
+        {
+          "GameId": "44",
+          "GameName": "2016校际精英赛长沙赛区",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/b4869392c56280304ad95b374c68d9b8/0",
+          "bGameId": "39",
+          "GameYear": "2016",
+          "sDate": "2016-10-22",
+          "eDate": "0000-00-00",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/f11a88add8efee177c9a39fb173236cb/0"
+        }
+      ],
+      "45": [
+        {
+          "GameId": "107",
+          "GameName": "2018全球高校冠军杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180725173125/0578bc3ca3d6885de702ef8442fa6221/0",
+          "bGameId": "45",
+          "GameYear": "2018",
+          "sDate": "2018-08-16",
+          "eDate": "2018-08-26",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180725173202/18d9f1237a6499d84c87b8e335be2a3d/0"
+        },
+        {
+          "GameId": "108",
+          "GameName": "2018全球高校冠军杯邀请赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180725173826/ac9b97995345eca293f6b54cf51a1edc/0",
+          "bGameId": "45",
+          "GameYear": "2018",
+          "sDate": "0000-00-00",
+          "eDate": "0000-00-00",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180725173842/8fdc7651e1f7b6b932219aa3fc41feb4/0"
+        },
+        {
+          "GameId": "74",
+          "GameName": "2017全球高校冠军杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170628121658/516fe04b170ad3e6fc7f4302a6cb2228/0",
+          "bGameId": "45",
+          "GameYear": "2017",
+          "sDate": "2017-07-13",
+          "eDate": "2017-07-16",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170628121820/d740c729badd6b79bdc4fb526a63a16c/0"
+        },
+        {
+          "GameId": "46",
+          "GameName": "2016国际高校冠军赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/308abe12a73f619639500d60bb1b850b/0",
+          "bGameId": "45",
+          "GameYear": "2016",
+          "sDate": "2016-11-12",
+          "eDate": "2016-11-13",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/678f28496de1199a1de007ad23c0492d/0"
+        }
+      ],
+      "51": [
+        {
+          "GameId": "117",
+          "GameName": "2019韩国职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20190128142922/c58e75f697d841945aa79be1f1e2ad5f/0",
+          "bGameId": "51",
+          "GameYear": "2019",
+          "sDate": "2019-06-05",
+          "eDate": "2019-08-31",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20190128142959/b097637043054cdeea197f96d0f41320/0"
+        },
+        {
+          "GameId": "98",
+          "GameName": "2018韩国职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180320120244/5edfd937e01689da3c96f247650bad52/0",
+          "bGameId": "51",
+          "GameYear": "2018",
+          "sDate": "2018-06-12",
+          "eDate": "2018-08-09",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180320120159/e06b44005cfdff812537780d8804710b/0"
+        },
+        {
+          "GameId": "52",
+          "GameName": "2017韩国职业联赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/719a6a51532d6e926c1ea9e054904356/0",
+          "bGameId": "51",
+          "GameYear": "2017",
+          "sDate": "2017-06-01",
+          "eDate": "2017-09-02",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/d92bc5fee4b47f9473136b8aab233f43/0"
+        }
+      ],
+      "54": [
+        {
+          "GameId": "96",
+          "GameName": "2018欧洲职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180111180143/80f0b8b45ac892fa4d7fcc293b936787/0",
+          "bGameId": "54",
+          "GameYear": "2018",
+          "sDate": "2018-06-16",
+          "eDate": "2018-08-18",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180111180146/06e89ca26779ec511f702246f2ae26d5/0"
+        },
+        {
+          "GameId": "56",
+          "GameName": "2017欧洲职业联赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/3367a67dcc245de381a3ad23e7fb918d/0",
+          "bGameId": "54",
+          "GameYear": "2017",
+          "sDate": "2017-06-01",
+          "eDate": "2017-09-03",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/1e3664de48b5bc35af6b075af25afbac/0"
+        }
+      ],
+      "55": [
+        {
+          "GameId": "97",
+          "GameName": "2018北美职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180320151205/e27fca72999c7afd54308fbd74232172/0",
+          "bGameId": "55",
+          "GameYear": "2018",
+          "sDate": "2018-06-17",
+          "eDate": "2018-08-19",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180320151215/0af5121a907d7a5e158ee39f1895709c/0"
+        },
+        {
+          "GameId": "57",
+          "GameName": "2017北美职业联赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/820db2be798f13797634e59d202373db/0",
+          "bGameId": "55",
+          "GameYear": "2017",
+          "sDate": "2017-06-03",
+          "eDate": "2017-09-04",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/ffd8553caeaf16439e8ee6388b4ff715/0"
+        }
+      ],
+      "66": [
+        {
+          "GameId": "67",
+          "GameName": "2017城市冠军联赛",
+          "GameLogo": "//shp.qpic.cn/lolwebvideo/201501/5e9b23506dcc8c4144047ad96bc0dea1/0",
+          "bGameId": "66",
+          "GameYear": "2017",
+          "sDate": "0000-00-00",
+          "eDate": "0000-00-00",
+          "GameStatus": "2",
+          "MapIMG": "//shp.qpic.cn/lolwebvideo/201501/ea2a44fc230c2676ddb6a1fe245de61a/0"
+        }
+      ],
+      "68": [
+        {
+          "GameId": "104",
+          "GameName": "2018台港澳职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180417143922/b0b23e64febd4a57b590c1337c2dd92c/0",
+          "bGameId": "68",
+          "GameYear": "2018",
+          "sDate": "2018-01-20",
+          "eDate": "2018-04-22",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180417144243/b9d5bc81ef2def0f20c0756681b6f978/0"
+        },
+        {
+          "GameId": "69",
+          "GameName": "2017台港澳职业联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/201501/e573be5fadc94a339e68b82904b1e41b/0",
+          "bGameId": "68",
+          "GameYear": "2017",
+          "sDate": "2017-01-21",
+          "eDate": "2017-04-23",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/201501/c0b5efe184aef2af604dc48a64041c98/0"
+        }
+      ],
+      "71": [
+        {
+          "GameId": "123",
+          "GameName": "2019洲际系列赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20190619103040/76996bfb5c087f7530d2712f8458d795/0",
+          "bGameId": "71",
+          "GameYear": "2019",
+          "sDate": "2019-07-04",
+          "eDate": "2019-07-07",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20190619103045/3c15598d6bceddbbb6045c2e87af4c78/0"
+        },
+        {
+          "GameId": "101",
+          "GameName": "2018洲际系列赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180227211419/6cc4ea5a9581821251decec7fe69b14f/0",
+          "bGameId": "71",
+          "GameYear": "2018",
+          "sDate": "2018-07-02",
+          "eDate": "2018-07-08",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180227211448/4e852f66384ec098d07c84262e22aabf/0"
+        },
+        {
+          "GameId": "72",
+          "GameName": "2017洲际系列赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/201501/5dea62d32dc7c65ac70650f65eba7801/0",
+          "bGameId": "71",
+          "GameYear": "2017",
+          "sDate": "2017-07-06",
+          "eDate": "2017-07-09",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/201501/bc6545a60cdbc9616ab476b5488a35b8/0"
+        }
+      ],
+      "75": [
+        {
+          "GameId": "219",
+          "GameName": "2025发展联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20250102170325/2f006c3f789c736de43c8a06d343f18a/0",
+          "bGameId": "75",
+          "GameYear": "2025",
+          "sDate": "2025-01-13",
+          "eDate": "2025-10-12",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20250102170445/8c86cda551c0dd50c18e641f0180d741/0"
+        },
+        {
+          "GameId": "192",
+          "GameName": "2023发展联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230130223837/9182b42f47b1858acaa0fa4ce5c396bc/0",
+          "bGameId": "75",
+          "GameYear": "2023",
+          "sDate": "2023-02-04",
+          "eDate": "2023-12-31",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230130224333/23553a2157aba34522f0a5ae288df349/0"
+        },
+        {
+          "GameId": "171",
+          "GameName": "2022发展联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220207174843/614eb69a9e94431ffea0836d60e347cc/0",
+          "bGameId": "75",
+          "GameYear": "2022",
+          "sDate": "2022-02-11",
+          "eDate": "2022-12-31",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220207174934/7d935e50c8560db9cc9bb489e8e22bfd/0"
+        },
+        {
+          "GameId": "149",
+          "GameName": "2021发展联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20210106170554/c8925e3dc186a040fdd431905c1551bb/0",
+          "bGameId": "75",
+          "GameYear": "2021",
+          "sDate": "2021-01-13",
+          "eDate": "2021-09-30",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20210106170701/a99f57c873ac7a858d95f6f2a989e58f/0"
+        },
+        {
+          "GameId": "135",
+          "GameName": "2020发展联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200121213436/ea4cc8c07cb0c517c65f643df6087adb/0",
+          "bGameId": "75",
+          "GameYear": "2020",
+          "sDate": "2020-02-05",
+          "eDate": "2020-10-06",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20200121213633/0c1308ba6d894024577c32b670c7dfc8/0"
+        },
+        {
+          "GameId": "118",
+          "GameName": "2019发展联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20190219174047/fc1ffae86c13e46ded47307e91e9c336/0",
+          "bGameId": "75",
+          "GameYear": "2019",
+          "sDate": "2019-06-19",
+          "eDate": "2019-09-22",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20190219174119/c53016e1ec6949fc1cd389adad58daa5/0"
+        },
+        {
+          "GameId": "76",
+          "GameName": "2018发展联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170726115203/5fa6261ac62b0de4b0241f3357bf5059/0",
+          "bGameId": "75",
+          "GameYear": "2018",
+          "sDate": "2018-03-03",
+          "eDate": "2018-04-29",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170726115208/2bc9989f139c3e3e5fc239eb193c2b62/0"
+        },
+        {
+          "GameId": "207",
+          "GameName": "2024发展联赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20240124151010/3a1313c8fcdb1947f20f1c14e7b13996/0",
+          "bGameId": "75",
+          "GameYear": "2005",
+          "sDate": "2024-01-27",
+          "eDate": "2024-12-31",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20240124151057/275f1c9a0aabc72ecc1bf649982dca8d/0"
+        }
+      ],
+      "77": [
+        {
+          "GameId": "154",
+          "GameName": "十周年盛典",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20210902163104/01a41b1f19fb095ee7f698f4045a6a90/0",
+          "bGameId": "77",
+          "GameYear": "2025",
+          "sDate": "2025-09-05",
+          "eDate": "2025-09-06",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20210902163129/a5880bcb36842d9cc6b7d2e2517bd622/0"
+        },
+        {
+          "GameId": "142",
+          "GameName": "九周年盛典",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200825153603/1676d0299e670da33dbe0d526195425b/0",
+          "bGameId": "77",
+          "GameYear": "2020",
+          "sDate": "2020-08-27",
+          "eDate": "2020-08-30",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20200825153623/553e584938d289ad883301ad5e680d1d/0"
+        },
+        {
+          "GameId": "126",
+          "GameName": "八周年庆狂欢盛典",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20190816104428/88e029da15dcfb66a4c68bb27e18e10f/0",
+          "bGameId": "77",
+          "GameYear": "2019",
+          "sDate": "2019-09-06",
+          "eDate": "2019-09-08",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20190816132456/8efe562531c50fe7b69930767730a5c6/0"
+        },
+        {
+          "GameId": "109",
+          "GameName": "七周年庆狂欢盛典",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20180727121553/aed9e6feadf796dd2543c7c50c34b1f8/0",
+          "bGameId": "77",
+          "GameYear": "2018",
+          "sDate": "2018-09-13",
+          "eDate": "2018-09-16",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20180727121702/4a88ca2ee6a4743749481a19266398f0/0"
+        },
+        {
+          "GameId": "78",
+          "GameName": "六周年庆狂欢盛典",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20170726170746/daa0f23f91c80d0ab5cacb510869ccab/0",
+          "bGameId": "77",
+          "GameYear": "2017",
+          "sDate": "2017-09-01",
+          "eDate": "2017-09-03",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20170726170751/eae254c1fee0db7e9a7b07af1702ea03/0"
+        }
+      ],
+      "90": [
+        {
+          "GameId": "91",
+          "GameName": "2017年度颁奖盛典",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20171110115955/536b132ff9d6826262b9e5871c6e6acc/0",
+          "bGameId": "90",
+          "GameYear": "2017",
+          "sDate": "2017-11-26",
+          "eDate": "2017-11-26",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20171110120228/b6178ba892aaa707592b7c6c79198f9f/0"
+        }
+      ],
+      "124": [
+        {
+          "GameId": "127",
+          "GameName": "2019全民争霸赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20190831124059/79ba805989da3ba0043acf3ecfa4b1a0/0",
+          "bGameId": "124",
+          "GameYear": "2019",
+          "sDate": "2019-08-31",
+          "eDate": "2019-09-09",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20190831124128/4112b2c62b92b05bef02a0a068600462/0"
+        }
+      ],
+      "129": [
+        {
+          "GameId": "235",
+          "GameName": "2025LPL全明星",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20251203160102/937ec43af118fff067f06044a27206a8/0",
+          "bGameId": "129",
+          "GameYear": "2025",
+          "sDate": "2025-12-06",
+          "eDate": "2025-12-06",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "217",
+          "GameName": "2024LPL全明星双城之夜",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20241218145217/94ef8580335ab34f7fcefd1d0d73820c/0",
+          "bGameId": "129",
+          "GameYear": "2024",
+          "sDate": "2024-12-21",
+          "eDate": "2024-12-21",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "205",
+          "GameName": "2023LPL全明星周末",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20231128153953/95bf3ca56a27693ddedab913a2db7137/0",
+          "bGameId": "129",
+          "GameYear": "2023",
+          "sDate": "2023-12-09",
+          "eDate": "2023-12-10",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20231128154002/7089caf8d943a30ca6206ec0a18dfbc2/0"
+        },
+        {
+          "GameId": "188",
+          "GameName": "2022LPL全明星周末",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20221125175643/50ae5ce92a9dfc1791490b819402f63d/0",
+          "bGameId": "129",
+          "GameYear": "2022",
+          "sDate": "2022-12-03",
+          "eDate": "2022-12-04",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20221125180053/3b383f7aff00723bea2e835d3c13f141/0"
+        },
+        {
+          "GameId": "161",
+          "GameName": "2021LPL全明星周末",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20211129152931/e4a5e1114b42bcf3e420f08698e835e1/0",
+          "bGameId": "129",
+          "GameYear": "2021",
+          "sDate": "2021-12-10",
+          "eDate": "2021-12-12",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20211203100634/7761aa1cc87f37d13795f3789f6ae0e5/0"
+        },
+        {
+          "GameId": "144",
+          "GameName": "LPL全明星周末",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20201116180157/f89dfa3c9bf2cb91f210ef12793f9a2a/0",
+          "bGameId": "129",
+          "GameYear": "2020",
+          "sDate": "2020-12-11",
+          "eDate": "2020-12-12",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20201116190223/b887cc9f4c09e83d3b917113b87a2f12/0"
+        },
+        {
+          "GameId": "130",
+          "GameName": "2019LPL全明星周末",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20191107143311/5233d78afd1302cdc68448d53e0d65fa/0",
+          "bGameId": "129",
+          "GameYear": "2019",
+          "sDate": "2019-11-30",
+          "eDate": "2019-12-01",
+          "GameStatus": "2",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20191121140336/86f3d673c561d11facd5225ac460cf13/0"
+        }
+      ],
+      "138": [
+        {
+          "GameId": "170",
+          "GameName": "虎虎生威杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220110144410/72033968802aff63d3c4f955fe630945/0",
+          "bGameId": "138",
+          "GameYear": "2022",
+          "sDate": "0000-00-00",
+          "eDate": "0000-00-00",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220110144431/dc3cb9e5211b9596e8e018bbb32d57c3/0"
+        },
+        {
+          "GameId": "172",
+          "GameName": "海克斯冠军杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220224154458/ffcc3ed4336290661ab6cd2da6cf494d/0",
+          "bGameId": "138",
+          "GameYear": "2022",
+          "sDate": "2022-02-26",
+          "eDate": "2022-02-27",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220224154609/64691b5bd7330de385906e635d6e49e9/0"
+        },
+        {
+          "GameId": "173",
+          "GameName": "第三届云顶之弈公开赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220407173517/07f9c689531f12fb6c277014741c2091/0",
+          "bGameId": "138",
+          "GameYear": "2022",
+          "sDate": "2022-03-18",
+          "eDate": "2022-04-24",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220407173527/cc67da2c0e982c946704ca9f6043962e/0"
+        },
+        {
+          "GameId": "174",
+          "GameName": "双城之战全球总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220426163538/d18cb5a4665c77e9272f3fede8a1a9d5/0",
+          "bGameId": "138",
+          "GameYear": "2022",
+          "sDate": "2022-04-29",
+          "eDate": "2022-05-01",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220426163628/76b5a9932485774fa62def7aaefce279/0"
+        },
+        {
+          "GameId": "150",
+          "GameName": "云顶之弈福牛杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20210319184928/509c4460c286879c886a109ebcbfa514/0",
+          "bGameId": "138",
+          "GameYear": "2021",
+          "sDate": "2021-03-25",
+          "eDate": "2021-03-30",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20210319185014/6b20d754107845239a74d0884d676e7b/0"
+        },
+        {
+          "GameId": "155",
+          "GameName": "TOC2全国总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20210910152638/3f466740d5ee53014c6b763e7bbeff31/0",
+          "bGameId": "138",
+          "GameYear": "2021",
+          "sDate": "2021-09-19",
+          "eDate": "2021-09-25",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20210910153126/fbf9116b1064e18e60168b313bc7e1ca/0"
+        },
+        {
+          "GameId": "157",
+          "GameName": "光明与黑暗世界赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20210928164331/efda0b2c57bbaea74988aa1cbb2751a2/0",
+          "bGameId": "138",
+          "GameYear": "2021",
+          "sDate": "2021-10-01",
+          "eDate": "2021-09-04",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20210928164928/e5ed1e44f4bcf848cd490375be954a77/0"
+        },
+        {
+          "GameId": "139",
+          "GameName": "银河战争表演赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200310100137/95a5cb794bbc8dfcfeb207968e3a5d97/0",
+          "bGameId": "138",
+          "GameYear": "2020",
+          "sDate": "2020-03-13",
+          "eDate": "2020-03-14",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20200310100322/8c8cc4e99ab153928c413a5b3c0fbf20/0"
+        },
+        {
+          "GameId": "141",
+          "GameName": "云顶之弈公开赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20200720141434/85cfee3f3da1871df2ab1705c026787c/0",
+          "bGameId": "138",
+          "GameYear": "2020",
+          "sDate": "2020-07-30",
+          "eDate": "2020-08-22",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20200720141424/c0da43ea81f611b63cddfc10957ec7c9/0"
+        },
+        {
+          "GameId": "151",
+          "GameName": "命运之轮总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20210407153637/36afe8b23207b15d59ba75eee41ff09c/0",
+          "bGameId": "138",
+          "GameYear": "2005",
+          "sDate": "2021-04-07",
+          "eDate": "2021-04-10",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20210407153745/429df5ede1091501d5b445016acf3343/0"
+        }
+      ],
+      "158": [
+        {
+          "GameId": "240",
+          "GameName": "2026城市英雄争霸赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20260709200427/1cb32d4edee79024812aff64a936ce97/0",
+          "bGameId": "158",
+          "GameYear": "2026",
+          "sDate": "2026-07-12",
+          "eDate": "2026-08-02",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20260709200505/af6c4ecee876ff098d6baf4d334cc1e8/0"
+        },
+        {
+          "GameId": "242",
+          "GameName": "WSCI-LPL资格赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20260820184510/ed515e53610df83ff990c8963cc772e6/0",
+          "bGameId": "158",
+          "GameYear": "2026",
+          "sDate": "2026-08-25",
+          "eDate": "2026-08-27",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20260820184453/bdd8586f1493908191a130dcd7d032d3/0"
+        },
+        {
+          "GameId": "214",
+          "GameName": "第十九届城市英雄争霸赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20241121163722/7c1146a6fb8dee9c5584d1150a6be4da/0",
+          "bGameId": "158",
+          "GameYear": "2025",
+          "sDate": "2024-11-25",
+          "eDate": "2025-01-05",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20241121163804/fe9eae575411e39bf1928e0015a15b45/0"
+        },
+        {
+          "GameId": "231",
+          "GameName": "2025城市英雄争霸赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20251019091308/d9619cfba69850af80a3c91821903c1e/0",
+          "bGameId": "158",
+          "GameYear": "2025",
+          "sDate": "2025-10-19",
+          "eDate": "2025-10-20",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20251019091401/58aeedbe0ca48355e8e50ebfa3dc33dc/0"
+        },
+        {
+          "GameId": "195",
+          "GameName": "2023城市英雄争霸赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230505211418/409a8e3b1e5f7fc6d4dc56df17654731/0",
+          "bGameId": "158",
+          "GameYear": "2023",
+          "sDate": "2023-05-01",
+          "eDate": "2024-11-03",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230505211504/20b17bd4e8388658e15206147d1289c0/0"
+        },
+        {
+          "GameId": "196",
+          "GameName": "第十八届城市英雄争霸赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230613102702/acc7d4ff8efa7feaf42d09a350e26579/0",
+          "bGameId": "158",
+          "GameYear": "2023",
+          "sDate": "2023-06-17",
+          "eDate": "2023-06-30",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230613103031/d658fea45990101e54fe617c33a9c318/0"
+        },
+        {
+          "GameId": "203",
+          "GameName": "第十八届英雄联盟城市英雄争霸赛夏季总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20231020184556/32b308341733291da38b7492dfc72997/0",
+          "bGameId": "158",
+          "GameYear": "2023",
+          "sDate": "2023-10-21",
+          "eDate": "2023-10-22",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20231020184746/2d36885fc4c0b03221eee7b1477495ad/0"
+        },
+        {
+          "GameId": "176",
+          "GameName": "第十七届城市英雄争霸赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220512133229/f34b1f4113d99c603c783291ce4135fc/0",
+          "bGameId": "158",
+          "GameYear": "2022",
+          "sDate": "2022-05-01",
+          "eDate": "2022-12-30",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220512133646/fbc377eddb636e1da5f6a20e7a82f1db/0"
+        },
+        {
+          "GameId": "186",
+          "GameName": "2022城市英雄争霸赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20221023123246/2ebe88ab41b49ca85b0b81e9cea269c6/0",
+          "bGameId": "158",
+          "GameYear": "2022",
+          "sDate": "2022-10-23",
+          "eDate": "2023-01-03",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20221023123341/501615ec9ef52f3bcedf7cd3a7a5d2b0/0"
+        },
+        {
+          "GameId": "159",
+          "GameName": "第十六届城市英雄争霸赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20211011165029/780c857d140230ba4a124d5e03554624/0",
+          "bGameId": "158",
+          "GameYear": "2021",
+          "sDate": "2021-10-17",
+          "eDate": "2021-11-14",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20211011165527/04c7757fdd526fd5250ba4a0a6f6933f/0"
+        }
+      ],
+      "164": [
+        {
+          "GameId": "166",
+          "GameName": "双城杯总决赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20211229162146/27be20b5e0e175aab42722abd8bdd0c4/0",
+          "bGameId": "164",
+          "GameYear": "2022",
+          "sDate": "2022-01-06",
+          "eDate": "2022-01-10",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20211229162202/2401a19ab6e17cf1242ff53ecdd3885c/0"
+        },
+        {
+          "GameId": "165",
+          "GameName": "双城杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20211217181734/74d0501e2e0f808ce9aa55c524e9ce91/0",
+          "bGameId": "164",
+          "GameYear": "2021",
+          "sDate": "2021-12-24",
+          "eDate": "2021-12-24",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20211217181844/70dc59c5ac211bd7ec471e5104952960/0"
+        }
+      ],
+      "178": [
+        {
+          "GameId": "243",
+          "GameName": "海斗大会",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20260901124306/f21ddb0b30b55761ebc4f3191561e519/0",
+          "bGameId": "178",
+          "GameYear": "2026",
+          "sDate": "2026-09-01",
+          "eDate": "2026-09-06",
+          "GameStatus": "1",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "244",
+          "GameName": "全球挑战者之星邀请赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20260918174452/a1f6cf55e953f36144dfd4b8b47cc873/0",
+          "bGameId": "178",
+          "GameYear": "2026",
+          "sDate": "2026-09-20",
+          "eDate": "2026-09-30",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "224",
+          "GameName": "2025英雄联盟传奇杯S3",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20250402155007/512b6d7ea2eb8838caa067b0580f3cbf/0",
+          "bGameId": "178",
+          "GameYear": "2025",
+          "sDate": "2025-04-07",
+          "eDate": "2025-05-11",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "234",
+          "GameName": "2025虎牙时光杯S3",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20251201173605/572cfc24c8e0e3db4a9e54e6b9ae6f61/0",
+          "bGameId": "178",
+          "GameYear": "2025",
+          "sDate": "2025-12-02",
+          "eDate": "2025-12-14",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "209",
+          "GameName": "2024英雄联盟传奇杯",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20240508144305/222674d210bfb37ce343165dbd31f5ae/0",
+          "bGameId": "178",
+          "GameYear": "2024",
+          "sDate": "2024-05-20",
+          "eDate": "2024-06-09",
+          "GameStatus": "1",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20240508144351/e387000722fdb1d9463bbc30c3af3027/0"
+        },
+        {
+          "GameId": "213",
+          "GameName": "2024英雄联盟传奇杯S2",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20241113095316/8cd13b8a023fd072e21e59420c00a8bb/0",
+          "bGameId": "178",
+          "GameYear": "2024",
+          "sDate": "2024-11-15",
+          "eDate": "2024-12-15",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20241113095453/79bda773b57eee9bd11ffa46cf0c3520/0"
+        },
+        {
+          "GameId": "215",
+          "GameName": "2024NEST全国电子体育大赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20241130130434/cf425646830d7f7f908ef8ff01b0f5eb/0",
+          "bGameId": "178",
+          "GameYear": "2024",
+          "sDate": "2024-12-02",
+          "eDate": "2024-12-15",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20241130130626/ed2cfd23a9482db3752ba18962661ace/0"
+        },
+        {
+          "GameId": "179",
+          "GameName": "英雄联盟残障人士公益赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220517151915/de53af82b0b0a1cfe57a1ad0c493d3a6/0",
+          "bGameId": "178",
+          "GameYear": "2022",
+          "sDate": "2022-05-19",
+          "eDate": "2022-05-20",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220517151944/9004785294e41d1be0548315d08dd4f5/0"
+        }
+      ],
+      "180": [
+        {
+          "GameId": "181",
+          "GameName": "英雄联盟电竞经理赛游联动",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220901143516/f0193b23deba1102313015d4f88fff30/0",
+          "bGameId": "180",
+          "GameYear": "2022",
+          "sDate": "0000-00-00",
+          "eDate": "0000-00-00",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220901143535/8cef4e720ad65aace8d4ecaf582a7674/0"
+        }
+      ],
+      "182": [
+        {
+          "GameId": "198",
+          "GameName": "2023亚洲挑战者之星邀请赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20230829152256/a17772d02726de5fe0e92e55d9a800de/0",
+          "bGameId": "182",
+          "GameYear": "2023",
+          "sDate": "2023-09-03",
+          "eDate": "2023-09-15",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20230829152417/d39e70be0e2cccd4707080f38bd1dae9/0"
+        },
+        {
+          "GameId": "183",
+          "GameName": "2022亚洲挑战者之星邀请赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20220907172554/070d59fece7eed3f3c92bf074eb53a5d/0",
+          "bGameId": "182",
+          "GameYear": "2022",
+          "sDate": "2022-09-12",
+          "eDate": "2022-09-25",
+          "GameStatus": "0",
+          "MapIMG": "//img.crawler.qq.com/lolwebvideo/20220907172728/dfb00dfdc5b3794481c69e24da4b351b/0"
+        }
+      ],
+      "220": [
+        {
+          "GameId": "238",
+          "GameName": "2026全球先锋赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20260309104858/95ab4a9e9a8971922169917047b75ca6/0",
+          "bGameId": "220",
+          "GameYear": "2026",
+          "sDate": "2026-03-16",
+          "eDate": "2026-03-24",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "221",
+          "GameName": "2025全球先锋赛",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20250227152320/c38e83bdc790ba3c3b03280359ea8402/0",
+          "bGameId": "220",
+          "GameYear": "2025",
+          "sDate": "2025-03-10",
+          "eDate": "2025-03-16",
+          "GameStatus": "0",
+          "MapIMG": ""
+        }
+      ],
+      "227": [
+        {
+          "GameId": "241",
+          "GameName": "2026EWC《英雄联盟》项目",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20260714161949/1903adc0581f8ee62839fec72d3615d6/0",
+          "bGameId": "227",
+          "GameYear": "2026",
+          "sDate": "2026-07-15",
+          "eDate": "2026-07-19",
+          "GameStatus": "0",
+          "MapIMG": ""
+        },
+        {
+          "GameId": "228",
+          "GameName": "2025电竞世界杯《英雄联盟》项目",
+          "GameLogo": "//img.crawler.qq.com/lolwebvideo/20250701162059/e17ed4da6c5698b273a2a9cd9532aaa6/0",
+          "bGameId": "227",
+          "GameYear": "2025",
+          "sDate": "2025-07-16",
+          "eDate": "2025-07-20",
+          "GameStatus": "1",
+          "MapIMG": ""
+        }
+      ]
+    }
+  },
+  "lastUpdateTime": "2026-09-29 22:50:01"
+}

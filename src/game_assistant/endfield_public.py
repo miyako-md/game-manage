@@ -15,6 +15,7 @@ from pathlib import Path
 import httpx
 
 from .sources.endfield_notice import calendar_from_posts
+from .sources.article_content import article_content, retain_article_bodies
 
 NEWS_URL = 'https://endfield.hypergryph.com/news'
 MAP_URL = 'https://game.skland.com/map/endfield'
@@ -67,7 +68,8 @@ def _flight(html):
 
 def _flight_value(html, key):
     needle = json.dumps(key) + ':'
-    for chunk in _flight(html):
+    # A long JSON value may span several push calls in the official stream.
+    for chunk in [''.join(_flight(html))]:
         start = chunk.find(needle)
         if start >= 0:
             try:
@@ -96,19 +98,41 @@ def _news_list(html):
     return posts
 
 
-def _detail(html):
+def _detail_content(html, expected_id=None):
     bulletin = _flight_value(html, 'bulletin')
     if not isinstance(bulletin, dict) or not NEWS_ID.fullmatch(str(bulletin.get('cid', ''))):
         raise PublicSourceError('官网公告格式发生变化')
+    if expected_id is not None and str(bulletin['cid']) != str(expected_id):
+        raise PublicSourceError('官网正文与文章编号不匹配')
+    data = bulletin.get('data')
+    if isinstance(data, str):
+        reference = re.fullmatch(r'\$([0-9a-f]+)', data)
+        if reference:
+            stream = ''.join(_flight(html))
+            match = re.search(r'(?:^|\n)' + re.escape(reference[1]) + r':T([0-9a-f]+),', stream)
+            if not match:
+                raise PublicSourceError('官网公告正文引用不可读取')
+            size = int(match[1], 16)
+            encoded = stream[match.end():].encode('utf-8')
+            if not 0 < size <= len(encoded):
+                raise PublicSourceError('官网公告正文不完整')
+            try:
+                data = encoded[:size].decode('utf-8')
+            except UnicodeDecodeError:
+                raise PublicSourceError('官网公告正文不完整') from None
+        if re.search(r'<(?:p|h[1-6]|img|div|span)\b', data):
+            return article_content(data)
     # The HTML article is a separate Flight segment; rendered page text has
     # duplicated navigation and is unsuitable for the line-oriented parser.
     candidates = [chunk for chunk in _flight(html) if
                   ('<p>' in chunk or '<h2>' in chunk or '<p ' in chunk)]
     if not candidates:
         raise PublicSourceError('官网公告正文不可读取')
-    parser = _Article()
-    parser.feed(max(candidates, key=len))
-    body = parser.text()
+    return article_content(max(candidates, key=len))
+
+
+def _detail(html):
+    body = _detail_content(html)['body']
     if len(body) < 30:
         raise PublicSourceError('官网公告正文为空')
     return body
@@ -167,24 +191,34 @@ class EndfieldPublicService:
     async def _refresh_news(self):
         page = await self._request(NEWS_URL)
         items = _news_list(page.text)
-        posts = []
-        for item in items:
-            if item['category'] != 'notices':
-                continue
-            detail = await self._request(item['url'])
-            body = _detail(detail.text)
-            posts.append({**item, 'body': item['title'] + '\n' + body, 'decision': 'accepted',
-                          'source': 'official', 'source_name': '终末地官网'})
+        slots = asyncio.Semaphore(3)
+
+        async def enrich(item):
+            try:
+                async with slots:
+                    detail = await self._request(item['url'])
+                content = _detail_content(detail.text, item['id'])
+                return {**item, **content, 'summary': content['summary'] or item['summary']}
+            except PublicSourceError:
+                return {**item, 'content_status': 'error', 'content_error': '终末地官网正文暂时无法读取'}
+
+        items = await asyncio.gather(*(enrich(item) for item in items))
+        previous, _ = self._get('news')
+        items = retain_article_bodies(items, previous or [])
+        self._put('news', items)
+        if any(item.get('content_status') != 'full' for item in items if item['category'] == 'notices'):
+            return '部分官网公告正文读取失败，保留上次成功日历'
+        posts = [{**item, 'body': item['title'] + '\n' + item['body'], 'decision': 'accepted'}
+                 for item in items if item['category'] == 'notices' and item.get('body')]
         if not posts:
-            raise PublicSourceError('官网没有可解析的公告')
+            return '官网没有可解析的公告，保留上次成功日历'
         calendar = calendar_from_posts(posts)
         if not calendar.get('version'):
-            raise PublicSourceError('官网列表中没有可确认的当前版本，保留上次成功数据')
+            return '官网列表中没有可确认的当前版本，保留上次成功日历'
         # A list of ordinary announcements may legitimately have no events,
         # but an identified version announcement must produce some.
         if any('版本更新说明' in p['title'] for p in posts) and not calendar.get('events'):
-            raise PublicSourceError('官网公告日历格式发生变化')
-        self._put('news', items)
+            return '官网公告日历格式发生变化，保留上次成功日历'
         self._put('calendar', calendar)
 
     async def public(self, force=False):
@@ -193,23 +227,24 @@ class EndfieldPublicService:
             cal, cal_at = self._get('calendar')
             state, attempted_at = self._get('news_status')
             error = (state or {}).get('error')
+            calendar_error = (state or {}).get('calendar_error', error)
             # A failed explicit refresh must stay visible on the next read, even
             # when the last successful cache entry is still within its TTL.
             retry_due = not attempted_at or (datetime.now(timezone.utc) - datetime.fromisoformat(attempted_at)).total_seconds() >= 60
-            if force or (retry_due and (error or not self._fresh(news_at) or not self._fresh(cal_at))):
+            if force or (retry_due and (error or calendar_error or not self._fresh(news_at) or not self._fresh(cal_at))):
                 try:
-                    await self._refresh_news()
-                    news, news_at = self._get('news')
-                    cal, cal_at = self._get('calendar')
+                    calendar_error = await self._refresh_news()
                     error = None
                 except PublicSourceError as exc:
-                    error = str(exc)
-                self._put('news_status', {'error': error})
+                    error = calendar_error = str(exc)
+                news, news_at = self._get('news')
+                cal, cal_at = self._get('calendar')
+                self._put('news_status', {'error': error, 'calendar_error': calendar_error})
             return {
                 'news': {'items': news or [], 'fetched_at': news_at, 'stale': bool(error), 'error': error},
                 'calendar': {'events': (cal or {}).get('events', []),
                              'version': (cal or {}).get('version'), 'fetched_at': cal_at,
-                             'stale': bool(error), 'error': error},
+                             'stale': bool(calendar_error), 'error': calendar_error},
                 'tools': TOOLS,
             }
 

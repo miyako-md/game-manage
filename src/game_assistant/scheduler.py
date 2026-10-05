@@ -37,6 +37,7 @@ INTERVAL_ATTRS = {
     Capability.REALESTATE: "news_seconds",
     Capability.VEHICLES: "news_seconds",
     Capability.TEAMS: "news_seconds",
+    Capability.ESPORTS: "esports_seconds",
 }
 
 
@@ -93,12 +94,17 @@ class PollingScheduler:
         if result.error_kind == 'account_changed':
             return result
         if result.ok:
+            if capability in (Capability.NEWS, Capability.ANNOUNCEMENT) and isinstance(result.payload, list):
+                from game_assistant.sources.article_content import retain_article_bodies
+                old = self.store.get(game_id, capability.value)
+                previous = json.loads(old['payload']) if old else []
+                result.payload = retain_article_bodies(result.payload, previous if isinstance(previous, list) else [])
             self.store.save(game_id, capability.value, _serialize(result.payload))
         elif result.error_kind not in ('offline', 'unconfigured'):
             logger.warning("拉取失败 %s/%s: %s（保留旧快照）",
                            game_id, capability.value, result.error)
         status = self.store.record_poll(game_id, capability.value, result)
-        if self.reminder:
+        if self.reminder and capability != Capability.ESPORTS:
             # 提醒引擎异常不得影响轮询与快照保存
             try:
                 await self.reminder.handle_poll(game_id, adapter.display_name,

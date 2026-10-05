@@ -25,6 +25,7 @@ import NteGuides from './NteGuides.vue'
 import NteModuleCard from './NteModuleCard.vue'
 
 const props = defineProps({
+  esportsBrowse: Object,
   game: { type: Object, required: true },
   externalSnapshots: { type: Object, required: true },
   externalRefreshing: { type: Boolean, default: false },
@@ -32,7 +33,7 @@ const props = defineProps({
   initialSection: { type: String, default: 'all' },
   collectionStatus: { type: Array, default: () => [] },
 })
-const emit = defineEmits(['refresh', 'calendar'])
+const emit = defineEmits(['refresh', 'calendar', 'esports-snapshot', 'esports-browse'])
 const activeSection = ref(props.initialSection)
 const style = computed(() => gameStyle(props.game.game_id))
 const groups = computed(() => [
@@ -50,7 +51,7 @@ const groups = computed(() => [
 const TAB_ORDER = groups => groups.filter(group => group.id !== 'all').flatMap(group => group.caps)
 const visibleCaps = computed(() => {
   const current = groups.value.find(group => group.id === activeSection.value) || groups.value[0]
-  const caps = props.game.capabilities.filter(cap => cap !== 'events' && current?.caps.includes(cap))
+  const caps = props.game.capabilities.filter(cap => !['events', 'announcement', 'news'].includes(cap) && current?.caps.includes(cap))
   if (current?.id !== 'all') return caps
   const order = TAB_ORDER(groups.value)
   const rank = cap => (order.includes(cap) ? order.indexOf(cap) : order.length)
@@ -121,7 +122,7 @@ function capProps(cap) {
     </header>
     <div v-if="!['wuthering_waves','league_of_legends','endfield'].includes(game.game_id)" class="detail-navigation"><nav v-glide class="detail-tabs segmented" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
     <WuwaDashboard v-if="game.game_id === 'wuthering_waves'" :snaps="externalSnapshots" :configured="game.credentials_configured" :initial-section="initialSection" @calendar="emit('calendar')" />
-    <LolDashboard v-else-if="game.game_id === 'league_of_legends'" :snaps="externalSnapshots" @refresh="emit('refresh')" />
+    <LolDashboard v-else-if="game.game_id === 'league_of_legends'" :snaps="externalSnapshots" :esports-browse="esportsBrowse" @esports-snapshot="emit('esports-snapshot', $event)" @esports-browse="emit('esports-browse', $event)" @refresh="emit('refresh')" />
     <EndfieldDashboard v-else-if="game.game_id === 'endfield'" :snaps="externalSnapshots" :initial-section="initialSection" @calendar="emit('calendar')" />
     <NteModuleCard v-else-if="game.game_id === 'nte' && activeSection === 'guides'" capability="guides"><NteGuides /></NteModuleCard>
     <div v-else class="cap-list">
@@ -138,11 +139,13 @@ function capProps(cap) {
         />
         <div v-else class="cap-card cap-coming">敬请期待</div>
       </template>
+      <AnnouncementList v-if="['all', 'news'].includes(activeSection) && game.capabilities.some(cap => ['announcement', 'news'].includes(cap))" class="detail-articles" :game-id="game.game_id" :snap="externalSnapshots.news?.payload ? externalSnapshots.news : externalSnapshots.announcement" />
     </div>
   </section>
 </template>
 
 <style scoped>
+.detail-articles{grid-column:1/-1}
 .detail-cap-realestate, .detail-cap-vehicles, .detail-cap-teams, .detail-cap-roles, .detail-cap-gacha, .detail-cap-match, .detail-cap-exploration { grid-column: 1 / -1; }
 .game-card {
   min-width: 0;

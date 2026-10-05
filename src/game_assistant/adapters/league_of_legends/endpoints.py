@@ -18,3 +18,5 @@ GAME_DETAIL = "/lol-match-history/v1/games/{game_id}"    # 已用真实客户端
 NEWS_LIST_URL = ("https://apps.game.qq.com/cmc/zmMcnTargetContentList"
                  "?page={page}&num={num}&target={target}&source=web_pc")  # 校准：实测 200
 NEWS_CATEGORY_IDS = {"综合": "23", "公告": "24", "赛事": "25", "攻略": "27", "社区": "28"}
+# 官网 /space/js/articleDetail.js 使用的正文端点；2026-10-04 校准 status=1、data.result.sContent。
+NEWS_DETAIL_URL = 'https://apps.game.qq.com/cmc/zmMcnContentInfo?source=web_pc&type=0&docid={docid}'

@@ -13,6 +13,8 @@ stamina_seconds = 300
 activity_seconds = 3600
 announcement_seconds = 3600
 news_seconds = 14400
+esports_seconds = 900
+esports_profiles_seconds = 86400
 bilibili_history_days = 60
 bilibili_poll_seconds = 600
 

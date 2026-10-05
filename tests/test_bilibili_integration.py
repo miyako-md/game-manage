@@ -86,3 +86,60 @@ def test_lol_catalog_and_snapshot_are_not_changed_even_with_a_configured_bili_ui
         assert set(c.get('/api/games').json()[0]['capabilities'])=={'news','announcement'}
         result=c.get('/api/games/league_of_legends/snapshot/news').json()
         assert result['payload']==native and 'primary_source' not in result
+
+
+def test_official_community_articles_are_visible_without_promoting_calendar_decisions(tmp_path):
+    app, _ = setup(tmp_path)
+    from game_assistant.sources.bilibili import classify_dynamic
+    now = datetime.now(timezone.utc)
+    bodies = ['创作征集网页活动开启\n活动时间10月4日到10月20日',
+              '社区同人征集开启，欢迎投稿', '版本PV正式发布\n10月4日',
+              '创作征集视频\n10月4日活动开启']
+    rows = [classify_dynamic(post(body, id=str(i + 1), published=now.timestamp(), kind='DYNAMIC_TYPE_AV' if i == 3 else 'DYNAMIC_TYPE_DRAW'), UID, now) for i, body in enumerate(bodies)]
+    app.state.bilibili.store.save_rows('nte', UID, rows)
+    visible = app.state.bilibili.news('nte')
+    assert {row['id'] for row in visible} == {'1', '2'}
+    assert all(row['decision'] == 'excluded' for row in visible)
+    assert app.state.bilibili.statuses()[0]['article_count'] == 2
+    assert app.state.bilibili.calendar('nte')['events'] == []
+    assert [r['decision'] for r in app.state.bilibili.store.rows('nte', UID)] == ['excluded'] * 4
+
+
+def test_truncated_community_article_warns_and_keeps_previous_complete_body(tmp_path):
+    app, _ = setup(tmp_path)
+    from game_assistant.sources.bilibili import classify_dynamic
+    now = datetime.now(timezone.utc)
+    item = post('创作征集活动\n完整正文末尾', published=now.timestamp())
+    complete = classify_dynamic(item, UID, now)
+    app.state.bilibili.store.save_rows('nte', UID, [complete])
+    item['modules']['module_dynamic']['major']['opus']['summary'] = {'text': '创作征集活动\n截断节选', 'has_more': True}
+    partial = classify_dynamic(item, UID, now)
+    assert partial['content_status'] == 'unavailable'
+    app.state.bilibili.store.save_rows('nte', UID, [partial])
+    row = app.state.bilibili.news('nte')[0]
+    assert row['body'].endswith('完整正文末尾')
+    assert row['content_status'] == 'stale'
+    assert row['decision'] == 'excluded'
+    assert app.state.bilibili.calendar('nte')['events'] == []
+
+
+def test_endfield_keeps_official_priority_and_adds_bilibili_community_articles(tmp_path):
+    from game_assistant.adapters.endfield.adapter import EndfieldAdapter
+    from game_assistant.sources.bilibili import classify_dynamic
+    uid = '1265652806'
+    settings = Settings(db_path=str(tmp_path / 'endfield.db'), bilibili_sources={'endfield': uid})
+    store = SnapshotStore(settings.db_path)
+    store.save('endfield', 'news', json.dumps([{'title': '官网版本说明', 'source': 'official', 'url': 'https://endfield.hypergryph.com/news/42'}]))
+    app = create_app(registry=FakeRegistry(EndfieldAdapter(settings)), store=store, settings=settings, start_scheduler=False)
+    now = datetime.now(timezone.utc)
+    item = post('网页活动创作征集开启\n10月4日开始', published=now.timestamp())
+    item['modules']['module_author']['mid'] = int(uid)
+    row = classify_dynamic(item, uid, now)
+    app.state.bilibili.store.save_rows('endfield', uid, [row])
+    with TestClient(app, base_url='http://127.0.0.1:8010') as client:
+        result = client.get('/api/games/endfield/snapshot/news').json()
+        assert result['primary_source'] == 'official'
+        assert len(result['payload']) == 2
+        assert result['payload'][0]['source'] == 'official'
+        assert result['payload'][1]['source'] == 'bilibili'
+        assert result['payload'][1]['decision'] == 'excluded'

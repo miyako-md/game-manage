@@ -35,7 +35,8 @@ def test_parse_official_posts_calibrated_shape():
     assert items[0].published_at == datetime.fromtimestamp(
         1789184890182 / 1000, tz=timezone.utc)
     assert items[0].url == "https://bbs.tajiduo.com/forum/post/485925"
-    assert items[0].summary == ""  # content 全文不进摘要
+    assert items[0].body == raw["data"]["posts"][0]["content"].strip()
+    assert items[0].summary and items[0].content_status == "full"
 
 
 def test_parse_official_posts_ms_timestamps_and_post_id_url():

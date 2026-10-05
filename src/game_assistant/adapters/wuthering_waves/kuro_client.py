@@ -74,7 +74,8 @@ class KuroClient:
         # /forum/getPostDetail：帖子详情（2026-09-13 实测仅需 postId，网页 token 头
         # 即可）；返回 data.postDetail（dict，postH5Content=H5 HTML 全文/postTitle=标题）
         raw = await self._post(POST_DETAIL, {"postId": post_id})
-        detail = (raw.get("data") or {}).get("postDetail")
+        data = raw.get("data")
+        detail = data.get("postDetail") if isinstance(data, dict) else None
         if not isinstance(detail, dict):
             raise KuroError(-3, "帖子详情响应结构异常")
         return detail

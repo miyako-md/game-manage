@@ -17,21 +17,37 @@ const data = (name = '本地召唤师') => ({
 })
 const button = (root, label) => nodes(root, 'button').find(n => content(n).includes(label))
 
-test('announcements and news remain separately accessible without an archive', async t => {
+test('esports is available offline and survives remount without personal controls', async t => {
+  t.mock.method(globalThis, 'fetch', async () => new Response('{}', { status: 503 }))
+  const browseState = { section: 'esports', view: 'teams', family: 'lpl', date: '2026-10-04', returnTo: [] }
+  const props = { esportsBrowse: browseState, snaps: { esports: { payload: { schema_version: 1, season_year: 2026, tournaments: [], teams: [], matches: [] } } } }
+  const root = mount(t, LolDashboard, props)
+  await flush()
+  assert.match(content(root), /职业赛事/)
+  assert.match(content(root), /当前赛事战队资料暂缺/)
+  assert.doesNotMatch(content(root), /采集客户端战绩|本机尚无归档|本地数据读取失败/)
+  const remounted = mount(t, LolDashboard, props)
+  await flush()
+  assert.match(content(remounted), /当前赛事战队资料暂缺/)
+})
+
+test('announcements and news share one list and subject filters without an archive', async t => {
   t.mock.method(globalThis, 'fetch', async () => response({ ...data(), overview: { games: 0 }, coverage: { archived_games: 0 } }))
   const root = mount(t, LolDashboard, { snaps: {
-    announcement: { payload: [{ title: '维护公告', url: 'https://example.com/announcement' }], stale: true },
-    news: { payload: [{ title: '赛事资讯', url: 'https://example.com/news' }] },
+    announcement: { payload: [{ title: '停服维护公告', url: 'https://example.com/announcement' }], stale: true },
+    news: { payload: [{ title: '世界赛事日程', url: 'https://example.com/news' }] },
   } })
   await flush()
-  assert.ok(button(root, '公告'), 'announcement navigation must remain reachable')
-  button(root, '公告').props.onClick(); await flush()
-  assert.match(content(root), /维护公告/)
+  button(root, '公告与资讯').props.onClick(); await flush()
+  assert.match(content(root), /停服维护公告/)
+  assert.match(content(root), /世界赛事日程/)
   assert.match(content(root), /数据可能过期/)
-  assert.doesNotMatch(content(root), /赛事资讯/)
-  button(root, '资讯').props.onClick(); await flush()
-  assert.match(content(root), /赛事资讯/)
-  assert.doesNotMatch(content(root), /维护公告/)
+  button(root, '维护通知').props.onClick(); await flush()
+  assert.match(content(root), /停服维护公告/)
+  assert.doesNotMatch(content(root), /世界赛事日程/)
+  button(root, '赛事资讯').props.onClick(); await flush()
+  assert.match(content(root), /世界赛事日程/)
+  assert.doesNotMatch(content(root), /停服维护公告/)
 })
 
 test('remakes display separately from unknown results and retain neutral detail labels', async t => {

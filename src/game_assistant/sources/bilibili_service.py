@@ -13,6 +13,9 @@ from .bilibili_store import BilibiliStore
 
 logger = logging.getLogger(__name__)
 
+class BilibiliSaveBusy(SourceError):
+    pass
+
 class BilibiliService:
     def __init__(self, settings, sources, client_factory=BilibiliClient):
         self.settings, self.sources, self.client_factory = settings, sources, client_factory
@@ -31,12 +34,32 @@ class BilibiliService:
         self.credentials.save({'bilibili': {k: unquote(str(values[k]).strip()) for k in allowed if values.get(k)}})
         for game, uid in self.sources.items(): self.store.set_state(game, uid, next_retry=0)
 
+    def commit_verified_account(self, account):
+        from game_assistant.auth.bilibili_provider import VerifiedBilibiliAccount, LIMITS
+        if not isinstance(account, VerifiedBilibiliAccount):
+            raise TypeError('Verified account required')
+        if any(not task.done() for task in self.tasks.values()):
+            raise BilibiliSaveBusy()
+        saved = self.credentials.load()
+        saved['bilibili'] = {k: v for k, v in account.credentials.items() if k in LIMITS}
+        saved['bilibili_meta'] = {'uid': account.uid, 'nickname': account.nickname, 'validated_at': account.validated_at}
+        self.credentials.save(saved)
+        warning = False
+        for game, uid in self.sources.items():
+            try:
+                self.store.set_state(game, uid, next_retry=0)
+            except Exception:
+                warning = True
+        return {'warning': '账号已保存，采集刷新可重试'} if warning else {}
+
     def statuses(self):
+        from .public_content import visible_article
         result = []
         for game, uid in self.sources.items():
             rows = self.store.rows(game, uid, days=self.settings.bilibili_history_days, limit=10000)
             result.append({**self.store.state(game, uid), 'running': bool(self.tasks.get(game) and not self.tasks[game].done()),
                 'total': len(rows), 'accepted': sum(r['decision'] == 'accepted' for r in rows),
+                'article_count': sum(visible_article(r) for r in rows),
                 'reasons': dict(Counter(r['reason_text'] for r in rows)), 'history_days': self.settings.bilibili_history_days})
         return result
 
@@ -44,8 +67,11 @@ class BilibiliService:
         uid = self.sources.get(game)
         if not uid: return []
         state = self.store.state(game, uid)
-        return [{**r, 'source_stale': bool(r.get('last_observation_error')) or (state.get('status') == 'error' and r.get('fetched_at', '') < state.get('last_attempt', ''))} for r in
-                self.store.rows(game, uid, 'accepted', days=self.settings.bilibili_history_days, limit=1000)]
+        from .public_content import visible_article
+        return [{**r, 'content_status': r.get('content_status') or ('full' if r['decision'] == 'accepted' else 'unavailable'),
+                 'content_error': r.get('content_error') or ('历史记录未验证正文完整性，下方为已读取内容，请查看原文。' if r['decision'] != 'accepted' and not r.get('content_status') else ''),
+                 'source_stale': bool(r.get('last_observation_error')) or (state.get('status') == 'error' and r.get('fetched_at', '') < state.get('last_attempt', ''))} for r in
+                self.store.rows(game, uid, days=self.settings.bilibili_history_days, limit=10000) if visible_article(r)][:1000]
 
     def calendar(self, game):
         from .public_content import calendar_from_posts

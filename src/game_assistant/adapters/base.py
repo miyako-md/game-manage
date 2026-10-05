@@ -37,13 +37,17 @@ class BaseGameAdapter(ABC):
             Capability.REALESTATE: self.fetch_realestate,
             Capability.VEHICLES: self.fetch_vehicles,
             Capability.TEAMS: self.fetch_teams,
+            Capability.ESPORTS: self.fetch_esports,
         }[capability]
         auth = getattr(self, '_auth', None)
-        if auth:
+        if auth and capability != Capability.ESPORTS:
             return await auth.fetch(self.game_id, capability, method)
         return await method()
 
     async def fetch_account(self) -> FetchResult:
+        return FetchResult(ok=False, error="适配器未实现该能力")
+
+    async def fetch_esports(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_realestate(self) -> FetchResult:

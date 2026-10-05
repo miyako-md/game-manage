@@ -32,7 +32,7 @@ const tabs = [
   ['resources', '资源简报'],
   ['gacha', '抽卡历史'],
   ['history', '成长记录'],
-  ['news', '公告'],
+  ['news', '公告与资讯'],
 ]
 const section = ref(
   { characters: 'roles', overview: 'profile', all: 'profile' }[
@@ -110,13 +110,7 @@ const roleNames = computed(() =>
     </div>
     <div :key="`${accountKey}:${section}`" class="wuwa-stack t-panel">
       <template v-if="section === 'news'">
-        <WuwaModuleCard v-for="(item, index) in list((snaps.news?.payload ? snaps.news : snaps.announcement)?.payload)" :key="`${item.url || item.title}:${index}`" :title="item.title || '公告'" button-label="查看公告详情" :snap="snaps.news?.payload ? snaps.news : snaps.announcement" :description="item.source_stale ? `${item.source_name || '来源'} · 采集异常，保留旧记录` : (item.source_name || '公告摘要与原文链接')">
-          <AnnouncementList :snap="{ ...(snaps.news?.payload ? snaps.news : snaps.announcement), payload: [item] }" />
-        </WuwaModuleCard>
-        <section v-if="!list((snaps.news?.payload ? snaps.news : snaps.announcement)?.payload).length" class="wuwa-panel">
-          <p>暂无公告数据</p>
-          <WuwaStatus :snap="snaps.news || snaps.announcement" />
-        </section>
+        <AnnouncementList game-id="wuthering_waves" :snap="snaps.news?.payload ? snaps.news : snaps.announcement" />
       </template>
       <p v-else-if="!configured" class="wuwa-panel">
         请先登录鸣潮账号以查看私人档案。

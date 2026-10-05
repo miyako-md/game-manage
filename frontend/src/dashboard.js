@@ -1,7 +1,8 @@
 import { reactive } from 'vue'
 import { DAY_MS, parseBeijingTime, safeUrl } from './calendar.js'
+import { createEsportsBrowseState } from './esports.js'
 
-const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams'])
+const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams', 'esports'])
 export const GAME_STYLE = {
   wuthering_waves: { mark: '鸣', icon: '/game-icons/wuthering_waves-mark.svg', iconLight: '/game-icons/wuthering_waves-mark-light.svg', color: 'var(--game-wuwa)', english: 'WUTHERING WAVES', resource: '结晶波片' },
   nte: { mark: '异', icon: '/game-icons/nte-mark.svg', iconLight: '/game-icons/nte-mark-light.svg', color: 'var(--game-nte)', english: 'NEVERNESS TO EVERNESS', resource: '本性像素' },
@@ -105,9 +106,23 @@ export function readRoute(hash) {
 
 export function createDashboard(api) {
   const state = reactive({ games: [], snapshots: {}, notify: null, accounts: {}, collection: [], readErrors: {}, refreshErrors: {}, refreshing: {},
-    loading: false, loadError: '', serviceError: '', loadedAt: null })
-  const requests = new Map(), epochs = new Map()
+    loading: false, loadError: '', serviceError: '', loadedAt: null,
+    esportsBrowse: { league_of_legends: createEsportsBrowseState() } })
+  const requests = new Map(), epochs = new Map(), refreshResults = new Map()
   let catalogRequest = 0, statusRequest = 0, disposed = false
+
+  function renderRefreshErrors(id) {
+    const failed = Object.entries(refreshResults.get(id) || {}).filter(([, r]) => r?.ok !== true && !['offline', 'unconfigured', 'account_changed'].includes(r?.error_kind))
+    state.refreshErrors[id] = failed.map(([cap, r]) => `${cap}：${r?.error || '拉取失败'}`).join('；')
+  }
+
+  function reconcileRefreshErrors(id, status) {
+    const results = refreshResults.get(id), cap = status?.capability
+    if (!results || !['news', 'events'].includes(cap) || status.scope !== 'public_source' || !results[cap] || results[cap].ok === true) return
+    if (!['ok', 'error', 'auth_expired'].includes(status.state)) return
+    results[cap] = { ok: status.state === 'ok', error: status.error, error_kind: status.error_kind }
+    renderRefreshErrors(id)
+  }
 
   function mergeCollection(rows) {
     if (!Array.isArray(rows)) return
@@ -144,7 +159,10 @@ export function createDashboard(api) {
         const cap = game.capabilities[index]
         if (r.status === 'fulfilled' && r.value && 'payload' in r.value) {
           next[cap] = r.value
-          if (r.value.poll_status) mergeCollection([r.value.poll_status])
+          if (r.value.poll_status) {
+            mergeCollection([r.value.poll_status])
+            reconcileRefreshErrors(id, state.collection.find(row => row.game_id === id && row.capability === cap))
+          }
         }
         else failed.push(cap)
       })
@@ -180,6 +198,7 @@ export function createDashboard(api) {
     state.snapshots[id] = Object.fromEntries(Object.entries(state.snapshots[id] || {}).filter(([cap]) => PUBLIC_CAPS.has(cap)))
     state.collection = state.collection.filter(row => row.game_id !== id || PUBLIC_CAPS.has(row.capability))
     delete state.readErrors[id]; delete state.refreshErrors[id]; delete state.accounts[id]
+    refreshResults.delete(id)
     state.refreshing[id] = false
   }
 
@@ -190,10 +209,13 @@ export function createDashboard(api) {
     try {
       const result = await api.refreshGame(id)
       if (disposed || epoch !== (epochs.get(id) || 0)) return
-      const failed = Object.entries(result?.results || {}).filter(([, r]) => r?.ok !== true && !['offline', 'unconfigured', 'account_changed'].includes(r?.error_kind))
-      state.refreshErrors[id] = failed.length ? failed.map(([cap, r]) => `${cap}：${r?.error || '拉取失败'}`).join('；') : ''
+      refreshResults.set(id, { ...(result?.results || {}) })
+      renderRefreshErrors(id)
     } catch {
-      if (!disposed && epoch === (epochs.get(id) || 0)) state.refreshErrors[id] = '刷新请求失败，请检查连接后重试。'
+      if (!disposed && epoch === (epochs.get(id) || 0)) {
+        refreshResults.delete(id)
+        state.refreshErrors[id] = '刷新请求失败，请检查连接后重试。'
+      }
     } finally {
       if (!disposed && epoch === (epochs.get(id) || 0)) {
         await loadSnapshots(id)

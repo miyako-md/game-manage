@@ -16,3 +16,4 @@ dist/
 *.credentials.json.key
 private-backups/
 frontend/public/local-game-icons/
+/frontend/dist-before-esports/

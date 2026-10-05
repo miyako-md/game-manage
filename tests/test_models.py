@@ -79,5 +79,6 @@ def test_capability_names_and_values_are_pinned():
         "REALESTATE": "realestate",
         "VEHICLES": "vehicles",
         "TEAMS": "teams",
+        "ESPORTS": "esports",
     }
     assert {c.name: c.value for c in Capability} == expected

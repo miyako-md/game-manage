@@ -201,6 +201,7 @@ async def test_no_bound_role_reports_error():
 
 @respx.mock
 async def test_fetch_announcement_ok():
+    respx.post("https://api.kurobbs.com/forum/getPostDetail").respond(200, json={"code": 200, "data": {"postDetail": {"postId": "9001", "postH5Content": "<p>版本更新正文</p>"}}})
     route = respx.post(EVENT_URL).mock(
         return_value=httpx.Response(200, json=EVENT_RAW))
     a = WutheringWavesAdapter(Settings(wuwa_token="tok", wuwa_user_id="123"))

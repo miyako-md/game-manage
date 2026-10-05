@@ -9,16 +9,19 @@
 解析函数对键名与响应形状做防御式兼容（部分回退形状未经实测）。
 """
 import json
+import asyncio
 import re
 from datetime import datetime
 
 import httpx
+from urllib.parse import urlsplit, parse_qs
 
 from game_assistant.adapters.league_of_legends.endpoints import (
-    NEWS_CATEGORY_IDS, NEWS_LIST_URL,
+    NEWS_CATEGORY_IDS, NEWS_LIST_URL, NEWS_DETAIL_URL,
 )
 from game_assistant.event_calendar import BEIJING_TZ
 from game_assistant.models import AnnouncementItem
+from game_assistant.sources.article_content import article_content
 
 _HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -78,6 +81,26 @@ class LoLNewsClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
+    async def enrich_articles(self, items):
+        slots = asyncio.Semaphore(3)
+
+        async def enrich(item):
+            if item.content_status in ('video', 'external') or not item.id.isdigit():
+                return item
+            try:
+                async with slots:
+                    raw = await self.fetch_json(NEWS_DETAIL_URL.format(docid=item.id))
+                data = raw.get('data')
+                detail = data.get('result') if isinstance(data, dict) else None
+                if (raw.get('status') not in (1, '1') or not isinstance(detail, dict)
+                        or str(detail.get('iDocID')) != item.id):
+                    raise LoLNewsError('正文响应与文章编号不匹配')
+                return item.model_copy(update=article_content(detail.get('sContent')))
+            except LoLNewsError:
+                return item.model_copy(update={'content_status': 'error', 'content_error': '英雄联盟官网正文暂时无法读取'})
+
+        return await asyncio.gather(*(enrich(item) for item in items))
+
     async def __aenter__(self) -> "LoLNewsClient":
         return self
 
@@ -136,7 +159,7 @@ def _detail_url(item: dict) -> str | None:
     return None
 
 
-def parse_news_json(data: dict | list) -> list[AnnouncementItem]:
+def parse_news_json(data: dict | list, category: str = '') -> list[AnnouncementItem]:
     """解析官网新闻列表响应为 AnnouncementItem。
 
     分类只能由请求端点的 target 参数在服务端过滤（公告条目 sTagIds 中并不含
@@ -150,10 +173,17 @@ def parse_news_json(data: dict | list) -> list[AnnouncementItem]:
         published_at = _dt(it.get("sIdxTime"), it.get("l_time"),
                            it.get("sDate"), it.get("createDate"),
                            it.get("date"), it.get("time"))
+        url = _detail_url(it)
+        parsed = urlsplit(url or '')
+        docid = (parse_qs(parsed.query).get('docid') or [''])[0]
+        text_article = parsed.hostname == 'lol.qq.com' and parsed.path == '/news/detail.shtml' and docid.isdigit()
+        status = 'video' if it.get('sVID') or parsed.path.startswith('/v/v2/') else 'unavailable' if text_article else 'external'
         items.append(AnnouncementItem(
             title=title,
             published_at=published_at,
-            url=_detail_url(it),
+            url=url, id=docid if text_article else str(it.get('iDocID') or ''),
+            source='official', source_name='英雄联盟官网', category=category,
+            content_status=status,
             summary=it.get("sDesc") or it.get("summary") or "",
         ))
     return items

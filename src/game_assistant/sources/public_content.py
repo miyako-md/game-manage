@@ -23,6 +23,17 @@ def content_title(post):
     return post.get('title', '')
 
 
+def visible_article(post):
+    """Editorial scope for the list; never change calendar acceptance decisions."""
+    if post.get('decision') == 'accepted':
+        return True
+    if post.get('reason') not in ('promotion', 'lottery', 'not_ingame', 'no_date'):
+        return False
+    return bool(post.get('body') and re.search(
+        r'网页活动|创作(?:征集|激励)|同人(?:征集|创作|活动)|线下活动|漫展|参展|ChinaJoy|社区活动',
+        content_title(post), re.I))
+
+
 def key(text):
     return re.sub(r'[^\w\u4e00-\u9fff]', '', unicodedata.normalize('NFKC', text or '')).lower()
 
@@ -241,15 +252,32 @@ def merge_events(primary, community, version):
 
 
 def merge_news(primary, community):
-    result, seen = [], set()
+    def rank(item):
+        if not item.get('body') and not item.get('images'): return 0
+        status = item.get('content_status') or ('full' if item.get('decision') == 'accepted' else '')
+        return 3 if status == 'full' else 2 if status == 'stale' else 1
+
+    result = []
     ordered = sorted(primary, key=lambda p: p.get('published_at') or '', reverse=True)
-    ordered += [{**r, 'source': 'community', 'source_name': '社区补充'} for r in community]
+    ordered += [{**r, 'source': r.get('source') or 'community', 'source_name': r.get('source_name') or '社区补充'} for r in community]
     for row in ordered:
         row = dict(row)
         row['title'] = content_title(row) if row.get('source') == 'bilibili' else row.get('title', '')
         ident = key(row['title'])
-        if ident in seen:
+        same = next((item for item in result if
+                     (row.get('url') and row['url'] == item.get('url')) or
+                     (ident and key(item['title']) == ident and
+                      item.get('source') != row.get('source') and
+                      (not row.get('published_at') or not item.get('published_at') or
+                       row['published_at'][:10] == item['published_at'][:10]))), None)
+        if same is not None:
+            links = same.setdefault('original_links', [{'url': same.get('url'), 'name': same.get('source_name') or '原文'}])
+            for link in [{'url': row.get('url'), 'name': row.get('source_name') or '原文'}, *row.get('original_links', [])]:
+                if link.get('url') and not any(old.get('url') == link['url'] for old in links):
+                    links.append(link)
+            if rank(row) > rank(same):
+                for field in ('body', 'images', 'summary', 'content_status', 'content_error', 'fetched_at', 'source_stale'):
+                    if field in row: same[field] = row[field]
             continue
-        seen.add(ident)
         result.append(row)
     return result

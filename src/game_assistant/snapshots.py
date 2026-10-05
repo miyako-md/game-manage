@@ -106,7 +106,7 @@ class SnapshotStore:
             ).fetchone()
         return {"payload": row[0], "fetched_at": row[1]} if row else None
 
-    _PUBLIC_CAPABILITIES = ('announcement', 'events', 'news', 'teams')
+    _PUBLIC_CAPABILITIES = ('announcement', 'events', 'news', 'teams', 'esports')
 
     def _private_clause(self):
         marks = ','.join('?' for _ in self._PUBLIC_CAPABILITIES)

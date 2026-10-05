@@ -15,12 +15,12 @@ class BilibiliStore:
         with self.lock, self.conn:
             preserved = []
             for row in rows:
-                if row['reason'] == 'incomplete':
+                if row['reason'] == 'incomplete' or row.get('content_status') == 'unavailable':
                     old = self.conn.execute('SELECT payload FROM bili_posts WHERE game=? AND uid=? AND id=?', (game, uid, row['id'])).fetchone()
                     if old:
                         previous = json.loads(old[0])
-                        if previous['reason'] != 'incomplete':
-                            row = {**previous, 'last_observation_error': '本次正文获取不完整，保留上次完整记录', 'last_observed_at': row.get('fetched_at')}
+                        if previous.get('content_status', 'full' if previous['decision'] == 'accepted' else '') in ('full', 'stale'):
+                            row = {**previous, 'content_status': 'stale', 'content_error': '本次正文获取不完整', 'last_observation_error': '本次正文获取不完整，保留上次完整记录', 'last_observed_at': row.get('fetched_at')}
                 preserved.append(row)
             self.conn.executemany('INSERT INTO bili_posts VALUES (?,?,?,?,?,?) ON CONFLICT(game,uid,id) DO UPDATE SET published=excluded.published,decision=excluded.decision,payload=excluded.payload',
                 [(game, uid, r['id'], r['published_at'], r['decision'], json.dumps(r, ensure_ascii=False)) for r in preserved])

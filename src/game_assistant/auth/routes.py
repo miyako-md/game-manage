@@ -40,6 +40,8 @@ def install_auth_routes(app, service):
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, error):
+        if request.url.path.startswith('/api/auth/bilibili-source/'):
+            return JSONResponse({'detail': '登录输入不正确，请检查输入', 'error_code': 'INVALID_INPUT'}, status_code=422)
         if request.url.path.startswith('/api/auth/'):
             return JSONResponse({'detail': '登录参数不正确，请检查手机号和验证码'}, status_code=422)
         return await request_validation_exception_handler(request, error)

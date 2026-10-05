@@ -25,6 +25,7 @@ class Capability(str, Enum):
     REALESTATE = "realestate"
     VEHICLES = "vehicles"
     TEAMS = "teams"
+    ESPORTS = "esports"
 
 
 class StaminaInfo(BaseModel):
@@ -64,6 +65,14 @@ class AnnouncementItem(BaseModel):
     published_at: datetime | None = None
     url: str | None = None
     summary: str = ""
+    id: str = ""
+    source: str = ""
+    source_name: str = ""
+    category: str = ""
+    body: str = ""
+    images: list[str] = []
+    content_status: Literal['full', 'unavailable', 'error', 'video', 'external', 'stale'] = 'unavailable'
+    content_error: str = ""
 
 
 class DetectionSummary(BaseModel):

@@ -12,6 +12,7 @@ data.posts，post 键 subject/createTime（毫秒）/postId（int）。
 from game_assistant.adapters.neverness.endpoints import COMMUNITY_ID
 from game_assistant.event_calendar import parse_ms_or_iso as _dt
 from game_assistant.models import AnnouncementItem
+from game_assistant.sources.article_content import article_content
 
 
 def _extract_rows(raw) -> list:
@@ -60,19 +61,24 @@ def parse_official_posts(raw) -> list[AnnouncementItem]:
     实测形状：data.posts，标题键 subject，时间键 createTime（毫秒）。
     键名仍做多级回退：标题 subject/sTitle/title/postTitle；时间
     sIdxTime/publishTime/createTime（毫秒或 ISO）；摘要 sDesc/summary
-    （实测 content 为帖子全文，不进摘要以免长文撑爆卡片）。
+    content 保留为全文；列表摘要与正文分开。
     """
     items = []
     for it in _extract_rows(raw):
         if not isinstance(it, dict):
             continue
+        content = article_content(it.get('content'))
+        if not content['summary']:
+            content['summary'] = it.get('sDesc') or it.get('summary') or ''
         items.append(AnnouncementItem(
             title=it.get("subject") or it.get("sTitle") or it.get("title")
             or it.get("postTitle") or "",
             published_at=_dt(it.get("sIdxTime"), it.get("publishTime"),
                              it.get("createTime")),
             url=_post_url(it),
-            summary=it.get("sDesc") or it.get("summary") or "",
+            id=str(it.get('postId') or it.get('post_id') or it.get('id') or ''),
+            source='community', source_name='塔吉多官方资讯',
+            **content,
         ))
     return items
 

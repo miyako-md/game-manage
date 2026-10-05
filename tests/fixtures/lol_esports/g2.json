@@ -1,0 +1,99 @@
+{
+  "status": "0",
+  "msg": {
+    "baseInfo": {
+      "TeamId": "117",
+      "TeamName": "G2",
+      "TeamEnName": "G2Esports",
+      "TeamShortName": "G2",
+      "TeamDesc": "",
+      "TeamLogo": "//img.crawler.qq.com/lolwebvideo/20260616155410/e84fff0c6ffe4612378c54470bdd64ec/0",
+      "CreateDate": "2015-10-15",
+      "sUrl": "",
+      "Place": "3",
+      "Leader": "JoeySteltenpool",
+      "Weibo": "",
+      "Tags": "",
+      "TeamStatus": "1",
+      "RsetNameStatus": "0",
+      "RsetTeamId": "",
+      "TeamLogoDeep": "",
+      "TeamLogo450": "//img.crawler.qq.com/lolwebvideo/20190919151542/d59973ca81a5d1c3b088d01cccdfd526/0"
+    },
+    "activePlayers": [
+      {
+        "MemberId": "1717",
+        "NickName": "Caps",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260702193723/927282e589b86d6041931c7d647a8c32/0",
+        "sUrl": "",
+        "Place": "0",
+        "GameName": "G2caPs",
+        "GamePlace": "2,",
+        "TeamName": "G2",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "0"
+      },
+      {
+        "MemberId": "3281",
+        "NickName": "BrokenBlade",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260702193744/f6c0ce71abd2123f405b0c904d21deba/0",
+        "sUrl": "",
+        "Place": "0",
+        "GameName": "G2BrokenBlade",
+        "GamePlace": "1,",
+        "TeamName": "G2",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "0"
+      },
+      {
+        "MemberId": "3421",
+        "NickName": "HansSama",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260702193705/ca96552cb7e5b399947e118aa510d7c6/0",
+        "sUrl": "",
+        "Place": "0",
+        "GameName": "G2HansSama",
+        "GamePlace": "3,",
+        "TeamName": "G2",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "0"
+      },
+      {
+        "MemberId": "4537",
+        "NickName": "Labrov",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260702193637/da29ecc4c493b2948e5e2d3ed528927d/0",
+        "sUrl": "",
+        "Place": "0",
+        "GameName": "G2Labrov",
+        "GamePlace": "4,",
+        "TeamName": "G2",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "0"
+      },
+      {
+        "MemberId": "1000853",
+        "NickName": "SkewMond",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260702193607/d7425027f407f585e6a1aa39b658c623/0",
+        "sUrl": "",
+        "Place": "0",
+        "GameName": "G2SkewMond",
+        "GamePlace": "5,",
+        "TeamName": "G2",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "0"
+      }
+    ],
+    "historyPlayers": [],
+    "teamAwards": []
+  },
+  "lastUpdateTime": "2026-07-02 23:50:08"
+}

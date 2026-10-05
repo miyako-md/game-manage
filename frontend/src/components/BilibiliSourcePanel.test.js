@@ -28,6 +28,25 @@ function serve(t, handler) {
 }
 const collect = root => nodes(root, 'button').find(n => content(n) === '采集新动态').props.onClick()
 
+test('source counts include community articles and explain calendar separation', async t => {
+  serve(t, async () => ({ ok: true, json: async () => ({ ...status(), sources: [{ ...status().sources[0], article_count: 2, total: 3, accepted: 0 }] }) }))
+  const root = mount(t, Panel, {}); await flush()
+  const income = nodes(root, 'div').find(n => nodes(n, 'dt').length === 1 && content(n).startsWith('收入资讯'))
+  assert.match(content(income), /2 条/)
+  assert.ok(nodes(root, 'button').some(n => n.props['aria-label']?.includes('社区') || n.props.title?.includes('社区')) || content(root).includes('社区'))
+})
+
+test('source panel opens all Bilibili login modes and reports configured versus verified', async t => {
+  serve(t, async (path, options) => ({ok:true,json:async()=>options?.method==='POST'
+    ?{session_id:'FAKE_QR',state:'waiting_scan',qr_image:'data:image/png;base64,FAKE',qr_expires_in:180}
+    :{...status(),login:{configured:true,uid:'10001',nickname:'Test',state:'configured'}}}))
+  const root=mount(t,Panel,{});await flush()
+  await nodes(root,'button').find(n=>content(n).includes('更新B站登录信息')).props.onClick();await flush()
+  for(const label of ['扫码登录','账号密码','手机号验证码','Cookie 导入'])assert.match(content(root),new RegExp(label))
+  assert.match(content(root), /尚未重新验证/)
+  assert.equal(nodes(root,'form').length,0)
+})
+
 test('refreshing during a timed status read keeps one polling loop', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] })
   let reads = 0, release

@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     activity_seconds: int = 3600
     announcement_seconds: int = 3600
     news_seconds: int = 14400
+    esports_seconds: int = 900
+    esports_profiles_seconds: int = 86400
     bilibili_sources: dict[str, str] = {}
     bilibili_history_days: int = 60
     bilibili_poll_seconds: int = 600

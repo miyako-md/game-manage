@@ -92,5 +92,6 @@ def test_every_capability_polls_on_its_interval_setting():
         Capability.GACHA: news, Capability.RECORD: news,
         Capability.REALESTATE: news, Capability.VEHICLES: news,
         Capability.TEAMS: news,
+        Capability.ESPORTS: 900,
     }
     assert {cap: interval_for(cap, settings) for cap in Capability} == expected

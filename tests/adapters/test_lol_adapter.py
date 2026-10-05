@@ -100,6 +100,7 @@ async def test_ranked_stats_failure_not_fatal(monkeypatch):
 
 @respx.mock
 async def test_fetch_announcement_ok():
+    respx.get("https://apps.game.qq.com/cmc/zmMcnContentInfo").respond(503)
     route = respx.get(NEWS_LIST_BASE).mock(
         return_value=httpx.Response(200, json=NEWS_RAW))
     a = LeagueOfLegendsAdapter(Settings())
@@ -115,6 +116,7 @@ async def test_fetch_announcement_ok():
 
 @respx.mock
 async def test_fetch_news_ok():
+    respx.get("https://apps.game.qq.com/cmc/zmMcnContentInfo").respond(503)
     route = respx.get(NEWS_LIST_BASE).mock(
         return_value=httpx.Response(200, json=NEWS_RAW))
     a = LeagueOfLegendsAdapter(Settings())

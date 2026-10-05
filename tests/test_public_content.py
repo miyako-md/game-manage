@@ -56,6 +56,18 @@ def test_news_bilibili_first_and_same_title_community_collapsed():
     assert result[0]['title']=='[身赴三途]角色活动唤取'
     assert result[1]['source']=='community'
 
+
+def test_news_duplicate_retains_available_full_body_and_both_original_links():
+    primary = dict(title='维护公告', source='bilibili', body='', url='https://t.bilibili.com/1')
+    native = dict(title='维护公告', body='官网完整正文', content_status='full', url='https://community.example/1')
+    result = merge_news([primary], [native])
+    assert len(result) == 1 and result[0]['source'] == 'bilibili'
+    assert result[0]['body'] == '官网完整正文'
+    assert {link['url'] for link in result[0]['original_links']} == {primary['url'], native['url']}
+    primary.update(body='维护公告\n截断节选', content_status='unavailable')
+    repaired = merge_news([primary], [native])[0]
+    assert repaired['body'] == '官网完整正文' and repaired['content_status'] == 'full'
+
 def test_grouped_weapon_and_character_pools_and_nte_aliases():
     p=notice('3.6版本\n「卡池甲」、「卡池乙」角色活动唤取，「武器甲」、「武器乙」武器活动唤取限时开启！\n活动时间：2026年9月10日10:00 ~ 2026年9月29日11:59')
     assert len(parse_post_events(p,'wuthering_waves','3.6'))==4

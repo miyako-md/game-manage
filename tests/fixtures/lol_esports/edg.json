@@ -1,0 +1,113 @@
+{
+  "status": "0",
+  "msg": {
+    "baseInfo": {
+      "TeamId": "1",
+      "TeamName": "EDG",
+      "TeamEnName": "EDWARDGAMING",
+      "TeamShortName": "EDG",
+      "TeamDesc": "",
+      "TeamLogo": "//img.crawler.qq.com/lolwebvideo/20230103153103/7c5a8db3be3d7c93114ac47a801d64cb/0",
+      "CreateDate": "2013-09-13",
+      "sUrl": "LPL",
+      "Place": "1",
+      "Leader": "",
+      "Weibo": "",
+      "Tags": "",
+      "TeamStatus": "1",
+      "RsetNameStatus": "0",
+      "RsetTeamId": "",
+      "TeamLogoDeep": "//shp.qpic.cn/lolwebvideo/201501/1943f15147096093ff2a18fbbcb838ba/0",
+      "TeamLogo450": "//img.crawler.qq.com/lolwebvideo/20211201181203/f3cf14916e6a0cc2493fcdd4c031ce7d/0"
+    },
+    "activePlayers": [
+      {
+        "MemberId": "2347",
+        "NickName": "Zdz",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260112121012/2b2fcbbd4c9732fe365e69c413045463/0",
+        "sUrl": "",
+        "Place": "0",
+        "GameName": "EDGZdz",
+        "GamePlace": "1,",
+        "TeamName": "EDG",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "0"
+      },
+      {
+        "MemberId": "2770",
+        "NickName": "Jiejie",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260811182006/8813d5c1b648e16e89b04b47be92d2d9/0",
+        "sUrl": "",
+        "Place": "1",
+        "GameName": "EDGJiejie",
+        "GamePlace": "5,",
+        "TeamName": "EDG",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "2"
+      },
+      {
+        "MemberId": "3689",
+        "NickName": "Leave",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260112121106/d421a4b0d1a6d31a6d6c3284842a4893/0",
+        "sUrl": "",
+        "Place": "0",
+        "GameName": "EDGLeave",
+        "GamePlace": "3,",
+        "TeamName": "EDG",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "0"
+      },
+      {
+        "MemberId": "10121",
+        "NickName": "sinian",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260919133627/86b108082454118ce82307212142a5e0/0",
+        "sUrl": "",
+        "Place": "0",
+        "GameName": "EDGsinian",
+        "GamePlace": "2,",
+        "TeamName": "EDG",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "0"
+      },
+      {
+        "MemberId": "10152",
+        "NickName": "Parukia",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260112121140/1646616b78dd94c2491e96f6c40b0ab3/0",
+        "sUrl": "",
+        "Place": "0",
+        "GameName": "EDGParukia",
+        "GamePlace": "4,",
+        "TeamName": "EDG",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "0"
+      },
+      {
+        "MemberId": "10162",
+        "NickName": "BuLLDoG",
+        "UserIcon": "//img.crawler.qq.com/lolwebvideo/20260721190008/74d0fdabd914d30cf6f1bef5103ae7a2/0",
+        "sUrl": "",
+        "Place": "0",
+        "GameName": "EDGBuLLDoG",
+        "GamePlace": "2,",
+        "TeamName": "EDG",
+        "Sex": "2",
+        "iStandInType": "0",
+        "GameHero": "",
+        "UserFlag": "0"
+      }
+    ],
+    "historyPlayers": [],
+    "teamAwards": []
+  },
+  "lastUpdateTime": "2026-10-04 21:20:04"
+}

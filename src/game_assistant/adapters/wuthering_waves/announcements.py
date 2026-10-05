@@ -18,5 +18,6 @@ def parse_announcement_list(raw: dict) -> list[AnnouncementItem]:
             published_at=_dt(it.get("publishTime"), it.get("firstPublishTime")),
             url=f"https://www.kurobbs.com/forum/post/{it.get('postId')}"
             if it.get("postId") else None,
+            id=str(it.get('postId') or ''), source='community', source_name='库街区官方公告',
         ))
     return items

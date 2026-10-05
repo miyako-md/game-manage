@@ -4,10 +4,11 @@ import { formatTime } from '../dashboard.js'
 import { safeUrl } from '../calendar.js'
 import InfoHint from './InfoHint.vue'
 import MenuSelect from './MenuSelect.vue'
+import BilibiliLoginPanel from './BilibiliLoginPanel.vue'
 const props = defineProps({ gameId: { type: String, default: '' } })
 const emit = defineEmits(['collected'])
 const sources = ref([]), rows = ref([]), error = ref(''), login = ref(false), showLogin = ref(false)
-const sessdata = ref(''), csrf = ref(''), buvid = ref(''), selected = ref(''), decision = ref('accepted'), busy = ref(false)
+const account = ref({}), selected = ref(''), decision = ref('accepted'), busy = ref(false)
 const visible = computed(() => sources.value.filter(s => !props.gameId || s.game_id === props.gameId))
 const filtered = computed(() => rows.value.filter(r => !decision.value || r.decision === decision.value))
 const STATUS_ERROR = '无法读取B站来源状态'
@@ -29,7 +30,7 @@ async function load() {
     const data = await request('/api/sources/bilibili')
     if (stopped || run !== latestLoad) return
     if (error.value === STATUS_ERROR) error.value = ''
-    sources.value = data.sources; login.value = data.login.configured
+    sources.value = data.sources; login.value = data.login.configured; account.value = data.login
     const running = data.sources.some(s => s.running), finished = wasRunning && !running
     wasRunning = running
     if (finished) { emit('collected'); if (selected.value) await audit(selected.value) }
@@ -48,14 +49,7 @@ async function audit(game) {
   try { const data = await request(`/api/sources/bilibili/${game}/audit`); selected.value = game; rows.value = data.rows }
   catch { error.value = '无法读取筛选记录' }
 }
-async function saveLogin() {
-  busy.value = true; error.value = ''
-  try {
-    await request('/api/auth/bilibili-source/credentials', { method: 'POST', body: JSON.stringify({ sessdata: sessdata.value, bili_jct: csrf.value, buvid3: buvid.value }) })
-    sessdata.value = csrf.value = buvid.value = ''; login.value = true; showLogin.value = false
-  } catch (e) { error.value = e.message }
-  finally { busy.value = false }
-}
+async function accountChanged(value) { if (value) { account.value = value; login.value = value.configured } await load() }
 onMounted(load)
 onUnmounted(() => { stopped = true; clearTimeout(timer) })
 </script>
@@ -69,7 +63,7 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
     <div class="bili-body">
       <div class="bili-intro">
         <span class="eyebrow">采集范围</span>
-        <InfoHint text="只收录正文有明确日期的游戏内版本、活动、卡池等通知。视频、抽奖、PV/EP、实机与时装展示自动过滤。" />
+        <InfoHint text="收录游戏内图文通知，以及官方网页活动、创作征集等社区资讯。社区资讯仅展示，不加入活动日历或提醒；视频、PV/EP和实机展示仍过滤。日历继续要求可确认的游戏内日期。" />
       </div>
       <p v-if="error" role="alert" class="bili-alert">{{ error }}</p>
       <div v-for="s in visible" :key="s.uid" class="bili-status">
@@ -80,7 +74,7 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
         <p :class="{ warning: s.status === 'error' }" role="status" class="status-line">{{ s.message || '等待首次采集' }} · 已读取 {{ s.pages || 0 }} 页</p>
         <dl class="kv-list cols-2 bili-kv">
           <div><dt>已保存</dt><dd>{{ s.total }} 条</dd></div>
-          <div><dt>收入资讯</dt><dd>{{ s.accepted }} 条</dd></div>
+          <div><dt>收入资讯</dt><dd>{{ s.article_count ?? s.accepted }} 条</dd></div>
           <div><dt>历史回补</dt><dd>{{ s.history_complete ? '60天历史已回补' : '60天历史尚未完整回补' }}</dd></div>
           <div v-if="s.last_success"><dt>最近成功</dt><dd>{{ formatTime(s.last_success) }}</dd></div>
           <div v-if="s.next_retry && s.next_retry * 1000 > Date.now()"><dt>下次可请求</dt><dd>{{ formatTime(s.next_retry * 1000) }}</dd></div>
@@ -94,18 +88,12 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
       <div class="login-row">
         <button type="button" class="text-link" @click="showLogin = !showLogin">{{ login ? '更新B站登录信息' : '配置B站登录信息（匿名受限时）' }}</button>
       </div>
-      <form v-if="showLogin" @submit.prevent="saveLogin" class="bili-login">
-        <p class="login-note">从已登录的 bilibili.com 浏览器 Cookie 中复制。仅在本机加密保存，用于查询官方动态，不执行点赞或发送消息。</p>
-        <label>SESSDATA<input v-model="sessdata" type="password" required autocomplete="off" /></label>
-        <label>bili_jct（可选）<input v-model="csrf" type="password" autocomplete="off" /></label>
-        <label>buvid3（可选）<input v-model="buvid" type="password" autocomplete="off" /></label>
-        <button :disabled="busy" type="submit" class="ui-button primary small-button">加密保存</button>
-      </form>
+      <BilibiliLoginPanel v-if="showLogin" :account="account" @account-changed="accountChanged" @close="showLogin=false" />
       <div v-if="selected" class="bili-audit">
         <div class="toolbar">
           <span class="audit-filter-label">
             筛选记录
-            <MenuSelect v-model="decision" label="筛选记录" :options="[{ value: 'accepted', label: '已收入资讯' }, { value: 'excluded', label: '已过滤' }, { value: '', label: '全部' }]" />
+            <MenuSelect v-model="decision" label="筛选记录" :options="[{ value: 'accepted', label: '游戏内通知' }, { value: 'excluded', label: '其他采集记录' }, { value: '', label: '全部' }]" />
           </span>
         </div>
         <p v-if="!filtered.length" class="muted bili-empty">暂无符合条件的已采集记录；不代表官方没有发布。</p>
@@ -117,7 +105,7 @@ onUnmounted(() => { stopped = true; clearTimeout(timer) })
           </div>
           <p v-if="r.time_evidence?.length" class="audit-evidence">日期依据：{{ r.time_evidence.map(t => t.text).join('；') }}</p>
           <details>
-            <summary>查看原文</summary>
+            <summary>查看已采集内容</summary>
             <p class="original">{{ r.body || '无文字内容' }}</p>
           </details>
         </article>

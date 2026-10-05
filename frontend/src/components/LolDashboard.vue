@@ -5,15 +5,18 @@ import AnnouncementList from './AnnouncementList.vue'
 import AccountCard from './AccountCard.vue'
 import MatchList from './MatchList.vue'
 import LolTrend from './LolTrend.vue'
+import LolEsportsPanel from './LolEsportsPanel.vue'
+import { createEsportsBrowseState } from '../esports.js'
 import { getLolAnalysis, collectLol, getLolMatch } from '../lol-api.js'
 import { DAY_MS, beijingDayStart, formatBeijingDateTime } from '../calendar.js'
 
-const props = defineProps({ snaps: { type: Object, default: () => ({}) } })
-const emit = defineEmits(['refresh'])
-const days = ref(90), queue = ref(''), section = ref('overview')
+const props = defineProps({ snaps: { type: Object, default: () => ({}) }, esportsBrowse: { type: Object, default: createEsportsBrowseState } })
+const emit = defineEmits(['refresh', 'esports-snapshot', 'esports-browse'])
+const days = ref(90), queue = ref(''), section = ref(props.esportsBrowse.section || 'overview')
+watch(section, value => emit('esports-browse', { section: value }))
 const periods = [[7, '近 7 天'], [30, '近 30 天'], [90, '近 90 天'], [365, '近 365 天'], [0, '全部归档']]
 const queues = [['', '全部模式'], ['2400', '海克斯大乱斗'], ['450', '极地大乱斗'], ['420', '单双排位'], ['440', '灵活排位']]
-const tabs = [['overview', '个人总览'], ['history', '对局记录'], ['hex', '海克斯'], ['announcement', '公告'], ['news', '资讯']]
+const tabs = [['overview', '个人总览'], ['history', '对局记录'], ['hex', '海克斯'], ['news', '公告与资讯'], ['esports', '职业赛事']]
 const analysis = ref(null), loadedFilter = ref({ days: 90, queue: '' }), loading = ref(false), error = ref('')
 const collecting = ref(false), collectError = ref(''), collectNote = ref('')
 const expanded = ref(null), detail = ref(null), detailLoading = ref(false), detailError = ref('')
@@ -106,22 +109,23 @@ onBeforeUnmount(() => { disposed = true; generation++; analysisController?.abort
 
 <template>
   <div class="lol-dashboard">
-    <header class="lol-header">
+    <header v-if="section !== 'esports'" class="lol-header">
       <div><span class="eyebrow">PERSONAL MATCH ARCHIVE</span><h2>{{ analysis?.account?.nickname || '我的英雄联盟' }}</h2><p>本机战绩档案<span v-if="analysis?.account"> · 等级 {{ val(analysis.account.level) }}</span> · 客户端关闭后仍可查看</p></div>
       <button type="button" class="collect-button" :disabled="collecting" @click="collect">{{ collecting ? '正在采集…' : '采集客户端战绩' }}</button>
     </header>
-    <p v-if="collecting" class="lol-notice" role="status">正在读取客户端近期窗口与详情，最多等待 120 秒。</p>
-    <p v-if="collectError" class="lol-error" role="alert">{{ collectError }}<span v-if="analysis">；已有分析数据仍保留。</span></p>
-    <p v-if="collectNote" class="lol-notice" role="status">{{ collectNote }}</p>
+    <p v-if="collecting && section !== 'esports'" class="lol-notice" role="status">正在读取客户端近期窗口与详情，最多等待 120 秒。</p>
+    <p v-if="collectError && section !== 'esports'" class="lol-error" role="alert">{{ collectError }}<span v-if="analysis && section !== 'esports'">；已有分析数据仍保留。</span></p>
+    <p v-if="collectNote && section !== 'esports'" class="lol-notice" role="status">{{ collectNote }}</p>
     <div class="lol-toolbar">
       <nav class="detail-tabs" aria-label="英雄联盟数据分区"><button v-for="[key, label] in tabs" :key="key" type="button" :aria-pressed="section === key" @click="section = key">{{ label }}</button></nav>
-      <div class="lol-filters"><label>时间<select :value="days" @change="days = Number($event.target.value)"><option v-for="[key, label] in periods" :key="key" :value="key">{{ label }}</option></select></label><label>模式<select :value="queue" @change="queue = $event.target.value"><option v-for="[key, label] in queues" :key="key" :value="key">{{ label }}</option></select></label><button class="reload-button" type="button" :disabled="loading" @click="load">重新读取</button></div>
+      <div v-if="section !== 'esports'" class="lol-filters"><label>时间<select :value="days" @change="days = Number($event.target.value)"><option v-for="[key, label] in periods" :key="key" :value="key">{{ label }}</option></select></label><label>模式<select :value="queue" @change="queue = $event.target.value"><option v-for="[key, label] in queues" :key="key" :value="key">{{ label }}</option></select></label><button class="reload-button" type="button" :disabled="loading" @click="load">重新读取</button></div>
     </div>
-    <p v-if="loading" class="lol-notice" role="status">正在读取本地分析…<span v-if="analysis">暂时展示上次读取结果。</span></p>
-    <p v-if="error" class="lol-error" role="alert">{{ error }}<span v-if="analysis">；保留上次成功读取的数据。</span></p>
+    <p v-if="loading && section !== 'esports'" class="lol-notice" role="status">正在读取本地分析…<span v-if="analysis && section !== 'esports'">暂时展示上次读取结果。</span></p>
+    <p v-if="error && section !== 'esports'" class="lol-error" role="alert">{{ error }}<span v-if="analysis && section !== 'esports'">；保留上次成功读取的数据。</span></p>
     <details v-if="section === 'overview' && snaps.account?.payload" class="lol-panel"><summary>账号与排位快照{{ snaps.account.stale ? ' · 数据可能过期' : '' }}</summary><AccountCard :snap="snaps.account" /></details>
-    <p v-if="analysis" class="coverage-line">当前展示：{{ filterLabel }} · 归档 {{ val(coverage.archived_games) }} 场 · 当前筛选 {{ val(overview.games) }} 场 · 有详情 {{ val(coverage.detail_games) }} 场<span v-if="analysis.collected_at"> · 采集于 {{ fmt(analysis.collected_at) }}（北京时间）</span></p>
-    <template v-if="section === 'news' || section === 'announcement'"><AnnouncementList :snap="snaps[section]" :capability="section" /></template>
+    <p v-if="analysis && section !== 'esports'" class="coverage-line">当前展示：{{ filterLabel }} · 归档 {{ val(coverage.archived_games) }} 场 · 当前筛选 {{ val(overview.games) }} 场 · 有详情 {{ val(coverage.detail_games) }} 场<span v-if="analysis.collected_at"> · 采集于 {{ fmt(analysis.collected_at) }}（北京时间）</span></p>
+    <LolEsportsPanel v-if="section === 'esports'" :snap="snaps.esports" :browse-state="esportsBrowse" @snapshot="emit('esports-snapshot', $event)" @browse-change="emit('esports-browse', $event)" />
+    <template v-else-if="section === 'news'"><AnnouncementList game-id="league_of_legends" :snap="snaps.news" :extra-snaps="[{ ...snaps.announcement, capability: 'announcement' }]" /></template>
     <section v-else-if="!loading && !hasArchive" class="lol-empty">
       <div class="empty-symbol" aria-hidden="true">◈</div><h3>{{ analysis ? '本机尚无归档' : '本地档案暂不可用' }}</h3>
       <p>启动并登录英雄联盟客户端，点击上方「采集客户端战绩」建立个人档案。之后每次采集会补充、去重保存当前账号的近期战绩。</p>

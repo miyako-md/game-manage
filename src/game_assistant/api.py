@@ -24,7 +24,7 @@ def _stale(fetched_at: str, interval_seconds: int) -> bool:
 
 def create_app(registry=None, store=None, scheduler=None, notifier=None,
                settings: Settings | None = None,
-               start_scheduler: bool = True, auth_service=None) -> FastAPI:
+               start_scheduler: bool = True, auth_service=None, bilibili_login_service=None) -> FastAPI:
     settings = settings or Settings.load()
     if auth_service is None:
         from game_assistant.auth.service import LoginService
@@ -72,7 +72,12 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
                if game in {a.game_id for a in app.state.registry.all()} and str(uid).isdigit()}
     bili = BilibiliService(settings, sources) if sources else None
     app.state.bilibili = bili
-    install_bilibili_routes(app, bili)
+    from game_assistant.auth.bilibili_service import BilibiliLoginService
+    from game_assistant.auth.bilibili_routes import install_bilibili_auth_routes
+    bili_auth = bilibili_login_service if bilibili_login_service is not None else BilibiliLoginService(bili)
+    app.state.bilibili_auth = bili_auth
+    install_bilibili_auth_routes(app, bili_auth)
+    install_bilibili_routes(app, bili, bili_auth)
     # main.py 走默认路径时不传 notifier：在此统一解析，保证 state 与 scheduler
     # 持同一 notifier 实例，/api/status 不会恒报"未配置"
     notifier = notifier or build_notifier(settings)
@@ -107,12 +112,14 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
             "credentials_configured": a.credentials_configured,
         } for a in app.state.registry.all()]
 
-    @app.get("/api/games/{game_id}/snapshot/{capability}")
-    async def snapshot(game_id: str, capability: str) -> dict:
+    def read_snapshot(game_id: str, capability: str) -> dict:
         try:
             adapter = app.state.registry.get(game_id)
         except KeyError:
             raise HTTPException(status_code=404, detail="未注册的游戏")
+        if game_id == 'league_of_legends' and capability == 'esports':
+            from game_assistant.lol_esports_routes import read_esports_snapshot
+            return read_esports_snapshot(app, datetime.now(timezone.utc))
         snap = app.state.store.get(game_id, capability)
         source_status = poll_status(game_id, capability, snap)
         # Endfield's own website supplies the calendar. Bilibili is the fallback
@@ -121,13 +128,20 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
             rows = json.loads(snap['payload'])
             interval = interval_for(Capability(capability), settings)
             stale = _stale(snap['fetched_at'], interval) or source_status['state'] in ('error', 'auth_expired')
+            rows = [{**row, 'source_stale': stale} for row in rows]
+            if capability == 'news' and bili and game_id in sources:
+                # Community articles supplement the website; calendar acceptance
+                # and official game-notice priority stay unchanged.
+                extra = [row for row in bili.news(game_id) if row.get('decision') != 'accepted']
+                rows = merge_news(rows, extra)
             return {'game_id': game_id, 'capability': capability,
-                    'payload': [{**row, 'source_stale': stale} for row in rows],
+                    'payload': rows,
                     'fetched_at': snap['fetched_at'], 'stale': stale,
                     'poll_status': source_status, 'primary_source': 'official',
                     'version': next((row.get('version') for row in rows if row.get('version')), None)}
         if capability in ('news', 'events') and bili and game_id in sources and game_id in MOBILE_GAMES:
             state = bili.store.state(game_id, sources[game_id])
+            native_status = {k: v for k, v in source_status.items() if k != 'observed_at'}
             rows = json.loads(snap['payload']) if snap else []
             rows = rows if isinstance(rows, list) else []
             native_stale = bool(snap and (_stale(snap['fetched_at'], settings.news_seconds) or source_status['state'] in ('error', 'auth_expired')))
@@ -145,16 +159,40 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
                 calendar = bili.calendar(game_id)
                 primary = calendar['events']
                 rows = merge_events(primary, rows, calendar['version'])
-            if primary or snap is None:
+            # Collection freshness is independent of when an unchanged article
+            # was first saved. Per-row failures must still retain their warning.
+            success_at = state.get('last_success') or max(
+                (r.get('fetched_at') for r in primary if r.get('fetched_at')), default=None)
+            expired = bool(success_at and _stale(success_at, max(600, settings.bilibili_poll_seconds)))
+            failed = state.get('status') == 'error'
+            partial = any(r.get('source_stale') for r in primary)
+            bili_status = {
+                'state': 'error' if failed or partial else 'ok' if primary else 'never',
+                'error': (state.get('message') or 'B站采集失败，保留成功记录') if failed else
+                         '部分B站正文更新失败，保留上次成功内容' if partial else None,
+                'error_kind': 'source_error' if failed else 'partial_data' if partial else None,
+                'last_success_at': success_at, 'last_attempt_at': state.get('last_attempt'),
+                'consecutive_failures': state.get('failures', 0),
+            }
+            if expired or failed:
+                rows = [{**r, 'source_stale': True} if r.get('source') == 'bilibili' else r for r in rows]
+            native_failed = source_status['state'] in ('error', 'auth_expired')
+            if primary or failed or (snap is None and not native_failed):
                 source_status = {**source_status, 'scope': 'public_source',
-                    'state': 'error' if state.get('status') == 'error' else 'ok' if rows else 'never',
-                    'error': state.get('message') if state.get('status') == 'error' else None,
-                    'last_success_at': max((r.get('fetched_at', '') for r in rows), default=None),
-                    'last_attempt_at': state.get('last_attempt'), 'consecutive_failures': state.get('failures', 0)}
+                                 **bili_status}
+                if not primary and rows and not failed:
+                    # News may consist solely of the native announcement feed.
+                    fallback_cap = 'announcement' if capability == 'news' and announcements else capability
+                    fallback = poll_status(game_id, fallback_cap)
+                    source_status.update({k: v for k, v in fallback.items()
+                                          if k not in ('game_id', 'capability', 'observed_at')})
+            stale = bool(rows) and all(r.get('source_stale', False) for r in rows)
+            source_status = {**source_status, 'stale': stale,
+                             'source_statuses': {'community': native_status, 'bilibili': bili_status}}
             return {'game_id': game_id, 'capability': capability,
                     'payload': rows if rows or snap or state.get('last_success') else None,
                     'fetched_at': max(filter(None, [snap['fetched_at'] if snap else None, state.get('last_success'), *[r.get('fetched_at') for r in rows]]), default=None),
-                    'stale': bool(rows) and all(r.get('source_stale', False) for r in rows),
+                    'stale': stale,
                     'poll_status': source_status, 'bilibili_status': state,
                     'primary_source': 'bilibili' if primary else 'community',
                     'version': calendar['version'] if calendar else None}
@@ -172,15 +210,28 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
                 "stale": _stale(snap["fetched_at"], interval) or source_status["state"] in ("error", "auth_expired"),
                 "poll_status": source_status}
 
+    @app.get("/api/games/{game_id}/snapshot/{capability}")
+    async def snapshot(game_id: str, capability: str) -> dict:
+        return read_snapshot(game_id, capability)
+
     @app.get("/api/status")
     async def status() -> dict:
         notifier = app.state.notifier
         enabled = bool(notifier and notifier.send_key)
         provider = None if notifier is None else notifier.provider
-        return {"notify": {"enabled": enabled, "provider": provider},
-                "collection": [poll_status(adapter.game_id, cap.value)
-                               for adapter in app.state.registry.all()
-                               for cap in adapter.capabilities]}
+        collection = []
+        for adapter in app.state.registry.all():
+            caps = [cap.value for cap in adapter.capabilities]
+            public = bool(bili and adapter.game_id in sources and adapter.game_id in MOBILE_GAMES)
+            if public:
+                caps += [cap for cap in ('news', 'events') if cap not in caps]
+            for cap in caps:
+                # Use the same source selection and status as the served data.
+                # Native poll records remain available as source diagnostics.
+                collection.append(read_snapshot(adapter.game_id, cap)['poll_status']
+                                  if public and cap in ('news', 'events') else
+                                  poll_status(adapter.game_id, cap))
+        return {"notify": {"enabled": enabled, "provider": provider}, "collection": collection}
 
     if scheduler is None and start_scheduler:
         # 默认路径：notifier → 提醒引擎 → 调度器（引擎随每轮轮询评估提醒规则）
@@ -189,6 +240,8 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         scheduler = PollingScheduler(app.state.registry, app.state.store,
                                      settings, reminder=engine)
     app.state.scheduler = scheduler
+    from game_assistant.lol_esports_routes import install_lol_esports_routes
+    install_lol_esports_routes(app)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -199,6 +252,7 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         yield
         if app.state.scheduler:
             await app.state.scheduler.shutdown()
+        await bili_auth.aclose()
         if bili:
             await bili.close()
         app.state.endfield_public.close()
@@ -229,11 +283,22 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
             bili.trigger(game_id)
         results = {}
         for cap in adapter.capabilities:
-            if app.state.scheduler:
+            if game_id == 'league_of_legends' and cap == Capability.ESPORTS:
+                r = await app.state.lol_esports_poller.poll_once(game_id, cap)
+            elif app.state.scheduler:
                 r = await app.state.scheduler.poll_once(game_id, cap)
             else:
                 r = await adapter.fetch(cap)
             results[cap.value] = {"ok": r.ok, "error": r.error, "error_kind": r.error_kind}
+        if bili and game_id in sources and game_id in MOBILE_GAMES:
+            # Refresh results describe the same effective source as snapshots.
+            # Keep native failures inspectable without promoting them to UI faults.
+            native_results = dict(results)
+            for cap in ('news', 'events'):
+                effective = read_snapshot(game_id, cap)['poll_status']
+                results[cap] = {'ok': effective['state'] == 'ok',
+                                'error': effective.get('error'), 'error_kind': effective.get('error_kind')}
+            return {'results': results, 'source_results': {'community': native_results}}
         return {"results": results}
 
     app.router.lifespan_context = lifespan

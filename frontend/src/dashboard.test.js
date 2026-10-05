@@ -19,6 +19,46 @@ test('mobile duplicate notices prefer Bilibili but LOL keeps both different link
 })
 const snapshot = (payload) => ({ payload, stale: false, fetched_at: '2026-09-14T12:30:00Z' })
 const deferred = () => { let resolve; const promise = new Promise((r) => { resolve = r }); return { promise, resolve } }
+
+for (const source of ['ok', 'error', 'no_status', 'native_only', 'read_failed']) {
+  test(`manual native failure reconciles with actual public source: ${source}`, async () => {
+    let phase = 'initial'
+    const native = '未找到版本公告，保留上次成功日历'
+    const actual = 'B站官方动态第2页返回空列表'
+    const d = createDashboard(api({
+      refreshGame: async () => ({ results: { events: { ok: false, error: native }, stamina: { ok: false, error: '登录已失效' } } }),
+      getSnapshot: async (_id, cap) => {
+        if (cap !== 'events') return snapshot({})
+        if (phase !== 'initial' && source === 'read_failed') throw Error('offline')
+        const state = source === 'error' ? 'error' : 'ok'
+        return { ...snapshot([{ name: '1.4活动' }]), poll_status: source === 'no_status' ? undefined : {
+          game_id: 'nte', capability: cap, scope: source === 'native_only' ? undefined : 'public_source', state, error: state === 'error' ? actual : null,
+          observed_at: phase === 'initial' ? '2026-10-05T10:00:00Z' : '2026-10-05T10:01:00Z',
+        } }
+      },
+    }))
+    await d.load(); phase = 'after'; await d.refresh('nte')
+    assert.match(d.state.refreshErrors.nte, /登录已失效/)
+    assert.equal(d.state.refreshErrors.nte.includes(native), !['ok', 'error'].includes(source))
+    assert.equal(d.state.refreshErrors.nte.includes(actual), source === 'error')
+    assert.equal(d.state.snapshots.nte.events.payload.length, 1)
+  })
+}
+
+test('automatic public recovery clears persisted refresh warning without another collection', async () => {
+  let calls = 0, recovered = false
+  const d = createDashboard(api({
+    refreshGame: async () => { calls++; return { results: { events: { ok: false, error: '未找到版本公告，保留上次成功日历' } } } },
+    getSnapshot: async (_id, cap) => ({ ...snapshot(cap === 'events' ? [{ name: '1.4活动' }] : {}), poll_status: {
+      game_id: 'nte', capability: cap, scope: cap === 'events' ? 'public_source' : undefined,
+      state: recovered ? 'ok' : 'error', error: recovered ? null : 'B站分页失败',
+      observed_at: recovered ? '2026-10-05T10:02:00Z' : '2026-10-05T10:01:00Z',
+    } }),
+  }))
+  await d.load(); await d.refresh('nte'); assert.match(d.state.refreshErrors.nte, /B站分页失败/)
+  recovered = true; await d.loadSnapshots('nte')
+  assert.equal(d.state.refreshErrors.nte, ''); assert.equal(calls, 1)
+})
 function api(overrides = {}) {
   return { getGames: async () => [game], getStatus: async () => ({ notify: { enabled: false } }),
     getSnapshot: async (_id, cap) => snapshot(cap === 'events' ? [] : { nickname: '当前账号', current: 0, maximum: 120 }),
