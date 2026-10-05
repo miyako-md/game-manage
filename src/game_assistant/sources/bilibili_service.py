@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import math
 import time
@@ -93,24 +94,32 @@ class BilibiliService:
         days = self.settings.bilibili_history_days
         if not full and previous.get('last_success'):
             days = min(days, max(2, math.ceil((now - datetime.fromisoformat(previous['last_success'])).total_seconds()/86400) + 1))
-        self.store.set_state(game, uid, status='running', message='正在回补60天历史' if full else '正在采集新动态', pages=0, last_attempt=now.isoformat())
+        window = f'{days}天' + ('历史回补' if full else '增量采集')
+        diagnostic = None
+        self.store.set_state(game, uid, status='running', message=f'正在进行{window}',
+                             pages=0, last_attempt=now.isoformat(), diagnostic=None)
         def on_page(rows, page):
             self.store.save_rows(game, uid, rows)
             self.store.set_state(game, uid, pages=page)
+        def on_diagnostic(values):
+            nonlocal diagnostic
+            # Values come from the collector's scalar allowlist, never raw SDK data.
+            diagnostic = {'game_id': game if game in ('nte', 'wuthering_waves', 'endfield', 'league_of_legends') else 'other', **values}
+            self.store.set_state(game, uid, diagnostic=diagnostic)
         try:
             client = self.client_factory(uid, self.credentials.load().get('bilibili', {}))
-            result = await collect_pages(client.page, uid, now, days=days, on_page=on_page)
+            result = await collect_pages(client.page, uid, now, days=days,
+                mode='backfill' if full else 'incremental', on_page=on_page, on_diagnostic=on_diagnostic)
             values = dict(status='ok', message='历史回补完成' if full else '增量采集完成',
                           last_success=now.isoformat(), failures=0, next_retry=time.time()+30, rule_version=RULE_VERSION)
             if full: values.update(history_complete=True, coverage_since=result['cutoff'])
             self.store.set_state(game, uid, **values)
         except asyncio.CancelledError:
-            self.store.set_state(game, uid, status='error', message='采集中断，已保存部分记录，回补未完成')
+            self.store.set_state(game, uid, status='error', message=f'{window}中断，已保留已有记录和上次成功状态')
             raise
         except Exception as error:
-            # Status text stays fixed. The exception type is enough to diagnose;
-            # response bodies can contain request details.
-            logger.warning("B站采集失败 (%s)", type(error).__name__)
+            # Do not log exception text/types or arbitrary upstream values.
+            logger.warning("B站采集失败 diagnostic=%s", json.dumps(diagnostic, ensure_ascii=False))
             failures = previous.get('failures', 0) + 1
             message = str(error) if isinstance(error, SourceError) else 'B站数据处理失败，已保留成功记录'
             self.store.set_state(game, uid, status='error', message=message, failures=failures,

@@ -21,7 +21,11 @@ NOTICE_TITLE = re.compile(r'(?:停服|更新|维护).*(?:公告|通知)|(?:棋�
 DATE = re.compile(r'(?<![\dA-Za-z.])(?:(20\d{2})[年./-])?(\d{1,2})(?:月|[/-])(\d{1,2})(?:日|号)?(?:\s*(\d{1,2})[:：](\d{2}))?(?!\d)')
 
 class SourceError(Exception):
-    pass
+    def __init__(self, message='', *, http_status=None, business_code=None):
+        super().__init__(message)
+        # Never retain SDK exceptions, response bodies, or arbitrary attributes.
+        self.http_status = http_status if type(http_status) is int and 100 <= http_status <= 599 else None
+        self.business_code = business_code if type(business_code) is int and -(2**31) <= business_code < 2**31 else None
 
 def _body(item):
     dynamic = (item.get('modules') or {}).get('module_dynamic') or {}
@@ -108,17 +112,34 @@ def classify_dynamic(item, uid, now):
             'decision': 'accepted' if reason == 'accepted' else 'excluded', 'reason': reason,
             'reason_text': REASONS[reason], 'time_evidence': evidence, 'rule_version': RULE_VERSION}
 
-async def collect_pages(fetch, uid, now, *, days=60, pause=1.5, max_pages=80, on_page=None):
+async def collect_pages(fetch, uid, now, *, days=60, mode='backfill', pause=1.5, max_pages=80, on_page=None, on_diagnostic=None):
     cutoff = now - timedelta(days=days)
+    window = f'{days}天' + ('增量采集' if mode == 'incremental' else '历史回补')
+    retained = f'本轮{window}未完成，已保留已有记录和上次成功状态'
     rows, seen_offsets = {}, set()
     offset = ''
     for page in range(max_pages):
-        data = await fetch(offset)
+        diagnostic = dict(page=page + 1, item_count=None, has_more=None,
+                          cursor_present=False, http_status=None, business_code=None)
+        try:
+            data = await fetch(offset)
+        except SourceError as error:
+            diagnostic.update(http_status=error.http_status, business_code=error.business_code)
+            if on_diagnostic: on_diagnostic(diagnostic)
+            raise SourceError(f'{error}（第{page + 1}页）；{retained}',
+                              http_status=error.http_status, business_code=error.business_code) from None
+        if isinstance(data, dict):
+            more = data.get('has_more')
+            diagnostic.update(item_count=len(data['items']) if isinstance(data.get('items'), list) else None,
+                              has_more=bool(more) if type(more) in (bool, int) and more in (0, 1) else None,
+                              cursor_present=isinstance(data.get('offset'), str) and bool(data['offset']))
+        if on_diagnostic: on_diagnostic(diagnostic)
         if not isinstance(data, dict) or not isinstance(data.get('items'), list) or 'has_more' not in data:
-            raise SourceError('B站返回结构异常，保留上次数据')
+            raise SourceError(f'B站第{page + 1}页返回结构异常；{retained}')
         items = data['items']
         if not items:
-            raise SourceError('官方动态分页提前返回空列表，无法确认60天覆盖；未标记回补完成')
+            location = '首页' if page == 0 else f'第{page + 1}页'
+            raise SourceError(f'B站官方动态{location}返回空列表；{retained}')
         dated = []
         page_rows = []
         for item in items:
@@ -134,11 +155,11 @@ async def collect_pages(fetch, uid, now, *, days=60, pause=1.5, max_pages=80, on
             return {'rows': list(rows.values()), 'pages': page + 1, 'complete': True, 'cutoff': cutoff.isoformat()}
         cursor = str(data.get('offset') or '')
         if not cursor or cursor in seen_offsets:
-            raise SourceError('B站分页游标异常，回补未完成')
+            raise SourceError(f'B站第{page + 1}页分页游标异常；{retained}')
         seen_offsets.add(cursor)
         offset = cursor
         await asyncio.sleep(pause)
-    raise SourceError('已达到分页上限，60天回补尚未完成')
+    raise SourceError(f'已达到分页上限（{max_pages}页）；{retained}')
 
 class BilibiliClient:
     def __init__(self, uid, credentials=None):
@@ -164,6 +185,12 @@ class BilibiliClient:
             return data
         except Exception as exc:
             # Never log request headers, cookies, or SDK exception text.
-            code = getattr(exc, 'code', getattr(exc, 'status', None))
-            suffix = f'，代码 {code}' if isinstance(code, int) else ''
-            raise SourceError(f'B站请求失败或受到访问限制（{type(exc).__name__}{suffix}），请稍后重试') from None
+            from bilibili_api.exceptions import NetworkException, ResponseCodeException
+            error = SourceError('B站请求失败或受到访问限制',
+                http_status=exc.status if isinstance(exc, NetworkException) else None,
+                business_code=exc.code if isinstance(exc, ResponseCodeException) else None)
+            codes = [f'HTTP {error.http_status}'] if error.http_status is not None else []
+            if error.business_code is not None: codes.append(f'业务码 {error.business_code}')
+            suffix = f'（{", ".join(codes)}）' if codes else ''
+            raise SourceError(f'B站请求失败或受到访问限制{suffix}，请稍后重试',
+                              http_status=error.http_status, business_code=error.business_code) from None
