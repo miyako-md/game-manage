@@ -11,13 +11,18 @@ from tests.test_bilibili_source import UID
 from tests.test_public_content import notice
 
 
+def _date_text(value):
+    # Windows Python 3.11 strftime cannot encode Chinese under English locales.
+    return f'{value.year:04d}年{value.month:02d}月{value.day:02d}日'
+
+
 def seed(app, store, *, future=False):
     now = datetime.now(timezone.utc)
     start, end = now - timedelta(days=2), now + timedelta(days=20)
     body = ('《异环》1.4版本「祷歌为谁而诵」更新公告\n'
-            f'更新维护时间：{start:%Y年%m月%d日}06:00\n'
+            f'更新维护时间：{_date_text(start)}06:00\n'
             '● 「环期赠礼」签到活动\n'
-            f'活动时间：{start:%Y年%m月%d日}版本更新后-{end:%Y年%m月%d日}05:59')
+            f'活动时间：{_date_text(start)}版本更新后-{_date_text(end)}05:59')
     row = notice(body, published=start.isoformat())
     row.update(source_uid=UID, reason='accepted', reason_text='accepted',
                fetched_at=now.isoformat(), content_status='full')
@@ -25,7 +30,7 @@ def seed(app, store, *, future=False):
     if future:
         upcoming = now + timedelta(days=7)
         rows.append({**row, 'id': 'future', 'body': body.replace('1.4', '1.5').replace(
-            start.strftime('%Y年%m月%d日'), upcoming.strftime('%Y年%m月%d日')),
+            _date_text(start), _date_text(upcoming)),
             'title': '《异环》1.5版本更新公告', 'published_at': now.isoformat()})
     app.state.bilibili.store.save_rows('nte', UID, rows)
     app.state.bilibili.store.set_state('nte', UID, status='ok', failures=0,
@@ -144,7 +149,7 @@ def test_mixed_fresh_and_failed_articles_keep_per_row_staleness(tmp_path):
     row.update(content_status='stale', last_observation_error='正文获取不完整')
     fresh = {**row, 'id': 'fresh', 'title': '1.4版本新活动公告',
              'body': ('1.4版本新活动公告\n● 「新挑战」限时活动\n'
-                      f'活动时间：{now:%Y年%m月%d日}05:00-{now + timedelta(days=2):%Y年%m月%d日}05:59'),
+                      f'活动时间：{_date_text(now)}05:00-{_date_text(now + timedelta(days=2))}05:59'),
              'content_status': 'full', 'last_observation_error': '', 'published_at': now.isoformat()}
     app.state.bilibili.store.save_rows('nte', UID, [row, fresh])
     with TestClient(app, base_url='http://127.0.0.1:8010') as client:
