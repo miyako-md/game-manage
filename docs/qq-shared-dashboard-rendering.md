@@ -24,6 +24,18 @@ API 进程新增 `render` 可选依赖；QQ 收发进程仍只接收图片字节
 4. 保留 `qq_image_font_path`，使用可读的 Noto CJK 字体；Linux 可安装 `fonts-noto-cjk`。字体不打包进仓库。`runtime.frontend_dist` 同时决定网站和生图使用的发行目录。
 5. 在 API service 环境文件设置同一个 `PLAYWRIGHT_BROWSERS_PATH`。现有 `ProtectHome=true` 使开发者 home 中的浏览器缓存不可靠；不要为此移除服务隔离。浏览器需要可写临时目录，现有 `PrivateTmp=true` 提供这一位置。
 
+Ubuntu 的 AppArmor 可能阻止下载的 Chromium 创建用户命名空间，表现为 `No usable sandbox`。按 [Chromium 官方说明](https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md)，管理员应只给实际 headless-shell 二进制的绝对路径增加 `userns` 权限；不能关闭全局 AppArmor 或改用 `--no-sandbox`。例如以下 profile 由管理员写入并加载，升级浏览器 revision 时同步更新路径：
+
+```text
+abi <abi/4.0>,
+include <tunables/global>
+profile game-manage-qq-browser "/opt/game-manage-cloud/browser-runtime/EXACT-REVISION/chrome-headless-shell-linux64/chrome-headless-shell" flags=(unconfined) {
+  userns,
+}
+```
+
+生产浏览器和父目录须由管理员管理、服务账号不可写；profile 应指向 [Playwright 实际使用的 headless shell](https://playwright.dev/python/docs/browsers#chromium-headless-shell)，不能误指向普通 Chrome。CI 在 Ubuntu 24.04 的临时 runner 上按同样方式授权精确二进制路径，保留 `chromium_sandbox=True`。
+
 上线前必须在实际服务用户及 sandbox 下运行合成验证，不使用私人账号：
 
 ```sh
