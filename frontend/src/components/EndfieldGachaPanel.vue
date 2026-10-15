@@ -1,7 +1,9 @@
 <script setup>
 import { isCloudMode } from '../http-client.js'
 const cloudMode = isCloudMode()
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 import { fetchedLabel } from '../time.js'
 import { exportRecords, getRecords, pityText, pullDate, rarityLabel } from '../endfield-gacha-api.js'
 import AppIcon from './AppIcon.vue'
@@ -13,7 +15,7 @@ const summary = computed(() => props.snap?.payload?.schema_version === 1 ? props
 const pools = computed(() => Array.isArray(summary.value?.pools) ? summary.value.pools : [])
 const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 const poolOptions = computed(() => [{ value: '', label: '全部卡池' }, ...pools.value.map(pool => ({ value: pool.key, label: pool.label }))])
-const opened = ref(false), recordPool = ref(''), records = ref([]), total = ref(0), offset = ref(0), busy = ref(false), message = ref('')
+const opened = ref(!!capture), recordPool = ref(''), records = ref([]), total = ref(0), offset = ref(0), busy = ref(false), message = ref('')
 const PAGE = 50
 let generation = 0
 
@@ -45,6 +47,7 @@ async function load(start = 0) {
 }
 // 逐条记录只在展开时读取本机账本。
 watch(() => [props.accountId, recordPool.value, opened.value], () => { records.value = []; total.value = 0; if (opened.value) load(0) })
+onMounted(() => { if (capture) capture.track(load(0)) })
 const range = computed(() => total.value ? `${offset.value + 1}–${Math.min(offset.value + PAGE, total.value)} / ${total.value}` : '0 条')
 
 async function download() {
@@ -98,7 +101,7 @@ async function download() {
           </ul>
         </article>
       </div>
-      <details class="panel record-list" @toggle="opened = $event.target.open">
+      <details :open="!!capture" class="panel record-list" @toggle="opened = $event.target.open">
         <summary>逐条记录<AppIcon name="chevron" :size="14" class="t-disclosure" /></summary>
         <div class="panel-body">
           <div class="toolbar">

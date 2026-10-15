@@ -1,0 +1,18 @@
+/* The capture surface expands the existing panels without changing their design. */
+html,body,#app { min-height:0; height:auto; overflow:visible; }
+.qq-capture { padding:28px; margin:0 auto; width:100%; min-width:0; }
+.qq-capture *, .qq-capture *::before, .qq-capture *::after { animation:none !important; transition:none !important; }
+.qq-capture .calendar-board { height:auto; overflow:visible; }
+.qq-capture .timeline-scroll { flex:none; overflow:visible; }
+.qq-capture .timeline-canvas { min-width:0; width:100%; }
+.qq-capture .timeline-header, .qq-capture .timeline-group { grid-template-columns:128px minmax(0,1fr); }
+.qq-capture .timeline-header, .qq-capture .timeline-label { position:static; }
+.qq-capture .calendar-filters, .qq-capture .calendar-arrows, .qq-capture .calendar-footer > span:last-child { display:none; }
+.qq-capture .qq-role-summary { display:flex !important; }
+.qq-capture .calendar-detail, .qq-capture .qq-inline-dialog { position:static; max-height:none; width:auto; margin:16px 0 0; }
+.qq-capture .role-dialog-body, .qq-capture .nte-dialog-body { overflow:visible; }
+.qq-capture .table-scroll, .qq-capture .records-table { overflow:visible; }
+.qq-capture button:not(.game-summary):not(.timeline-event):not(.event-summary):not(.unplaced-event):not(.wuwa-role):not(.item-link), .qq-capture input, .qq-capture select, .qq-capture .menu-select,
+.qq-capture .detail-navigation, .qq-capture .wuwa-nav, .qq-capture .endfield-nav,
+.qq-capture .import-panel, .qq-capture .rule-editor, .qq-capture .wuwa-import,
+.qq-capture .pagination, .qq-capture .wuwa-pager { display:none !important; }

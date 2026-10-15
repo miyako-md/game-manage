@@ -27,6 +27,7 @@ dev = [
 ]
 ocr = ["rapidocr-onnxruntime>=1.4,<2", "opencv-python>=4.8,<5", "numpy>=1.24,<3"]
 qq = ["qqbot-agent-sdk==1.2.2"]
+render = ["playwright>=1.48,<2"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

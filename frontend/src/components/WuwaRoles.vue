@@ -1,5 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 import { useWuwaRequest } from '../wuwa-api.js'
 import { safeUrl } from '../calendar.js'
 import { list, starCount, value } from '../wuwa-display.js'
@@ -32,7 +34,7 @@ function reset() {
   loading.value = false
 }
 const request = useWuwaRequest(() => props.accountKey, reset)
-const roles = computed(() => list(props.snap?.payload))
+const roles = computed(() => list(props.snap?.payload).filter(role => !capture?.roleName || role.name === capture.roleName))
 const options = (key) => [
   ...new Set(
     roles.value.map((r) => r[key]).filter((v) => v != null && v !== ''),
@@ -79,6 +81,9 @@ function close() {
   request.cancel()
   reset()
 }
+onMounted(() => {
+  if (capture?.roleName && roles.value.length) capture.track(open(roles.value[0]))
+})
 </script>
 <template>
   <section class="wuwa-panel">

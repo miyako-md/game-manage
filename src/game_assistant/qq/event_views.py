@@ -110,7 +110,7 @@ def event_document(command,snapshots,*,now=None,asset_cache=None):
                         bucket.append((game,stamp,event_row(game,item,now,side=side,stale=stale,cache=asset_cache)))
                 # An absent endpoint alone is not necessarily a pending activity;
                 # expose explicit imprecision/relative descriptions instead.
-                if invalid or any(endpoint(item,side) is None and (item.get(side+'_text') or item.get(side+'_date') or item.get(side+'_precision') in ('relative','day','dependent')) for side in ('start','end')):
+                if invalid or any(endpoint(item,side) is None and (item.get(side+'_text') or item.get(side+'_date') or item.get(side+'_precision') in ('relative','day','dependent','unknown')) for side in ('start','end')):
                     uncertain.append(row)
             elif command=='events':
                 if not invalid and first is not None and last is not None and first<=now<last:

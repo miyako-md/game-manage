@@ -59,6 +59,14 @@ class PrivateRoutes:
         self._skland[scope]=(info['version'],info['grant_id'],service)
         return service
 
+    def cached_skland(self,scope):
+        """Read already observed views without loading credentials or a service."""
+        info=self.accounts.describe(scope)
+        cached=self._skland.get(scope)
+        if cached is None or cached[0]!=info['version']:
+            return {}
+        return cached[2].cached_views(scope)
+
     def invalidate(self,user_id,grant_id):
         for scope,value in list(self._skland.items()):
             if scope.user_id==user_id and value[1]==grant_id:

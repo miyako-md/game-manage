@@ -43,12 +43,13 @@ class QueryBody(BaseModel):
 
 
 class QqQueryService:
-    def __init__(self, bindings, query, public, *, dashboard_url='', urls_approved=False, render_queue=None,asset_cache=None,clock=None):
+    def __init__(self, bindings, query, public, *, dashboard_url='', urls_approved=False, render_queue=None,asset_cache=None,clock=None,private_poll_seconds=300):
         self.bindings,self.query_service,self.public=bindings,query,public
         self.dashboard_url,self.urls_approved=dashboard_url,urls_approved
         self.render_queue=render_queue
         self.asset_cache=asset_cache
         self.clock=clock or (lambda:datetime.now(view.BEIJING))
+        self.private_poll_seconds=private_poll_seconds
         if render_queue is not None and query is not None:
             query.accounts._listeners.append(self.invalidate)
 
@@ -62,19 +63,19 @@ class QqQueryService:
                 self.query_service.accounts._listeners.remove(self.invalidate)
         if self.asset_cache is not None:await self.asset_cache.aclose()
 
-    def _accounts(self,principal,game):
-        rows=[r for r in self.query_service.list_accounts(principal)
+    def _accounts(self,principal,game,*,command=None,account_rows=None):
+        rows=[r for r in (account_rows if account_rows is not None else self.query_service.list_accounts(principal))
               if r['game']==game and r['state']=='active' and r['roles']]
-        providers=('hypergryph','skland') if game=='endfield' else ('kuro',) if game=='wuthering_waves' else ('tajiduo',)
-        selected=[]
-        for provider in providers:
-            candidates=[r for r in rows if r['provider']==provider]
-            if not candidates:continue
-            row=min(candidates,key=lambda r:(not bool(r['is_default']),r['account_id']))
-            role=min(row['roles'],key=lambda r:(not bool(r['is_default']),r['role_id']))
-            scope=self.query_service.accounts.require_scope(principal,row['account_id'],role['role_id'])
-            selected.append((row,scope))
-        return selected
+        if game=='endfield' and command=='gacha':
+            rows=[r for r in rows if r['provider']=='hypergryph']
+        elif game=='endfield' and any(r['provider']=='skland' for r in rows):
+            rows=[r for r in rows if r['provider']=='skland']
+        if not rows:return []
+        # Match CloudApp's first available account and default-or-first role.
+        row=rows[0]
+        role=next((r for r in row['roles'] if r['is_default']),row['roles'][0])
+        scope=self.query_service.accounts.require_scope(principal,row['account_id'],role['role_id'])
+        return [(row,scope)]
 
     def _binding_revision(self, identity):
         # Confirm the exact active link, including unlink/relink to the same user.
@@ -96,8 +97,14 @@ class QqQueryService:
         identity=(scope.user_id,scope.account_id,scope.role_id) if scope else ('public',)
         encoded=json.dumps([identity,cap,snapshot.payload,snapshot.fetched_at,snapshot.state,snapshot.complete],
                            ensure_ascii=False,sort_keys=True,default=str).encode()
-        context['snapshots'].append(snapshot)
-        context['fingerprints'].append(hashlib.sha256(encoded).hexdigest())
+        fingerprint=hashlib.sha256(encoded).hexdigest()
+        if fingerprint not in context['fingerprints']:
+            context['snapshots'].append(snapshot)
+            context['fingerprints'].append(fingerprint)
+        if scope is None and ':' in cap:
+            from dataclasses import asdict
+            game,capability=cap.split(':',1)
+            context.setdefault('public_snapshots',{}).setdefault(game,{})[capability]=asdict(snapshot)
 
     def _reply(self, card, page, context, *, paged=False):
         card=view.long_document(card,page,asset_cache=self.asset_cache)
@@ -123,7 +130,7 @@ class QqQueryService:
         complete=data.get('complete') if type(data.get('complete')) is bool else coverage.get('complete')
         return QueryResult(payload,fetched,'ok',complete if type(complete) is bool else None)
 
-    def _role_detail_snapshot(self, scope, character_id):
+    def _role_detail_snapshot(self, scope, character_id, cache=None):
         private=getattr(self.query_service,'private',None)
         if private is None or character_id is None:return None
         root=getattr(private,'private_root',None)
@@ -131,7 +138,11 @@ class QqQueryService:
             from game_assistant.private_data import scope_directory
             if not (scope_directory(root,scope)/'wuwa_history'/'ledger.sqlite3').is_file():return None
         # Fixed recent-observation window; no upstream lookup or arbitrary SQL.
-        history=private.ledger(scope,'wuwa_history').read(scope,'role_detail',100,0)
+        key=(scope,'role_detail_history')
+        history=cache.get(key) if cache is not None else None
+        if history is None:
+            history=private.ledger(scope,'wuwa_history').read(scope,'role_detail',100,0)
+            if cache is not None:cache[key]=history
         found=next((item for item in view.rows(view.obj(history).get('items'))
                     if str(item.get('subject'))==str(character_id)),None)
         if found is None:return None
@@ -180,7 +191,8 @@ class QqQueryService:
     def query(self,identity,command,game=None,*,image_context=None,role_name=None,page=1):
         context=image_context
         read_cache={}
-        if context is not None:context.update(grants=[],snapshots=[],fingerprints=[],user_id=None)
+        detail_cache={}
+        if context is not None:context.update(grants=[],snapshots=[],fingerprints=[],user_id=None,read_cache=read_cache,detail_cache=detail_cache)
         reply=lambda card, paged=False:self._reply(card,page,context,paged=paged)
         if command=='help':
             card=view.help_document(game)
@@ -215,17 +227,18 @@ class QqQueryService:
             context.update(user_id=principal.user_id,binding_revision=self._binding_revision(identity))
         if self.query_service is None:return reply(view.message(game,'账号查询','账号查询服务暂不可用。'))
         try:
+            account_rows=self.query_service.list_accounts(principal)
+            if context is not None:context['account_rows']=account_rows
             if command in ('calendar','events','recent_events'):
                 games=[]
                 for current in GAME_NAMES:
-                    accounts=self._accounts(principal,current)
+                    accounts=self._accounts(principal,current,account_rows=account_rows)
                     if accounts:
                         games.append(current)
                         for _,scope in accounts:self._capture_scope(context,scope)
                 if not games:return reply(view.message(None,'活动查询','暂无有效游戏授权；请在网站授权，或使用「游戏 活动」公共查询。'))
                 return reply(self._public_events(games,command,context),True)
             if command=='status':
-                account_rows=self.query_service.list_accounts(principal)
                 items=[]
                 for row in account_rows:
                     if row['game'] not in GAME_NAMES:continue
@@ -238,7 +251,7 @@ class QqQueryService:
             if command=='overview':
                 selected=[];notices=[]
                 for current in GAME_NAMES:
-                    accounts=self._accounts(principal,current)
+                    accounts=self._accounts(principal,current,account_rows=account_rows)
                     selected.extend(accounts)
                     if not accounts:notices.append(GAME_NAMES[current]+'暂无有效授权账号；请在网站授权。')
                 sections=[]
@@ -263,7 +276,7 @@ class QqQueryService:
                         details={}
                         if row['game']=='wuthering_waves':
                             for entry in view.role_entries(row['game'],roles.payload,row['provider'])[:6]:
-                                detail=self._role_detail_snapshot(scope,entry.get('role_id'))
+                                detail=self._role_detail_snapshot(scope,entry.get('role_id'),detail_cache)
                                 if detail is not None:
                                     self._capture_snapshot(context,scope,'role_detail',detail)
                                     details[str(entry.get('role_id'))]=detail.payload
@@ -276,7 +289,7 @@ class QqQueryService:
                 card['version']=3
                 return reply(card,True)
             if game is None or game not in GAME_NAMES:return reply(view.help_document())
-            selected=self._accounts(principal,game)
+            selected=self._accounts(principal,game,command=command,account_rows=account_rows)
             if not selected:return reply(view.message(game,GAME_NAMES[game],GAME_NAMES[game]+'暂无有效授权账号；请在网站授权。'))
             if game=='endfield' and command in ('roles','stamina','exploration','progress'):
                 selected=[item for item in selected if item[0]['provider']=='skland']
@@ -313,7 +326,7 @@ class QqQueryService:
                         if game=='wuthering_waves' and role_name is not None and card['kind']=='detail':
                             entries=view.role_entries(game,snapshot.payload,row['provider'])
                             entry=next(item for item in entries if item.get('name')==role_name)
-                            detail=self._role_detail_snapshot(scope,entry.get('role_id'))
+                            detail=self._role_detail_snapshot(scope,entry.get('role_id'),detail_cache)
                             if detail is not None:
                                 self._capture_snapshot(context,scope,'role_detail',detail)
                                 card['sections']+=view.wuwa_detail_sections(detail.payload,self.asset_cache)
@@ -351,24 +364,24 @@ class QqQueryService:
         response=self.query(identity,command,game,image_context=context if image_requested else None,
                             role_name=role_name,page=page)
         if not context.get('card'):return response
+        from .web_payload import SUPPORTED_COMMANDS, build_web_payload
+        if command not in SUPPORTED_COMMANDS:return response
         if self.render_queue is None or budget_seconds<=0:
             return self._text_fallback(context['card'])
+        try:
+            web=build_web_payload(self,context,command,game,role_name)
+        except (AccountNotFoundError,CredentialStoreError,HTTPException,PermissionError,ValueError,TypeError,KeyError,OSError):
+            return self._text_fallback(context['card'])
+        if web is None:return response
         grants=context['grants'];user_id=context.get('user_id')
         scope=grants[0][0] if grants else AccountScope(user_id or 'public','summary','summary')
         snapshots=context['snapshots']
-        payload={'card':context['card'],'scopes':[{'account_id':s.account_id,'role_id':s.role_id,'grant_version':version} for s,version in grants],
+        payload={'card':context['card'],'web':web,'scopes':[{'account_id':s.account_id,'role_id':s.role_id,'grant_version':version} for s,version in grants],
                  'snapshot_times':[s.fetched_at for s in snapshots], 'snapshot_fingerprints':context['fingerprints']}
         if grants:payload['grant_version']=grants[0][1]
         rendered=QueryResult(payload,max((s.fetched_at for s in snapshots if s.fetched_at),default=None),
             'ok' if all(s.state in ('ok','success') for s in snapshots) else 'stale',
             True if snapshots and all(s.complete is True for s in snapshots) else False if any(s.complete is False for s in snapshots) else None)
-        if self.asset_cache is not None:
-            remaining=max(0,deadline-time.monotonic())
-            try:
-                await self.asset_cache.prefetch(view.asset_refs(context['card']),budget_seconds=min(5,remaining*0.5))
-            except Exception:
-                # Assets may fail independently; resolved in-memory images remain usable.
-                pass
         try:
             png=await self.render_queue.render(scope,rendered,budget_seconds=max(0,deadline-time.monotonic()))
         except Exception:png=None
@@ -394,14 +407,15 @@ class QqQueryService:
         return {'text':card_to_text(card)}
 
 
-def install_qq_query_routes(app, *, app_id, dashboard_url='', urls_approved=False):
+def install_qq_query_routes(app, *, app_id, dashboard_url='', urls_approved=False,frontend_dist=None):
     from game_assistant.cloud_app import allow_cloud_route
     settings=app.state.settings
     from .assets import PublicAssetCache
     asset_cache=PublicAssetCache() if settings.qq_images_enabled else None
-    render_queue=RenderQueue(SummaryRenderer(font_path=settings.qq_image_font_path,max_bytes=settings.qq_image_max_bytes,asset_cache=asset_cache)) if settings.qq_images_enabled else None
+    render_queue=RenderQueue(SummaryRenderer(frontend_dist=frontend_dist,font_path=settings.qq_image_font_path,max_bytes=settings.qq_image_max_bytes,asset_cache=asset_cache)) if settings.qq_images_enabled else None
     service=QqQueryService(app.state.qq_bindings,getattr(app.state,'account_query',None),
-                           getattr(app.state,'public_query',None),dashboard_url=dashboard_url,urls_approved=urls_approved,render_queue=render_queue,asset_cache=asset_cache)
+                           getattr(app.state,'public_query',None),dashboard_url=dashboard_url,urls_approved=urls_approved,render_queue=render_queue,asset_cache=asset_cache,
+                           private_poll_seconds=settings.cloud_private_poll_seconds)
     app.state.qq_query=service
     async def query(body:QueryBody,request:Request):
         if not getattr(request.state,'service_principal',False):raise HTTPException(401,'service_auth_required')

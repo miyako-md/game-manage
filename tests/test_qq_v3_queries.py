@@ -25,12 +25,13 @@ def test_recent_168_hour_endpoints_and_uncertain_precision():
           event('超过七天',(NOW+timedelta(hours=168,minutes=1)).isoformat(),None),
           event('维护前',None,(NOW+timedelta(hours=2)).isoformat(),end_precision='version_end',end_text='维护前'),
           event('日期项','2026-10-15','2026-10-16',start_precision='day',end_precision='day'),
-          event('更新后',None,(NOW+timedelta(days=9)).isoformat(),start_date='2026-10-15',start_precision='relative',start_text='版本更新后')]
+          event('更新后',None,(NOW+timedelta(days=9)).isoformat(),start_date='2026-10-15',start_precision='relative',start_text='版本更新后'),
+          event('明确未知',None,None,start_precision='unknown')]
     card=event_document('recent_events',{'nte':QueryResult(data,NOW.isoformat(),'ok',None)},now=NOW)
     sections={s['title']:s for s in card['sections']}
     assert [r['title'] for r in sections['即将开始']['rows']]==['恰好七天后开始']
     assert [r['title'] for r in sections['即将结束']['rows']]==['维护前']
-    assert {r['title'] for r in sections['时间待确认']['rows']}=={'日期项','更新后'}
+    assert {r['title'] for r in sections['时间待确认']['rows']}=={'日期项','更新后','明确未知'}
     assert '2小时' in str(sections['即将结束'])
     assert '00:00' not in str(sections['时间待确认'])
 

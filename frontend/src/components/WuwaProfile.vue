@@ -1,5 +1,7 @@
 <script setup>
 import { computed } from 'vue'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 import { fieldLabels, stamp, value, list } from '../wuwa-display.js'
 import WuwaStatus from './WuwaStatus.vue'
 import WuwaFields from './WuwaFields.vue'
@@ -46,11 +48,11 @@ const hasRest = computed(() =>
       <WuwaStatus :snap="snap" />
     </header>
     <dl class="kv-grid wuwa-idgrid">
-      <div>
+      <div v-if="!capture">
         <dt>UID</dt>
         <dd class="mono">{{ value(snap?.payload?.extra?.role_id) }}</dd>
       </div>
-      <div>
+      <div v-if="!capture">
         <dt>区服</dt>
         <dd class="mono" :title="server == null ? undefined : String(server)">
           {{ value(server) }}

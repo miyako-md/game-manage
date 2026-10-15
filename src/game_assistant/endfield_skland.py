@@ -337,6 +337,15 @@ class ScopedSkland:
         service._tool_cache.clear()
         service._last_attendance=None
 
+    def cached_views(self,scope):
+        """Freeze observations only; unlike read_* this never contacts Skland."""
+        from copy import deepcopy
+        self._check(scope)
+        service=self._service
+        return deepcopy({'attendance':service._last_attendance,
+                         'operators':service._operator_cache,
+                         'challenge':service._challenge_cache.get(('war',None,None,None))})
+
     def close(self):
         self.clear(self.scope)
         self._service._session={}

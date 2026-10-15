@@ -120,21 +120,30 @@ def test_self_query_cannot_target_other_account(tmp_path):
     assert response.status_code==400
 
 
-def test_endfield_providers_choose_default_separately():
-    rows=[dict(account_id='h2',game='endfield',provider='hypergryph',state='active',is_default=0,roles=[dict(role_id='r',is_default=1)]),
-          dict(account_id='s',game='endfield',provider='skland',state='active',is_default=0,roles=[dict(role_id='r',is_default=1)]),
+def test_endfield_overview_uses_skland_and_separate_gacha_keeps_default_role():
+    roles=[dict(role_id='first-role',is_default=0),dict(role_id='default-role',is_default=1)]
+    rows=[dict(account_id='h2',game='endfield',provider='hypergryph',state='active',is_default=0,roles=roles),
+          dict(account_id='s',game='endfield',provider='skland',state='active',is_default=0,roles=roles),
           dict(account_id='h1',game='endfield',provider='hypergryph',state='active',is_default=1,roles=[dict(role_id='r',is_default=1)])]
     reads=[]
     class Query:
         accounts=SimpleNamespace(require_scope=lambda p,a,r:SimpleNamespace(user_id=p.user_id,account_id=a,role_id=r))
         def list_accounts(self,p):return rows
-        def capabilities(self,scope):return ['account']
+        def capabilities(self,scope):return ['account'] if scope.account_id=='s' else ['gacha']
         def read(self,scope,cap):
-            reads.append(scope.account_id)
-            return QueryResult({'nickname':scope.account_id},None,'never',None)
+            reads.append((scope.account_id,scope.role_id,cap))
+            return QueryResult({'base':{'name':'森空岛角色'}} if scope.account_id=='s' else {'total':0,'pools':[]},None,'never',None)
     service=QqQueryService(SimpleNamespace(resolve_qq_identity=lambda i:Principal('a',False)),Query(),None)
-    text=service.query(IDENTITY,'summary','endfield')['text']
-    assert reads==['h1','s'] and '鹰角寻访' in text and '森空岛' in text
+    for command,game in [('overview',None),('summary','endfield')]:
+        reads.clear()
+        text=service.query(IDENTITY,command,game)['text']
+        assert reads==[('s','default-role','account')]
+        assert '森空岛角色' in text and '鹰角寻访' not in text
+    reads.clear()
+    text=service.query(IDENTITY,'gacha','endfield')['text']
+    # Website ordering chooses the first passport; its default role still wins.
+    assert reads==[('h2','default-role','gacha')]
+    assert '鹰角寻访' in text and '森空岛角色' not in text
 
 
 def test_skland_real_card_shape_has_name_level_stamina_without_uid():

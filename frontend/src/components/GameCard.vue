@@ -23,6 +23,8 @@ import WuwaDashboard from './WuwaDashboard.vue'
 import LolDashboard from './LolDashboard.vue'
 import NteGuides from './NteGuides.vue'
 import NteModuleCard from './NteModuleCard.vue'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 
 const props = defineProps({
   cloudAccount: Object,
@@ -55,7 +57,7 @@ const groups = computed(() => [
 const TAB_ORDER = groups => groups.filter(group => group.id !== 'all').flatMap(group => group.caps)
 const visibleCaps = computed(() => {
   const current = groups.value.find(group => group.id === activeSection.value) || groups.value[0]
-  const caps = props.game.capabilities.filter(cap => !['events', 'announcement', 'news'].includes(cap) && current?.caps.includes(cap))
+  const caps = props.game.capabilities.filter(cap => !['events', 'announcement', 'news'].includes(cap) && current?.caps.includes(cap) && (!capture || ['summary','overview'].includes(capture.command) || cap === capture.command))
   if (current?.id !== 'all') return caps
   const order = TAB_ORDER(groups.value)
   const rank = cap => (order.includes(cap) ? order.indexOf(cap) : order.length)
@@ -114,7 +116,7 @@ function capProps(cap) {
       >
         未配置凭据
       </span>
-      <SourceStatusPanel :game="game" :collection="collectionStatus" />
+      <SourceStatusPanel v-if="!capture" :game="game" :collection="collectionStatus" />
       <button
         type="button"
         class="ui-button refresh-btn"

@@ -142,7 +142,7 @@ class CloudBoundary:
         await self.app(scope, bounded_receive, secured_send)
 
 
-def create_cloud_app(settings: Settings, start_scheduler: bool = True) -> FastAPI:
+def create_cloud_app(settings: Settings, start_scheduler: bool = True, *, frontend_dist=None) -> FastAPI:
     if Path(settings.cloud_db_path).resolve() == Path(settings.db_path).resolve():
         raise ValueError('Cloud and local database paths must differ')
     # Validate before touching any database or deferring middleware construction.
@@ -226,7 +226,7 @@ def create_cloud_app(settings: Settings, start_scheduler: bool = True) -> FastAP
 
             if settings.qq_app_id and settings.qq_service_token:
                 from .qq.query_routes import install_qq_query_routes
-                install_qq_query_routes(app, app_id=settings.qq_app_id,
+                install_qq_query_routes(app, app_id=settings.qq_app_id, frontend_dist=frontend_dist,
                     dashboard_url=settings.qq_dashboard_url,
                     urls_approved=settings.qq_dashboard_urls_approved)
 
@@ -326,7 +326,7 @@ def create_cloud_app(settings: Settings, start_scheduler: bool = True) -> FastAP
     install_qq_routes(app)
     if settings.qq_app_id and settings.qq_service_token and not settings.cloud_accounts_enabled:
         from .qq.query_routes import install_qq_query_routes
-        install_qq_query_routes(app, app_id=settings.qq_app_id,
+        install_qq_query_routes(app, app_id=settings.qq_app_id, frontend_dist=frontend_dist,
             dashboard_url=settings.qq_dashboard_url,
             urls_approved=settings.qq_dashboard_urls_approved)
     allow_cloud_route(app, '/api/health', ['GET'], access='public')

@@ -3,6 +3,8 @@ import { isCloudMode } from '../http-client.js'
 const cloudMode = isCloudMode()
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useWuwaRequest } from '../wuwa-api.js'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 import { value, list, stamp } from '../wuwa-display.js'
 import WuwaDrawTable from './WuwaDrawTable.vue'
 import InfoHint from './InfoHint.vue'
@@ -91,7 +93,7 @@ async function importFile() {
     busy.value = false
   }
 }
-onMounted(() => load())
+onMounted(() => capture ? capture.track(load()) : load())
 watch(
   () => props.accountKey,
   () => {

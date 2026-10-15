@@ -251,6 +251,14 @@ class PublicAssetCache:
                 self._bytes -= len(expired)
 
     def get_image(self, ref):
+        png = self.get_png(ref)
+        if png is None:
+            return None
+        with Image.open(BytesIO(png)) as image:
+            return image.convert('RGBA')
+
+    def get_png(self, ref):
+        """Return immutable, sanitized bytes for one offline render job."""
         if not isinstance(ref, str) or not ASSET_REF_RE.fullmatch(ref):
             return None
         with self._lock:
@@ -259,9 +267,7 @@ class PublicAssetCache:
             if not item:
                 return None
             self._cache.move_to_end(ref)
-            png = item[1]
-        with Image.open(BytesIO(png)) as image:
-            return image.convert('RGBA')
+            return item[1]
 
     def fingerprint(self, ref):
         with self._lock:

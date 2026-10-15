@@ -10,6 +10,8 @@ import {
 import AppIcon from './AppIcon.vue'
 import EndfieldGachaPanel from './EndfieldGachaPanel.vue'
 import AnnouncementList from './AnnouncementList.vue'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 
 const props = defineProps({ cloudAccount:Object, cloudRole:String, isAdmin:Boolean, snaps: { type: Object, default: () => ({}) }, initialSection: { type: String, default: 'overview' } })
 const emit = defineEmits(['calendar','refresh'])
@@ -22,7 +24,7 @@ const tabs = [
 ]
 const section = ref(tabs.some(([id]) => id === props.initialSection) ? props.initialSection : 'overview')
 const status = ref(null), statusBusy = ref(false), statusError = ref('')
-const card = ref(null), cardBusy = ref(false), cardError = ref('')
+const card = ref(capture && props.cloudAccount?.provider === 'skland' ? props.snaps.account || null : null), cardBusy = ref(false), cardError = ref('')
 const operatorDetail = ref(null), operatorDetailId = ref(''), operatorBusy = ref(false), operatorError = ref(''), operatorStale = ref(false)
 const attendance = ref(null), attendanceBusy = ref(false), attendanceError = ref('')
 const challengeKind = ref('war'), challenge = ref(null), challengeBusy = ref(false), challengeError = ref('')
@@ -47,8 +49,9 @@ const cardPayload = computed(() => card.value?.payload || null)
 const display = value => value === null || value === undefined || value === '' ? '未知' : String(value)
 const dateText = value => value ? formatTime(value) : '未知'
 const list = value => Array.isArray(value) ? value : []
+const visibleOperators = computed(() => list(cardPayload.value?.operators).filter(operator => !capture?.roleName || operator.name === capture.roleName))
 const humanError = value => typeof value === 'string' ? value : value ? '暂时无法读取，请稍后重试。' : ''
-const roleLabel = role => cloud.value ? `${role.nickname || '未命名角色'} · ${role.role_id}` : `${role.nickname || '未命名角色'} · ${role.role_id} / ${role.server_id}`
+const roleLabel = role => capture ? (role?.nickname || '本人角色') : cloud.value ? `${role.nickname || '未命名角色'} · ${role.role_id}` : `${role.nickname || '未命名角色'} · ${role.role_id} / ${role.server_id}`
 const named = value => typeof value === 'string' ? value : (value?.name || value?.title || '未知')
 const regionSummary = item => `等级 ${display(item.level)} · ${list(item.levels).length} 个区域 · ${list(item.settlements).length} 处据点`
 const shipSummary = item => `${item.name || '舱室'} · 等级 ${display(item.level)} · ${list(item.operators).length} 名干员`
@@ -131,7 +134,11 @@ function clearPrivate() {
   operatorDetail.value = null; operatorDetailId.value = ''; operatorError.value = ''; operatorStale.value = false
   challenge.value = null; challengeError.value = ''
 }
-async function loadOperator(id) {
+function loadOperator(id) {
+  const task = readOperator(id)
+  return capture ? capture.track(task) : task
+}
+async function readOperator(id) {
   if (!id || !roleKey.value) return
   const seq = ++operatorSeq, owner = roleKey.value
   operatorDetailId.value = String(id); operatorDetail.value = null; operatorError.value = ''; operatorStale.value = false; operatorBusy.value = true
@@ -154,7 +161,11 @@ async function loadTool() {
   } catch (error) { if (seq === toolSeq) toolError.value = error.message }
   finally { if (seq === toolSeq) toolBusy.value = false }
 }
-async function loadCard(refresh = false) {
+function loadCard(refresh = false) {
+  const task = readCard(refresh)
+  return capture ? capture.track(task) : task
+}
+async function readCard(refresh = false) {
   if (cloud.value && refresh) { emit('refresh'); return }
   if (!roleKey.value) return
   const seq = ++privateSeq, owner = roleKey.value
@@ -166,7 +177,11 @@ async function loadCard(refresh = false) {
   } catch (error) { if (seq === privateSeq && owner === roleKey.value) cardError.value = error.message }
   finally { if (seq === privateSeq) cardBusy.value = false }
 }
-async function loadAttendance(sign = false) {
+function loadAttendance(sign = false) {
+  const task = readAttendance(sign)
+  return capture ? capture.track(task) : task
+}
+async function readAttendance(sign = false) {
   if (cloud.value && sign) return
   if (!roleKey.value) return
   const seq = ++attendanceSeq, owner = roleKey.value
@@ -178,7 +193,11 @@ async function loadAttendance(sign = false) {
   } catch (error) { if (seq === attendanceSeq && owner === roleKey.value) attendanceError.value = error.message }
   finally { if (seq === attendanceSeq) attendanceBusy.value = false }
 }
-async function loadChallenge() {
+function loadChallenge() {
+  const task = readChallenge()
+  return capture ? capture.track(task) : task
+}
+async function readChallenge() {
   if (!roleKey.value) return
   const seq = ++challengeSeq, kind = challengeKind.value, owner = roleKey.value
   challengeBusy.value = true; challengeError.value = ''; challenge.value = null
@@ -298,8 +317,15 @@ function submitMapSearch() { submittedQuery.value = mapQuery.value.trim(); if (m
 watch(roleValue, (next, previous) => {
   if (next === previous) return
   clearPrivate()
+  if (capture && props.snaps.account?.payload) card.value = props.snaps.account
   if (next && ['overview', 'operators'].includes(section.value)) { loadCard(); if (section.value === 'overview') loadAttendance() }
   if (next && section.value === 'challenges') loadChallenge()
+})
+watch([card, roleKey], () => {
+  if (capture?.roleName && roleKey.value) {
+    const operator = visibleOperators.value[0]
+    if (operator?.id && String(operator.id) !== operatorDetailId.value) loadOperator(operator.id)
+  }
 })
 watch(section, current => {
   if (current === 'overview' || current === 'operators') { if (roleKey.value && !card.value) loadCard(); if (current === 'overview' && roleKey.value && !attendance.value) loadAttendance() }
@@ -337,13 +363,13 @@ onUnmounted(() => { destroyed = true; mapController?.abort(); ++statusSeq; ++pri
           <button type="submit" class="ui-button" :disabled="actionBusy">{{ actionBusy ? '连接中…' : '连接森空岛' }}</button>
         </form>
         <div v-else-if="connected && !cloud" class="role-bar"><label>森空岛角色<select :value="roleKey" :disabled="actionBusy" @change="selectRole"><option value="">请选择角色</option><option v-for="role in list(status.roles)" :key="`${role.role_id}:${role.server_id}`" :value="`${role.role_id}:${role.server_id}`">{{ roleLabel(role) }}</option></select></label><button type="button" class="ui-button" :disabled="actionBusy || !roleKey || cardBusy" @click="loadCard(true)"><AppIcon name="refresh" :size="14" />手动刷新档案</button><button type="button" class="ui-button" :disabled="actionBusy" @click="disconnect">断开</button></div>
-        <p v-if="cloud" class="hint">{{ cloudAccount.provider === 'skland' ? '森空岛档案' : '鹰角寻访' }} · {{ cloudAccount.roles?.find(r=>r.role_id === cloudRole)?.display_name || cloudRole }}。请在页面上方切换授权与角色。</p><p v-if="cloud && !connected" class="hint">当前是鹰角寻访授权；查看档案、干员、探索与挑战需单独选择森空岛授权。</p><p v-if="connected && !roleKey" class="hint">请选择一个森空岛角色。</p>
+        <p v-if="cloud" class="hint">{{ cloudAccount.provider === 'skland' ? '森空岛档案' : '鹰角寻访' }} · {{ cloudAccount.roles?.find(r=>r.role_id === cloudRole)?.display_name || (capture ? '本人角色' : cloudRole) }}。请在页面上方切换授权与角色。</p><p v-if="cloud && !connected" class="hint">当前是鹰角寻访授权；查看档案、干员、探索与挑战需单独选择森空岛授权。</p><p v-if="connected && !roleKey" class="hint">请选择一个森空岛角色。</p>
         <p v-if="roleKey" class="hint">当前森空岛档案：{{ roleLabel(selectedRole) }}。{{ cloud ? '仅显示当前森空岛授权，不合并鹰角寻访身份。' : '寻访统计使用下方单独标明的通行证账号。' }}</p>
         <p v-if="actionError" class="error" role="alert">{{ actionError }}</p><p v-if="actionMessage" class="hint" role="status">{{ actionMessage }}</p>
       </section>
 
       <template v-if="section === 'overview'">
-        <section v-if="passport" class="cap-card"><div class="cap-title">寻访账号<span v-if="snaps.account?.stale" class="badge badge-stale">数据可能过期</span></div><p class="hint">寻访记录所属账号，与上方森空岛角色分别管理。</p><p class="identity">{{ originalAccount?.nickname || '未知昵称' }} · 角色编号 {{ display(originalAccount?.role_id) }}</p></section>
+        <section v-if="passport" class="cap-card"><div class="cap-title">寻访账号<span v-if="snaps.account?.stale" class="badge badge-stale">数据可能过期</span></div><p class="hint">寻访记录所属账号，与上方森空岛角色分别管理。</p><p class="identity">{{ originalAccount?.nickname || '未知昵称' }}<template v-if="!capture"> · 角色编号 {{ display(originalAccount?.role_id) }}</template></p></section>
         <template v-if="roleKey"><p v-if="cardBusy" class="hint" role="status">正在读取档案…</p><p v-if="cardError" class="error" role="alert">{{ cardError }}</p>
           <div v-if="cardPayload" class="endfield-grid">
             <section class="cap-card"><div class="cap-title">账号与理智<span v-if="card?.fetched_at" class="cap-meta">更新于 {{ dateText(card.fetched_at) }}</span></div><p class="identity">{{ cardPayload.base?.name || selectedRole?.nickname || '未知昵称' }} · 等级 {{ display(cardPayload.base?.level) }}</p><dl class="fact-list"><div><dt>理智</dt><dd>{{ display(cardPayload.stamina?.current) }} / {{ display(cardPayload.stamina?.maximum) }}</dd></div><div><dt>预计回满</dt><dd>{{ dateText(cardPayload.stamina?.expected_full_at) }}</dd></div><div><dt>数据时间</dt><dd>{{ dateText(cardPayload.stamina?.updated_at) }}</dd></div></dl></section>
@@ -363,7 +389,7 @@ onUnmounted(() => { destroyed = true; mapController?.abort(); ++statusSeq; ++pri
         </template>
       </template>
 
-      <template v-if="section === 'operators' && roleKey"><p v-if="cardBusy" class="hint" role="status">正在读取干员与探索…</p><p v-if="cardError" class="error" role="alert">{{ cardError }}</p><template v-if="cardPayload"><section class="cap-card"><div class="cap-title">干员</div><p v-if="!list(cardPayload.operators).length" class="empty">暂无干员数据</p><div v-else class="operator-grid"><article v-for="(operator, i) in list(cardPayload.operators)" :key="operator.id || i" class="inner-card operator-item">
+      <template v-if="section === 'operators' && roleKey"><p v-if="cardBusy" class="hint" role="status">正在读取干员与探索…</p><p v-if="cardError" class="error" role="alert">{{ cardError }}</p><template v-if="cardPayload"><section class="cap-card"><div class="cap-title">干员</div><p v-if="!visibleOperators.length" class="empty">暂无干员数据</p><div v-else class="operator-grid"><article v-for="(operator, i) in visibleOperators" :key="operator.id || i" class="inner-card operator-item">
           <h3>{{ display(operator.name) }}<span class="muted">{{ display(operator.rarity) }}★</span></h3>
           <p>等级 {{ display(operator.level) }} · 潜能 {{ display(operator.potential) }}</p>
           <p v-if="operator.profession || operator.property">{{ display(operator.profession) }} · {{ display(operator.property) }}</p>
@@ -399,7 +425,7 @@ onUnmounted(() => { destroyed = true; mapController?.abort(); ++statusSeq; ++pri
       <template v-if="section === 'challenges' && roleKey"><section class="cap-card"><div class="cap-title">挑战记录<span v-if="challenge?.stale" class="badge badge-stale">数据可能过期</span></div><div class="segmented" aria-label="挑战类型"><button v-for="[key,label] in [['war','战争'],['monument','丰碑'],['crisis','危机']]" :key="key" type="button" :aria-pressed="challengeKind === key" @click="challengeKind = key">{{ label }}</button></div><p v-if="challengeBusy" class="hint" role="status">正在读取挑战记录…</p><p v-if="challengeError" class="error" role="alert">{{ challengeError }}</p><p v-if="challenge?.supported === false" class="empty">当前账号暂不支持这项挑战。</p><p v-if="challengeKind === 'crisis' && challenge?.summary?.highest != null" class="hint">历史最高：{{ challenge.summary.highest }} · 挑战次数：{{ display(challenge.summary.challenge_count) }}</p><p v-if="challengeKind === 'war' && list(challenge?.summary?.honors).length" class="hint">已获得 {{ list(challenge.summary.honors).length }} 项荣誉。</p><p v-if="!challengeBusy && !list(challenge?.records).length && challenge?.supported !== false" class="empty">暂无挑战记录</p><div v-else><details v-for="(item, i) in list(challenge?.records)" :key="i" class="record-detail" open><summary>{{ item.name || (item.id ? '记录 ' + item.id : '挑战记录') }}<strong>{{ challengeResult(item, challengeKind) }}</strong></summary><p v-if="item.start_at || item.end_at" class="hint">{{ dateText(item.start_at) }} — {{ dateText(item.end_at) }}</p><div v-for="week in list(item.weeks)" :key="week.id" class="inner-card"><h3>{{ week.name || week.id || '轮换' }} · {{ display(week.stars) }} 星</h3><div v-for="(group, j) in list(week.groups)" :key="j"><p>{{ group.name || '关卡' }} · {{ display(group.star) }} 星</p><p v-for="stage in stageList(group)" :key="stage.id || stage.difficulty" class="hint">{{ stage.difficulty }}：{{ stage.name || '关卡' }} · {{ passText(stage) }}</p></div></div><div v-for="(group, j) in list(item.groups)" :key="j" class="inner-card"><p>{{ group.name || '关卡组' }}</p><p v-for="stage in stageList(group)" :key="stage.id || stage.difficulty" class="hint">{{ stage.difficulty }}：{{ stage.name || '关卡' }} · {{ passText(stage) }}</p></div><p v-if="challengeKind === 'crisis'" class="hint">{{ passText(item) }}</p></details></div></section></template>
     </div>
 
-    <div v-else-if="section === 'gacha'" class="endfield-stack"><section v-if="passport" class="cap-card"><div class="cap-title">寻访账号<span v-if="snaps.gacha?.stale" class="badge badge-stale">寻访数据可能过期</span></div><p class="identity">{{ originalAccount?.nickname || '未知昵称' }} · 角色编号 {{ display(originalAccount?.role_id) }}</p></section><EndfieldGachaPanel v-if="passport" :snap="snaps.gacha" :account-id="gachaAccountId" /><p v-if="!passport" class="cap-card hint">寻访数据使用独立鹰角授权，请在页面上方切换。</p></div>
+    <div v-else-if="section === 'gacha'" class="endfield-stack"><section v-if="passport" class="cap-card"><div class="cap-title">寻访账号<span v-if="snaps.gacha?.stale" class="badge badge-stale">寻访数据可能过期</span></div><p class="identity">{{ originalAccount?.nickname || '未知昵称' }}<template v-if="!capture"> · 角色编号 {{ display(originalAccount?.role_id) }}</template></p></section><EndfieldGachaPanel v-if="passport" :snap="snaps.gacha" :account-id="gachaAccountId" /><p v-if="!passport" class="cap-card hint">寻访数据使用独立鹰角授权，请在页面上方切换。</p></div>
 
     <div v-else-if="section === 'map'" class="endfield-stack"><section class="cap-card"><div class="cap-title">官方地图</div><form class="map-filters" @submit.prevent="submitMapSearch"><label>地图<select v-model="mapId"><option value="">请选择地图</option><option v-for="item in list(map?.maps)" :key="item.id" :value="item.id">{{ item.name }}</option></select></label><label>区域<select v-model="levelId"><option value="">默认区域</option><option v-for="item in list(selectedMap?.levels)" :key="item.id" :value="item.id">{{ item.name }}</option></select></label><label>点位类型<select v-model="typeId"><option value="">全部类型</option><option v-for="item in list(map?.categories)" :key="item.id" :value="item.id">{{ item.name }}</option></select></label><label>搜索点位<input v-model="mapQuery" type="search" placeholder="输入名称" /></label><button type="submit" class="ui-button" :disabled="mapBusy">搜索</button></form><p v-if="mapBusy" class="hint" role="status">正在读取地图点位…</p><p v-if="mapError" class="error" role="alert">{{ mapError }}</p><p v-if="map?.stale" class="badge badge-stale">地图数据可能过期</p><p v-if="!mapBusy && !list(map?.marks).length" class="empty">暂无匹配点位</p><ul v-else class="mark-list"><li v-for="(mark, i) in list(map?.marks)" :key="mark.id || i"><div><strong>{{ display(mark.name) }}</strong><p class="hint">坐标 {{ display(mark.x) }}，{{ display(mark.y) }}，{{ display(mark.z) }}<span v-if="mark.description"> · {{ mark.description }}</span></p></div><div class="actions"><button type="button" class="ui-button" :disabled="markBusy" @click="loadMark(mark)">查看详情</button><a v-if="safeExternalUrl(mark.url)" :href="safeExternalUrl(mark.url)" target="_blank" rel="noopener noreferrer">官方地图<AppIcon name="arrow" :size="14" /></a></div></li></ul><section v-if="markDetail || markBusy || markError" class="inner-card mark-detail"><p v-if="markBusy" class="hint" role="status">正在读取点位详情…</p><p v-if="markError" class="error" role="alert">{{ markError }}</p><template v-if="markDetail"><h3>{{ markDetail.typeSub?.name || markDetail.typeMain?.name || "地图点位" }}</h3><p v-if="markDetail.desc">{{ markDetail.desc }}</p><p>坐标：{{ display(markDetail.pos?.x) }}，{{ display(markDetail.pos?.y) }}，{{ display(markDetail.pos?.z) }}</p><a v-if="safeExternalUrl(markDetail.link)" :href="safeExternalUrl(markDetail.link)" target="_blank" rel="noopener noreferrer">{{ markDetail.linkText || "查看官方说明" }}<AppIcon name="arrow" :size="14" /></a></template></section><div v-if="map?.total > map?.limit" class="actions"><button type="button" class="ui-button" :disabled="mapBusy || mapOffset === 0" @click="mapOffset = Math.max(0, mapOffset - map.limit)">上一页</button><span class="hint">{{ mapOffset + 1 }}–{{ Math.min(mapOffset + map.limit, map.total) }} / {{ map.total }}</span><button type="button" class="ui-button" :disabled="mapBusy || mapOffset + map.limit >= map.total" @click="mapOffset += map.limit">下一页</button></div></section><section class="cap-card"><div class="cap-title">官方百科与养成</div><p v-if="publicBusy" class="hint" role="status">正在读取官方入口…</p><p v-if="publicError" class="error" role="alert">{{ publicError }}</p><p v-if="!officialTools.length" class="empty">暂未取得官方入口</p><ul v-else class="tool-grid"><li v-for="tool in officialTools" :key="tool.id"><a :href="safeExternalUrl(tool.url)" target="_blank" rel="noopener noreferrer"><strong>{{ tool.name }}</strong><AppIcon name="arrow" :size="14" /></a><p class="hint">{{ tool.description }}</p><p v-if="tool.status === 'unavailable'" class="hint">请前往官网查询；本页暂不能读取百科目录。</p></li></ul></section>
       <section class="cap-card"><div class="cap-title">森空岛资料查询<span v-if="toolData?.stale" class="badge badge-stale">数据可能过期</span></div>

@@ -1,7 +1,6 @@
 import asyncio
 from io import BytesIO
 from pathlib import Path
-import threading
 
 from PIL import Image
 import pytest
@@ -15,8 +14,9 @@ def renderer_module():
     return rendering
 
 
-def result(text='昵称：测试\n等级：0', timestamp='2026-10-12T12:00:00Z'):
-    return QueryResult({'text': text}, timestamp, 'ok', None)
+def result(text='测试', timestamp='2026-10-12T12:00:00Z'):
+    from tests.qq_render_helpers import result as web_result
+    return web_result(text, timestamp)
 
 
 def cjk_font():
@@ -27,9 +27,9 @@ def cjk_font():
     return path
 
 
-def test_cache_includes_account_and_snapshot():
-    module = renderer_module()
-    cache = module.SummaryRenderer(font_path=cjk_font())
+async def test_cache_includes_account_and_snapshot():
+    from tests.qq_render_helpers import StubRenderer
+    cache = StubRenderer()
     scope = AccountScope('user', 'account', 'role')
     keys = {cache.cache_key(s, r) for s, r in (
         (scope, result()), (AccountScope('other', 'account', 'role'), result()),
@@ -37,67 +37,66 @@ def test_cache_includes_account_and_snapshot():
         (AccountScope('user', 'account', 'other'), result()),
         (scope, result(timestamp='2026-10-12T12:01:00Z')), (scope, result('等级：1')))}
     assert len(keys) == 6
-    png = cache.render_summary(scope, result())
-    assert png.startswith(b'\x89PNG\r\n\x1a\n')
-    assert Image.open(BytesIO(png)).width <= 1080
-    assert len(png) <= cache.max_bytes
-    cache.render_summary(AccountScope('other', 'account', 'role'), result('其他用户'))
-    assert len(cache.cache) == 2
+    first = await cache.render_summary(scope, result())
+    assert await cache.render_summary(scope, result()) == first
+    assert len(cache.captures) == 1
+    await cache.render_summary(AccountScope('other', 'account', 'role'), result('其他用户'))
+    assert len(cache.cache) == 2 and len(cache.captures) == 2
     cache.invalidate_account('user', 'account')
     assert len(cache.cache) == 1
-    assert cache.cache_key(scope, QueryResult({'text': '摘要', 'grant_version': 1}, None, 'ok', None)) != cache.cache_key(scope, QueryResult({'text': '摘要', 'grant_version': 2}, None, 'ok', None))
+    assert cache.cache_key(scope, QueryResult({'grant_version': 1}, None, 'ok', None)) != cache.cache_key(scope, QueryResult({'grant_version': 2}, None, 'ok', None))
+    await cache.aclose()
 
 
 def test_missing_fields_render_unknown():
-    module = renderer_module()
     original = QueryResult({'nickname': None, 'level': 0}, None, 'ok', None)
     text = render_result('异环', original, 'account')
     assert '昵称：未知' in text and '等级：0' in text and '完整性：未知' in text
-    cache = module.SummaryRenderer(font_path=cjk_font())
-    png = cache.render_summary(AccountScope('user', 'account', 'role'), result(text))
-    assert Image.open(BytesIO(png)).height > 100
 
 
-def test_no_cjk_font_or_arbitrary_payload_returns_safe_failure(tmp_path):
+async def test_missing_frontend_or_arbitrary_payload_returns_safe_failure(tmp_path):
     module = renderer_module()
-    cache = module.SummaryRenderer(font_path=str(tmp_path / 'missing.ttf'))
-    with pytest.raises(module.RenderingUnavailable):
-        cache.render_summary(AccountScope('user', 'account', 'role'), result())
-    cache = module.SummaryRenderer(font_path=cjk_font())
-    with pytest.raises(module.RenderingUnavailable):
-        cache.render_summary(AccountScope('user', 'account', 'role'), QueryResult({'token': 'secret'}, None, 'ok', None))
+    cache = module.SummaryRenderer(frontend_dist=tmp_path, font_path=cjk_font())
+    with pytest.raises(module.RenderingUnavailable, match='frontend_unavailable'):
+        await cache.render_summary(AccountScope('u','a','r'), result())
+    with pytest.raises(module.RenderingUnavailable, match='safe_summary_required'):
+        await cache.render_summary(AccountScope('u','a','r'), QueryResult({'token':'secret'}, None, 'ok', None))
+    with pytest.raises(module.RenderingUnavailable, match='web_document_required'):
+        await cache.render_summary(AccountScope('u','a','r'), QueryResult({'text':'old template'}, None, 'ok', None))
 
 
 async def test_render_queue_does_not_exceed_reply_window():
-    module = renderer_module()
-    started, finish = threading.Event(), threading.Event()
-    scope = AccountScope('user', 'account', 'role')
-    class SlowRenderer:
-        def render_summary(self, scope, query):
+    from tests.qq_render_helpers import StubRenderer, png_bytes
+    started, finish = asyncio.Event(), asyncio.Event()
+    class SlowRenderer(StubRenderer):
+        async def _capture(self, web, assets, deadline):
             started.set()
-            finish.wait(2)
-            return b'png'
-    queue = module.RenderQueue(SlowRenderer(), queue_limit=1)
-    first = asyncio.create_task(queue.render(scope, result(), budget_seconds=0.1))
-    await asyncio.to_thread(started.wait, 1)
-    try:
-        assert await queue.render(scope, result(), budget_seconds=0.01) is None
-        assert await first is None
-        # Timed-out work still occupies the only rendering slot until it really ends.
-        assert await queue.render(scope, result(), budget_seconds=0.1) is None
-    finally:
-        finish.set()
-        await queue.aclose()
+            try:
+                await asyncio.sleep(10)
+            finally:
+                await finish.wait()
+            return png_bytes()
+    queue = renderer_module().RenderQueue(SlowRenderer(), queue_limit=1)
+    scope = AccountScope('u','a','r')
+    first = asyncio.create_task(queue.render(scope, result(), budget_seconds=.05))
+    await asyncio.wait_for(started.wait(), 1)
+    assert await first is None
+    assert queue.pending == 1
+    assert await queue.render(scope, result(), budget_seconds=.1) is None
+    finish.set()
+    await queue.aclose()
+    assert queue.pending == 0
     assert await queue.render(scope, result(), budget_seconds=0) is None
 
 
 async def test_multi_user_rendering_isolated_and_cache_bounded():
-    module = renderer_module()
-    renderer = module.SummaryRenderer(font_path=cjk_font(), cache_entries=2)
-    queue = module.RenderQueue(renderer)
-    values = await asyncio.gather(*(queue.render(AccountScope(str(n), str(n), str(n)), result(f'账号：{n}'), budget_seconds=3) for n in range(3)))
-    assert all(values) and len(set(values)) == 3
+    from tests.qq_render_helpers import StubRenderer
+    renderer = StubRenderer(cache_entries=2)
+    queue = renderer_module().RenderQueue(renderer)
+    values = await asyncio.gather(*(queue.render(AccountScope(str(n),str(n),str(n)), result(f'账号{n}'), budget_seconds=3) for n in range(3)))
+    assert all(values) and len(renderer.captures) == 3
     assert len(renderer.cache) == 2
+    assert {row['entries'][0]['snapshots']['account']['payload']['nickname'] for row in renderer.captures} == {'账号0','账号1','账号2'}
     await queue.aclose()
 
 
@@ -198,7 +197,8 @@ async def test_official_image_upload_does_not_send_message_and_obeys_deadline():
             calls.append((path, body))
             return {'file_info': 'opaque', 'ttl': 60} if path.endswith('/files') else {'id': 'image-id'}
     client = OfficialQqClient('app', 'fixture-secret', None, None, sdk=SimpleNamespace(QQApiClient=API))
-    png = renderer_module().SummaryRenderer(font_path=cjk_font()).render_summary(AccountScope('u', 'a', 'r'), result())
+    from tests.qq_render_helpers import png_bytes
+    png = png_bytes()
     assert await client.send_image(message, png, 1) == 'image-id'
     assert calls[0] == ('/v2/groups/group/files', {'file_type': 1, 'file_data': base64.b64encode(png).decode('ascii'), 'srv_send_msg': False})
     assert calls[1] == ('/v2/groups/group/messages', {'msg_type': 7, 'media': {'file_info': 'opaque'}, 'msg_id': 'msg', 'msg_seq': 1})
@@ -266,6 +266,8 @@ async def test_central_render_rechecks_revoke_and_unlink_after_await(tmp_path, c
 
 
 async def test_central_png_envelope_contains_only_safe_summary(tmp_path):
+    import json
+    from tests.qq_render_helpers import StubRenderer
     import base64
     from types import SimpleNamespace
     from tests.test_account_queries import query_fixture
@@ -276,13 +278,15 @@ async def test_central_png_envelope_contains_only_safe_summary(tmp_path):
     store.save_scoped(scope, 'account', '{"nickname":"玩家","level":0,"token":"private-token","uid":"123456789"}', 1)
     module = renderer_module()
     service = QqQueryService(SimpleNamespace(resolve_qq_identity=lambda i: Principal('a', False)), query, None,
-                             render_queue=module.RenderQueue(module.SummaryRenderer(font_path=cjk_font())))
+                             render_queue=module.RenderQueue(StubRenderer()))
     identity = QqIdentity('app', 'group', 'g', 's')
     text_only = await service.query_reply(identity, 'summary', 'nte')
     assert set(text_only) == {'text'}
     response = await service.query_reply(identity, 'summary', 'nte', image_requested=True, budget_seconds=3)
     assert set(response) == {'text', 'image'}
     assert 'private-token' not in response['text'] and '123456789' not in response['text']
+    captured = json.dumps(service.render_queue.renderer.captures)
+    assert 'private-token' not in captured and '123456789' not in captured
     assert Image.open(BytesIO(base64.b64decode(response['image']))).width <= 1080
     accounts.revoke(Principal('a', False), scope.account_id)
     assert not service.render_queue.renderer.cache
@@ -311,55 +315,53 @@ async def test_internal_image_opt_in_and_invalid_image_falls_back():
     await http.aclose()
 
 
-def test_actual_encoded_bytes_are_capped():
-    module = renderer_module()
-    renderer = module.SummaryRenderer(font_path=cjk_font(), max_bytes=100)
-    with pytest.raises(module.RenderingUnavailable, match='size_limit'):
-        renderer.render_summary(AccountScope('u', 'a', 'r'), result())
+async def test_actual_encoded_bytes_are_capped():
+    from tests.qq_render_helpers import StubRenderer
+    renderer = StubRenderer(max_bytes=100)
+    with pytest.raises(renderer_module().RenderingUnavailable, match='size_limit'):
+        await renderer.render_summary(AccountScope('u','a','r'), result())
+    assert not renderer.cache
 
 
-async def test_invalidation_during_cpu_render_does_not_reinsert_cache():
-    import time
-    module = renderer_module()
-    renderer = module.SummaryRenderer(font_path=cjk_font())
-    started, finish = threading.Event(), threading.Event()
-    original_font = renderer._font
-    def delayed_font():
-        started.set()
-        finish.wait(1)
-        return original_font()
-    renderer._font = delayed_font
-    queue = module.RenderQueue(renderer)
-    task = asyncio.create_task(queue.render(AccountScope('u', 'a', 'r'), result(), budget_seconds=2))
-    await asyncio.to_thread(started.wait, 1)
-    try:
-        start = time.monotonic()
-        renderer.invalidate_account('u', 'a')
-        assert time.monotonic() - start < 0.1
-    finally:
-        finish.set()
-    await task
-    assert len(renderer.cache) == 0
+async def test_invalidation_during_browser_render_does_not_reinsert_cache():
+    from tests.qq_render_helpers import StubRenderer, png_bytes
+    started, finish = asyncio.Event(), asyncio.Event()
+    class PausedRenderer(StubRenderer):
+        async def _capture(self, web, assets, deadline):
+            started.set()
+            await finish.wait()
+            return png_bytes()
+    renderer = PausedRenderer()
+    queue = renderer_module().RenderQueue(renderer)
+    task = asyncio.create_task(queue.render(AccountScope('u','a','r'), result(), budget_seconds=2))
+    await asyncio.wait_for(started.wait(), 1)
+    renderer.invalidate_account('u','a')
+    finish.set()
+    assert await task
+    assert not renderer.cache
     await queue.aclose()
 
 
 def test_cloud_shutdown_drains_pending_render_and_removes_listener(tmp_path):
-    import time
     from fastapi.testclient import TestClient
     from tests.test_account_queries import cloud_settings
+    from tests.qq_render_helpers import StubRenderer, png_bytes
     from game_assistant.cloud_app import create_cloud_app
-    settings = cloud_settings(tmp_path, qq_app_id='app', qq_service_token='fixture', qq_images_enabled=True, qq_image_font_path=cjk_font())
+    settings = cloud_settings(tmp_path, qq_app_id='app', qq_service_token='fixture', qq_images_enabled=True)
     app = create_cloud_app(settings, start_scheduler=False)
     with TestClient(app, base_url='https://cloud.example') as client:
         service = app.state.qq_query
         queue = service.render_queue
-        original_font = queue.renderer._font
-        def slow_font():
-            time.sleep(0.25)
-            return original_font()
-        queue.renderer._font = slow_font
+        class ClosingRenderer(StubRenderer):
+            async def _capture(self, web, assets, deadline):
+                try:
+                    await asyncio.sleep(.25)
+                finally:
+                    await asyncio.sleep(.05)
+                return png_bytes()
+        queue.renderer = ClosingRenderer()
         async def render_late():
-            return await queue.render(AccountScope('fixture', 'fixture', 'fixture'), result(), budget_seconds=0.01)
+            return await queue.render(AccountScope('u','a','r'), result(), budget_seconds=.01)
         assert client.portal.call(render_late) is None
         assert queue.pending == 1
         listeners = service.query_service.accounts._listeners

@@ -136,7 +136,7 @@ def test_legacy_role_page_now_returns_complete_longcard_and_duplicate_disambigua
     assert '同名角色' in api.query(IDENTITY, 'roles', 'nte', role_name='同名')['text']
 
 
-def test_overview_uses_all_default_scopes_without_merging_endfield_identities():
+def test_overview_matches_website_one_account_per_game_and_prefers_skland():
     query = CachedQuery()
     for game, provider, account in [('wuthering_waves', 'kuro', 'ww'), ('nte', 'tajiduo', 'nte'),
                                     ('endfield', 'hypergryph', 'hg'), ('endfield', 'skland', 'sk')]:
@@ -144,8 +144,8 @@ def test_overview_uses_all_default_scopes_without_merging_endfield_identities():
         query.add(game, provider, account, {'account': payload})
     query.add('nte', 'tajiduo', 'other', {'account': {'nickname': 'NEVER'}}, default=False)
     text = service(query).query(IDENTITY, 'overview')['text']
-    assert all('name-'+name in text for name in ['ww', 'nte', 'hg', 'sk'])
-    assert 'NEVER' not in text and '鹰角寻访' in text and '森空岛档案' in text
+    assert all('name-'+name in text for name in ['ww', 'nte', 'sk'])
+    assert 'NEVER' not in text and 'name-hg' not in text and '森空岛档案' in text
     assert len(text) <= 1800
 
 
@@ -183,7 +183,7 @@ async def test_multi_scope_overview_rechecks_every_authorization_after_async_ren
     class Queue:
         renderer = SimpleNamespace(invalidate_account=lambda *args: None)
         async def render(self, scope, result, **kwargs):
-            assert set(result.payload) <= {'card', 'grant_version', 'snapshot_times', 'scopes', 'snapshot_fingerprints'}
+            assert set(result.payload) <= {'card', 'web', 'grant_version', 'snapshot_times', 'scopes', 'snapshot_fingerprints'}
             assert len(result.payload['scopes']) == 2
             if change == 'secondary_revoke': query.versions['sk'] = None
             elif change == 'secondary_rotate': query.versions['sk'] += 1
@@ -287,31 +287,31 @@ def test_long_overview_keeps_every_section_in_one_bounded_document():
     first=api.query(IDENTITY,'overview',image_context=context)['text']
     card=context['card']
     combined=str(card)
-    assert all('昵称'+account in combined for account in ('ww','nte','hg','sk'))
+    assert all('昵称'+account in combined for account in ('ww','nte','sk'))
+    assert '昵称hg' not in combined
     assert len(first)<=1800 and 'page' not in card
 
 
-async def test_actual_presentation_renders_overview_and_six_roles():
-    from io import BytesIO
-    from pathlib import Path
-    from PIL import Image
-    from game_assistant.qq.rendering import SummaryRenderer
-    paths=('C:/Windows/Fonts/msyh.ttc','/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc')
-    font=next((p for p in paths if Path(p).is_file()),None)
-    if font is None:pytest.skip('System CJK font unavailable')
-    query=CachedQuery()
-    for game,provider,account in [('wuthering_waves','kuro','ww'),('nte','tajiduo','nte'),('endfield','hypergryph','hg'),('endfield','skland','sk')]:
-        payload={'base':{'name':'森空岛玩家','level':50}} if provider=='skland' else {'nickname':'测试玩家','level':80}
-        query.add(game,provider,account,{'account':payload})
-    query.data[('ww','roles')]=QueryResult([{'name':f'角色{n}','level':80,'attribute':'衍射','chain':0} for n in range(7)],'2026-10-14T00:00:00Z','ok',None)
-    api=service(query)
-    renderer=SummaryRenderer(font_path=font)
-    for command,game in [('overview',None),('roles','wuthering_waves')]:
-        context={};reply=api.query(IDENTITY,command,game,image_context=context)
-        png=renderer.render_summary(AccountScope('u','ww','default-role'),QueryResult({'card':context['card']},None,'ok',None))
-        image=Image.open(BytesIO(png))
-        assert image.width<=1080 and image.height<=16000 and len(png)<=524288
-        assert len(reply['text'])<=1800 and 'page' not in context['card']
+async def test_web_query_freezes_whole_role_list_and_website_overview_selection():
+    query = CachedQuery()
+    for game, provider, account in [('wuthering_waves', 'kuro', 'ww'), ('nte', 'tajiduo', 'nte'), ('endfield', 'hypergryph', 'hg'), ('endfield', 'skland', 'sk')]:
+        payload = {'base': {'name': '森空岛玩家', 'level': 50}} if provider == 'skland' else {'nickname': '测试玩家', 'level': 80}
+        query.add(game, provider, account, {'account': payload})
+    query.data[('ww', 'roles')] = QueryResult([{'name': f'角色{n}', 'level': 80, 'attribute': '衍射', 'chain': 0} for n in range(7)], '2026-10-14T00:00:00Z', 'ok', None)
+    rendered = []
+    class Queue:
+        renderer = SimpleNamespace(invalidate_account=lambda *args: None)
+        async def render(self, scope, result, **kwargs):
+            rendered.append(result.payload['web'])
+            return b'screenshot'
+    api = service(query, queue=Queue())
+    for command, game in [('overview', None), ('roles', 'wuthering_waves')]:
+        reply = await api.query_reply(IDENTITY, command, game, image_requested=True, budget_seconds=5)
+        assert 'image' in reply and len(reply['text']) <= 1800
+    assert [entry['account']['account_id'] for entry in rendered[0]['entries']] == ['ww', 'nte', 'sk']
+    roles = rendered[1]['entries'][0]['snapshots']['roles']['payload']
+    assert len(roles) == 7 and roles[-1]['name'] == '角色6'
+    assert all(role['chain'] == 0 for role in roles)
 
 
 async def test_unlink_and_relink_same_user_still_invalidates_inflight_private_card(tmp_path):

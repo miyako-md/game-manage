@@ -6,6 +6,7 @@ import { revokeSession, getMe } from './identity-api.js'
 import { followSystem, theme, setTheme } from './theme.js'
 import { collectionState } from './snapshot-state.js'
 import { capabilityLabel } from './cloud-display.js'
+import { selectOverviewAccount } from './qq-render-context.js'
 import AppIcon from './components/AppIcon.vue'
 import GameIcon from './components/GameIcon.vue'
 import { gameStyle, readRoute } from './dashboard.js'
@@ -61,7 +62,7 @@ const ownerGames = computed(() => publicGames.filter(game => state.accounts.some
 const overviewOwners = computed(() => Object.fromEntries(ownerGames.value.map(game => {
   // A single provider and default role supplies each card; never merge Endfield identities.
   const rows = state.accounts.filter(a => a.state !== 'revoked' && gameFor(a) === game.game_id)
-  return [game.game_id, rows.find(a => a.provider === 'skland') || rows[0]]
+  return [game.game_id, selectOverviewAccount(rows)]
 })))
 const overviewGames = computed(() => ownerGames.value.map(game => ({...game,capabilities:overviewOwners.value[game.game_id]?.provider === 'skland' ? ['account','stamina'] : accountCapabilities(overviewOwners.value[game.game_id]), credentials_configured:true,platform:overviewOwners.value[game.game_id]?.provider === 'skland' ? '终末地 / 森空岛档案' : overviewOwners.value[game.game_id]?.provider === 'hypergryph' ? '终末地 / 鹰角寻访' : undefined})))
 const overviewSnapshots = computed(() => Object.fromEntries(overviewGames.value.map(game => {

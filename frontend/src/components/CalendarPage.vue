@@ -8,6 +8,9 @@ import { gameStyle } from '../dashboard.js'
 import { prefersReducedMotion, vGlide } from '../motion.js'
 import { collectionState, hasFreshPublicFallback } from '../snapshot-state.js'
 import CloudSnapshotStatus from './CloudSnapshotStatus.vue'
+import { useQqRender } from '../qq-render-context.js'
+import { eventBoundaryText, qqEventGeometry, qqEventStatus } from '../qq-event-selection.js'
+const capture = useQqRender()
 
 const props = defineProps({
   games: { type: Array, default: () => [] },
@@ -17,7 +20,7 @@ const props = defineProps({
   readErrors: { type: Object, default: () => ({}) },
   showSourceStatus: { type:Boolean, default:false },
 })
-const now = ref(Date.now())
+const now = ref(capture?.now ?? Date.now())
 const anchor = ref(now.value)
 const mode = ref('rolling')
 const filter = ref(props.initialGameId === 'all' ? '' : props.initialGameId)
@@ -34,7 +37,7 @@ function fitWindow() {
 }
 let timer
 onMounted(() => {
-  timer = setInterval(() => { now.value = Date.now() }, 60000)
+  if (!capture) timer = setInterval(() => { now.value = Date.now() }, 60000)
   fitWindow()
   if (typeof window !== 'undefined') window.addEventListener('resize', fitWindow)
   if (typeof ResizeObserver !== 'undefined' && boardElement.value?.parentElement) {
@@ -58,8 +61,8 @@ const rangeTitle = computed(() => mode.value === 'month'
   ? formatBeijingDateTime(range.value.start).slice(0, 7).replace('-', ' 年 ') + ' 月'
   : `${formatBeijingDateTime(range.value.start).slice(5, 10)} — ${formatBeijingDateTime(range.value.end - 1).slice(5, 10)}`)
 const events = computed(() => collectCalendarEvents(props.games, props.snapshots, filter.value).map(event => {
-  const geometry = eventGeometry(event, range.value)
-  const status = eventStatus(event, now.value)
+  const geometry = capture ? qqEventGeometry(event,range.value,capture.command) : eventGeometry(event, range.value)
+  const status = capture ? qqEventStatus(event,now.value,geometry) : eventStatus(event, now.value)
   let elapsed = null, remainingDays = null
   if (geometry.kind === 'range' && status === '进行中') {
     const start = Math.max(geometry.start, range.value.start)
@@ -89,7 +92,7 @@ function gameAccent(id) {
   return gameStyle(id === 'lol' ? 'league_of_legends' : id).color
 }
 function shift(direction) { anchor.value = shiftCalendarAnchor(anchor.value, mode.value, direction) }
-function goToday() { now.value = Date.now(); anchor.value = now.value }
+function goToday() { now.value = capture?.now ?? Date.now(); anchor.value = now.value }
 function setMode(value) { mode.value = value }
 function barStyle(event) {
   return { left: `${event.geometry.left}%`, width: event.geometry.kind === 'range' ? `${event.geometry.width}%` : undefined }
@@ -164,12 +167,12 @@ async function closeDetail() {
       <div class="calendar-footer"><span>日期按时间比例展示 · “更新后”仅表示开始日期，具体时刻见公告</span><span>↔ 可横向滚动</span></div>
     </section>
 
-    <section v-if="undated.length || invalid.length" class="calendar-unplaced" aria-labelledby="unplaced-title"><div class="unplaced-heading"><h2 id="unplaced-title">待确认的时间</h2><p>原始数据未给出完整日期，或日期存在异常。</p></div><div class="unplaced-grid"><div v-for="bucket in [{ title: '日期未提供', events: undated }, { title: '日期异常', events: invalid }]" v-show="bucket.events.length" :key="bucket.title" class="unplaced-bucket"><h3>{{ bucket.title }} <span>{{ bucket.events.length }}</span></h3><button v-for="event in bucket.events" :key="event.id" type="button" class="unplaced-event" :aria-label="`查看活动详情：${event.name || '未命名活动'}`" @click="selectEvent(event, $event)"><span><strong>{{ event.name || '未命名活动' }}</strong><small>{{ event.gameName }} · {{ event.category }}</small></span><span class="unknown-reason">{{ event.geometry.reason }} <b aria-hidden="true">↗</b></span></button></div></div></section>
+    <section v-if="undated.length || invalid.length" class="calendar-unplaced" aria-labelledby="unplaced-title"><div class="unplaced-heading"><h2 id="unplaced-title">待确认的时间</h2><p>原始数据未给出完整日期，或日期存在异常。</p></div><div class="unplaced-grid"><div v-for="bucket in [{ title: capture ? '时间待确认' : '日期未提供', events: undated }, { title: '日期异常', events: invalid }]" v-show="bucket.events.length" :key="bucket.title" class="unplaced-bucket"><h3>{{ bucket.title }} <span>{{ bucket.events.length }}</span></h3><button v-for="event in bucket.events" :key="event.id" type="button" class="unplaced-event" :aria-label="`查看活动详情：${event.name || '未命名活动'}`" @click="selectEvent(event, $event)"><span><strong>{{ event.name || '未命名活动' }}</strong><small>{{ event.gameName }} · {{ event.category }}</small></span><span class="unknown-reason">{{ event.geometry.reason }} <b aria-hidden="true">↗</b></span></button></div></div></section>
 
     <section v-if="selected" ref="detailElement" class="calendar-detail t-panel" aria-labelledby="calendar-detail-title" tabindex="-1" :style="{ '--game-accent': gameAccent(selected.gameId) }" @keydown.esc.stop="closeDetail">
       <div class="detail-heading"><div><p class="eyebrow">{{ selected.gameName }} / {{ selected.category }}</p><h2 id="calendar-detail-title">{{ selected.name || '未命名活动' }}</h2></div><button type="button" class="detail-close" aria-label="关闭活动详情" @click="closeDetail"><AppIcon name="close" :size="16" /></button></div>
       <div class="detail-status"><span>{{ selected.status }}</span><span v-if="selected.geometry.reason">{{ selected.geometry.reason }}</span><span v-if="selected.stale" class="calendar-stale">数据可能过期</span></div>
-      <dl><div><dt>开始时间 · 北京时间</dt><dd>{{ selected.start_at ? formatBeijingDateTime(selected.start_at) : selected.start_text || '未知' }}</dd><small v-if="selected.geometry.approximateStart">仅知开始日期 {{ selected.start_date }}，具体时刻未知</small><small v-if="selected.start_at && selected.geometry.start === null">原始值：{{ selected.start_at }}</small></div><div><dt>截止时间 · 北京时间</dt><dd>{{ selected.end_at ? formatBeijingDateTime(selected.end_at) : selected.end_text || '未知' }}</dd><small v-if="selected.end_at && selected.geometry.end === null">原始值：{{ selected.end_at }}</small><small v-if="selected.end_at && selected.end_precision === 'version_end'">{{ selected.end_text }}，时刻取自下个版本的维护预告</small></div><div><dt>来源标题</dt><dd>{{ selected.source_name ? selected.source_name + ' · ' : '' }}{{ selected.source_title || '未提供' }}</dd></div><div><dt>快照抓取时间 · 北京时间</dt><dd>{{ formatBeijingDateTime(selected.fetchedAt) }}</dd></div></dl>
+      <dl><div><dt>开始时间 · 北京时间</dt><dd>{{ capture ? eventBoundaryText(selected,'start') : selected.start_at ? formatBeijingDateTime(selected.start_at) : selected.start_text || '未知' }}</dd><small v-if="selected.geometry.approximateStart">仅知开始日期 {{ selected.start_date }}，具体时刻未知</small><small v-if="selected.start_at && selected.geometry.start === null">原始值：{{ selected.start_at }}</small></div><div><dt>截止时间 · 北京时间</dt><dd>{{ capture ? eventBoundaryText(selected,'end') : selected.end_at ? formatBeijingDateTime(selected.end_at) : selected.end_text || '未知' }}</dd><small v-if="selected.end_at && selected.geometry.end === null">原始值：{{ selected.end_at }}</small><small v-if="selected.end_at && selected.end_precision === 'version_end'">{{ selected.end_text }}，时刻取自下个版本的维护预告</small></div><div><dt>来源标题</dt><dd>{{ selected.source_name ? selected.source_name + ' · ' : '' }}{{ selected.source_title || '未提供' }}</dd></div><div><dt>快照抓取时间 · 北京时间</dt><dd>{{ formatBeijingDateTime(selected.fetchedAt) }}</dd></div></dl>
       <p v-if="selected.time_text" class="source-id">日期依据：{{ selected.time_text }}</p>
       <p v-if="selected.source_note" class="source-id">{{ selected.source_note }}</p>
       <p v-if="selected.geometry.clippedStart || selected.geometry.clippedEnd" class="clipping-note">时间条已按当前显示范围裁剪{{ selected.geometry.clippedStart ? '左侧' : '' }}{{ selected.geometry.clippedStart && selected.geometry.clippedEnd ? '和' : '' }}{{ selected.geometry.clippedEnd ? '右侧' : '' }}；以上为完整起止时间。</p>

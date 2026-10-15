@@ -88,7 +88,7 @@ def load_runtime(path):
 
 def build_app(runtime, *, start_scheduler=True):
     from .cloud_app import create_cloud_app, allow_cloud_route
-    app = create_cloud_app(runtime.settings, start_scheduler=start_scheduler)
+    app = create_cloud_app(runtime.settings, start_scheduler=start_scheduler, frontend_dist=runtime.frontend_dist)
     from fastapi import Request
     from starlette.responses import JSONResponse
     @app.get('/internal/operations/health')

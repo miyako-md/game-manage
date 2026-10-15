@@ -2,6 +2,8 @@
 import { displayBeijing, resetLabel } from '../time.js'
 import { computed } from 'vue'
 import SummaryMetrics from './SummaryMetrics.vue'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 
 const props = defineProps({
   snap: { type: Object, default: null },
@@ -14,7 +16,7 @@ function toLocal(value) {
 
 // refresh_at 重置提示：负数=已可重置，同日=今日重置，否则 X天后重置
 function refreshText(value) {
-  return resetLabel(value)
+  return resetLabel(value, capture?.now)
 }
 
 const rows = computed(() => {

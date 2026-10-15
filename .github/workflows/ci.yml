@@ -1,4 +1,4 @@
-name: Windows checks
+name: Application checks
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install uv==0.12.3
-          uv sync --locked --extra dev --python ${{ matrix.python }}
+          uv sync --locked --extra dev --extra qq --python ${{ matrix.python }}
       - name: Backend tests
         run: .\.venv\Scripts\python.exe -m pytest -q
       - name: Isolated runtime checks (never autostart)
@@ -44,3 +44,29 @@ jobs:
       - name: Build dashboard
         working-directory: frontend
         run: npm run build
+  browser-render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked render dependencies
+        run: |
+          python -m pip install uv==0.12.3
+          uv sync --locked --extra dev --extra render
+          .venv/bin/python -m playwright install --with-deps chromium --only-shell
+          sudo apt-get install -y fonts-noto-cjk
+      - name: Build the shared cloud components
+        run: |
+          npm ci --prefix frontend --registry=https://registry.npmjs.org
+          .venv/bin/python scripts/cloud/build_frontend.py --frontend frontend
+      - name: Verify real offline browser rendering
+        env:
+          GA_RUN_BROWSER_TESTS: '1'
+        run: .venv/bin/python -m pytest tests/test_qq_web_rendering.py tests/test_qq_web_payload.py -q

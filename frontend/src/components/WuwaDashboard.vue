@@ -20,6 +20,9 @@ import WuwaModuleCard from './WuwaModuleCard.vue'
 import { list, value } from '../wuwa-display.js'
 import WuwaStatus from './WuwaStatus.vue'
 import SummaryMetrics from './SummaryMetrics.vue'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
+const showProfile = cap => !capture || ['summary','overview'].includes(capture.command) || capture.command === cap
 const props = defineProps({
   snaps: { type: Object, default: () => ({}) },
   initialSection: { type: String, default: 'overview' },
@@ -118,23 +121,23 @@ const roleNames = computed(() =>
         请先登录鸣潮账号以查看私人档案。
       </p>
       <template v-else-if="section === 'profile'">
-        <WuwaModuleCard title="账号档案" :description="current.account?.payload?.nickname || '漂泊者档案'" :snap="current.account" :metrics="[
+        <WuwaModuleCard v-if="showProfile('account')" title="账号档案" :description="current.account?.payload?.nickname || '漂泊者档案'" :snap="current.account" :metrics="[
           { label: '联觉等级', value: current.account?.payload?.level },
           { label: '世界等级', value: current.account?.payload?.extra?.profile?.world_level },
           { label: '成就数', value: current.account?.payload?.extra?.profile?.achievement_count },
         ]"><WuwaProfile :snap="current.account" /></WuwaModuleCard>
         <div class="wuwa-grid profile-grid">
-          <WuwaModuleCard class="profile-stamina" title="体力" inline :snap="current.stamina">
+          <WuwaModuleCard v-if="showProfile('stamina')" class="profile-stamina" title="体力" inline :snap="current.stamina">
             <StaminaCard label="结晶波片" :snap="current.stamina" />
           </WuwaModuleCard>
-          <WuwaModuleCard class="profile-progress" title="周期进度" inline :snap="current.progress">
+          <WuwaModuleCard v-if="showProfile('progress')" class="profile-progress" title="周期进度" inline :snap="current.progress">
             <ProgressCard :snap="current.progress" />
           </WuwaModuleCard>
-          <WuwaModuleCard class="profile-exploration" title="探索收集" description="地区探索度、残象与分类收集统计" :snap="current.exploration" :metrics="[{label:'已收录残象',value:current.exploration?.payload?.detections?.total}]">
+          <WuwaModuleCard v-if="showProfile('exploration')" class="profile-exploration" title="探索收集" description="地区探索度、残象与分类收集统计" :snap="current.exploration" :metrics="[{label:'已收录残象',value:current.exploration?.payload?.detections?.total}]">
             <template #preview><SummaryMetrics compact :metrics="(current.exploration?.payload?.country_groups || []).map(g=>({label:g.name,current:g.progress,total:100,icon:'grid'}))" /></template>
             <ExplorationCard :snap="current.exploration" />
           </WuwaModuleCard>
-          <WuwaModuleCard class="profile-calabash" title="数据坞" inline :snap="current.calabash">
+          <WuwaModuleCard v-if="showProfile('calabash')" class="profile-calabash" title="数据坞" inline :snap="current.calabash">
             <CalabashCard :snap="current.calabash" />
           </WuwaModuleCard>
         </div></template

@@ -1,6 +1,8 @@
 <script setup>
 import { computed } from 'vue'
 import { fieldLabels, value, sourceDateTime } from '../wuwa-display.js'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 const props = defineProps({
   data: { default: null },
   exclude: { type: Array, default: () => [] },
@@ -9,7 +11,7 @@ const props = defineProps({
 })
 const HIDDEN = /(?:icon|pic|image|_url|^sort$|^provenance$)/
 const isScalar = (v) => v == null || typeof v !== 'object'
-const visible = (obj) => Object.entries(obj).filter(([k]) => !HIDDEN.test(k))
+const visible = (obj) => Object.entries(obj).filter(([k]) => !HIDDEN.test(k) && !(capture && /^(?:id|uid|user_id|game_uid|role_id|server_id|character_id|account_id)$/.test(k)))
 // Source date-times show as Beijing wall time, like every other timestamp here.
 const shown = (v) => sourceDateTime(v) ?? value(v)
 function small(v) {

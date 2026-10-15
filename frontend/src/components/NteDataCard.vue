@@ -4,6 +4,8 @@ import { percentOf } from '../dashboard.js'
 import { safeUrl } from '../calendar.js'
 import { displayRoleValue } from '../nte-roles.js'
 import { computed } from 'vue'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 import { vPop } from '../motion.js'
 import InfoHint from './InfoHint.vue'
 
@@ -66,7 +68,7 @@ const medals = computed(() => [
       <div class="identity">
         <strong>{{ display(data.nickname) }}</strong>
         <span class="chip">{{ display(data.server_name) }}</span>
-        <span class="chip mono">UID {{ display(data.role_id) }}</span>
+        <span v-if="!capture" class="chip mono">UID {{ display(data.role_id) }}</span>
       </div>
       <dl class="kv-grid tiles account-grid">
         <div v-for="stat in accountStats" :key="stat.name">
@@ -138,7 +140,7 @@ const medals = computed(() => [
             </p>
             <p class="chip-list">
               <span class="chip">{{ display(entry.server_name) }}</span>
-              <span class="chip mono">UID {{ display(entry.role_id) }}</span>
+              <span v-if="!capture" class="chip mono">UID {{ display(entry.role_id) }}</span>
             </p>
           </div>
           <a v-if="safeUrl(entry.url)" class="text-link" :href="safeUrl(entry.url)" target="_blank" rel="noopener noreferrer">查看社区名片 ↗</a>

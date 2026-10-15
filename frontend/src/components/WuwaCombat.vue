@@ -7,6 +7,8 @@ import WuwaCombatRecord from './WuwaCombatRecord.vue'
 import WuwaChallengeGuides from './WuwaChallengeGuides.vue'
 import SummaryMetrics from './SummaryMetrics.vue'
 import { vGlide } from '../motion.js'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 const props = defineProps({ roleNames: { type: Object, default: () => ({}) }, snap: { default: null } })
 const payload = computed(() => props.snap?.payload || {})
 const selected = ref(''), view = ref('records')
@@ -34,6 +36,7 @@ function open(mode) { selected.value=mode; view.value='records' }
       </template>
       <p v-if="payload[mode]?.data?.is_unlock === false" class="wuwa-muted">尚未解锁</p>
       <WuwaStatus :snap="payload[mode] || snap" />
+      <WuwaCombatRecord v-if="capture" :mode="mode" :snap="snap" :role-names="roleNames" />
     </section>
     <WuwaRoleDialog v-if="selected" :title="`${titles[selected]} · 详情`" @close="selected = ''">
       <div v-glide class="segmented wuwa-dialog-tabs" role="group" aria-label="挑战详情视图">

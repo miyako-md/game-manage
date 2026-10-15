@@ -1,5 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 import { fetchedLabel } from '../time.js'
 import { safeUrl } from '../calendar.js'
 import { filterRoles, comparisonGroups, favoritesKey, loadFavorites, saveFavorites, roleId, displayRoleValue as display } from '../nte-roles.js'
@@ -14,13 +16,13 @@ const payload = computed(() => props.snap?.payload ?? null)
 const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
 const legacy = computed(() => payload.value !== null && payload.value.schema_version !== 1)
 const list = value => Array.isArray(value) ? value.filter(row => row && typeof row === 'object') : []
-const roles = computed(() => legacy.value ? [] : list(payload.value?.entries))
+const roles = computed(() => legacy.value ? [] : list(payload.value?.entries).filter(role => !capture?.roleName || role.name === capture.roleName))
 const search = ref(''), quality = ref(''), element = ref(''), favoritesOnly = ref(false), sort = ref('level'), direction = ref('desc')
 const favorites = ref([]), storageError = ref(''), selected = ref([]), failedImages = reactive(new Set())
 const canPersist = computed(() => Boolean(favoritesKey(props.accountId)))
 const keyOf = role => roleId(role) ? `id:${roleId(role)}` : `row:${roles.value.indexOf(role)}`
 watch(() => props.accountId, () => {
-  const loaded = loadFavorites(props.accountId)
+  const loaded = capture ? {ids:[]} : loadFavorites(props.accountId)
   favorites.value = loaded.ids; storageError.value = loaded.error ?? ''; selected.value = []; favoritesOnly.value = false
 }, { immediate: true })
 watch(roles, () => { selected.value = selected.value.filter(key => roles.value.some(role => keyOf(role) === key)) })
@@ -53,9 +55,9 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
 
 <template>
   <section class="cap-card nte-roles-panel">
-    <div class="cap-title">
-      角色练度
-      <InfoHint v-if="roles.length" text="未提供的排序值排在最后。收藏仅保存在当前浏览器，按网站用户、授权账号及游戏角色区分。" />
+    <div class="cap-title" :class="{'qq-role-summary':capture}">
+      <template v-if="!capture">角色练度</template>
+      <InfoHint v-if="roles.length && !capture" text="未提供的排序值排在最后。收藏仅保存在当前浏览器，按网站用户、授权账号及游戏角色区分。" />
       <span v-if="snap?.stale" class="badge badge-stale">数据可能过期</span>
       <span v-if="roles.length" class="chip-list summary">
         <span class="chip">角色总数 <b>{{ roles.length }}</b></span>
@@ -68,7 +70,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
     <p v-else-if="legacy" class="empty">数据格式已更新，请刷新</p>
     <p v-else-if="!roles.length" class="empty">暂无数据</p>
     <template v-else>
-      <div class="toolbar">
+      <div v-if="!capture" class="toolbar">
         <input class="grow" type="search" aria-label="搜索角色" placeholder="搜索角色名称" :value="search" @input="search = $event.target.value" />
         <MenuSelect v-model="quality" label="品质筛选" :options="[{ value: '', label: '全部品质' }, ...qualities]" />
         <MenuSelect v-model="element" label="元素筛选" :options="[{ value: '', label: '全部元素' }, ...elements]" />
@@ -77,9 +79,9 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
         <label class="favorite-filter"><input type="checkbox" aria-label="仅收藏" :checked="favoritesOnly" @change="favoritesOnly = $event.target.checked" /><span>仅收藏</span></label>
         <span class="count">显示 {{ visible.length }} / {{ roles.length }}</span>
       </div>
-      <p v-if="!canPersist" class="notice">当前账号身份未提供，暂不可收藏。</p>
+      <p v-if="!canPersist && !capture" class="notice">当前账号身份未提供，暂不可收藏。</p>
       <p v-if="storageError" class="notice" role="status">{{ storageError }}</p>
-      <div class="compare-tray" role="group" aria-label="角色对比选择">
+      <div v-if="!capture" class="compare-tray" role="group" aria-label="角色对比选择">
         <div class="compare-heading">
           <strong>角色对比</strong>
           <span class="compare-count">已选 {{ selected.length }} / 4</span>
@@ -114,7 +116,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
               <button type="button" class="icon-button" :aria-label="`对比${role.name || '角色'}`" :aria-pressed="isCompared(role)" :disabled="selected.length >= 4 && !isCompared(role)" :title="isCompared(role) ? '移出对比' : '加入对比'" @click="toggleCompare(role)"><AppIcon :name="isCompared(role) ? 'close' : 'plus'" :size="15" /></button>
             </div>
           </div>
-          <details class="role-more">
+          <details class="role-more" :open="!!capture">
             <summary>
               <span class="chip">觉醒 <b>{{ display(role.awaken_level) }}</b></span>
               <span class="chip">混频 <b>{{ display(role.mix_level) }}</b></span>

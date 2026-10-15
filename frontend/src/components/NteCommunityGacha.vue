@@ -5,6 +5,8 @@ import { safeUrl } from '../calendar.js'
 import { finiteValue } from '../dashboard.js'
 import { vGlide } from '../motion.js'
 import InfoHint from './InfoHint.vue'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 
 const props = defineProps({ snap: { type: Object, default: null }, roles: { type: Array, default: () => [] } })
 const legacy = computed(() => props.snap?.payload && props.snap.payload.schema_version !== 1)
@@ -12,11 +14,12 @@ const pools = computed(() => !legacy.value && Array.isArray(props.snap?.payload?
 const selected = ref(0), failedImages = reactive(new Set())
 watch(pools, value => { if (!value[selected.value]) selected.value = 0 })
 const current = computed(() => pools.value[selected.value])
-const entries = computed(() => Array.isArray(current.value?.details) ? current.value.details : [])
+const historyPools = computed(() => capture ? pools.value : current.value ? [current.value] : [])
+const entriesFor = pool => Array.isArray(pool?.details) ? pool.details : []
 const known = value => finiteValue(value) !== null && value >= 0
 const show = value => known(value) ? value : '未知'
 const average = value => known(value) ? Number(value.toFixed(1)) : '未知'
-const scale = computed(() => known(current.value?.guarantee) && current.value.guarantee > 0 ? current.value.guarantee : null)
+const scaleFor = pool => known(pool?.guarantee) && pool.guarantee > 0 ? pool.guarantee : null
 const officialTitle = computed(() => !legacy.value && typeof props.snap?.payload?.luck_title === 'string' ? props.snap.payload.luck_title : '')
 const titleTone = computed(() => { const code = props.snap?.payload?.luck_type; return code >= 1 && code <= 5 ? 'short' : code >= 6 && code <= 10 ? 'medium' : code >= 11 && code <= 15 ? 'long' : 'unknown' })
 const fetched = computed(() => props.snap?.fetched_at ? displayBeijing(props.snap.fetched_at) : '未提供')
@@ -32,9 +35,9 @@ function icon(entry) {
   return null
 }
 function imageFailed(entry) { failedImages.add(icon(entry)) }
-function barStyle(entry) {
-  if (!known(entry.pity) || !scale.value) return { width: '0%' }
-  return { width: `${Math.min(100, entry.pity / scale.value * 100)}%` }
+function barStyle(entry, pool) {
+  if (!known(entry.pity) || !scaleFor(pool)) return { width: '0%' }
+  return { width: `${Math.min(100, entry.pity / scaleFor(pool) * 100)}%` }
 }
 // Verified against Tajiduo scard/main.149e4946.js: no local rarity thresholds.
 const rating = entry => ({ 1: '超欧', 2: '欧', 3: '非', 4: '超非' })[entry.lucky_type] || ''
@@ -69,22 +72,22 @@ function obtained(value) {
           <dl><div><dt>出 S 数量</dt><dd>{{ show(pool.s_count) }}</dd></div><div><dt>S 级平均</dt><dd>{{ average(pool.average) }}</dd></div></dl>
         </article>
       </div>
-      <section v-if="pools.length" class="history-panel" aria-label="已出 S 明细">
+      <section v-for="(pool, poolIndex) in historyPools" :key="poolIndex" class="history-panel" aria-label="已出 S 明细">
         <div class="history-bar">
-          <nav v-glide class="pool-tabs segmented" aria-label="选择抽卡统计卡池"><button v-for="(pool, index) in pools" :key="index" type="button" :aria-pressed="selected === index" @click="selected = index">{{ pool.name || '未命名卡池' }}</button></nav>
-          <h3>已出 S 记录 <span>{{ entries.length }} 条</span></h3>
+          <h3 v-if="capture">{{ pool.name || '未命名卡池' }}</h3><nav v-else v-glide class="pool-tabs segmented" aria-label="选择抽卡统计卡池"><button v-for="(pool, index) in pools" :key="index" type="button" :aria-pressed="selected === index" @click="selected = index">{{ pool.name || '未命名卡池' }}</button></nav>
+          <h3>已出 S 记录 <span>{{ entriesFor(pool).length }} 条</span></h3>
           <InfoHint align="end" text="仅展示已抽出的 S 级条目与本次出 S 抽数，不展示当前垫抽。" />
         </div>
-        <p v-if="!entries.length" class="empty">该卡池暂无已出 S 明细。</p>
+        <p v-if="!entriesFor(pool).length" class="empty">该卡池暂无已出 S 明细。</p>
         <ol v-else class="pull-list">
-          <li v-for="(entry, index) in entries" :key="`${selected}-${entry.item_id}-${index}`" class="pull-row">
+          <li v-for="(entry, index) in entriesFor(pool)" :key="`${poolIndex}-${entry.item_id}-${index}`" class="pull-row">
             <div class="reward-icon"><img v-if="icon(entry)" :src="icon(entry)" :alt="entry.name || entry.item_id" loading="lazy" referrerpolicy="no-referrer" @error="imageFailed(entry)" /><span v-else aria-hidden="true">{{ String(entry.name || entry.item_id || '?').slice(0, 2) }}</span></div>
             <strong class="pull-name" :title="entry.name || entry.item_id">{{ entry.name || entry.item_id || '未知条目' }}</strong>
-            <div class="bar-track" :aria-label="known(entry.pity) ? `本次出 S：${entry.pity} 抽` : '本次抽数未提供'"><div class="pull-bar" :class="tone(entry)" :style="barStyle(entry)" /><div class="bar-values"><template v-if="known(entry.pity)"><strong>{{ entry.pity }}</strong><span>抽</span></template><span v-else>本次抽数未提供</span><span v-if="rating(entry)" class="rating" :class="tone(entry)" title="塔吉多社区评价">{{ rating(entry) }}</span></div></div>
+            <div class="bar-track" :aria-label="known(entry.pity) ? `本次出 S：${entry.pity} 抽` : '本次抽数未提供'"><div class="pull-bar" :class="tone(entry)" :style="barStyle(entry, pool)" /><div class="bar-values"><template v-if="known(entry.pity)"><strong>{{ entry.pity }}</strong><span>抽</span></template><span v-else>本次抽数未提供</span><span v-if="rating(entry)" class="rating" :class="tone(entry)" title="塔吉多社区评价">{{ rating(entry) }}</span></div></div>
             <time class="pull-time">{{ obtained(entry.obtained_at) }}</time>
           </li>
         </ol>
-        <footer v-if="entries.length" class="bar-legend"><span><i class="short" />欧 / 超欧</span><span><i class="medium" />普通 / 非</span><span><i class="long" />超非</span><span v-if="scale">本池标尺 {{ scale }} 抽</span><InfoHint align="end" text="评价与配色沿用塔吉多；横条表示这次出 S 的抽数，不表示当前垫抽。未提供评价时显示灰色，未提供标尺时不绘制比例。" /></footer>
+        <footer v-if="entriesFor(pool).length" class="bar-legend"><span><i class="short" />欧 / 超欧</span><span><i class="medium" />普通 / 非</span><span><i class="long" />超非</span><span v-if="scaleFor(pool)">本池标尺 {{ scaleFor(pool) }} 抽</span><InfoHint align="end" text="评价与配色沿用塔吉多；横条表示这次出 S 的抽数，不表示当前垫抽。未提供评价时显示灰色，未提供标尺时不绘制比例。" /></footer>
       </section>
     </template>
   </section>

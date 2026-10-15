@@ -131,8 +131,12 @@ async def test_asset_preparation_cannot_release_private_text_when_authorization_
     class Queue:
         renderer=SimpleNamespace(invalidate_account=lambda *args:None)
         async def render(self,scope,result,*,budget_seconds):
-            budgets.append(budget_seconds);return None
-    api=QqQueryService(SimpleNamespace(resolve_qq_identity=resolve),query,None,asset_cache=Assets(),render_queue=Queue())
+            budgets.append(budget_seconds)
+            # Public asset preparation now belongs to the web renderer.
+            await assets.prefetch((),budget_seconds=budget_seconds)
+            return None
+    assets=Assets()
+    api=QqQueryService(SimpleNamespace(resolve_qq_identity=resolve),query,None,asset_cache=assets,render_queue=Queue())
     result=await api.query_reply(IDENTITY,'overview',image_requested=True,budget_seconds=3)
     assert 'PRIVATE' not in result['text'] and '变更' in result['text']
     assert len(budgets)==2 and all(0<=budget<=3 for budget in budgets)

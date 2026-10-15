@@ -1,6 +1,8 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { isCloudMode } from '../http-client.js'
+import { useQqRender } from '../qq-render-context.js'
+const capture = useQqRender()
 const cloudMode = isCloudMode()
 import { getLedgerSummary, getLedgerRecords, previewLedger, importLedger, getLedgerRules, saveLedgerRule, exportLedger, pityLabel, ledgerDate, poolLabel, requirementLabel, resultLabel } from '../nte-gacha-api.js'
 import AppIcon from './AppIcon.vue'
@@ -41,7 +43,7 @@ watch(() => props.accountId, () => {
   documentData.value = null; fileName.value = ''; preview.value = null; latest.value = continuous.value = identity.value = false
   rulePool.value = ''; ruleLimit.value = ''; ruleNote.value = ''; ruleConfirmed.value = false; error.value = ''; message.value = ''; busy.value = false
   segmented.value = false; exportStart.value = 1; exportNext.value = null
-  load()
+  if (capture) capture.track(load()); else load()
 }, { immediate: true })
 watch([pool, offset], () => { if (props.accountId) loadRecords() })
 watch(pool, () => { exportStart.value = 1; exportNext.value = null })

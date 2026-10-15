@@ -1,5 +1,7 @@
 # QQ 公开图标素材
 
+2026-10-15 起，QQ 图片复用 Vue 组件。公共素材下载仍使用本文件的限制，`get_png(ref)` 提供不可变的净化 PNG 字节；动态组件选中的图片也经过 Python 允许列表并按本次截图冻结。浏览器不直接连接 CDN，缺图使用原网页组件的占位。详见 [共用展示组件](qq-shared-dashboard-rendering.md)。
+
 `src/game_assistant/qq/public_asset_catalog.py` 只导出既有前端目录的公开名称、ID、图片 URL，并保留源文件 SHA-256、更新日期和来源页。它作为 Python 模块进入 wheel，无需额外包数据配置。内容来自 `frontend/src/wuwa-icon-catalog.js` 与 `nte-icon-catalog.js`，不读取快照、凭据、账户导出或本机私有图标目录。目录别名不等于唯一图片数量。
 
 | 游戏 | 名称及 ID 键 | 来源 |
