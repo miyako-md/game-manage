@@ -235,6 +235,7 @@ class SummaryRenderer:
                 timeout=timeout, args=['--host-resolver-rules=MAP * ~NOTFOUND', '--disable-background-networking'])
             return self._browser
         except (Error, OSError, NotImplementedError):
+            await self.aclose()
             raise RenderingUnavailable('qq_render_browser_unavailable') from None
 
     async def _capture(self, web, assets, deadline):

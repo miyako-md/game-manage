@@ -69,4 +69,5 @@ jobs:
       - name: Verify real offline browser rendering
         env:
           GA_RUN_BROWSER_TESTS: '1'
+          DEBUG: 'pw:browser'
         run: .venv/bin/python -m pytest tests/test_qq_web_rendering.py tests/test_qq_web_payload.py -q
