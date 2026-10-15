@@ -157,7 +157,7 @@ class QqQueryService:
         # Skland account snapshots contain observed subviews; no extra fetch.
         embedded=provider=='skland' and cap in ('roles','stamina','exploration','progress') and 'account' in caps
         actual='account' if embedded else cap
-        if cap=='gacha' and provider!='skland' and game!='nte':
+        if cap=='gacha' and game=='wuthering_waves':
             ledger=self._ledger_snapshot(scope,game)
             if ledger is not None:
                 self._capture_snapshot(context,scope,cap,ledger)
@@ -225,11 +225,13 @@ class QqQueryService:
             return reply(card)
         if context is not None:
             context.update(user_id=principal.user_id,binding_revision=self._binding_revision(identity))
+        if command=='calendar':
+            return reply(self._public_events(GAME_NAMES,command,context),True)
         if self.query_service is None:return reply(view.message(game,'账号查询','账号查询服务暂不可用。'))
         try:
             account_rows=self.query_service.list_accounts(principal)
             if context is not None:context['account_rows']=account_rows
-            if command in ('calendar','events','recent_events'):
+            if command in ('events','recent_events'):
                 games=[]
                 for current in GAME_NAMES:
                     accounts=self._accounts(principal,current,account_rows=account_rows)

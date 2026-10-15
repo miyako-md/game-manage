@@ -305,9 +305,9 @@ class SummaryRenderer:
                 json.dumps(json.dumps(state, ensure_ascii=True, allow_nan=False)) + ');' +
                 "window.open = () => null; window.RTCPeerConnection = undefined; window.webkitRTCPeerConnection = undefined;")
             page = await context.new_page()
+            await page.clock.set_fixed_time(web['now'] / 1000)
             await page.goto(RENDER_ORIGIN + ENTRY_PATH, wait_until='load')
-            await page.add_style_tag(content="@font-face{font-family:QqRenderFont;src:url('/__qq_font__')}"
-                "#qq-capture{font-family:QqRenderFont,var(--font-sans)}")
+            await page.add_style_tag(content="@font-face{font-family:'Game CJK';src:url('/__qq_font__')}")
             while True:
                 ready = await page.evaluate('() => ({ready: window.__QQ_RENDER_READY__ === true, error: !!window.__QQ_RENDER_ERROR__})')
                 if ready['ready'] or ready['error']:

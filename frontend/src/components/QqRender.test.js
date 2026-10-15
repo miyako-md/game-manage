@@ -3,9 +3,12 @@ import assert from 'node:assert/strict'
 import { h, nextTick, provide } from 'vue'
 import { loadVue, mount, nodes, content } from '../test-utils/vue.js'
 import { configureHttpClient, setAccountScope } from '../http-client.js'
-import { createQqRenderContext, QQ_RENDER_CONTEXT, selectOverviewAccount } from '../qq-render-context.js'
+import { createQqRenderContext, QQ_RENDER_CONTEXT } from '../qq-render-context.js'
+import { selectOverviewAccount, cloudOverviewView } from '../cloud-view-model.js'
 
 const App = await loadVue(new URL('../QqRenderApp.vue', import.meta.url))
+const CloudCard = await loadVue(new URL('./CloudGameCard.vue', import.meta.url))
+const Overview = await loadVue(new URL('./OverviewPage.vue', import.meta.url))
 const now = Date.parse('2026-10-15T04:00:00Z')
 const snap = payload => ({ payload, state:'ok', fetched_at:'2026-10-15T03:00:00Z' })
 const account = (game, provider, capabilities) => ({ account_id:'a', game, provider, state:'active', capabilities, roles:[{role_id:'private-role',display_name:'本人角色',is_default:true}] })
@@ -33,6 +36,19 @@ test('QQ overview uses the website cards and its Skland owner preference',t=>{
   assert.match(content(cards[0]),/0 \/ 240/)
 })
 
+test('QQ redacted failures and website raw failures keep the same overview card state',t=>{
+  const original={state:'source_error',payload:{schema_version:1,nickname:'旧数据',level:0},error:'已知安全来源说明'}
+  const owner=account('nte','tajiduo',['account'])
+  const websiteView=cloudOverviewView({accounts:[owner],snapshotsByAccount:{a:{account:original}}})
+  const website=mount(t,Overview,{games:websiteView.games,snapshots:websiteView.snapshots,accounts:websiteView.accounts,collection:websiteView.collection,readErrors:websiteView.readErrors,now})
+  const {root}=capture(t,{version:1,command:'overview',game:null,now,entries:[{account:owner,role:'private-role',snapshots:{account:{...original,error:undefined}}}],publicSnapshots:{}})
+  const labels=tree=>nodes(tree,'span').filter(node=>String(node.props.class).includes('summary-state')).map(content)
+  assert.deepEqual(labels(root),labels(website))
+  assert.deepEqual(labels(root),['读取异常'])
+  assert.match(content(root),/来源读取异常/)
+  assert.doesNotMatch(content(root),/已知安全来源说明/)
+})
+
 test('QQ NTE roles expands the original full list and details without a dialog or identity fields',t=>{
   const entries=Array.from({length:13},(_,i)=>({id:String(i),name:`角色${i}`,level:i,weapon:{name:`弧盘${i}`,level:0}}))
   const {root}=capture(t,inputFor('nte','tajiduo','roles',{roles:snap({schema_version:1,entries})}))
@@ -48,15 +64,33 @@ test('QQ NTE roles expands the original full list and details without a dialog o
   assert.doesNotMatch(content(root),/private-role/)
 })
 
-test('QQ expanded NTE summary shows its original data once without duplicate metric previews',t=>{
-  const {root}=capture(t,inputFor('nte','tajiduo','summary',{account:snap({schema_version:1,nickname:'唯一账号名',level:70,tycoon_level:30,achievement_count:0,achievement_total:300}),stamina:snap({schema_version:1,current:120,maximum:240,city_current:40,city_maximum:100,daily_activity:80,weekly_remaining:0})}))
-  assert.equal((content(root).match(/唯一账号名/g)||[]).length,1)
-  assert.equal((content(root).match(/周本剩余/g)||[]).length,1)
-  assert.match(content(root),/大亨等级 30/)
-  assert.match(content(root),/0 \/ 300/)
-  assert.match(content(root),/120 \/ 240/)
-  assert.match(content(root),/周本剩余 0/)
-  assert.ok(!nodes(root,'div').some(node=>String(node.props.class).includes('summary-metrics')))
+test('QQ NTE summary keeps the normal cloud wrapper and its default summary content',t=>{
+  const input=inputFor('nte','tajiduo','summary',{account:snap({schema_version:1,nickname:'唯一账号名',level:70,tycoon_level:30,achievement_count:0,achievement_total:300}),stamina:snap({schema_version:1,current:120,maximum:240,city_current:40,city_maximum:100,daily_activity:80,weekly_remaining:0})})
+  const website=mount(t,CloudCard,{account:input.entries[0].account,role:input.entries[0].role,snapshots:input.entries[0].snapshots})
+  const {root}=capture(t,input)
+  const summaryTiles=tree=>nodes(tree,'div').filter(node=>String(node.props.class).includes('summary-metric') && !String(node.props.class).includes('summary-metrics')).map(content)
+  assert.deepEqual(summaryTiles(root),summaryTiles(website))
+  assert.equal(summaryTiles(root).length,6)
+  assert.equal(classes(root,'nte-card').length,0)
+  assert.equal(classes(website,'nte-card').length,0)
+  assert.match(content(root),/周本剩余 · 0/)
+  assert.doesNotMatch(content(root),/大亨等级/)
+})
+
+test('QQ Wuwa summary keeps the normal cloud profile previews without opening details',t=>{
+  const input=inputFor('wuthering_waves','kuro','summary',{
+    account:snap({nickname:'本人档案',level:70,extra:{role_id:'private-role',server_id:'server',profile:{world_level:0,achievement_count:0}}}),
+    stamina:snap({current:0,maximum:240}),progress:snap([{name:'周期事项',cur:0,total:10}]),
+    exploration:snap({detections:{total:0},country_groups:[{name:'合成地区',progress:0}]}),calabash:snap({level:0}),
+  })
+  const website=mount(t,CloudCard,{account:input.entries[0].account,role:input.entries[0].role,snapshots:input.entries[0].snapshots})
+  const {root}=capture(t,input)
+  const metrics=tree=>nodes(tree,'div').filter(node=>String(node.props.class).includes('summary-metric') && !String(node.props.class).includes('summary-metrics')).map(content)
+  assert.deepEqual(metrics(root),metrics(website))
+  assert.ok(metrics(root).some(text=>text.includes('世界等级 0')))
+  assert.ok(metrics(root).some(text=>text.includes('已收录残象 0')))
+  assert.ok(!nodes(root,'h2').some(node=>node.props.class==='wuwa-name'))
+  assert.equal(nodes(root,'dialog').length,0)
 })
 
 test('QQ named NTE role filters exactly and keeps real zero values',t=>{

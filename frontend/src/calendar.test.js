@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseBeijingTime, formatBeijingDateTime, beijingDayStart, calendarRange, shiftCalendarAnchor, eventStatus, eventGeometry, collectCalendarEvents, groupCalendarEvents, safeUrl } from './calendar.js'
+import { parseBeijingTime, formatBeijingDateTime, beijingDayStart, calendarRange, shiftCalendarAnchor, eventBoundaryText, eventStatus, eventGeometry, collectCalendarEvents, groupCalendarEvents, hasUncertainEventBoundary, normalizeCalendarEvents, safeUrl } from './calendar.js'
 
 const at = parseBeijingTime
 test('relative starts use date geometry without claiming midnight is the opening time', () => {
@@ -111,4 +111,42 @@ test('formatBeijingDateTime rejects timestamps outside four-digit years', () => 
   assert.equal(formatBeijingDateTime(-62135596800000), '未知')
   assert.equal(formatBeijingDateTime(253402300800000), '未知')
   assert.equal(formatBeijingDateTime(Date.UTC(2026, 8, 24, 2, 0)), '2026-09-24 10:00')
+})
+
+test('boundary text retains source precision and descriptions without changing website date positioning', () => {
+  const row = { start_at: '2026-10-14', end_at: '2026-10-15', start_precision: 'day', end_precision: 'day' }
+  assert.equal(eventBoundaryText(row, 'start'), '2026-10-14 · 时刻未确认')
+  assert.equal(eventBoundaryText(row, 'end'), '2026-10-15 · 时刻未确认')
+  assert.equal(eventStatus(row, at('2026-10-15T12:00:00+08:00')), '已结束')
+  assert.equal(eventGeometry(row, calendarRange(at('2026-10-15'))).end, at('2026-10-15'))
+  assert.equal(eventBoundaryText({ end_at: '2026-10-16T06:00:00+08:00', end_precision: 'version_end', end_text: '维护前' }, 'end'), '2026-10-16 06:00 · 维护前')
+  assert.equal(eventBoundaryText({ start_date: '2026-10-14', start_precision: 'relative', start_text: '维护完成后' }, 'start'), '2026-10-14 · 维护完成后')
+  assert.equal(eventBoundaryText({ end_precision: 'unknown', end_text: '后续通知' }, 'end'), '后续通知')
+  assert.equal(eventBoundaryText({ start_at: '2026-10-14T12:00:00+08:00' }, 'start'), '2026-10-14 12:00')
+})
+
+test('uncertain placement retains unknown boundaries but does not promote complete day ranges', () => {
+  assert.equal(hasUncertainEventBoundary({ start_at: '2026-12-01', end_at: '2026-12-02', start_precision: 'day', end_precision: 'day' }), false)
+  assert.equal(hasUncertainEventBoundary({ start_date: '2026-12-01', end_date: '2026-12-02', start_precision: 'day', end_precision: 'day' }), false)
+  assert.equal(hasUncertainEventBoundary({ start_date: '2026-12-01', end_precision: 'unknown', end_text: '后续通知' }), true)
+  assert.equal(hasUncertainEventBoundary({ start_at: '2026-12-01', start_precision: 'relative', start_text: '维护后', end_at: '2026-12-02' }), true)
+  assert.equal(hasUncertainEventBoundary({ start_at: '2026-12-01' }), true)
+})
+
+test('shared phase expansion preserves distinct source metadata and never mutates snapshots', () => {
+  const phase = { start_at: '2026-10-14', end_at: '2026-10-15', end_precision: 'day' }
+  const source = { name: '阶段活动', source_name: '官方', source_title: '公告一', phases: [phase, { start_at: '2026-10-18', end_at: '2026-10-19' }] }
+  const secondSource = { ...source, source_title: '公告二' }
+  const original = structuredClone([source, source, secondSource])
+  const rows = normalizeCalendarEvents([source, source, secondSource])
+  assert.equal(rows.length, 4)
+  assert.deepEqual(rows.map(row => [row.name, row.source_title]), [
+    ['阶段活动 · 阶段 1', '公告一'], ['阶段活动 · 阶段 2', '公告一'],
+    ['阶段活动 · 阶段 1', '公告二'], ['阶段活动 · 阶段 2', '公告二'],
+  ])
+  assert.ok(rows.every(row => !('phases' in row)))
+  assert.deepEqual(normalizeCalendarEvents(rows), rows)
+  assert.deepEqual([source, source, secondSource], original)
+  const ordinary = [{ name: '普通活动', start_at: '2026-10-14' }, { name: '普通活动', start_at: '2026-10-14' }, { end_text: '后续通知' }]
+  assert.deepEqual(normalizeCalendarEvents(ordinary), ordinary)
 })

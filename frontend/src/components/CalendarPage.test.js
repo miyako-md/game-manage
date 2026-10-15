@@ -1,7 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { nextTick, reactive } from 'vue'
+import { h, nextTick, provide, reactive } from 'vue'
 import { calendarRange } from '../calendar.js'
+import { createQqRenderContext, QQ_RENDER_CONTEXT } from '../qq-render-context.js'
+import { selectQqEvents } from '../qq-event-selection.js'
 import { loadVue, mount, content, nodes } from '../test-utils/vue.js'
 
 const CalendarPage = await loadVue(new URL('./CalendarPage.vue', import.meta.url))
@@ -137,3 +139,71 @@ test('missing event snapshots and failed reads distinguish uncollected data from
   assert.doesNotMatch(content(root), /网络连接失败/)
   assert.match(content(root), /尚未取得活动快照/)
 })
+
+test('website and QQ calendar use identical geometry, status and precision text for the same source rows', async t => {
+  const now = Date.parse('2026-10-15T12:00:00+08:00')
+  t.mock.method(Date, 'now', () => now)
+  const rows = [
+    { name: '日精度截止', start_at: '2026-10-14', end_at: '2026-10-15', start_precision: 'day', end_precision: 'day' },
+    { name: '更新后开放', start_date: '2026-10-14', start_precision: 'relative', start_text: '维护完成后', end_at: '2026-10-16T03:59:00+08:00' },
+    { name: '未知边界', start_at: '2026-10-14T00:00:00+08:00', start_precision: 'unknown', start_text: '待社区确认', end_at: '2026-10-18T12:00:00+08:00' },
+    { name: '只知开始', start_at: '2026-10-14T12:00:00+08:00', end_text: '维护前，日期待定' },
+    { name: '无日期', start_text: '后续通知', end_precision: 'unknown' },
+    { name: '轴外待定', start_at: '2026-12-01', start_precision: 'day', end_precision: 'unknown', end_text: '后续公告' },
+    { name: '轴外完整日精度', start_at: '2026-12-01', end_at: '2026-12-02', start_precision: 'day', end_precision: 'day' },
+    { name: '阶段活动', source_name: '官方公告', phases: [
+      { start_at: '2026-10-14T00:00:00+08:00', end_at: '2026-10-16T00:00:00+08:00' },
+      { start_at: '2026-10-18T00:00:00+08:00', end_at: '2026-10-19T00:00:00+08:00' },
+    ] },
+    { name: '日期异常', start_at: '2026-10-17', end_at: '2026-10-14' },
+  ]
+  const original = structuredClone(rows)
+  const propsFor = payload => ({ games: [games[0]], snapshots: { nte: { events: { payload, fetched_at: '2026-10-15T10:00:00+08:00' } } }, initialGameId: 'nte' })
+  const website = mount(t, CalendarPage, propsFor(rows))
+  const captureProps = propsFor(selectQqEvents(rows, 'calendar', now))
+  const qq = mount(t, { setup() {
+    provide(QQ_RENDER_CONTEXT, createQqRenderContext({ command: 'calendar', now }))
+    return () => h(CalendarPage, captureProps)
+  } }, {})
+  const triggers = root => nodes(root, 'button').filter(node => node.props['aria-label']?.startsWith('查看活动详情：'))
+  const presented = root => triggers(root).map(node => ({ label: node.props['aria-label'], class: node.props.class, title: node.props.title, style: node.props.style, text: content(node) }))
+  assert.deepEqual(presented(qq), presented(website))
+  assert.doesNotMatch(content(website), /轴外完整日精度/)
+  assert.match(content(website), /轴外待定.*2026-12-01 · 时刻未确认.*后续公告/)
+  const day = triggers(website).find(node => node.props['aria-label'] === '查看活动详情：日精度截止')
+  assert.match(content(day), /已结束/)
+  assert.equal(day.props.style.width, `${1 / 30 * 100}%`)
+  assert.match(day.props.title, /2026-10-15 · 时刻未确认/)
+  assert.doesNotMatch(day.props.title, /2026-10-16/)
+  const phases = triggers(website).filter(node => node.props['aria-label'].includes('阶段活动'))
+  assert.equal(phases.length, 2)
+  assert.ok(parseFloat(phases[0].props.style.left) + parseFloat(phases[0].props.style.width) < parseFloat(phases[1].props.style.left))
+  for (const trigger of triggers(website)) {
+    const other = triggers(qq).find(node => node.props['aria-label'] === trigger.props['aria-label'])
+    await trigger.props.onClick(); await other.props.onClick(); await nextTick()
+    const detail = root => nodes(root, 'section').find(node => node.props['aria-labelledby'] === 'calendar-detail-title')
+    assert.equal(content(detail(website)), content(detail(qq)), trigger.props['aria-label'])
+  }
+  assert.deepEqual(rows, original)
+})
+
+for (const command of ['events', 'recent_events']) {
+  test(`${command} filtering changes selection but shares website calendar presentation`, t => {
+    const now = Date.parse('2026-10-15T12:00:00+08:00')
+    t.mock.method(Date, 'now', () => now)
+    const rows = selectQqEvents([
+      { name: '进行中', start_at: '2026-10-14T00:00:00+08:00', end_at: '2026-10-16T00:00:00+08:00' },
+      { name: '精度待定', start_at: '2026-12-01', start_precision: 'day', end_precision: 'unknown', end_text: '后续公告' },
+      { name: '已结束', start_at: '2026-10-13T00:00:00+08:00', end_at: '2026-10-14T00:00:00+08:00' },
+    ], command, now)
+    const props = { games: [games[0]], snapshots: { nte: { events: { payload: rows } } }, initialGameId: 'nte' }
+    const website = mount(t, CalendarPage, props)
+    const qq = mount(t, { setup() {
+      provide(QQ_RENDER_CONTEXT, createQqRenderContext({ command, now }))
+      return () => h(CalendarPage, props)
+    } }, {})
+    assert.equal(content(qq), content(website))
+    assert.match(content(qq), /精度待定.*后续公告/)
+    assert.doesNotMatch(content(qq), /已结束/)
+  })
+}

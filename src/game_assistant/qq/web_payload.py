@@ -34,8 +34,11 @@ _IDENTITY_KEYS = frozenset(('id', 'role_id', 'server_id', 'character_id', 'accou
 def display_data(value, key=''):
     """Drop transport secrets and raw diagnostics before a browser sees data."""
     if isinstance(value, dict):
-        return {str(k): display_data(v, str(k)) for k, v in value.items()
-                if str(k).lower() not in _PRIVATE_KEYS and not _SECRET_KEY.search(str(k))}
+        output = {str(k): display_data(v, str(k)) for k, v in value.items()
+                  if str(k).lower() not in _PRIVATE_KEYS and not _SECRET_KEY.search(str(k))}
+        if value.get('error'):
+            output['error'] = '来源读取异常'
+        return output
     if isinstance(value, (list, tuple)):
         return [display_data(item, key) for item in value if not _private_named_field(item)]
     if isinstance(value, str):
@@ -116,7 +119,8 @@ class FrozenWebView:
             return {'account', 'stamina', 'progress', 'stats', 'record'}
         # The account identity is needed by the existing Wuwa detail transports.
         wanted = {'account', command}
-        if command == 'teams':
+        if (command == 'teams' or game == 'wuthering_waves' and command == 'combat'
+                or game == 'nte' and command == 'gacha'):
             wanted.add('roles')
         return wanted
 
@@ -146,11 +150,6 @@ class FrozenWebView:
         elif game == 'endfield' and row['provider'] == 'hypergryph' and command == 'gacha':
             ledger = existing_ledger(private, scope, 'endfield_gacha')
             if ledger is not None:
-                summary = ledger.summary(scope)
-                if hasattr(summary, 'model_dump'):
-                    summary = summary.model_dump(mode='json')
-                # EndfieldGachaPanel consumes the summary through its snap prop.
-                snapshots['gacha'] = {**snapshots.get('gacha', {}), 'payload': summary}
                 self.respond(scope, '/endfield/gacha/records?pool_key=&offset=0&limit=50', ledger.records(scope, '', 50, 0))
         elif game == 'endfield' and row['provider'] == 'skland':
             account = snapshots.get('account')

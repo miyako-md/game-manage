@@ -29,6 +29,47 @@ export function formatBeijingDateTime(value) {
   return date.toISOString().slice(0, 16).replace('T', ' ')
 }
 
+/** An instant suitable for countdown filtering must have an explicitly known time. */
+export function eventEndpoint(event, side) {
+  const raw = event[`${side}_at`], precision = event[`${side}_precision`]
+  if (![undefined, null, 'minute', 'version_end'].includes(precision) || typeof raw !== 'string' || !/[T ]\d{2}:\d{2}/.test(raw)) return null
+  return parseBeijingTime(raw)
+}
+
+const datePart = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value) && parseBeijingTime(value.slice(0, 10)) !== null ? value.slice(0, 10) : null
+
+export function eventBoundaryText(event, side) {
+  const raw = event[`${side}_at`], precision = event[`${side}_precision`], description = event[`${side}_text`]
+  const instant = ['day', 'relative', 'dependent', 'unknown'].includes(precision) ? null : parseBeijingTime(raw)
+  if (instant !== null) return formatBeijingDateTime(instant) + (precision === 'version_end' && description ? ` · ${description}` : '')
+  const date = datePart(raw || event[`${side}_date`])
+  if (precision === 'relative') return (date ? `${date} · ` : '') + (description || '相对时间，时刻待确认')
+  return date ? `${date} · 时刻未确认${description ? ` · ${description}` : ''}` : description || '未知'
+}
+
+export function hasUncertainEventBoundary(event) {
+  return ['start', 'end'].some(side => ['relative', 'dependent', 'unknown'].includes(event[`${side}_precision`]) ||
+    parseBeijingTime(event[`${side}_at`] || event[`${side}_date`]) === null)
+}
+
+/** Expand source phases once; all consumers keep their gaps and source metadata. */
+export function normalizeCalendarEvents(payload) {
+  const source = Array.isArray(payload) ? payload : Array.isArray(payload?.events) ? payload.events : []
+  const seenPhases = new Set(), output = []
+  for (const original of source.filter(row => row && typeof row === 'object' && !Array.isArray(row))) {
+    const phases = Array.isArray(original.phases) ? original.phases.filter(row => row && typeof row === 'object' && !Array.isArray(row)) : []
+    if (!phases.length) { output.push({...original}); continue }
+    phases.forEach((phase, index) => {
+      const item = {...original, ...phase}
+      delete item.phases
+      item.name = String(item.name || item.title || '未命名活动') + (phases.length > 1 ? ` · 阶段 ${index + 1}` : '')
+      const key = JSON.stringify(item)
+      if (!seenPhases.has(key)) { seenPhases.add(key); output.push(item) }
+    })
+  }
+  return output
+}
+
 export function beijingDayStart(value = Date.now()) {
   const time = parseBeijingTime(value)
   return time === null ? null : Math.floor((time + BEIJING_OFFSET) / DAY_MS) * DAY_MS - BEIJING_OFFSET
@@ -87,7 +128,7 @@ export function collectCalendarEvents(games = [], snapshots = {}, gameId = '') {
   return games.filter((game) => !gameId || gameId === 'all' || game.game_id === gameId).flatMap((game) => {
     const snap = snapshots[game.game_id]?.events
     if (!Array.isArray(snap?.payload)) return []
-    return snap.payload.filter((event) => event && typeof event === 'object').map((event, index) => ({
+    return normalizeCalendarEvents(snap.payload).map((event, index) => ({
       ...event, id: `${game.game_id}:${index}:${event.source_post_id ?? ''}:${event.name ?? ''}`,
       gameId: game.game_id, gameName: game.display_name || game.game_id, category: event.category || '其他活动',
       fetchedAt: event.fetched_at || snap.fetched_at, stale: Boolean(snap.stale || event.source_stale),

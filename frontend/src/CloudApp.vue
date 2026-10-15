@@ -4,9 +4,8 @@ import { createCloudDashboard } from './cloud-dashboard.js'
 import { accountCapabilities, providerName, connectCloudSkland, getPublicSnapshot } from './accounts-api.js'
 import { revokeSession, getMe } from './identity-api.js'
 import { followSystem, theme, setTheme } from './theme.js'
-import { collectionState } from './snapshot-state.js'
+import { CLOUD_GAMES, cloudOverviewView, gameForAccount } from './cloud-view-model.js'
 import { capabilityLabel } from './cloud-display.js'
-import { selectOverviewAccount } from './qq-render-context.js'
 import AppIcon from './components/AppIcon.vue'
 import GameIcon from './components/GameIcon.vue'
 import { gameStyle, readRoute } from './dashboard.js'
@@ -25,7 +24,7 @@ const page = ref(initialRoute.page), cred = ref(''), deviceId = ref(''), connect
 const calendarGame = ref(initialRoute.page === 'calendar' ? initialRoute.game || 'all' : 'all'), now = ref(Date.now())
 const publicGame = ref('wuthering_waves'), publicSnapshots = ref({}), publicError = ref('')
 const calendarSnapshots = ref({}), calendarReadErrors = ref({}), calendarLoading = ref(false)
-const publicGames = [{game_id:'wuthering_waves',display_name:'鸣潮',capabilities:['news','events']},{game_id:'nte',display_name:'异环',capabilities:['news','events']},{game_id:'endfield',display_name:'终末地',capabilities:['news','events']}]
+const publicGames = CLOUD_GAMES
 const menuOpen = ref(false), sidebar = ref(null), menuToggle = ref(null), mainContent = ref(null)
 const navigationMedia = globalThis.window?.matchMedia?.('(max-width: 720px)')
 const mobileNavigation = ref(navigationMedia?.matches || false)
@@ -57,25 +56,15 @@ function syncRoute() {
   if(routeGame && state.user) { const account=state.accounts.find(a=>a.state!=='revoked' && gameFor(a)===routeGame); if(account && gameFor(state.selected)!==routeGame)dashboard.selectAccount(account); if(account){publicGame.value=routeGame;loadPublic(routeGame)} }
   menuOpen.value=false;globalThis.window?.scrollTo?.({top:0,behavior:'instant'});nextTick(()=>mainContent.value?.focus?.({preventScroll:true}))
 }
-const gameFor = account => ({kuro:'wuthering_waves',tajiduo:'nte',hypergryph:'endfield',skland:'endfield'})[account?.provider]
-const ownerGames = computed(() => publicGames.filter(game => state.accounts.some(a => a.state !== 'revoked' && gameFor(a) === game.game_id)))
-const overviewOwners = computed(() => Object.fromEntries(ownerGames.value.map(game => {
-  // A single provider and default role supplies each card; never merge Endfield identities.
-  const rows = state.accounts.filter(a => a.state !== 'revoked' && gameFor(a) === game.game_id)
-  return [game.game_id, selectOverviewAccount(rows)]
-})))
-const overviewGames = computed(() => ownerGames.value.map(game => ({...game,capabilities:overviewOwners.value[game.game_id]?.provider === 'skland' ? ['account','stamina'] : accountCapabilities(overviewOwners.value[game.game_id]), credentials_configured:true,platform:overviewOwners.value[game.game_id]?.provider === 'skland' ? '终末地 / 森空岛档案' : overviewOwners.value[game.game_id]?.provider === 'hypergryph' ? '终末地 / 鹰角寻访' : undefined})))
-const overviewSnapshots = computed(() => Object.fromEntries(overviewGames.value.map(game => {
-  const account = overviewOwners.value[game.game_id], raw = state.overview[account.account_id]?.snapshots || {}
-  const snaps = account.provider === 'skland' && raw.account?.payload ? {...raw, account:{...raw.account,payload:{schema_version:1,nickname:raw.account.payload.base?.name,level:raw.account.payload.base?.level}}, stamina:{...raw.account,payload:raw.account.payload.stamina ? {schema_version:1,...raw.account.payload.stamina} : null}} : raw
-  return [game.game_id,{...snaps,...publicSnapshots.value[game.game_id],...calendarSnapshots.value[game.game_id]}]
-})))
-const overviewAccounts = computed(() => Object.fromEntries(overviewGames.value.map(game => [game.game_id,{state:'connected'}])))
-const overviewErrors = computed(() => Object.fromEntries(overviewGames.value.flatMap(game => {
-  const snap=Object.values(overviewSnapshots.value[game.game_id] || {}).find(s=>s?.error || s?.poll_status?.error), error=snap?.error || snap?.poll_status?.error
-  return error?[[game.game_id,error]]:[]
-})))
-const overviewCollection = computed(() => overviewGames.value.flatMap(game => Object.entries(overviewSnapshots.value[game.game_id] || {}).filter(([cap])=>!['news','events'].includes(cap)).map(([cap,snap])=>({game_id:game.game_id,capability:cap,state:collectionState(snap)==='failed'?'error':snap?.state === 'never' ? 'never' : snap?.state || 'never',last_success_at:snap?.fetched_at}))))
+const gameFor = gameForAccount
+const overviewView = computed(()=>cloudOverviewView({accounts:state.accounts,snapshotsByAccount:Object.fromEntries(Object.entries(state.overview).map(([id,entry])=>[id,entry.snapshots || {}])),publicSnapshots:publicSnapshots.value,calendarSnapshots:calendarSnapshots.value}))
+const ownerGames = computed(()=>overviewView.value.ownerGames)
+const overviewOwners = computed(()=>overviewView.value.owners)
+const overviewGames = computed(()=>overviewView.value.games)
+const overviewSnapshots = computed(()=>overviewView.value.snapshots)
+const overviewAccounts = computed(()=>overviewView.value.accounts)
+const overviewErrors = computed(()=>overviewView.value.readErrors)
+const overviewCollection = computed(()=>overviewView.value.collection)
 const selectedGame = computed(() => gameFor(state.selected))
 const refreshPending = computed(() => Object.values(state.refreshPending).some(Boolean))
 const refreshMessages = computed(() => Object.entries(state.refreshing).filter(([, value]) => value))

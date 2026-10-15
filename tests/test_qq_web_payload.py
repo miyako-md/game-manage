@@ -62,6 +62,52 @@ async def test_gacha_chooses_hypergryph_even_when_skland_is_present():
     assert payload['scopes'][0]['account_id'] == 'passport'
 
 
+async def test_endfield_gacha_keeps_website_snapshot_summary_and_time_when_ledger_is_newer():
+    query = CachedQuery()
+    summary = {'schema_version': 1, 'total': 10, 'pools': []}
+    scope = query.add('endfield', 'hypergryph', 'passport', {
+        'account': {'nickname': '本人'}, 'gacha': summary,
+    })
+    fetched = '2026-10-14T00:00:00Z'
+    query.data[('passport', 'gacha')] = QueryResult(summary, fetched, 'error', False)
+    calls = []
+    def forbidden_summary(*args):
+        raise AssertionError('QQ replaced the website snapshot with a live ledger summary')
+    ledger = SimpleNamespace(summary=forbidden_summary,
+                             records=lambda *args: calls.append(args) or {'records': [], 'total': 20})
+    query.private = SimpleNamespace(ledger=lambda value, kind: ledger)
+    payload = await render_payload(query, 'gacha', 'endfield')
+    snap = payload['web']['entries'][0]['snapshots']['gacha']
+    assert snap['payload'] == summary
+    assert (snap['fetched_at'], snap['state'], snap['complete'], snap['stale']) == (fetched, 'error', False, True)
+    path = '/api/accounts/passport/roles/default-role/endfield/gacha/records?pool_key=&offset=0&limit=50'
+    assert payload['web']['responses'][path]['body']['total'] == 20
+    assert calls == [(scope, '', 50, 0)]
+    assert query.reads.count((scope, 'gacha')) == 1
+
+
+@pytest.mark.parametrize('game,provider,command,roles', [
+    ('wuthering_waves', 'kuro', 'combat', [{'role_id': 42, 'name': '同一角色'}]),
+    ('nte', 'tajiduo', 'gacha', {'schema_version': 1, 'entries': [
+        {'id': '42', 'name': '同一角色', 'icon_url': 'https://webstatic.tajiduo.com/role.png'},
+    ]}),
+])
+async def test_component_dependencies_include_scoped_role_names_and_icons(game, provider, command, roles):
+    query = CachedQuery()
+    scope = query.add(game, provider, 'account', {
+        'account': {'nickname': '本人'}, command: {'schema_version': 1}, 'roles': roles,
+        'resources': {'unused': True},
+    })
+    payload = await render_payload(query, command, game)
+    entry = payload['web']['entries'][0]
+    assert set(entry['snapshots']) == {'account', command, 'roles'}
+    assert entry['snapshots']['roles']['payload'] == roles
+    assert query.reads.count((scope, 'roles')) == 1
+    assert (scope, 'resources') not in query.reads
+    assert payload['web']['command'] == command
+    assert payload['scopes'] == [{'account_id': 'account', 'role_id': 'default-role', 'grant_version': 1}]
+
+
 async def test_web_snapshot_envelope_is_frozen_and_removes_secrets_and_raw_errors():
     query = CachedQuery()
     query.add('nte', 'tajiduo', 'nte', {'account': {
@@ -78,6 +124,27 @@ async def test_web_snapshot_envelope_is_frozen_and_removes_secrets_and_raw_error
     query.data[('nte', 'account')].payload['level'] = 1
     assert snap['payload']['level'] == 70
     assert not query.refreshes
+
+
+async def test_collection_failures_keep_safe_snapshot_and_nested_source_states():
+    query = CachedQuery()
+    scope = query.add('wuthering_waves', 'kuro', 'wuwa', {
+        'combat': {'tower': {'state': 'error', 'error': 'DO-NOT-SEND', 'data': None},
+                   'slash': {'state': 'stale', 'error': 'DO-NOT-SEND', 'data': {'retained': True}}},
+    })
+    previous = query.data[('wuwa', 'combat')]
+    query.data[('wuwa', 'combat')] = QueryResult(previous.payload, previous.fetched_at, 'auth_expired', False)
+    query.status = lambda *args: {'state': 'auth_expired', 'error': 'DO-NOT-SEND',
+                                 'error_kind': 'auth_expired', 'consecutive_failures': 2}
+    payload = await render_payload(query, 'combat', 'wuthering_waves')
+    snap = payload['web']['entries'][0]['snapshots']['combat']
+    assert snap['state'] == snap['poll_status']['state'] == 'auth_expired'
+    assert snap['stale'] is True
+    assert snap['poll_status']['error_kind'] == 'auth_expired'
+    assert snap['payload']['tower'] == {'state': 'error', 'data': None, 'error': '来源读取异常'}
+    assert snap['payload']['slash'] == {'state': 'stale', 'data': {'retained': True}, 'error': '来源读取异常'}
+    assert 'DO-NOT-SEND' not in json.dumps(payload['web'])
+    assert query.reads == [(scope, 'combat')]
 
 
 async def test_nte_ledger_supplies_only_default_component_gets_without_upstream():
@@ -133,6 +200,49 @@ async def test_public_events_need_no_website_session_or_private_scope():
     assert payload['scopes'] == []
 
 
+async def test_default_calendar_uses_all_website_public_games_without_private_reads():
+    query = CachedQuery()
+    query.add('wuthering_waves', 'kuro', 'wuwa', {'account': {'nickname': '本人'}})
+    def forbidden(*args):
+        raise AssertionError('The public calendar resolved private account data')
+    query.list_accounts = forbidden
+    reads = []
+    public = SimpleNamespace(read=lambda game, cap: reads.append((game, cap)) or QueryResult([], NOW.isoformat(), 'ok', None))
+    payload = await render_payload(query, 'calendar', public=public)
+    assert set(payload['web']['publicSnapshots']) == {'wuthering_waves', 'nte', 'endfield'}
+    assert set(reads) == {(game, 'events') for game in ('wuthering_waves', 'nte', 'endfield')}
+    assert payload['web']['entries'] == payload['scopes'] == []
+    assert query.reads == []
+
+
+async def test_default_calendar_still_rechecks_the_qq_binding_after_rendering():
+    principal = [Principal('u', False)]
+    class Queue(CaptureQueue):
+        async def render(self, scope, result, **kwargs):
+            principal[0] = Principal('other', False)
+            return await super().render(scope, result, **kwargs)
+    public = SimpleNamespace(read=lambda *args: QueryResult([], NOW.isoformat(), 'ok', None))
+    api = QqQueryService(SimpleNamespace(resolve_qq_identity=lambda _: principal[0]), None, public,
+                         render_queue=Queue(), clock=lambda: NOW)
+    reply = await api.query_reply(IDENTITY, 'calendar', image_requested=True, budget_seconds=5)
+    assert 'image' not in reply and '绑定或授权已变更' in reply['text']
+
+
+async def test_public_collection_failure_status_survives_error_redaction():
+    from game_assistant.accounts.query import PublicQueryResult
+    status = {'state': 'error', 'error': 'DO-NOT-SEND', 'source_statuses': {
+        'community': {'state': 'error', 'error': 'DO-NOT-SEND', 'stale': True},
+    }}
+    public = SimpleNamespace(read=lambda *args: PublicQueryResult([], NOW.isoformat(), 'error', None,
+                             True, status, 'community', None, None))
+    payload = await render_payload(CachedQuery(), 'calendar', 'nte', public=public)
+    snap = payload['web']['publicSnapshots']['nte']['events']
+    assert snap['state'] == snap['poll_status']['state'] == 'error'
+    assert snap['poll_status']['source_statuses']['community'] == {'state': 'error', 'stale': True, 'error': '来源读取异常'}
+    assert snap['stale'] is True
+    assert 'DO-NOT-SEND' not in json.dumps(payload['web'])
+
+
 async def test_non_component_commands_stay_text_without_starting_a_browser():
     queue = CaptureQueue()
     reply = await service(CachedQuery(), queue).query_reply(IDENTITY, 'help', image_requested=True, budget_seconds=5)
@@ -163,6 +273,18 @@ def test_display_data_keeps_transport_identity_but_never_credentials():
     value = display_data({'role_id': '123456789', 'nickname': '名字123456789', 'cred': 'secret',
                           'grant_token': 'secret', 'raw_data': 'secret', 'auth': 'secret'})
     assert value == {'role_id': '123456789', 'nickname': '名字***'}
+
+
+@pytest.mark.parametrize('error', ['PRIVATE token=123456789', {'secret': 'PRIVATE'}, ['PRIVATE']])
+def test_resource_error_without_state_keeps_only_a_fixed_safe_notice(error):
+    source = {'payload': {'error': error, 'error_message': 'PRIVATE', 'data': []}}
+    assert display_data(source) == {'payload': {'error': '来源读取异常', 'data': []}}
+    assert source['payload']['error'] == error
+
+
+@pytest.mark.parametrize('error', [None, False, '', 0])
+def test_empty_error_does_not_create_a_failure_notice(error):
+    assert display_data({'error': error, 'state': 'ok'}) == {'state': 'ok'}
 
 
 def test_named_properties_and_links_cannot_smuggle_credentials_into_shared_components():

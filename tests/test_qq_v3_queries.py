@@ -110,13 +110,14 @@ def test_other_games_keep_their_own_record_boundary_and_types():
     ef=view.gacha_document('endfield','hypergryph',QueryResult({'total':70,'pools':[{'label':'寻访','total':70,'since_last_six':{'count':12,'status':'lower_bound'},'history':[{'name':'陈千语','pulls':58,'status':'lower_bound'}]}]},NOW.isoformat(),'ok',False))
     assert '至少 12' in str(ef) and '至少 58' in str(ef) and not any('gacha' in r for s in ef['sections'] for r in s.get('rows',[]))
 
-async def test_aggregated_public_render_revalidates_private_grants_and_binding():
+@pytest.mark.parametrize('command', ['events', 'recent_events'])
+async def test_aggregated_personal_events_revalidate_private_grants_and_binding(command):
     query=CachedQuery();query.add('nte','tajiduo','n',{})
     class Queue:
         renderer=SimpleNamespace(invalidate_account=lambda *args:None)
         async def render(self,*args,**kwargs):query.versions['n']=None;return b'image'
     api=QqQueryService(SimpleNamespace(resolve_qq_identity=lambda i:Principal('u',False)),query,SimpleNamespace(read=lambda *args:QueryResult([],NOW.isoformat(),'ok',None)),clock=lambda:NOW,render_queue=Queue())
-    reply=await api.query_reply(IDENTITY,'calendar',image_requested=True,budget_seconds=3)
+    reply=await api.query_reply(IDENTITY,command,image_requested=True,budget_seconds=3)
     assert 'image' not in reply and '变更' in reply['text']
 
 def test_countdown_and_month_axis_change_render_cache_key_without_upstream_refresh():

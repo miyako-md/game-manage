@@ -63,7 +63,8 @@ test('activity details retain source errors and stale status inside the dialog',
   const root=mount(t,await component('WuwaActivities'),{snap:{stale:true,error:'玩法采集失败',payload:{sections:{one:{title:'测试玩法',progress:0}}}}})
   await click(root,'查看详情')
   const dialog=nodes(root,'dialog')[0]
-  assert.match(content(dialog),/玩法采集失败/)
+  assert.match(content(dialog),/来源读取异常/)
+  assert.doesNotMatch(content(dialog),/玩法采集失败/)
   assert.match(content(dialog),/旧数据/)
 })
 

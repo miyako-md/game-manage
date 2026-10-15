@@ -92,7 +92,9 @@ test('holograms group every difficulty inside their dialog without losing source
   assert.match(content(groups[0]), /难度 2/)
   assert.match(content(groups[0]), /通关时间 123/)
   assert.match(content(groups[0]), /今汐/)
-  assert.match(content(root), /保留旧记录/)
+  assert.match(content(root), /来源读取异常/)
+  assert.match(content(root), /旧数据/)
+  assert.doesNotMatch(content(root), /保留旧记录/)
   assert.match(content(root), /冥歌海墟/)
 })
 test('tower floors omit unknown denominators and explain omitted caps once', async (t) => {
@@ -300,7 +302,8 @@ test('combat defaults deep realm and preserves independent error and stale sibli
   assert.doesNotMatch(content(root), /不要默认显示/)
   assert.match(content(root), /0 \/ 3/)
   assert.match(content(root), /今汐/)
-  assert.match(content(root), /来源请求失败/)
+  assert.match(content(root), /来源读取异常/)
+  assert.doesNotMatch(content(root), /来源请求失败|稍后重试/)
   assert.match(content(root), /旧数据/)
 })
 test('role requests are lazy and stale responses cannot replace newer selection or switched account', async (t) => {

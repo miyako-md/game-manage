@@ -5,6 +5,7 @@ import WuwaStatus from './WuwaStatus.vue'
 import SummaryMetrics from './SummaryMetrics.vue'
 import { useQqRender } from '../qq-render-context.js'
 const capture = useQqRender()
+const expandCapture = capture && !['summary','overview'].includes(capture.command)
 defineProps({ title: { type: String, required: true }, description: { type: String, default: '' }, metrics: { type: Array, default: () => [] }, snap: { default: null }, buttonLabel: { type: String, default: '' }, inline: Boolean })
 const opened = ref(false)
 </script>
@@ -12,11 +13,11 @@ const opened = ref(false)
   <section class="wuwa-panel wuwa-module-card">
     <header class="cap-title wuwa-module-heading"><h2>{{ title }}</h2><button v-if="!inline" type="button" class="ui-button small-button" @click="opened = true">{{ buttonLabel || `查看${title}` }}</button></header>
     <p v-if="description" class="wuwa-muted">{{ description }}</p>
-    <SummaryMetrics v-if="metrics.length && !capture" :metrics="metrics" />
-    <div v-if="inline || capture" class="inline-content"><slot /></div>
+    <SummaryMetrics v-if="metrics.length" :metrics="metrics" />
+    <div v-if="inline" class="inline-content"><slot /></div>
     <slot name="preview" />
     <WuwaStatus v-if="snap" :snap="snap" />
-    <WuwaRoleDialog v-if="!capture && !inline && opened" :title="title" @close="opened = false"><slot /></WuwaRoleDialog>
+    <WuwaRoleDialog v-if="!inline && (expandCapture || opened)" :title="title" @close="opened = false"><slot /></WuwaRoleDialog>
   </section>
 </template>
 <style scoped>

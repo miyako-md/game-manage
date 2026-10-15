@@ -25,7 +25,3 @@ export function captureSection(game, command) {
   if (game === 'endfield') return ({roles:'operators',exploration:'operators',combat:'challenges',gacha:'gacha',news:'news'})[command] || 'overview'
   return ({roles:'characters',exploration:'characters',realestate:'assets',vehicles:'assets',teams:'teams',gacha:'gacha',news:'news'})[command] || 'overview'
 }
-
-export function selectOverviewAccount(accounts) {
-  return accounts.find(account => account.provider === 'skland') || accounts[0]
-}

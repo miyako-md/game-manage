@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { calendarRange } from './calendar.js'
-import { eventBoundaryText, eventEndpoint, normalizeQqEvents, qqEventGeometry, qqEventStatus, selectQqEvents } from './qq-event-selection.js'
+import { calendarRange, collectCalendarEvents, eventBoundaryText, eventEndpoint, eventGeometry, eventStatus, normalizeCalendarEvents } from './calendar.js'
+import { selectQqEvents } from './qq-event-selection.js'
 
 const now=Date.parse('2026-10-15T12:00:00+08:00')
 const event=(name,extra={})=>({name,start_at:'2026-10-14T12:00:00+08:00',end_at:'2026-10-16T12:00:00+08:00',...extra})
@@ -27,30 +27,44 @@ test('recent selection uses the strict 168-hour instant window and keeps explici
 
 test('phase normalization merges source metadata, names every phase and deduplicates identical source rows',()=>{
   const source=event('阶段活动',{source_name:'官方',phases:[{start_at:'2026-10-14T12:00:00+08:00',end_at:'2026-10-15T12:00:00+08:00'},{start_at:'2026-10-15T12:00:00+08:00',end_at:'2026-10-17T12:00:00+08:00'}]})
-  const normalized=normalizeQqEvents([source,source])
+  const normalized=normalizeCalendarEvents([source,source])
   assert.deepEqual(names(normalized),['阶段活动 · 阶段 1','阶段活动 · 阶段 2'])
   assert.ok(normalized.every(row=>row.source_name==='官方' && !('phases' in row)))
   assert.deepEqual(names(selectQqEvents([source],'events',now)),['阶段活动 · 阶段 2'])
   assert.equal(source.phases.length,2)
 })
 
-test('uncertain event rows never become current intervals or fabricated midnight countdowns',()=>{
+test('current command filtering does not replace the shared website geometry or precision text',()=>{
   const range=calendarRange(now,'rolling')
   const row=event('日精度',{start_at:'2026-10-14T00:00:00+08:00',start_precision:'day'})
-  const geometry=qqEventGeometry(row,range,'events')
-  assert.equal(geometry.kind,'undated')
-  assert.equal(qqEventStatus(row,now,geometry),'时间待确认')
-  assert.match(geometry.reason,/2026-10-14 · 时刻未确认/)
+  const selected=selectQqEvents([row],'events',now)
+  assert.equal(selected.length,1)
+  assert.deepEqual(eventGeometry(selected[0],range),eventGeometry(row,range))
+  assert.equal(eventStatus(selected[0],now),eventStatus(row,now))
+  assert.match(eventBoundaryText(row,'start'),/2026-10-14 · 时刻未确认/)
   assert.doesNotMatch(eventBoundaryText(row,'start'),/00:00/)
 })
 
-test('rolling calendar draws day coverage inclusively while keeping its time uncertain',()=>{
-  const row={name:'日期范围',start_date:'2026-10-14',end_date:'2026-10-16',start_precision:'day',end_precision:'day'}
-  const range=calendarRange(now,'rolling'),geometry=qqEventGeometry(row,range,'calendar')
+test('calendar commands retain the website exclusive date end rather than adding a whole day',()=>{
+  const row={name:'日期范围',start_at:'2026-10-14',end_at:'2026-10-15',start_precision:'day',end_precision:'day'}
+  const range=calendarRange(now,'rolling'),geometry=eventGeometry(row,range)
   assert.equal(geometry.kind,'range')
-  assert.equal(geometry.end,Date.parse('2026-10-17T00:00:00+08:00'))
-  assert.equal(qqEventStatus(row,now,geometry),'时间待确认')
+  assert.equal(geometry.end,Date.parse('2026-10-15T00:00:00+08:00'))
+  assert.equal(eventStatus(row,now),'已结束')
   assert.equal(selectQqEvents([row],'calendar',now).length,1)
-  const relative={...row,start_precision:'relative',start_text:'维护完成后'}
-  assert.equal(qqEventGeometry(relative,range,'calendar').kind,'undated')
+  assert.equal(eventBoundaryText(row,'end'),'2026-10-15 · 时刻未确认')
+})
+
+test('website and command-filtered calendar expand the same phases without filling source gaps',()=>{
+  const phases=event('阶段活动',{source_name:'官方',phases:[
+    {start_at:'2026-10-14T00:00:00+08:00',end_at:'2026-10-16T00:00:00+08:00'},
+    {start_at:'2026-10-18T00:00:00+08:00',end_at:'2026-10-19T00:00:00+08:00'},
+  ]})
+  const games=[{game_id:'nte',display_name:'异环'}]
+  const collect=payload=>collectCalendarEvents(games,{nte:{events:{payload}}})
+  const website=collect([phases]), qq=collect(selectQqEvents([phases],'calendar',now))
+  assert.deepEqual(qq,website)
+  assert.equal(website.length,2)
+  assert.equal(eventGeometry(website[0],calendarRange(now)).end,Date.parse('2026-10-16T00:00:00+08:00'))
+  assert.equal(eventGeometry(website[1],calendarRange(now)).start,Date.parse('2026-10-18T00:00:00+08:00'))
 })

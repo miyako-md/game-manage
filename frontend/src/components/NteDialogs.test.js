@@ -25,3 +25,12 @@ test('unknown, zero and failure states stay visible in summary without opening d
   assert.match(content(root),/0 \/ 320/);assert.match(content(root),/未知 \/ 100/)
   assert.match(content(root),/上游暂不可用/);assert.match(content(root),/旧数据/)
 })
+
+test('redacted failed snapshots retain a safe failure message',t=>{
+  for (const status of [{state:'source_error'}, {poll_status:{state:'offline'}}]) {
+    const root=mount(t,Module,{capability:'stamina',snap:{...status,payload:{schema_version:1,current:0,maximum:320}}})
+    assert.match(content(root),/来源读取异常/)
+    assert.match(content(root),/0 \/ 320/)
+    assert.equal(nodes(root,'dialog').length,0)
+  }
+})
