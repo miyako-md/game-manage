@@ -2,6 +2,9 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { buildVersion } from './build-version.js'
+
+const version = buildVersion(fileURLToPath(new URL('..', import.meta.url)))
 
 // Optional, user-owned artwork stays outside the public repository.
 const localGameIcons = Object.fromEntries(
@@ -13,7 +16,9 @@ const localGameIcons = Object.fromEntries(
 )
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), { name: 'build-provenance', generateBundle() {
+    this.emitFile({ type: 'asset', fileName: 'build-info.json', source: JSON.stringify(version) + '\n' })
+  } }],
   build: { rollupOptions: { input: { main: fileURLToPath(new URL('./index.html', import.meta.url)), render: fileURLToPath(new URL('./render.html', import.meta.url)) } } },
   define: { __LOCAL_GAME_ICONS__: JSON.stringify(localGameIcons) },
   // Vite 8 默认只绑 IPv6 [::1]，浏览器 localhost 走 IPv4 会拒连——固定 IPv4 回环。

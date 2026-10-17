@@ -5,19 +5,31 @@ param([switch]$NoBrowser, [switch]$Rebuild)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
-$frontend = Join-Path $root 'frontend'
-$index = Join-Path $frontend 'dist\index.html'
 $url = 'http://127.0.0.1:8010/'
 
 try {
-    if (-not (Test-Path -LiteralPath (Join-Path $root '.venv\Scripts\python.exe'))) {
+    . (Join-Path $PSScriptRoot 'runtime-common.ps1')
+    Initialize-Runtime -Port 8010 -Sandbox $false
+    $managedRelease = $script:SourceRoot -ne $root
+    $frontend = Join-Path $script:SourceRoot 'frontend'
+    $index = Join-Path $frontend 'dist\index.html'
+    if ($managedRelease -and $Rebuild.IsPresent) {
+        throw 'A web-managed release is active. Use System Update in the dashboard; -Rebuild cannot rebuild or switch this release.'
+    }
+    if (-not (Test-Path -LiteralPath $script:PythonPath)) {
         throw 'Python environment missing. Follow README.md to install backend dependencies first.'
     }
     $hadFrontend = Test-Path -LiteralPath $index
-    . (Join-Path $PSScriptRoot 'frontend-dependencies.ps1')
-    $dependenciesChanged = Ensure-FrontendDependencies -Frontend $frontend
+    if ($managedRelease -and -not $hadFrontend) {
+        throw 'The active web-managed release is incomplete. Review the update status before starting it.'
+    }
+    $dependenciesChanged = $false
+    if (-not $managedRelease) {
+        . (Join-Path $PSScriptRoot 'frontend-dependencies.ps1')
+        $dependenciesChanged = Ensure-FrontendDependencies -Frontend $frontend
+    }
     $needsBuild = $Rebuild.IsPresent -or -not $hadFrontend -or $dependenciesChanged
-    if ($hadFrontend -and -not $needsBuild) {
+    if (-not $managedRelease -and $hadFrontend -and -not $needsBuild) {
         $builtAt = (Get-Item -LiteralPath $index).LastWriteTimeUtc
         foreach ($entry in @('src', 'public', 'index.html', 'package.json', 'package-lock.json', 'vite.config.js', 'vite.config.ts')) {
             $path = Join-Path $frontend $entry
@@ -40,7 +52,6 @@ try {
         } finally { Pop-Location }
     }
 
-    . (Join-Path $PSScriptRoot 'runtime-common.ps1')
     # A server launched before dist existed needs a restart to mount the web UI.
     $action = if ($hadFrontend) { 'start' } else { 'restart' }
     Invoke-LocalRuntime -Action $action -Port 8010 -Sandbox $false

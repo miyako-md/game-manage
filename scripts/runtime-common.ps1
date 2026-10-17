@@ -3,12 +3,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 function Initialize-Runtime {
-    param([int]$Port, [bool]$Sandbox)
+    param([int]$Port, [bool]$Sandbox, [string]$InstallRoot)
     if ($Port -lt 1024 -or $Port -gt 65535) { throw 'Port must be between 1024 and 65535.' }
     if ((-not $Sandbox -and $Port -ne 8010) -or ($Sandbox -and $Port -eq 8010)) {
         throw 'Production uses port 8010; -Sandbox requires a separate -Port.'
     }
-    $script:ProjectRoot = [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
+    $script:ProjectRoot = if ($InstallRoot) { [IO.Path]::GetFullPath($InstallRoot) } else { [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot)) }
+    $script:SourceRoot = $script:ProjectRoot
     $script:RunnerPath = Join-Path $script:ProjectRoot 'src\game_assistant\runtime.py'
     $script:PythonPath = Join-Path $script:ProjectRoot '.venv\Scripts\python.exe'
     $script:RuntimeDir = Join-Path $script:ProjectRoot 'data\runtime'
@@ -24,6 +25,27 @@ function Initialize-Runtime {
         $candidate = Split-Path -Parent $candidate
     }
     [IO.Directory]::CreateDirectory($script:RuntimeDir) | Out-Null
+    if (-not $Sandbox) {
+        $marker = Join-Path $script:RuntimeDir 'active-release.json'
+        if (Test-Path -LiteralPath $marker) {
+            if ((Get-Item -LiteralPath $marker -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Redirected active release marker.' }
+            $active = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($active.schema -ne 1 -or $active.commit -cnotmatch '^[a-f0-9]{40}$' -or @($active.PSObject.Properties).Count -ne 2) { throw 'Invalid active release marker.' }
+            $script:SourceRoot = Join-Path $script:ProjectRoot ('data\system-update\releases\' + $active.commit)
+            $candidate = $script:SourceRoot
+            while ($candidate.Length -ge $script:ProjectRoot.Length) {
+                if (-not (Test-Path -LiteralPath $candidate) -or ((Get-Item -LiteralPath $candidate -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Invalid or redirected active release directory.' }
+                if ($candidate -eq $script:ProjectRoot) { break }
+                $candidate = Split-Path -Parent $candidate
+            }
+            $manifestPath = Join-Path $script:SourceRoot 'release.json'
+            if ((Get-Item -LiteralPath $manifestPath -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Redirected release manifest.' }
+            $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($manifest.schema -ne 1 -or $manifest.commit -cne $active.commit -or $manifest.frontend_commit -cne $active.commit -or $manifest.source -cne 'miyako-md/game-manage' -or $manifest.branch -cne 'main') { throw 'Active release identity mismatch.' }
+            $script:RunnerPath = Join-Path $script:SourceRoot 'src\game_assistant\runtime.py'
+            $script:PythonPath = Join-Path $script:SourceRoot '.venv\Scripts\python.exe'
+        }
+    }
     $script:StatePath = Join-Path $script:RuntimeDir 'service.json'
     $script:ReadyPath = Join-Path $script:RuntimeDir 'ready.json'
     $script:StopPath = Join-Path $script:RuntimeDir 'stop.json'
@@ -116,13 +138,13 @@ function Start-LocalRuntime {
         throw "Port $script:ServicePort is occupied by an unmanaged process; no process was stopped."
     }
     if (-not (Test-Path -LiteralPath $script:PythonPath)) { throw 'Missing .venv\Scripts\python.exe. Install the project dependencies first.' }
-    if (-not $script:SandboxMode -and -not (Test-Path -LiteralPath (Join-Path $script:ProjectRoot 'frontend\dist\index.html'))) {
+    if (-not $script:SandboxMode -and -not (Test-Path -LiteralPath (Join-Path $script:SourceRoot 'frontend\dist\index.html'))) {
         Write-Warning 'frontend/dist is missing. The API will run; build the frontend to serve the UI.'
     }
     Clear-RuntimeRecord
     $runId = [Guid]::NewGuid().ToString('N')
     $arguments = '"' + $script:RunnerPath + '" --port ' + $script:ServicePort +
-        ' --runtime-id ' + $runId + ' --runtime-dir "' + $script:RuntimeDir + '"'
+        ' --runtime-id ' + $runId + ' --runtime-dir "' + $script:RuntimeDir + '" --project-root "' + $script:ProjectRoot + '"'
     if ($script:SandboxMode) { $arguments += ' --sandbox' }
     # The runner records its own PID: Windows venv launchers can create a child.
     $launcher = Start-Process -FilePath $script:PythonPath -ArgumentList $arguments -WorkingDirectory $script:ProjectRoot -WindowStyle Hidden -PassThru
@@ -210,7 +232,9 @@ function Invoke-LocalRuntime {
     try {
         try {
             $lock = [IO.File]::Open((Join-Path $script:RuntimeDir 'service.lock'),
-                [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+                [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::ReadWrite)
+            if ($lock.Length -eq 0) { $lock.WriteByte(48); $lock.Flush() }
+            $lock.Lock(0, 1)
         } catch {
             # Only a lock held by another runtime command is a conflict.
             # Path and permission failures keep their original error.
@@ -232,5 +256,5 @@ function Invoke-LocalRuntime {
             'status' { Show-LocalRuntime }
             'restart' { Stop-LocalRuntime; Start-LocalRuntime }
         }
-    } finally { if ($lock) { $lock.Dispose() } }
+    } finally { if ($lock) { try { $lock.Unlock(0, 1) } catch { }; $lock.Dispose() } }
 }

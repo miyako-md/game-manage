@@ -18,3 +18,4 @@ private-backups/
 .private-cloud-probes/
 frontend/public/local-game-icons/
 /frontend/dist-before-esports/
+/src/game_assistant/build-info.json

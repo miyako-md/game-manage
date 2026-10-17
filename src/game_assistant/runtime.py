@@ -10,9 +10,16 @@ from pathlib import Path
 import sys
 
 
-def build_app(sandbox_dir: Path | None = None):
+def build_app(sandbox_dir: Path | None = None, project_root: Path | None = None):
     from game_assistant.api import create_app
     if sandbox_dir is None:
+        if project_root is not None and os.name == 'nt':
+            from game_assistant.config import Settings
+            settings = Settings.load(str(project_root / 'config.toml'))
+            settings.system_update_enabled = True
+            settings.system_update_install_root = str(project_root)
+            settings.system_update_state_dir = str(project_root / 'data/system-update')
+            return create_app(settings=settings)
         return create_app()
     from game_assistant.config import Settings
 
@@ -75,14 +82,44 @@ class _LogStream:
         return False
 
 
+def start_update_worker(root: Path):
+    """Detached from the service: a new server may start while it holds the lock."""
+    import subprocess
+    state = root / 'data/system-update'
+    state.mkdir(parents=True, exist_ok=True)
+    try:
+        # No secret command arguments. The child reuses the runtime's settings
+        # environment for validation, then strips it for all build subprocesses.
+        subprocess.Popen([sys.executable, '-m', 'game_assistant.system_update_worker',
+                          '--windows-root', str(root)], cwd=root,
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, close_fds=True,
+                         creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP)
+    except OSError:
+        logging.warning('System update helper could not start; version checks remain available.')
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8010)
     parser.add_argument("--runtime-id", required=True)
     parser.add_argument("--runtime-dir", type=Path, required=True)
     parser.add_argument("--sandbox", action="store_true")
+    parser.add_argument("--project-root", type=Path)
     args = parser.parse_args()
-    root = Path(__file__).resolve().parents[2]
+    source_root = Path(__file__).resolve().parents[2]
+    root = source_root
+    if args.project_root is not None:
+        from game_assistant.system_update_protocol import safe_path, read_json, valid_sha
+        root = safe_path(args.project_root).resolve()
+        if source_root != root:
+            expected_parent = root / 'data/system-update/releases'
+            if source_root.parent != expected_parent or not valid_sha(source_root.name):
+                parser.error('unmanaged release source')
+            manifest = read_json(source_root / 'release.json')
+            active = read_json(root / 'data/runtime/active-release.json')
+            if manifest.get('commit') != source_root.name or active.get('commit') != source_root.name:
+                parser.error('active release identity mismatch')
     runtime_dir = args.runtime_dir.resolve()
     if not runtime_dir.is_relative_to(root / "data" / "runtime"):
         parser.error("runtime directory must be inside this project's data/runtime")
@@ -110,7 +147,10 @@ def main() -> None:
         staged = ready.with_suffix(".tmp")
         staged.write_text(json.dumps(handshake), encoding="utf-8")
         staged.replace(ready)
-        app = build_app(runtime_dir / "sandbox-data" if args.sandbox else None)
+        app = build_app(runtime_dir / "sandbox-data" if args.sandbox else None,
+                        root if args.project_root is not None else None)
+        if os.name == 'nt' and not args.sandbox and args.project_root is not None:
+            start_update_worker(root)
         asyncio.run(_serve(app, args.port, runtime_dir, args.runtime_id))
     except Exception as exc:
         # Validation exception text can contain setting values. Do not log it.

@@ -13,7 +13,10 @@ def test_cloud_routes_fail_closed(identity):
         return {'secret': 'leaked'}
     for path in ['/api/private/new', '/api/wuwa/gacha', '/api/lol/collect', '/docs', '/openapi.json', '/api/identity/bootstrap']:
         assert client.get(path).status_code == 404
-    assert client.get('/api/health').json() == {'status': 'ok'}
+    health = client.get('/api/health')
+    assert health.status_code == 200 and health.json()['status'] == 'ok'
+    assert set(health.json()['version']) == {'commit', 'frontend_commit'}
+    assert isinstance(health.json()['ready'], bool)
     assert client.get('/api/identity/me').status_code == 401
     register(identity)
     assert client.get('/api/private/new').status_code == 404

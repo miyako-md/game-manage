@@ -55,7 +55,17 @@ function selectEvent(event, interaction) { if (props.mode!=='image') emit('selec
   <div ref="viewport" class="calendar-content" :class="{ 'image-mode': mode === 'image' }">
 <div v-if="range" class="timeline-scroll" :tabindex="mode === 'image' ? undefined : 0" role="region" aria-label="活动日期横轴，可横向和纵向滚动" :style="{ '--day-count': range.days.length, '--timeline-min': `${184 + range.days.length * (rangeMode === 'fortnight' ? 39 : 26)}px` }">
         <div :key="range.start" class="timeline-canvas t-panel">
-          <div class="timeline-header" data-render-block><div class="timeline-label header-label"><span>游戏</span><small v-if="mode === 'image'">{{ rangeMode === 'month' ? '当月时间轴' : rangeMode === 'rolling' ? '近 30 天时间轴' : rangeMode === 'version' ? '版本活动时间轴' : '14 天时间轴' }}</small></div><div class="date-track"><div v-for="day in range.days" :key="day.timestamp" class="date-cell" :class="{ weekend: day.weekend, 'is-today': day.timestamp === today, 'is-month-start': day.day === 1, 'is-boundary': boundaryDays.has(day.timestamp) }" :title="`${day.month} 月 ${day.day} 日`"><small>{{ day.weekday }}</small><strong><template v-if="day.day===1 && mode==='image'">{{ day.month }}/<br>1</template><template v-else>{{ day.day === 1 ? `${day.month}/1` : day.day }}</template></strong><span v-if="day.timestamp === today" class="day-today">今天</span></div></div></div>
+          <div class="timeline-header" data-render-block>
+            <div class="timeline-label header-label"><span>游戏</span><small v-if="mode === 'image'">{{ rangeMode === 'month' ? '当月时间轴' : rangeMode === 'rolling' ? '近 30 天时间轴' : rangeMode === 'version' ? '版本活动时间轴' : '14 天时间轴' }}</small></div>
+            <div class="date-track">
+              <div v-for="(day, index) in range.days" :key="day.timestamp" class="date-cell" :class="{ weekend: day.weekend, 'is-today': day.timestamp === today, 'is-month-start': day.day === 1, 'is-boundary': boundaryDays.has(day.timestamp) }" :title="`${day.month} 月 ${day.day} 日`">
+                <span v-if="mode !== 'image' && (index === 0 || day.day === 1)" class="day-month">{{ day.month }}月</span>
+                <small class="day-weekday">{{ day.weekday }}</small>
+                <strong><template v-if="day.day===1 && mode==='image'">{{ day.month }}/<br>1</template><template v-else>{{ day.day }}</template></strong>
+                <span v-if="day.timestamp === today" class="day-today">今天</span>
+              </div>
+            </div>
+          </div>
           <template v-if="groups.length">
             <div v-for="group in groups" :key="group.key" class="timeline-group" data-render-block :style="groupVars(group.gameId)">
               <div class="timeline-label group-label"><GameIcon class="game-monogram" :game-id="group.gameId" :name="group.gameName" /><div><strong>{{ group.gameName }}</strong><span v-if="group.categoryLabel" class="group-category">{{ group.categoryLabel }}</span><small>{{ group.events.length }} 项活动</small></div></div>
@@ -88,7 +98,7 @@ function selectEvent(event, interaction) { if (props.mode!=='image') emit('selec
 .header-label { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 18px 20px; color: var(--text-muted); font-size: 12px; font-weight: 500; }
 .header-label small { color: var(--text-faint); font-size: 12px; font-weight: 400; }
 .date-track, .grid-backdrop { display: grid; grid-template-columns: repeat(var(--day-count), minmax(0, 1fr)); }
-.date-cell { min-height: 78px; display: grid; grid-template-rows: 14px 26px 14px; justify-items: center; align-content: center; gap: 3px; padding: 8px 0; border-right: 1px solid var(--overlay-1); font-family: var(--font-sans); }
+.date-cell { min-width:0; min-height: 78px; display: grid; grid-template-rows: 14px 26px 14px; justify-items: center; align-content: center; gap: 3px; padding: 8px 0; border-right: 1px solid var(--overlay-1); font-family: var(--font-sans); }
 .date-cell small { font-size: 12px; line-height: 16px; color: var(--text-faint); }
 .date-cell strong { display: grid; place-items: center; min-width: 28px; height: 26px; padding: 0 4px; border-radius: 8px; font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 500; line-height: 1; }
 .date-cell.is-month-start strong { font-size: 12px; }
@@ -96,6 +106,14 @@ function selectEvent(event, interaction) { if (props.mode!=='image') emit('selec
 .date-cell.is-today { color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); }
 .date-cell.is-today strong { background: var(--accent-fill); color: var(--accent-ink); }
 .day-today { font-size: 11px; font-weight: 500; line-height: 14px; white-space: nowrap; color: var(--accent); }
+/* Keep each badge inside the same daily column used by the activity bars.
+   Months get their own row instead of widening the first day's number. */
+.calendar-content:not(.image-mode) .date-cell { min-height:94px; grid-template-rows:14px 14px 26px 14px; }
+.day-month { grid-row:1; font-size:11px; line-height:14px; white-space:nowrap; color:var(--text-muted); }
+.calendar-content:not(.image-mode) .day-weekday { grid-row:2; }
+.calendar-content:not(.image-mode) .date-cell strong { grid-row:3; min-width:0; width:min(28px,calc(100% - 2px)); padding:0; white-space:nowrap; }
+.calendar-content:not(.image-mode) .date-cell.is-month-start strong { font-size:14px; }
+.calendar-content:not(.image-mode) .day-today { grid-row:4; }
 .timeline-group { border-bottom: 1px solid var(--border); }
 .timeline-group:last-child { border-bottom: 0; }
 .group-label { display:flex; align-items:flex-start; gap:10px; padding:18px 16px; }

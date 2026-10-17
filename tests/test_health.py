@@ -10,4 +10,6 @@ def test_health(tmp_path):
     client = TestClient(app, base_url="http://127.0.0.1:8010")
     resp = client.get("/api/health")
     assert resp.status_code == 200
-    assert resp.json() == {"status": "ok", "service": "game-assistant"}
+    assert resp.json() == {"status": "ok", "service": "game-assistant",
+                           "version": app.state.running_version.health(),
+                           "ready": app.state.running_version.ready}

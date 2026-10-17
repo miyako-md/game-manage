@@ -124,7 +124,10 @@ def test_cloud_starts_one_scheduler(tmp_path):
     with TestClient(app, base_url='https://localhost:8443') as client:
         assert app.state.scheduler._running
         app.state.scheduler.start()
-        assert client.get('/api/health').json() == {'status':'ok'}
+        health = client.get('/api/health')
+        assert health.status_code == 200 and health.json()['status'] == 'ok'
+        assert set(health.json()['version']) == {'commit', 'frontend_commit'}
+        assert isinstance(health.json()['ready'], bool)
         assert client.get('/internal/operations/health').status_code == 401
         second = build_app(runtime)
         with pytest.raises(RuntimeError, match='scheduler'):
@@ -252,7 +255,10 @@ def test_static_ui_font_manifest_allows_startup_without_public_route(tmp_path):
     app = build_app(replace(load_runtime(config), frontend_dist=dist), start_scheduler=False)
     assert '/render-font.json' not in {getattr(route, 'path', None) for route in app.routes}
     with TestClient(app, base_url='https://localhost:8443') as client:
-        assert client.get('/api/health').json() == {'status': 'ok'}
+        health = client.get('/api/health')
+        assert health.status_code == 200 and health.json()['status'] == 'ok'
+        assert set(health.json()['version']) == {'commit', 'frontend_commit'}
+        assert isinstance(health.json()['ready'], bool)
         assert client.get('/').status_code == 200
         assert client.get('/render-font.woff2').content == font
         for method in (client.get, client.head):

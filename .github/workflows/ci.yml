@@ -92,6 +92,28 @@ jobs:
         run: |
           npm ci --prefix frontend --registry=https://registry.npmjs.org
           .venv/bin/python scripts/cloud/build_frontend.py --frontend frontend
+      - name: Verify isolated web update contracts on Linux
+        run: >-
+          .venv/bin/python -m pytest
+          tests/test_system_update_api.py
+          tests/test_system_update_background_start.py
+          tests/test_system_update_cloud_runtime.py
+          tests/test_system_update_integration.py
+          tests/test_system_update_protocol.py
+          tests/test_system_update_service.py
+          tests/test_system_update_version.py
+          tests/test_system_update_worker.py
+          tests/test_release_build_metadata.py
+          -q
+      - name: Verify privileged updater isolation in temporary Linux units
+        run: >-
+          sudo env
+          GA_RUN_LINUX_UPDATER_TESTS=1
+          PYTHONDONTWRITEBYTECODE=1
+          PYTHONPATH="$GITHUB_WORKSPACE/src"
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pytest
+          tests/test_system_update_linux_runtime.py
+          -p no:cacheprovider -q
       - name: Verify real offline browser rendering
         env:
           DEBUG: 'pw:browser'

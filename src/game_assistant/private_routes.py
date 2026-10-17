@@ -521,6 +521,8 @@ _declare('admin_sources','POST','/api/auth/bilibili-source/login/sessions',
     '/api/auth/bilibili-source/login/sessions/{sid}/qr/poll','/api/auth/bilibili-source/login/sessions/{sid}/cookie',
     '/api/auth/bilibili-source/login/sessions/{sid}/commit',policy='admin_required')
 _declare('admin_sources','DELETE','/api/auth/bilibili-source/login/sessions/{sid}',policy='admin_required')
+_declare('admin_system','GET','/api/system/update',policy='admin_required')
+_declare('admin_system','POST','/api/system/update/check','/api/system/update/apply',policy='admin_required')
 _declare('disabled','POST','/api/endfield/skland/attendance','/api/lol/collect',policy='disabled')
 _declare('disabled','GET','/api/lol/analysis','/api/lol/matches/{match_id}',policy='disabled')
 for _method in ('GET','HEAD','POST','PUT','PATCH','DELETE','OPTIONS','TRACE','CONNECT'):

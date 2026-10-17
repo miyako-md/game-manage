@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { nextTick, reactive } from 'vue'
 import { loadVue, mount, nodes, content } from '../test-utils/vue.js'
-import { calendarRange, collectVersionCalendars } from '../calendar.js'
+import { calendarRange, calendarDaysRange, collectVersionCalendars } from '../calendar.js'
 
 const Page = await loadVue(new URL('./CalendarPage.vue', import.meta.url))
 const Version = await loadVue(new URL('./VersionCalendarContent.vue', import.meta.url))
@@ -13,6 +13,31 @@ const snapshots = { nte: { events: { version: '1.4', payload: [
   { name: '异常日期', version: '1.4', start_at: '2027-02-05T10:00:00+08:00', end_at: '2026-12-20T10:00:00+08:00' },
   { name: '未公布日期', version: '1.4' },
 ] } } }
+
+test('dense screen headers separate months from numeric days while retaining true boundary dates and compact images', t => {
+  const asOf=Date.parse('2026-10-01T12:00:00+08:00')
+  const range=calendarDaysRange(Date.parse('2026-09-24T00:00:00+08:00'),Date.parse('2026-12-04T00:00:00+08:00'))
+  const events=[{id:'cross-month',gameId:'nte',gameName:'异环',name:'跨月活动',
+    start_at:'2026-09-30T12:00:00+08:00',end_at:'2026-10-01T12:00:00+08:00'}]
+  const screen=mount(t,Timeline,{events,range,asOf,rangeMode:'version'})
+  const cells=nodes(screen,'div').filter(n=>n.props.class?.split(' ').includes('date-cell'))
+  assert.equal(cells.length,71)
+  assert.deepEqual(nodes(screen,'span').filter(n=>n.props.class==='day-month').map(content),['9月','10月','11月','12月'])
+  assert.deepEqual(cells.map(cell=>content(nodes(cell,'strong')[0])),range.days.map(day=>String(day.day)))
+  const first=cells.find(cell=>cell.props.title==='10 月 1 日')
+  assert.match(first.props.class,/is-month-start/)
+  assert.match(first.props.class,/is-today/)
+  assert.match(first.props.class,/is-boundary/)
+  assert.equal(content(nodes(first,'small')[0]),'四')
+  assert.equal(content(nodes(first,'span').find(n=>n.props.class==='day-today')),'今天')
+  assert.deepEqual(cells.filter(cell=>cell.props.class?.split(' ').includes('is-boundary')).map(cell=>cell.props.title),['9 月 30 日','10 月 1 日'])
+  const image=mount(t,Timeline,{events,range,asOf,rangeMode:'version',mode:'image'})
+  assert.equal(nodes(image,'span').filter(n=>n.props.class==='day-month').length,0)
+  const imageFirst=nodes(image,'div').find(n=>n.props.title==='10 月 1 日')
+  assert.equal(content(nodes(imageFirst,'strong')[0]),'10/ 1')
+  assert.equal(nodes(imageFirst,'br').length,1)
+  assert.equal(nodes(image,'div').filter(n=>n.props.class?.split(' ').includes('date-cell')).length,71)
+})
 
 test('switching game or range resets timeline scrolling but refreshing the same window preserves it', async t => {
   const asOf=Date.parse('2026-10-17T12:00:00+08:00')

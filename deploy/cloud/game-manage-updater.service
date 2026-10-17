@@ -1,0 +1,29 @@
+# Install with scripts/system-update-install-linux.py; never grant the API sudo.
+[Unit]
+Description=Game Manage independent official-main update worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/game-manage-cloud
+ExecStart=/usr/bin/python3 -I -S /opt/game-manage-cloud/.updater/helper/entry.py --config /etc/game-manage-cloud/updater.json
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=45
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadOnlyPaths=/opt/game-manage-cloud/.updater/helper
+ReadWritePaths=/opt/game-manage-cloud /var/lib/game-manage-updater /var/lib/game-manage-cloud /var/lib/game-manage-qq
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

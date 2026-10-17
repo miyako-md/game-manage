@@ -254,9 +254,12 @@ def create_cloud_app(settings: Settings, start_scheduler: bool = True) -> FastAP
                 return {**asdict(result),'game_id':game_id,'capability':capability}
             # Public means no game credentials; website session remains mandatory.
             allow_cloud_route(app, '/api/public/games/{game_id}/{capability}', ['GET'])
-            if start_scheduler:
-                scheduler.start()
-            yield
+            from .system_update import background_start_after_maintenance
+            def start_background():
+                if start_scheduler:
+                    scheduler.start()
+            async with background_start_after_maintenance(app.state.system_update, start_background):
+                yield
         finally:
             # One failed closer must not skip the remaining account/private resources.
             cleanup_errors = []
@@ -333,9 +336,23 @@ def create_cloud_app(settings: Settings, start_scheduler: bool = True) -> FastAP
         async def invalid_ledger(request, error):
             return JSONResponse({'error_code':'invalid_gacha_input','detail':str(error)},status_code=error.status)
 
+    from .system_update import install_system_update
+    install_system_update(app, settings, cloud=True)
+
     @app.get('/api/health')
-    def health():
-        return {'status': 'ok'}
+    async def health():
+        ready = False
+        try:
+            with app.state.identity.store.connect() as db:
+                db.execute('SELECT 1').fetchone()
+            if settings.cloud_accounts_enabled:
+                app.state.accounts.connection.execute('SELECT 1').fetchone()
+                app.state.store._conn.execute('SELECT 1').fetchone()
+            ready = app.state.running_version.ready
+        except Exception:
+            # A healthy listener does not prove that an update activated matching assets/data.
+            pass
+        return {'status': 'ok', 'version': app.state.running_version.health(), 'ready': bool(ready)}
 
     install_identity_routes(app)
     from .qq.internal_routes import install_qq_routes

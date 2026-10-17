@@ -1,0 +1,14 @@
+{
+  "platform": "linux",
+  "install_root": "/opt/game-manage-cloud",
+  "state_dir": "/var/lib/game-manage-updater",
+  "config_path": "/etc/game-manage-cloud/cloud.toml",
+  "data_root": "/var/lib/game-manage-cloud",
+  "qq_data_root": "/var/lib/game-manage-qq",
+  "api_service": "game-manage.service",
+  "qq_service": "game-manage-qq.service",
+  "api_user": "game-manage-cloud",
+  "qq_user": "game-manage-qq",
+  "build_user": "game-manage-build",
+  "extras": ["qq", "qq-render"]
+}

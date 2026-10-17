@@ -85,9 +85,20 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
     notifier = notifier or build_notifier(settings)
     app.state.notifier = notifier
 
+    from game_assistant.system_update import install_system_update
+    install_system_update(app, settings)
+
     @app.get("/api/health")
     async def health() -> dict:
-        return {"status": "ok", "service": "game-assistant"}
+        ready = False
+        try:
+            app.state.store._conn.execute('SELECT 1').fetchone()
+            ready = app.state.running_version.ready
+        except Exception:
+            # Liveness retains its existing HTTP/status contract; updater checks ready separately.
+            pass
+        return {"status": "ok", "service": "game-assistant",
+                "version": app.state.running_version.health(), "ready": bool(ready)}
 
     def poll_status(game_id: str, capability: str, snap=None) -> dict:
         observed_at = datetime.now(timezone.utc).isoformat()
@@ -177,18 +188,23 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
-        if app.state.scheduler:
-            app.state.scheduler.start()
-        if bili and start_scheduler:
-            bili.start()
-        yield
-        if app.state.scheduler:
-            await app.state.scheduler.shutdown()
-        await bili_auth.aclose()
-        if bili:
-            await bili.close()
-        app.state.endfield_public.close()
-        app.state.assessments.close()
+        from .system_update import background_start_after_maintenance
+        def start_background():
+            if app.state.scheduler:
+                app.state.scheduler.start()
+            if bili and start_scheduler:
+                bili.start()
+        try:
+            async with background_start_after_maintenance(app.state.system_update, start_background):
+                yield
+        finally:
+            if app.state.scheduler:
+                await app.state.scheduler.shutdown()
+            await bili_auth.aclose()
+            if bili:
+                await bili.close()
+            app.state.endfield_public.close()
+            app.state.assessments.close()
 
     @app.get("/api/games/{game_id}/match/{match_id}/detail")
     async def match_detail(game_id: str, match_id: str) -> dict:

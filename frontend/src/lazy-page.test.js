@@ -8,8 +8,15 @@ import { lazyPage } from './lazy-page.js'
 const staticComponents = file => [...readFileSync(new URL(file, import.meta.url), 'utf8').matchAll(/^import \w+ from '\.\/([\w/]+\.vue)'/gm)].map(match => match[1])
 const tick = async () => { await new Promise(resolve => setImmediate(resolve)); await nextTick() }
 
-test('the cloud app loads only the login form, overview, icons and shared menu before its first paint', () => {
-  assert.deepEqual(staticComponents('./CloudApp.vue').sort(), ['components/AppIcon.vue', 'components/GameIcon.vue', 'components/MenuSelect.vue', 'components/OverviewPage.vue', 'components/SiteLogin.vue'])
+test('the cloud app loads only the login form, overview, icons, shared menu and idle update control before its first paint', () => {
+  assert.deepEqual(staticComponents('./CloudApp.vue').sort(), ['components/AppIcon.vue', 'components/GameIcon.vue', 'components/MenuSelect.vue', 'components/OverviewPage.vue', 'components/SiteLogin.vue', 'components/SystemUpdateControl.vue'])
+})
+test('the update dialog stays in its own lazy chunk behind the lightweight control', () => {
+  assert.ok(!staticComponents('./components/SystemUpdateControl.vue').some(file => file.endsWith('SystemUpdateDialog.vue')))
+  const control = readFileSync(new URL('./components/SystemUpdateControl.vue', import.meta.url), 'utf8')
+  assert.match(control, /lazyPage\(\(\) => import\('\.\/SystemUpdateDialog\.vue'\)\)/)
+  assert.ok(!staticComponents('./CloudApp.vue').some(file => file.endsWith('SystemUpdateDialog.vue')))
+  assert.ok(!staticComponents('./LocalApp.vue').some(file => file.endsWith('SystemUpdateDialog.vue')))
 })
 test('the League of Legends dashboard, which the cloud never shows, is not part of the game card chunk', () => {
   assert.ok(!staticComponents('./components/GameCard.vue').includes('components/LolDashboard.vue'))

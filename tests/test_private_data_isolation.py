@@ -187,7 +187,8 @@ def bundle_route_objects(app):
     return list(iter_routes(app.routes))
 
 
-def test_complete_local_route_inventory_rejects_unknown(tmp_path):
+@pytest.mark.parametrize('unclassified_path',['/api/unclassified-route','/api/system/unclassified-route'])
+def test_complete_local_route_inventory_rejects_unknown(tmp_path,unclassified_path):
     from game_assistant.api import create_app
     from game_assistant.config import Settings
     from game_assistant.registry import GameRegistry
@@ -195,13 +196,18 @@ def test_complete_local_route_inventory_rejects_unknown(tmp_path):
     app=create_app(settings=Settings(db_path=str(tmp_path/'local.db')),registry=GameRegistry(),start_scheduler=False)
     inventory=local_route_inventory(app)
     assert len(inventory)>60
-    assert {item['category'] for item in inventory}<={'private_query','private_modify','public_read_only','admin_sources','internal_qq','disabled'}
+    assert {item['category'] for item in inventory}<={'private_query','private_modify','public_read_only','admin_sources','admin_system','internal_qq','disabled'}
+    assert [item for item in inventory if item['category']=='admin_system'] == [
+        {'method':'GET','path':'/api/system/update','category':'admin_system','cloud_policy':'admin_required'},
+        {'method':'POST','path':'/api/system/update/apply','category':'admin_system','cloud_policy':'admin_required'},
+        {'method':'POST','path':'/api/system/update/check','category':'admin_system','cloud_policy':'admin_required'},
+    ]
     assert next(item for item in inventory if item['path']=='/api/endfield/skland/attendance' and item['method']=='POST')['cloud_policy']=='disabled'
     passport = next(item for item in inventory if item['path']=='/api/endfield/skland/passport' and item['method']=='POST')
     assert passport['category']=='private_modify' and passport['cloud_policy']=='disabled_legacy'
     assert next(item for item in inventory if item['path']=='/api/sources/bilibili/{game}/refresh')['category']=='admin_sources'
     assert next(item for item in inventory if item['path']=='/api/auth/bilibili-source/login/status')['category']=='admin_sources'
-    @app.get('/api/unclassified-route')
+    @app.get(unclassified_path)
     def unclassified(): return {}
     with pytest.raises(ValueError,match='Unclassified'):
         local_route_inventory(app)

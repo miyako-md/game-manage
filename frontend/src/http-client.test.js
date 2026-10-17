@@ -162,3 +162,21 @@ test('Skland reads in the cloud go to the owned role routes with their query, an
   setAccountScope({ account_id: 'h', role_id: 'a', provider: 'hypergryph' })
   await assert.rejects(requestJson('/api/endfield/skland/operators/char1'), /尚未提供云端接口/)
 })
+
+test('system update cloud allowlist accepts only the three exact method/path pairs', async t => {
+  configureHttpClient({ mode: 'cloud' }); t.after(() => configureHttpClient({ mode: 'local' }))
+  const calls = []
+  t.mock.method(globalThis, 'fetch', async (path, options) => {
+    calls.push({ path, options }); return json(path === '/api/identity/csrf' ? { csrf_token: 'csrf-update' } : { ok: true })
+  })
+  await requestJson('/api/system/update')
+  await requestJson('/api/system/update/check', { method: 'POST', body: {} })
+  await requestJson('/api/system/update/apply', { method: 'POST', body: { expected_sha: 'old', target_sha: 'new' } })
+  const accepted = calls.length
+  for (const [path, method] of [
+    ['/api/system/update', 'POST'], ['/api/system/update/check', 'GET'], ['/api/system/update/apply', 'DELETE'],
+    ['/api/system/update/', 'GET'], ['/api/system/update?other=1', 'GET'], ['/api/system/update/apply/extra', 'POST'],
+    ['/api/system/update/apply?target=other', 'POST'], ['/api/system/anything', 'GET'],
+  ]) await assert.rejects(requestJson(path, { method }), /尚未提供云端接口/)
+  assert.equal(calls.length, accepted, 'unsupported update paths must not reach the network')
+})

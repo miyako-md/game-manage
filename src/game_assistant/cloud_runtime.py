@@ -44,8 +44,9 @@ def load_runtime(path):
         origins=[_origin(value) for value in data['cloud_allowed_origins']]
         if not origins or any(origin is None or origin[0]!='https' for origin in origins):
             raise RuntimeConfigurationError('https_origins_required')
-        for field in ('cloud_db_path','cloud_data_root','cloud_credentials_key_path','db_path'):
-            if field in data:
+        for field in ('cloud_db_path','cloud_data_root','cloud_credentials_key_path','db_path',
+                      'system_update_state_dir','system_update_install_root'):
+            if field in data and data[field]:
                 candidate = Path(data[field])
                 if not candidate.is_absolute():
                     candidate = config.parent / candidate
@@ -71,6 +72,12 @@ def load_runtime(path):
             raise RuntimeConfigurationError('local_credentials_forbidden')
         settings.lol_enabled = False
         dist = runtime.get('frontend_dist')
+        if settings.system_update_enabled and settings.system_update_install_root:
+            from .system_update_version import source_root, release_root_matches
+            running_root = source_root()
+            if release_root_matches(running_root, settings.system_update_install_root):
+                # Versioned releases must serve their own assets, not the previous config's dist.
+                dist = str(running_root / 'frontend' / 'dist')
         if dist:
             candidate = Path(dist)
             candidate = candidate if candidate.is_absolute() else config.parent / candidate
@@ -89,6 +96,10 @@ def load_runtime(path):
 def build_app(runtime, *, start_scheduler=True):
     from .cloud_app import create_cloud_app, allow_cloud_route
     app = create_cloud_app(runtime.settings, start_scheduler=start_scheduler)
+    from .system_update_version import capture_version
+    version = capture_version(frontend_dist=runtime.frontend_dist)
+    app.state.system_update.version = version
+    app.state.running_version = version
     from fastapi import Request
     from starlette.responses import JSONResponse
     @app.get('/internal/operations/health')

@@ -10,6 +10,7 @@ import { lazyPage } from './lazy-page.js'
 import { useFloatingNavigation } from './floating-navigation.js'
 import { useElasticCards } from './elastic-cards.js'
 import AppIcon from './components/AppIcon.vue'
+import SystemUpdateControl from './components/SystemUpdateControl.vue'
 import GameIcon from './components/GameIcon.vue'
 import OverviewPage from './components/OverviewPage.vue'
 import CalendarPage from './components/CalendarPage.vue'
@@ -166,6 +167,7 @@ onBeforeUnmount(() => { clearInterval(timer); clearInterval(clockTimer); stopFol
           <button class="icon-button theme-toggle" :aria-label="theme === 'light' ? '切换到夜间模式' : '切换到白天模式'" :title="theme === 'light' ? '夜间模式' : '白天模式'" @click="toggleTheme">
             <span class="icon-swap"><AppIcon name="sun" :size="16" :data-active="theme !== 'light'" /><AppIcon name="moon" :size="16" :data-active="theme === 'light'" /></span>
           </button>
+          <SystemUpdateControl :allowed="true" />
         </div>
       </header>
       <main id="main-content" ref="mainContent" tabindex="-1" class="workspace-main">

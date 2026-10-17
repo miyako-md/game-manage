@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     cloud_session_seconds: int = Field(default=14 * 86400, ge=60, le=90 * 86400)
     cloud_invite_seconds: int = Field(default=48 * 3600, ge=60, le=7 * 86400)
     cloud_recovery_seconds: int = Field(default=900, ge=60, le=3600)
+    # Operator-only updater paths; never accepted from API request parameters.
+    system_update_enabled: bool = False
+    system_update_state_dir: str = ''
+    system_update_install_root: str = ''
     cloud_body_limit_bytes: int = Field(default=65536, ge=1024, le=1048576)
     # Independent fixed service credential, provisioned by the operator.
     qq_app_id: str = Field(default='', max_length=256)

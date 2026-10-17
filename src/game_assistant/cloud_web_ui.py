@@ -20,7 +20,7 @@ def validate_dist(value):
         if path.is_symlink() or not path.resolve().is_relative_to(dist):
             raise ValueError('Unsafe static dist')
         if (path.is_file() and path.relative_to(dist).as_posix() not in
-                {'game-icons/sources.json', *_PRIVATE_BUILD_FILES}
+                {'game-icons/sources.json', 'build-info.json', *_PRIVATE_BUILD_FILES}
                 and path.suffix.lower() not in {'.html','.js','.css','.svg','.png','.jpg','.jpeg','.webp','.gif','.ico','.woff','.woff2','.ttf'}):
             raise ValueError('Unexpected static artifact')
     return dist

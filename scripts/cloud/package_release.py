@@ -114,6 +114,13 @@ def verify_wheel(source, wheel):
         return count
 
 
+def write_build_metadata(source, commit):
+    if not re.fullmatch(r'[0-9a-f]{40}', commit):
+        raise PackageError('full_commit_sha_required')
+    path = source / 'src/game_assistant/build-info.json'
+    path.write_text(json.dumps({'schema': 1, 'source': 'miyako-md/game-manage', 'commit': commit}) + '\n', encoding='utf-8')
+
+
 def package(repo, commit, output_root, work_root, npm):
     repo, output_root, work_root = map(safe_path, (repo, output_root, work_root))
     if not re.fullmatch(r'[0-9a-f]{40}', commit):
@@ -136,7 +143,7 @@ def package(repo, commit, output_root, work_root, npm):
     source, artifacts = work / 'source', output_root / ('.pending-' + uuid.uuid4().hex[:12])
     source.mkdir(parents=True)
     artifacts.mkdir()
-    env = dict(os.environ, SOURCE_DATE_EPOCH=str(epoch), PYTHONPATH='', PYTHONNOUSERSITE='1')
+    env = dict(os.environ, SOURCE_DATE_EPOCH=str(epoch), PYTHONPATH='', PYTHONNOUSERSITE='1', GA_BUILD_COMMIT=commit)
     # Keep ambient Vite variables and local dotenv files out of this cloud build.
     env = {key: value for key, value in env.items() if not key.startswith('VITE_')}
     npm_path = shutil.which(npm)
@@ -164,6 +171,7 @@ def package(repo, commit, output_root, work_root, npm):
     project = tomllib.loads((source / 'pyproject.toml').read_text(encoding='utf-8'))
     if project['project']['optional-dependencies']['qq-render'] != ['playwright==1.58.0']:
         raise PackageError('browser_runtime_pin_requires_review')
+    write_build_metadata(source, commit)
     build_env = work / 'build-env'
     run('build-environment', [sys.executable, '-m', 'venv', str(build_env)])
     build_python = build_env / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')

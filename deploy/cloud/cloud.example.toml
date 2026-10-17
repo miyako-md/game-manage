@@ -10,6 +10,10 @@ cloud_public_poll_seconds = 600
 cloud_poll_concurrency = 4
 cloud_provider_concurrency = 1
 cloud_upstream_timeout_seconds = 120
+# Enable only after operator setup in updater-setup.md.
+system_update_enabled = false
+system_update_install_root = "/opt/game-manage-cloud"
+system_update_state_dir = "/var/lib/game-manage-updater"
 # Optional public sources must be explicitly reviewed; no local credentials.
 bilibili_sources = {}
 # QQ_APP_ID and separate service token are provisioned by operator environment.

@@ -16,7 +16,9 @@ python -m game_assistant.cloud_runtime --config /etc/game-manage-cloud/cloud.tom
 python -m game_assistant.cloud_runtime --config /etc/game-manage-cloud/cloud.toml
 ```
 
-前端构建工具显式设置 `VITE_SERVICE_MODE=cloud`，成功后只在构建产物 index 添加模式标记。专用静态 helper 只公开实际 dist 文件的精确路径，拒绝符号链接、数据目录和未知 artifact；仅允许已知图标来源 `game-icons/sources.json` 作为 JSON。它不公开配置、密钥、数据库或源码，不使用 catch-all 覆盖运行时账户 API。
+前端构建工具显式设置 `VITE_SERVICE_MODE=cloud`，成功后只在构建产物 index 添加模式标记。专用静态 helper 只公开实际 dist 文件的精确路径，拒绝符号链接、数据目录和未知 artifact；JSON 仅允许已知图标来源 `game-icons/sources.json` 与不含私密配置的版本标记 `build-info.json`。它不公开配置、密钥、数据库或源码，不使用 catch-all 覆盖运行时账户 API。
+
+管理员可在网页右上角打开“系统更新”，检查官方主分支（main）。执行更新需先安装独立助手，配置和首次接入步骤见[网页更新助手说明](../deploy/cloud/updater-setup.md)。普通网站用户无此入口和接口权限；网站进程不获得写程序目录或启停服务的权限。现有无 Git 发布记录的安装需先经人工建立可核验版本，不会直接改造线上目录。
 
 外置 grant 密钥必须是 32 字节随机二进制，Linux 文件 owner 为 API 用户，权限 `0600`，父目录仅授权该用户。例：在已创建、授权的专用密钥目录中使用下面命令；文件独占创建，已有密钥不会覆盖。不要把密钥内容写入配置、日志或报告。
 
