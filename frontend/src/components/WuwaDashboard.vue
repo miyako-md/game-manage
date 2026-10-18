@@ -129,7 +129,7 @@ const banner = computed(() => gameBanner('wuthering_waves', props.snaps))
         <AnnouncementList game-id="wuthering_waves" :snap="snaps.news?.payload ? snaps.news : snaps.announcement" />
       </template>
       <p v-else-if="!configured" class="wuwa-panel wuwa-empty">
-        请先登录鸣潮账号以查看私人档案。
+        请先登录鸣潮账号。
       </p>
       <div v-else-if="section === 'profile'" class="wuwa-bento">
         <WuwaModuleCard v-reveal v-parallax class="span-7 profile-account is-hero" title="账号档案" :snap="current.account" :sheet-width="640">
@@ -195,7 +195,7 @@ const banner = computed(() => gameBanner('wuthering_waves', props.snaps))
         </WuwaModuleCard>
       </template>
       <p v-else class="wuwa-panel wuwa-empty">
-        尚未读取到当前账号标识，请刷新数据后重试。
+        尚未读取到账号信息，请刷新数据。
       </p>
     </div>
   </div>

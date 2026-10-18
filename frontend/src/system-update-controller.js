@@ -14,11 +14,11 @@ const MAX_WAIT = 20 * 60 * 1000
 const REASONS = {
   preview_only: '模拟预览中不会更新程序。', disabled: '此安装尚未启用网页更新。', install_root_unavailable: '当前安装目录无法更新。',
   unsupported_platform: '当前系统暂不支持网页更新。', version_unknown: '无法确认当前版本，请先检查安装状态。',
-  frontend_version_mismatch: '界面与服务版本不一致，请先检查安装状态。', dirty_worktree: '安装目录中有未保存到版本库的修改，暂不能更新。',
+  frontend_version_mismatch: '界面与服务版本不一致，请先检查安装状态。', dirty_worktree: '安装目录有未提交的本地修改，暂不能更新。',
   running_version_mismatch: '运行版本与安装目录不一致，暂不能更新。', check_required: '请先检查更新。',
   check_stale: '版本信息已过期，请重新检查更新。', check_failed: '检查未成功，请重试。',
   worker_unavailable: '更新助手尚未运行。', job_active: '已有更新任务正在进行。', recovery_required: '请联系管理员检查更新状态。',
-  up_to_date: '当前已是主分支的最新版本。', current_ahead: '当前版本领先主分支。',
+  up_to_date: '当前已是最新版本。', current_ahead: '当前版本领先主分支。',
   history_diverged: '当前版本与主分支存在不同修改，暂不能自动更新。', relationship_unknown: '尚未确认版本关系，请重新检查。',
   state_unavailable: '暂时无法读取更新状态。', target_changed: '可用版本已变化，请重新检查后确认。',
   github_unavailable: '暂时无法读取主分支，请稍后检查。', github_rate_limited: '版本检查过于频繁，请稍后重试。',
@@ -80,19 +80,19 @@ export function systemUpdateStatus(state) {
   if (state.timedOut) return '等待时间较长，请手动检查更新状态。'
   if (state.connectionLost) return '服务暂时断开，正在等待服务恢复…'
   if (state.uncertain) return '正在确认更新请求是否已接收…'
-  if (state.operation === 'checking') return '正在检查主分支的最新版本…'
+  if (state.operation === 'checking') return '正在检查最新版本…'
   if (state.operation === 'reading' && !state.snapshot) return '正在读取更新状态…'
   if (state.readFailed) return '更新状态暂时未知，请重新读取。'
   const snapshot = state.snapshot
   if (!snapshot) return '尚未读取版本信息。'
   if (snapshot.job?.phase === 'completed') {
-    if (updateIsVerified(state) && snapshot.relation === 'ahead' && snapshot.latest?.sha !== snapshot.job.target_sha) return '发现主分支的新版本。'
+    if (updateIsVerified(state) && snapshot.relation === 'ahead' && snapshot.latest?.sha !== snapshot.job.target_sha) return '发现新版本。'
     return updateIsVerified(state) ? '更新完成，新版本已开始运行。' : '更新任务已结束，正在核对运行版本…'
   }
   if (snapshot.job && UPDATE_PHASES[snapshot.job.phase]) return UPDATE_PHASES[snapshot.job.phase]
   if (state.checkFailed || snapshot.check_error || snapshot.stale) return snapshot.checked_at
     ? '版本信息已过期，请重新检查。' : '尚未取得版本信息，请检查更新。'
-  return ({ ahead: '发现主分支的新版本。', behind: '当前版本领先主分支。', up_to_date: '当前已是主分支的最新版本。',
+  return ({ ahead: '发现新版本。', behind: '当前版本领先主分支。', up_to_date: '当前已是最新版本。',
     diverged: '当前版本与主分支存在不同修改。', unknown: '尚未确认版本关系。' })[snapshot.relation]
 }
 

@@ -61,11 +61,11 @@ onBeforeUnmount(() => { stop(); clear() })
     <p v-if="error" role="alert">{{ error }}</p><p v-if="success" role="status">{{ success }}</p>
     <form aria-label="通过鹰角授权连接森空岛" @submit.prevent="connectPassport">
       <label>来源鹰角授权<MenuSelect class="skland-source-menu" label="用于连接森空岛的鹰角授权" :model-value="accountId" :disabled="!!busy" :options="[{value:'',label:'请选择鹰角授权'},...sources.map((account,index) => ({value:account.account_id,label:`鹰角授权 ${index + 1} · ${account.roles?.find(item => item.is_default)?.display_name || account.roles?.[0]?.display_name || '未命名角色'}`}))]" @change="chooseAccount" /></label>
-      <label>来源角色<MenuSelect class="skland-source-menu" label="用于连接森空岛的鹰角角色" :model-value="roleId" :disabled="!!busy || !source" :options="[{value:'',label:'请选择已核验角色'},...roles.map((item,index) => ({value:item.role_id,label:`${item.display_name || `角色 ${index + 1}`}${item.is_default ? '（鹰角默认）' : ''}`}))]" @change="chooseRole" /></label>
+      <label>来源角色<MenuSelect class="skland-source-menu" label="用于连接森空岛的鹰角角色" :model-value="roleId" :disabled="!!busy || !source" :options="[{value:'',label:'请选择角色'},...roles.map((item,index) => ({value:item.role_id,label:`${item.display_name || `角色 ${index + 1}`}${item.is_default ? '（鹰角默认）' : ''}`}))]" @change="chooseRole" /></label>
       <p v-if="!sources.length">暂无可用的鹰角授权，请先在上方登录，或使用手动授权。</p><p v-else-if="source && !roles.length">此鹰角授权暂无可用角色，请重新授权或使用手动授权。</p>
       <button class="ui-button primary" :disabled="!canConnect">{{ busy === 'passport' ? '连接中…' : '一键连接森空岛档案' }}</button>
     </form>
-    <details><summary>手动授权备用</summary>
+    <details><summary>手动授权（备用）</summary>
       <form aria-label="手动连接森空岛" @submit.prevent="connectManual"><label>森空岛 cred<input v-model="cred" type="password" autocomplete="off" required maxlength="4096" :disabled="!!busy" /></label><label>设备标识（可选）<input v-model="deviceId" autocomplete="off" maxlength="512" :disabled="!!busy" /></label><button class="ui-button" :disabled="!!busy || !cred.trim()">{{ busy === 'manual' ? '连接中…' : '手动连接森空岛档案' }}</button></form>
     </details>
   </section>

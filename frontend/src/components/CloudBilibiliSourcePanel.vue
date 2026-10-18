@@ -88,10 +88,10 @@ onUnmounted(()=>{stopped=true;unsubscribe();clear()})
 <template>
   <section class="cap-card cloud-bili-source" aria-label="管理员 B 站公共源授权">
     <h2>管理员 · B 站公共源授权</h2>
-    <p>输入 B 站登录后的 SESSDATA 值即可（无需整段 Cookie），凭据在云端加密保存。</p>
-    <p v-if="account?.configured">当前来源账号：{{ account.nickname || account.uid || '已配置' }} · {{ account.state==='validated'?'本次运行已验证':'已配置' }}</p>
+    <p>填写 B 站 SESSDATA（无需完整 Cookie），在云端加密保存。</p>
+    <p v-if="account?.configured">当前来源账号：{{ account.nickname || account.uid || '已配置' }} · {{ account.state==='validated'?'已验证':'已配置' }}</p>
     <p v-else-if="account?.state==='storage_error'" role="alert">云端授权读取失败，无法确认是否已配置。请检查服务端密钥与存储后刷新状态。</p>
-    <p v-else-if="account">尚未配置 B 站公共源授权。提交后需通过 B 站验证并成功保存，才会显示为已配置。</p>
+    <p v-else-if="account">尚未配置 B 站公共源授权。</p>
     <p v-else>{{ loadingAccount ? '正在读取云端授权状态…' : '云端授权状态尚未确认，请刷新状态。' }}</p>
     <p v-if="error" role="alert">{{ error }}</p><p v-if="message || labels[state]" role="status">{{ message || labels[state] }}</p>
     <form v-if="mode==='cookie'" @submit.prevent="submitSessdata"><label>SESSDATA<input v-model="sessdata" type="password" name="sessdata" autocomplete="off" maxlength="4096" required :disabled="busy" /></label><button class="ui-button primary" :disabled="busy || !sessdata.trim()">验证并加密保存</button></form>

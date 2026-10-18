@@ -367,9 +367,9 @@ onBeforeUnmount(() => {
         <div class="channel-options"><button v-for="channel in ENDFIELD_CHANNELS" :key="channel.id" type="button" :aria-pressed="endfieldChannel === channel.id" :disabled="!!busy" @click="selectEndfieldChannel(channel.id)">{{ channel.name }}</button></div>
       </fieldset>
       <div v-if="selectedGame === 'endfield' && endfieldChannel === 'bilibili'" class="binding-guide">
-        <p>首次登录 B 服前，请先在鹰角官方页面绑定游戏角色。</p>
-        <ol><li>打开<a href="https://user.hypergryph.com/bindCharacters?game=endfield" target="_blank" rel="noopener noreferrer">鹰角角色绑定页面</a>，登录鹰角通行证。</li><li>选择哔哩哔哩（bilibili）服，填写游戏角色编号（UID），通过游戏内邮件验证码完成绑定。</li><li>回到这里，使用已绑定该角色的鹰角通行证手机号登录。</li></ol>
-        <p class="muted">这里使用鹰角短信登录，与哔哩哔哩资讯采集的登录凭据（SESSDATA）无关。</p>
+        <p>首次登录 B 服前，请先在鹰角官网绑定游戏角色：</p>
+        <ol><li>打开<a href="https://user.hypergryph.com/bindCharacters?game=endfield" target="_blank" rel="noopener noreferrer">鹰角角色绑定页面</a>，登录鹰角通行证。</li><li>选择 bilibili 服，填写游戏 UID 并通过游戏内邮件验证码完成绑定。</li><li>回到本页，使用该鹰角通行证的手机号登录。</li></ol>
+        <p class="muted">此处使用鹰角短信登录，无需填写 B 站 SESSDATA。</p>
       </div>
       <label for="community-mobile">手机号</label>
       <input id="community-mobile" v-model.trim="mobile" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="11" placeholder="11 位中国大陆手机号" :readonly="!!busy" />

@@ -132,7 +132,7 @@ test('a retained completed job cannot hide a newer main candidate on the next up
   const { root, button } = mountDialog(t, () => reply(snapshot({ job: job('completed'),
     current: { sha: TARGET, frontend_sha: TARGET }, latest: { sha: newer, message: '后续改进' }, can_apply: true })))
   await settle()
-  assert.match(root.textContent, /发现主分支的新版本/)
+  assert.match(root.textContent, /发现新版本/)
   assert.ok(button('更新到此版本'))
   assert.equal(button('刷新页面'), undefined)
   button('更新到此版本').click(); await settle()

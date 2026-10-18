@@ -45,16 +45,15 @@ onBeforeUnmount(controller.destroy)
   <dialog ref="dialog" class="system-update-dialog t-dialog" :data-closing="closing ? '' : undefined" aria-modal="true" :aria-labelledby="headingId" @cancel.prevent="close" @pointerdown="backdropDown" @click="clickBackdrop" @animationend="animationEnded">
     <header class="update-heading"><h2 :id="headingId">系统更新</h2><button class="icon-button" type="button" aria-label="关闭系统更新" autofocus @click="close"><AppIcon name="close" :size="18" /></button></header>
     <div class="update-body">
-      <p class="update-intro">检查主分支（main）的最新版本。</p>
       <dl class="update-versions">
         <div><dt>当前版本</dt><dd><code>{{ shortSha(state.snapshot?.current?.sha) }}</code><span v-if="state.snapshot?.current?.dirty" class="update-note">安装目录有本地修改</span></dd></div>
-        <div><dt>主分支最新提交</dt><dd><a v-if="latestUrl" :href="latestUrl" target="_blank" rel="noopener noreferrer"><code>{{ shortSha(state.snapshot.latest.sha) }}</code><AppIcon name="arrow" :size="13" /></a><span v-else>尚未检查</span><p v-if="state.snapshot?.latest?.message" class="update-commit-title">{{ state.snapshot.latest.message }}</p><time v-if="state.snapshot?.latest" class="update-note" :datetime="state.snapshot.latest.committed_at">{{ date(state.snapshot.latest.committed_at) }}</time></dd></div>
+        <div><dt>最新版本</dt><dd><a v-if="latestUrl" :href="latestUrl" target="_blank" rel="noopener noreferrer"><code>{{ shortSha(state.snapshot.latest.sha) }}</code><AppIcon name="arrow" :size="13" /></a><span v-else>尚未检查</span><p v-if="state.snapshot?.latest?.message" class="update-commit-title">{{ state.snapshot.latest.message }}</p><time v-if="state.snapshot?.latest" class="update-note" :datetime="state.snapshot.latest.committed_at">{{ date(state.snapshot.latest.committed_at) }}</time></dd></div>
       </dl>
       <div class="update-status" :class="{ 'is-verified': verified && !showsApply }"><AppIcon :name="verified && !showsApply ? 'check' : running || state.operation ? 'refresh' : 'info'" :class="{ spinning: running || !!state.operation }" :size="18" /><p role="status" aria-live="polite" aria-atomic="true">{{ status }}</p></div>
       <p v-if="state.error && !state.connectionLost" role="alert" class="update-error">{{ state.error }}</p>
       <p v-if="reason && !running && !verified && !state.uncertain" class="update-note">{{ reason }}</p>
       <p v-if="state.snapshot?.job" class="update-note">目标版本 <code>{{ shortSha(state.snapshot.job.target_sha) }}</code><template v-if="state.snapshot.job.error_code"> · {{ systemUpdateReason(state.snapshot.job.error_code) }}</template></p>
-      <p class="update-note">更新时服务会短暂重启；完成后可手动刷新页面。</p>
+      <p class="update-note">更新期间服务会短暂重启。</p>
       <section v-if="confirmTarget" class="update-confirm" role="group" :aria-labelledby="confirmId"><h3 :id="confirmId">更新到 <code>{{ shortSha(confirmTarget) }}</code>？</h3><p>请先保存正在编辑的内容。</p><div class="update-actions"><button class="ui-button" type="button" @click="confirmTarget = ''">暂不更新</button><button class="ui-button primary" type="button" :disabled="!canApply" @click="confirmUpdate">确认更新</button></div></section>
       <footer class="update-actions">
         <button v-if="state.timedOut || state.readFailed" class="ui-button" type="button" :disabled="!!state.operation || state.sessionEnded" @click="controller.retryStatus">重新读取状态</button>
@@ -71,7 +70,6 @@ onBeforeUnmount(controller.destroy)
 .update-heading { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 20px; border-bottom:1px solid var(--border); background:var(--card-bg); }
 .update-heading h2 { margin:0; font-size:20px; line-height:28px; font-weight:600; letter-spacing:-.03em; }
 .update-body { padding:20px; }
-.update-intro { margin:0 0 20px; color:var(--text-muted); font-size:13px; }
 .update-versions { margin:0; display:grid; gap:18px; }
 .update-versions>div { display:grid; grid-template-columns:116px minmax(0,1fr); gap:12px; }
 .update-versions dt { color:var(--text-muted); font-size:13px; line-height:22px; }

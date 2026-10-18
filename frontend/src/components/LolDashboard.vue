@@ -173,7 +173,7 @@ onBeforeUnmount(() => { disposed = true; generation++; analysisController?.abort
       </div>
       <button type="button" class="collect-button ui-button primary" :disabled="collecting" @click="collect"><AppIcon name="refresh" :size="15" :class="{ spinning: collecting }" />{{ collecting ? '正在同步…' : '同步战绩' }}</button>
     </header>
-    <p v-if="collecting && section !== 'esports'" class="lol-notice" role="status">正在同步近期战绩与详情，最多等待 120 秒。</p>
+    <p v-if="collecting && section !== 'esports'" class="lol-notice" role="status">正在同步近期战绩与详情…</p>
     <p v-if="collectError && section !== 'esports'" class="lol-error" role="alert">{{ collectError }}<span v-if="analysis && section !== 'esports'">；已有分析数据仍保留。</span></p>
     <p v-if="collectNote && section !== 'esports'" class="lol-notice" role="status">{{ collectNote }}</p>
     <div class="lol-toolbar">
@@ -330,7 +330,6 @@ onBeforeUnmount(() => { disposed = true; generation++; analysisController?.abort
               </div>
             </section>
           </div>
-          <p class="method-note">参考评分范围 3–16 分</p>
           <p v-if="!matches.length" class="lol-empty-line">当前时间和模式下没有已归档对局，可调整筛选。</p>
           <div v-if="matches.length" class="cap-card match-list">
           <div class="b-head"><h3>对局记录</h3><span class="b-meta">{{ matches.length }} 场</span></div>
