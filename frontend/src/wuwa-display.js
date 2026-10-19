@@ -145,4 +145,3 @@ export const fieldLabels = {
   month: '月',
   version: '版本',
 }
-export const label = (key) => fieldLabels[key] || key

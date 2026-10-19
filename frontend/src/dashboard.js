@@ -4,7 +4,7 @@ import { createEsportsBrowseState } from './esports.js'
 import { capabilityLabel } from './cloud-display.js'
 
 const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams', 'esports'])
-export const GAME_STYLE = {
+const GAME_STYLE = {
   wuthering_waves: { mark: '鸣', icon: '/game-icons/wuthering_waves-mark.svg', iconLight: '/game-icons/wuthering_waves-mark-light.svg', color: 'var(--game-wuwa)', vivid: 'var(--game-wuwa-vivid)', vivid2: 'var(--game-wuwa-2)', tone: 'var(--game-wuwa-tone)', english: 'WUTHERING WAVES', resource: '结晶波片' },
   nte: { mark: '异', icon: '/game-icons/nte-mark.svg', iconLight: '/game-icons/nte-mark-light.svg', color: 'var(--game-nte)', vivid: 'var(--game-nte-vivid)', vivid2: 'var(--game-nte-2)', tone: 'var(--game-nte-tone)', english: 'NEVERNESS TO EVERNESS', resource: '本性像素' },
   league_of_legends: { mark: 'L', icon: '/game-icons/league_of_legends-mark.svg', iconLight: '/game-icons/league_of_legends-mark-light.svg', color: 'var(--game-lol)', vivid: 'var(--game-lol-vivid)', vivid2: 'var(--game-lol-2)', tone: 'var(--game-lol-tone)', english: 'LEAGUE OF LEGENDS' },

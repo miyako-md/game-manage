@@ -10,7 +10,7 @@ export function safeNteIcon(value) {
   } catch { return '' }
 }
 const normalized = value => String(value).replace(/[·：:\s「」『』]/g,'')
-export function nteRole(nameOrId) {
+function nteRole(nameOrId) {
   return catalog.roles[nameOrId] || Object.values(catalog.roles).find(role=>String(role.id)===String(nameOrId))
 }
 export const nteRoleIcon = nameOrId => safeNteIcon(nteRole(nameOrId)?.icon)

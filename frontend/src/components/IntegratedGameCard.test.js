@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { nextTick, reactive } from 'vue'
+import { reactive } from 'vue'
 import { loadVue, mount, nodes, content, flushAsyncComponents } from '../test-utils/vue.js'
 
 const Card = await loadVue(new URL('./GameCard.vue', import.meta.url))

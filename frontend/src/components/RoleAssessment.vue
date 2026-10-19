@@ -124,12 +124,12 @@ function load(row){name.value=row.data.name;itemsJson.value=json(row.data.items)
 @media(pointer:coarse){.personal-assessment button,.personal-assessment input:not([type=checkbox]){min-height:44px}}
 .personal-assessment table{border-collapse:collapse;font-size:13px;width:100%;text-align:left}
 .personal-assessment th{color:var(--text-muted);font-size:12px;font-weight:500}
-.personal-assessment pre{margin:6px 0;padding:8px 10px;border-radius:var(--radius-control);background:var(--card-bg);font:12px/1.6 var(--font-mono);white-space:pre-wrap}
+.personal-assessment pre{margin:6px 0;padding:8px 10px;border-radius:var(--radius-control);background:var(--card-bg);font:12px/1.6 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere}
 .field-row,.stat-row{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
 .equipment-input{border-radius:var(--radius-well);background:var(--card-bg);box-shadow:inset 0 0 0 1px var(--overlay-2);padding:12px;margin:8px 0}
 .stat-row input{width:100px}
 /* The score line leads the result: big, with the reason in the normal size beside it. */
-.assessment-result{margin-top:10px;padding:12px 14px;border-radius:var(--radius-well);background:var(--card-bg);box-shadow:inset 0 0 0 1px var(--overlay-2)}
+.assessment-result{margin-top:10px;padding:12px 14px;overflow-x:auto;border-radius:var(--radius-well);background:var(--card-bg);box-shadow:inset 0 0 0 1px var(--overlay-2)}
 .assessment-result>p:first-child{margin-top:0;color:var(--text);font-size:20px;line-height:28px;font-weight:550;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .assessment-result>p:first-child span{color:var(--text-muted);font-size:13px;font-weight:400;letter-spacing:0}
 .assessment-result td,.assessment-result th{padding:4px 8px 4px 0;border-bottom:1px solid var(--border)}

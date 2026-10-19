@@ -15,8 +15,6 @@
   --ease-in-out: ease-in-out;
   --ease-out: ease-out;
   --ease-linear: linear;
-  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
-  --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
   /* Damped springs sampled from Feel.response(p, -1, 0) into CSS linear():
      - --ease-spring (mass 1, 3.2 Hz, zeta 0.68): ~5% overshoot, settled in 340ms
      - --ease-spring-smooth (mass 1, 2.8 Hz, zeta 0.86): crisp settle in 260ms */
@@ -28,17 +26,18 @@
   --distance-micro: 4px;
   --distance-small: 6px;
   --distance-base: 8px;
-  --distance-medium: 12px;
-  --distance-large: 30px;
   /* Scales */
-  --scale-large: 0.96;
   --scale-medium: 0.97;
   --scale-small: 0.98;
-  --scale-tiny: 0.99;
   /* Blur */
   --blur-small: 2px;
   --blur-medium: 3px;
-  --blur-large: 8px;
+}
+
+@property --plx {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
 }
 
 /* ── Entrances (CSS only, replay by re-keying the element) ─────────── */
@@ -60,6 +59,10 @@
 @keyframes t-pop {
   from { opacity: 0.35; transform: translateY(var(--distance-small)); filter: blur(var(--blur-small)); }
   to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes t-pop-mobile {
+  from { opacity: 0.35; transform: translateY(var(--distance-small)); }
+  to { opacity: 1; transform: none; }
 }
 @keyframes t-shimmer {
   from { background-position: 200% 0; }
@@ -160,6 +163,13 @@
       transform 600ms var(--ease-spring-smooth) var(--reveal-delay, 0ms) !important;
   }
   [data-reveal="pending"] { filter: none; }
+  .t-pop { animation-name: t-pop-mobile; }
+  .icon-swap > svg {
+    transition:
+      opacity var(--duration-fast) var(--ease-in-out),
+      transform var(--duration-fast) var(--ease-in-out);
+  }
+  .icon-swap > svg[data-active="false"] { filter: none; }
 }
 /* Keyboard focus never lands on something invisible. */
 [data-reveal="pending"]:focus-within { opacity: 1; transform: none; filter: none; }
@@ -169,6 +179,7 @@
 
 /* ── Parallax layers (v-parallax on an ancestor sets --plx) ───────── */
 .plx-layer {
+  --plx: inherit;
   transform: translate3d(0, calc(var(--plx, 0) * var(--plx-range, 40px)), 0);
   will-change: transform;
 }

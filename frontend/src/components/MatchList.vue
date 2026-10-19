@@ -502,8 +502,8 @@ async function toggleDetail(row) {
 .kda-bar i{display:block;min-width:2px}.kda-bar .k{background:var(--game-vivid)}.kda-bar .d{background:color-mix(in srgb,var(--text-faint) 55%,var(--track))}.kda-bar .a{background:color-mix(in srgb,var(--game-vivid) 55%,var(--card-bg))}
 .mi-damage{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;color:var(--text-muted);font-size:12px}
 .mi-damage .meter{height:4px}
-.mi-foot{display:flex;align-items:center;gap:6px;min-width:0;padding-top:10px;border-top:1px solid var(--border)}
-.mi-meta{min-width:0;margin-right:auto;overflow:hidden;color:var(--text-muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.mi-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;padding-top:10px;border-top:1px solid var(--border)}
+.mi-meta{min-width:88px;margin-right:auto;overflow:hidden;color:var(--text-muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
 .chip.record{background:var(--game-tone);color:var(--game-accent)}
 .mi-foot .ui-button{flex-shrink:0}
 .mi-foot .ui-button[aria-expanded="true"]{background:var(--accent-soft);border-color:transparent;color:var(--accent)}

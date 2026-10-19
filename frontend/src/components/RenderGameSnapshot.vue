@@ -1,7 +1,7 @@
 <script setup>
 import { computed, provide } from 'vue'
 import { gameVars } from '../dashboard.js'
-import { collectCalendarEvents, versionCalendarRange } from '../calendar.js'
+import { collectCalendarEvents } from '../calendar.js'
 import { friendlyDataError } from '../cloud-display.js'
 import AccountCard from './AccountCard.vue'
 import StaminaCard from './StaminaCard.vue'
@@ -51,14 +51,13 @@ const componentProps=computed(()=>({snap:nativeSnapshot.value,capability:cap.val
  operatorFetchedAt:snap.value?.payload?.operator_fetched_at,operatorStale:snap.value?.payload?.operator_stale}))
 const declaredProps=computed(()=>Object.fromEntries(Object.entries(componentProps.value).filter(([key])=>key in (component.value?.props || {}))))
 const events=computed(()=>collectCalendarEvents([{game_id:props.panel.game,display_name:names[props.panel.game]}],{[props.panel.game]:{events:snap.value}}))
-const range=computed(()=>versionCalendarRange(events.value,props.asOf))
 const error=computed(()=>snap.value?.state==='auth_expired'?friendlyDataError('',snap.value.state):'')
 </script>
 <template>
  <section class="render-snapshot-panel game-theme" :style="gameVars(panel.game)">
   <h2 class="snapshot-game-name">{{ gameTitle || '游戏数据' }}</h2>
   <p v-if="error" class="error-bar" role="status">{{ error }}</p>
-  <RenderCalendar v-if="['events','recent_events'].includes(cap)" :events="events" :range="range" :as-of="asOf" />
+  <RenderCalendar v-if="['events','recent_events'].includes(cap)" :events="events" :as-of="asOf" />
   <template v-else-if="panel.game==='endfield' && panel.provider==='skland' && cap==='combat'">
    <EndfieldChallenges v-for="report in challengeReports" :key="report.kind" :kind="report.kind" :value="{report}" image-mode />
    <p v-if="!challengeReports.length" class="cap-card empty">尚无挑战记录，请在看板读取后查看。</p>

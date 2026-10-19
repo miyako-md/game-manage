@@ -93,9 +93,6 @@ const failedReads = computed(() => filteredGames.value.filter(game => props.read
 })))
 const failedReadNames = computed(() => failedReads.value.map(failure => failure.name).join('、'))
 const readRetainedMessage = computed(() => failedReads.value.every(failure => failure.retained) ? '正在显示已有活动。' : failedReads.value.some(failure => failure.retained) ? '部分游戏正在显示已有活动，其余暂无可显示活动。' : '暂无可显示活动。')
-function gameAccent(id) {
-  return gameStyle(id === 'lol' ? 'league_of_legends' : id).color
-}
 const gameVars = id => themeVars(id === 'lol' ? 'league_of_legends' : id)
 // Counts for the tiles above the board, over every event the current view collects.
 const statusCounts = computed(() => ({
@@ -255,29 +252,28 @@ async function closeDetail() {
 .calendar-detail dl small { display: block; color: var(--text-muted); margin-top: 6px; }
 .source-id { color: var(--text-muted); margin-top: 10px; font-size: 12px; overflow-wrap: anywhere; }
 .source-link { display: inline-block; margin-top: 16px; color: var(--accent); font-size: 13px; font-weight: 500; text-decoration: none; }
-.calendar-page button:focus-visible, .calendar-page select:focus-visible, .timeline-scroll:focus-visible, .calendar-detail:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-@media (hover: hover) and (pointer: fine) { .unplaced-event:hover { background-color: var(--overlay-2); } .source-link:hover { color: var(--accent-strong); } }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.calendar-page button:focus-visible, .calendar-page select:focus-visible, .calendar-detail:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) { .source-link:hover { color: var(--accent-strong); } }
 /* Side list (mockup .agenda-card): a warm panel of white rows, each opening its event's detail. */
 .calendar-agenda { padding:22px 20px 20px; border:1px solid var(--border); border-radius:var(--radius-card); background:var(--control-track); }
 .calendar-agenda h2 { font-size:17px; font-weight:600; letter-spacing:-.02em; outline:none; }
 .calendar-agenda h2:focus-visible { outline:2px solid var(--accent); outline-offset:3px; border-radius:6px; }
 .agenda-list { display:grid; gap:10px; margin-top:16px; }
-.agenda-item { position:relative; display:grid; justify-items:start; gap:6px; width:100%; min-height:84px; padding:14px 40px 14px 14px; border:1px solid var(--card-border); border-radius:16px; background:var(--card-bg); color:var(--text); text-align:left; }
+.agenda-item { position:relative; display:grid; justify-items:start; gap:6px; width:100%; min-height:84px; padding:14px 40px 14px 14px; overflow:hidden; border:1px solid var(--card-border); border-radius:16px; background:var(--card-bg); color:var(--text); text-align:left; }
 .agenda-artwork { width:100%; height:100%; border-radius:inherit; position:absolute; inset:0; object-position:center 35%; }
-.agenda-item { min-height:126px; overflow:hidden; color:#fff; background:color-mix(in srgb,var(--game-accent) 28%,#18212b); }
-.agenda-item::before { content:''; position:absolute; inset:0; background:linear-gradient(90deg,rgba(7,13,22,.94),rgba(7,13,22,.8) 48%,rgba(7,13,22,.16)); z-index:1; }
+.agenda-item:has(.agenda-artwork) { min-height:126px; color:#fff; background:color-mix(in srgb,var(--game-accent) 28%,#18212b); }
+.agenda-item:has(.agenda-artwork)::before { content:''; position:absolute; inset:0; background:linear-gradient(90deg,rgba(7,13,22,.94),rgba(7,13,22,.8) 48%,rgba(7,13,22,.16)); z-index:1; }
 .agenda-item > :not(.agenda-artwork):not(svg) { position:relative; z-index:2; }
-.agenda-item strong { max-width:88%; text-shadow:0 1px 3px #000; }
-.agenda-item small { color:rgba(255,255,255,.92); text-shadow:0 1px 3px #000; }
-.agenda-item .agenda-pill { color:#fff; border:1px solid rgba(255,255,255,.3); background:rgba(7,13,22,.78); }
-.agenda-item > svg { position:absolute; color:#fff; z-index:2; }
-.agenda-item > svg { position:absolute; right:14px; top:16px; color:var(--text-muted); transition:transform var(--duration-fast) var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out); }
-@media (hover: hover) and (pointer: fine) { .agenda-item:hover { border-color:var(--border-strong); } .agenda-item:hover > svg { color:var(--accent); transform:translateX(2px); } }
-.agenda-item:active { transform:translateY(1px); }
 .agenda-pill { max-width:100%; overflow:hidden; padding:2px 7px; border-radius:var(--radius-chip); background:var(--game-tone); color:var(--game-accent); font-size:12px; white-space:nowrap; text-overflow:ellipsis; }
-.agenda-item strong { font-size:14px; font-weight:600; line-height:1.4; }
+.agenda-item strong { max-width:88%; font-size:14px; font-weight:600; line-height:1.4; }
 .agenda-item small { color:var(--text-muted); font-size:12px; font-variant-numeric:tabular-nums; }
+.agenda-item > svg { position:absolute; right:14px; top:16px; z-index:2; color:var(--text-muted); transition:transform var(--duration-fast) var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out); }
+.agenda-item:has(.agenda-artwork) strong { text-shadow:0 1px 3px #000; }
+.agenda-item:has(.agenda-artwork) small { color:rgba(255,255,255,.92); text-shadow:0 1px 3px #000; }
+.agenda-item:has(.agenda-artwork) .agenda-pill { color:#fff; border:1px solid rgba(255,255,255,.3); background:rgba(7,13,22,.78); }
+.agenda-item:has(.agenda-artwork) > svg { color:rgba(255,255,255,.88); }
+@media (hover: hover) and (pointer: fine) { .agenda-item:hover { border-color:var(--border-strong); } .agenda-item:hover > svg { color:var(--accent); transform:translateX(2px); } .agenda-item:has(.agenda-artwork):hover > svg { color:#fff; } }
+.agenda-item:active { transform:translateY(1px); }
 .agenda-empty { margin-top:16px; color:var(--text-muted); font-size:13px; line-height:1.8; }
 @media (max-width: 1250px) { .calendar-layout { grid-template-columns:minmax(0, 1fr); } .calendar-aside { position:static; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); align-items:start; } .calendar-aside > .calendar-detail { grid-column:1 / -1; } }
 @media (max-width: 760px) {

@@ -14,10 +14,9 @@ import { levelBands } from '../wuwa-charts.js'
 import BarChart from './BarChart.vue'
 import DonutChart from './DonutChart.vue'
 
-import { nteRoleIcon, nteNamedIcon, nteSkillIcon } from '../nte-icons.js'
+import { nteRoleIcon } from '../nte-icons.js'
 
 const props = defineProps({ snap: { type: Object, default: null }, accountId: { type: [String,Object], default: '' }, focusCharacterId:{type:String,default:''}, imageMode:{type:Boolean,default:false}, detailMode:{type:Boolean,default:false}, guideCharacterId:{type:String,default:''}, initialGuideBrowser:Boolean, canMaintain:{type:Boolean,default:true} })
-const emit=defineEmits(['guide'])
 const openedKey=ref(null),detailTab=ref('panel'),browseGuides=ref(props.initialGuideBrowser)
 function openRole(role,tab='panel'){openedKey.value=keyOf(role);detailTab.value=tab;browseGuides.value=false}
 function openOwned(id){const role=roles.value.find(row=>roleId(row)===String(id));if(role)openRole(role)}
@@ -161,13 +160,10 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
 </template>
 
 <style scoped>
-.roster-charts{display:grid;grid-template-columns:180px minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center;margin:12px 0 24px}.role-open{padding:0;border:0;background:none;text-align:left;color:var(--text);font:inherit;font-weight:600;cursor:pointer}.role-open:hover{color:var(--accent)}.role-open:focus-visible{outline:2px solid var(--accent)}@media(max-width:560px){.roster-charts{grid-template-columns:1fr}}
-.skill-name { display:flex;align-items:center;gap:6px;min-width:0; }
-.skill-name > span:last-child { overflow:hidden;text-overflow:ellipsis; }
+.roster-charts{display:grid;grid-template-columns:minmax(180px,auto) minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center;margin:12px 0 24px}.role-open{padding:0;border:0;background:none;text-align:left;color:var(--text);font:inherit;font-weight:600;cursor:pointer}.role-open:hover{color:var(--accent)}.role-open:focus-visible{outline:2px solid var(--accent)}@media(max-width:720px){.roster-charts{grid-template-columns:1fr}}
 .nte-roles-panel { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; }
 .cap-title { position: relative; font-size: 16px; line-height: 24px; }
 .summary { gap: 4px; }
-.muted { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
 input[type=checkbox] { margin: 0; accent-color: var(--accent); }
 .toolbar input[type=search] { min-width: 150px; }
 .favorite-filter { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 13px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--card-bg); color: var(--text-body); font-size: 13px; cursor: pointer; }
@@ -233,16 +229,6 @@ input[type=checkbox] { margin: 0; accent-color: var(--accent); }
 .role-more > summary > svg { margin-left: auto; color: var(--text-faint); }
 .role-more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: var(--radius-control); }
 @media (hover: hover) and (pointer: fine) { .role-more > summary:hover { background: var(--hover-bg); } .role-more > summary:hover > svg { color: var(--text-body); } }
-.detail-body { display: grid; gap: 10px; margin-top: 4px; padding-bottom: 6px; }
-.detail-group { padding: 12px 14px; border-radius: var(--radius-well); background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--overlay-2); }
-.detail-group h4 { margin: 0 0 4px; color: var(--text-muted); font-size: 12px; font-weight: 500; }
-.weapon { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 13px; }
-.weapon > strong { margin-right: 2px; color: var(--text); font-weight: 500; }
-.detail-rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 12px; margin: 0; }
-.role-detail-view .detail-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.detail-rows > div { display: flex; justify-content: space-between; gap: 6px; min-width: 0; padding: 2px 0; font-size: 13px; line-height: 20px; }
-.detail-rows dt { overflow: hidden; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; }
-.detail-rows dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* One role on its own (the guide's 查看本人面板) lies sideways: the panel on the left, the name beside it. */
 .role-detail-view .role-top { grid-template-columns: 200px minmax(0, 1fr) auto; grid-template-areas: "art heading action"; column-gap: 16px; }
@@ -265,7 +251,8 @@ input[type=checkbox] { margin: 0; accent-color: var(--accent); }
 .is-image.role-detail-view .role-top { grid-template-columns: 92px minmax(0, 1fr); grid-template-areas: "art heading"; }
 .is-image.role-detail-view .role-art { height: 92px; }
 @media (max-width: 560px) {
-  .toolbar .menu-select { flex: 1 1 calc(25% - 8px); min-width: 0; }
+  .toolbar input[type=search] { flex-basis: 100%; }
+  .toolbar .menu-select { flex: 1 1 calc(50% - 8px); min-width: 0; }
   .toolbar .count { margin-left: auto; }
   .role-detail-view .role-top { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "art art" "heading action"; column-gap: 0; }
   .role-detail-view .role-art { height: 176px; }

@@ -1,5 +1,26 @@
 /* A compact floating menu on desktop; the very same surface grows out of the
    phone tab bar. The gesture controller supplies position/progress per frame. */
+@property --drawer-progress {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+@property --drawer-stretch {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --drawer-shift {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --nav-open-height {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 560px;
+}
+
 .floating-navigation {
   --drawer-progress: 0;
   position: fixed;
@@ -75,11 +96,13 @@
     will-change: height, transform;
   }
   .floating-navigation::before {
+    --drawer-progress: inherit;
     inset: auto 0 0;
     height: 220px;
     opacity: calc(.3 + .7 * var(--drawer-progress));
   }
   .floating-navigation > .workspace-sidebar {
+    --drawer-progress: inherit;
     position: absolute;
     inset: auto 0 84px;
     width: 100%;
@@ -97,8 +120,12 @@
   .floating-navigation .primary-nav { margin-top: 22px; }
   .floating-navigation .sidebar-label { margin-top: 20px; }
   .floating-navigation .primary-nav :is(a,button), .floating-navigation .game-nav :is(a,button) { min-height: 44px; }
-  .floating-navigation .mobile-tabbar { background: var(--glass-strong); }
+  .floating-navigation .mobile-tabbar {
+    --drawer-progress: inherit;
+    background: var(--glass-strong);
+  }
   .floating-navigation .mobile-tabbar::before {
+    --drawer-progress: inherit;
     content: '';
     position: absolute;
     inset: -1px 18px auto;

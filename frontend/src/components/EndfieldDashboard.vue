@@ -527,6 +527,7 @@ p.empty.cap-card { padding:24px; }
 .ef-connection .role-bar label { display:flex; gap:8px; align-items:center; min-width:180px; max-width:380px; }
 .ef-role-label { font-size:12px; white-space:nowrap; }
 .ef-connection .role-bar :deep(.menu-select) { min-width:0; width:100%; }
+.ef-connection:has(.ef-connection-settings[open]) { position:relative; z-index:20; }
 .ef-connection-settings { position:relative; font-size:12px; color:var(--text-muted); }
 .ef-connection-settings > summary { cursor:pointer; padding:10px 0; white-space:nowrap; }
 .ef-connection-settings .ui-button { position:absolute; z-index:5; right:0; top:100%; min-width:120px; background:var(--card-bg); box-shadow:var(--popover-shadow); }

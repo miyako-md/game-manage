@@ -8,7 +8,6 @@ import { eventArtwork } from '../event-artwork.js'
 const props = defineProps({
   calendars: { type: Array, default: () => [] },
   events: { type: Array, default: () => [] },
-  range: { type: Object, default: null },
   asOf: { type: Number, required: true },
 })
 const groups = computed(() => {

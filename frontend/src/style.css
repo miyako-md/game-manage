@@ -5,10 +5,8 @@
    --game-*-2 the validated slot it takes when several games share one chart.
    Dark is its own tuned set from the same tones, not a flip. */
 :root {
-  /* Compatibility aliases used by the guide and archive modules. */
-  --bg-deep: var(--panel-bg); --border-soft: var(--border);
-  --accent-dim: var(--accent-soft); --mono: var(--font-mono);
-  --mint: var(--chart-3); --coral: var(--chart-2);
+  /* Compatibility alias used by the guide and archive modules. */
+  --accent-dim: var(--accent-soft);
   /* Shape: the shell and big cards are the roundest; inner pieces step down. */
   --radius-shell: 30px; --radius-card: 26px; --radius-tile: 18px; --radius-well: 14px; --radius-control: 14px; --radius-chip: 7px;
   /* Only the floating sidebar and the phone tab bar frost what scrolls beneath them. */
@@ -18,11 +16,11 @@
   font-family: var(--font-sans); font-synthesis: none; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
   color-scheme: dark;
   --bg: #16171a; --panel-bg: #1b1c1f; --card-bg: #1e1f23; --surface-soft: #25262b; --control-track: #26272c;
-  --sidebar-bg: rgba(30, 31, 35, .85); --topbar-bg: transparent; --hover-bg: rgba(255, 255, 255, .05); --button-hover-bg: #26272b;
+  --topbar-bg: transparent; --hover-bg: rgba(255, 255, 255, .05); --button-hover-bg: #26272b;
   --text: #f1f0ed; --text-body: #d4d2cd; --text-muted: #a3a5ab; --text-faint: #9a9da3;
   --border: #2c2d32; --border-strong: #3a3b41; --card-border: rgba(255, 255, 255, .06); --track: #2c2d33; --scrollbar: #4a4c52;
   --accent: #93a9e6; --accent-fill: #4f6fc4; --accent-hover: #5f7fd2; --accent-ink: #ffffff; --accent-strong: #a9bbee; --accent-soft: #242b3d;
-  --nav-active-bg: #242b3d; --nav-game-active-bg: #242b3d; --segment-active-bg: #33343a;
+  --nav-active-bg: #242b3d; --segment-active-bg: #33343a;
   --danger: #f0a39c; --danger-bg: #3a1d1c; --danger-border: #5a2e2c; --success: #8fc9a4; --success-bg: #1d2b22;
   --stale-text: #e2c391; --stale-bg: #3a2f1c; --warning-text: #e2c391;
   --attention-bg: #3a2f1c; --attention-border: #57462a; --attention-text: #ecd2a6;
@@ -36,8 +34,8 @@
   --game-endfield: #a8c1e0; --game-endfield-vivid: #6f95c9; --game-endfield-2: #3987e5; --game-endfield-tone: #1d2836;
   /* Series colours (dataviz reference order, validated on these card surfaces):
      a chart takes them in this order and never cycles past eight. */
-  --chart-1: #3987e5; --chart-2: #d95926; --chart-3: #199e70; --chart-4: #c98500; --chart-5: #d55181; --chart-6: #008300; --chart-7: #9085e9; --chart-8: #e66767;
-  --glass-bg: rgba(30, 31, 35, .85); --glass-strong: rgba(30, 31, 35, .96); --glass-border: rgba(255, 255, 255, .06); --glass-edge: none;
+  --chart-1: #3987e5; --chart-2: #d95926; --chart-3: #199e70; --chart-4: #c98500; --chart-5: #d55181; --chart-7: #9085e9; --chart-8: #e66767;
+  --glass-bg: rgba(30, 31, 35, .85); --glass-strong: rgba(30, 31, 35, .96); --glass-border: rgba(255, 255, 255, .06);
   /* Depth stays faint: cards sit on a hairline; only floating layers cast a real shadow. */
   --card-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 1px 2px rgba(0,0,0,.12), 0 8px 24px -16px rgba(0,0,0,.45);
   --card-hover-shadow: 0 6px 20px rgba(0, 0, 0, .3);
@@ -46,8 +44,8 @@
   --control-selected-shadow: 0 1px 2px rgba(0, 0, 0, .3);
   --sidebar-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 2px 6px rgba(0,0,0,.12), 0 16px 42px -14px rgba(0,0,0,.5);
   --nav-active-shadow: none;
-  --btn-shadow: none; --btn-shadow-pressed: none;
-  --btn-primary-shadow: none; --btn-primary-pressed: none;
+  --btn-shadow: none;
+  --btn-primary-shadow: none;
   --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 /* Day: paper #f7f6f3 under white cards, ink #26282e, accent #4263b6. Small
@@ -55,11 +53,11 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --bg: #f7f6f3; --panel-bg: #fbfaf8; --card-bg: #ffffff; --surface-soft: #fbfaf8; --control-track: #f1f0ec;
-  --sidebar-bg: rgba(255, 255, 255, .85); --topbar-bg: transparent; --hover-bg: rgba(38, 40, 46, .05); --button-hover-bg: #fbfaf8;
+  --topbar-bg: transparent; --hover-bg: rgba(38, 40, 46, .05); --button-hover-bg: #fbfaf8;
   --text: #26282e; --text-body: #3b3e45; --text-muted: #62656c; --text-faint: #666970;
   --border: #e7e5e0; --border-strong: #d7d5d0; --card-border: #eceae5; --track: #f1f0ec; --scrollbar: #d4d3cf;
   --accent: #4263b6; --accent-fill: #4263b6; --accent-hover: #344f94; --accent-ink: #ffffff; --accent-strong: #344f94; --accent-soft: #e9edf7;
-  --nav-active-bg: #e9edf7; --nav-game-active-bg: #e9edf7; --segment-active-bg: #ffffff;
+  --nav-active-bg: #e9edf7; --segment-active-bg: #ffffff;
   --danger: #a34a45; --danger-bg: #fbeeed; --danger-border: #f1dedd; --success: #41634b; --success-bg: #eaf1ec;
   --stale-text: #7a5a33; --stale-bg: #f6eddf; --warning-text: #7a5a33;
   --attention-bg: #f6eddf; --attention-border: #ead9bd; --attention-text: #6e5130;
@@ -70,8 +68,8 @@
   --game-nte: #87504a; --game-nte-vivid: #b56d66; --game-nte-2: #cf5f88; --game-nte-tone: #edd7d5;
   --game-lol: #3f6a5c; --game-lol-vivid: #5a8c7b; --game-lol-2: #00704f; --game-lol-tone: #dbe9e4;
   --game-endfield: #3d5d81; --game-endfield-vivid: #5275a5; --game-endfield-2: #3363b8; --game-endfield-tone: #dfe9f4;
-  --chart-1: #2e73c7; --chart-2: #d86538; --chart-3: #21a376; --chart-4: #d9970a; --chart-5: #d5759b; --chart-6: #097d0a; --chart-7: #5f50c7; --chart-8: #d1494a;
-  --glass-bg: rgba(255, 255, 255, .85); --glass-strong: rgba(255, 255, 255, .96); --glass-border: #ffffff; --glass-edge: none;
+  --chart-1: #2e73c7; --chart-2: #d86538; --chart-3: #21a376; --chart-4: #d9970a; --chart-5: #d5759b; --chart-7: #5f50c7; --chart-8: #d1494a;
+  --glass-bg: rgba(255, 255, 255, .85); --glass-strong: rgba(255, 255, 255, .96); --glass-border: #ffffff;
   --card-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 1px 2px rgba(38,40,46,.025), 0 8px 24px -16px rgba(38,40,46,.16);
   --card-hover-shadow: 0 6px 20px rgba(38, 40, 46, .06);
   --popover-shadow: inset 0 1px 0 rgba(255,255,255,.92), 0 3px 8px rgba(38,40,46,.045), 0 24px 64px -14px rgba(38,40,46,.2);
@@ -246,7 +244,7 @@ button,a,input,select,summary { transition: color var(--duration-quick) var(--ea
    moving from the icon onto the text keeps it open (WCAG 1.4.13). Hover comes
    from InfoHint's is-hovered (mouse and pen only), not :hover, which sticks
    after a tap and would pin the tip open. */
-.info-hint-tip { display:none; position:fixed; z-index:70; width:max-content; max-width:min(300px, calc(100% - 24px)); padding:9px 12px; border:1px solid var(--border); border-radius:11px; background:var(--card-bg); box-shadow:var(--popover-shadow); color:var(--text-body); font-size:12px; font-weight:400; line-height:1.6; letter-spacing:0; text-transform:none; white-space:normal; text-align:left; }
+.info-hint-tip { display:none; position:fixed; inset:auto; z-index:70; width:max-content; max-width:min(300px, calc(100% - 24px)); margin:0; padding:9px 12px; border:1px solid var(--border); border-radius:11px; background:var(--card-bg); box-shadow:var(--popover-shadow); color:var(--text-body); font-size:12px; font-weight:400; line-height:1.6; letter-spacing:0; text-transform:none; white-space:normal; text-align:left; }
 .info-hint-tip::before { content:''; position:absolute; left:0; right:0; height:6px; }
 @media(max-width:600px) { .info-hint-tip::before { height:8px; } }
 .info-hint-tip[data-side="above"]::before { top:100%; }
@@ -266,7 +264,7 @@ button,a,input,select,summary { transition: color var(--duration-quick) var(--ea
 @media(max-width:600px) { .kv-list.cols-2 { columns:1; } }
 /* One-line bar row: label · meter · value (· note). --series sets the colour. */
 .bar-list { display:grid; gap:2px; margin:0; padding:0; list-style:none; }
-.bar-row { display:grid; grid-template-columns:minmax(72px, var(--bar-label, 32%)) minmax(60px, 1fr) auto; align-items:center; gap:10px; min-height:28px; font-size:13px; }.bar-row.has-note { grid-template-columns:minmax(72px, var(--bar-label, 30%)) minmax(60px, 1fr) auto 70px; }
+.bar-row { display:grid; grid-template-columns:minmax(72px, var(--bar-label, 32%)) minmax(60px, 1fr) auto; align-items:center; gap:10px; min-height:28px; font-size:13px; }
 .bar-row>.k { min-width:0; color:var(--text-body); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.bar-row>.v { color:var(--text); font-size:13px; font-weight:500; white-space:nowrap; text-align:right; }.bar-row>.v small { color:var(--text-muted); font-weight:400; }.bar-row>.note { color:var(--text-faint); font-size:12px; white-space:nowrap; text-align:right; }
 /* Meter: a thin warm track with a solid fill in the series or game line colour. */
 .meter { display:block; height:6px; border-radius:6px; background:var(--track); overflow:hidden; }.meter>i { display:block; height:100%; width:var(--pct, 0%); border-radius:inherit; background:var(--series, var(--game-vivid, var(--accent))); }
@@ -285,7 +283,7 @@ button,a,input,select,summary { transition: color var(--duration-quick) var(--ea
 .stars { display:inline-flex; gap:1px; color:var(--game-color, var(--game-wuwa)); font-size:12px; letter-spacing:-1px; line-height:1; }.stars .off { color:var(--track); }
 @media(max-width:1250px) { .workspace-sidebar { padding-left:12px; padding-right:12px; }.brand { font-size:17px; letter-spacing:1.5px; } }
 @media(max-width:1100px) { .workspace-main .accounts-page .accounts { grid-template-columns:1fr; } }
-@media(max-width:960px) { .workspace-body { --drawer-progress:0; margin-left:0; margin-right:0; padding:0 16px; }.mobile-sidebar-close { display:grid; position:absolute; right:12px; top:22px; }.sidebar-scrim { display:block; position:fixed; inset:0; background:var(--scrim); border:0; z-index:35; opacity:var(--drawer-progress, 0); will-change:opacity; pointer-events:none; touch-action:none; transition:none; }.menu-open .sidebar-scrim { pointer-events:auto; }.workspace-topbar { height:68px; gap:8px; }.search-trigger { flex:1; width:auto; }.search-trigger kbd,.topbar-date { display:none; }.workspace-main { padding:4px 0 104px; }.page-heading { margin-bottom:16px; }.page-heading h1 { font-size:26px; line-height:34px; }.cap-card { padding:18px; border-radius:22px; }.workspace-main .accounts-page .login-panel { padding:16px; }.workspace-main .accounts-page .account-row { padding:16px; }.workspace-main .accounts-page .account-info>strong { font-size:15px; }.service-error { align-items:flex-start; flex-direction:column; } }
+@media(max-width:960px) { .workspace-body { --drawer-progress:0; margin-left:0; margin-right:0; padding:0 16px; }.mobile-sidebar-close { display:grid; position:absolute; right:12px; top:22px; }.sidebar-scrim { --drawer-progress:inherit; display:block; position:fixed; inset:0; background:var(--scrim); border:0; z-index:35; opacity:var(--drawer-progress, 0); will-change:opacity; pointer-events:none; touch-action:none; transition:none; }.menu-open .sidebar-scrim { pointer-events:auto; }.workspace-topbar { height:68px; gap:8px; }.search-trigger { flex:1; width:auto; }.search-trigger kbd,.topbar-date { display:none; }.workspace-main { padding:4px 0 104px; }.page-heading { margin-bottom:16px; }.page-heading h1 { font-size:26px; line-height:34px; }.cap-card { padding:18px; border-radius:22px; }.workspace-main .accounts-page .login-panel { padding:16px; }.workspace-main .accounts-page .account-row { padding:16px; }.workspace-main .accounts-page .account-info>strong { font-size:15px; }.service-error { align-items:flex-start; flex-direction:column; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
 @media(max-width:400px) { .topbar-right { gap:6px; }.workspace-body { padding:0 12px; } }
 @media (prefers-reduced-motion:reduce) {

@@ -39,7 +39,7 @@ export function kdaSplit(kills, deaths, assists) {
   return total > 0 ? { k: kills / total, d: deaths / total, a: assists / total } : null
 }
 
-export const KDA_CAP = 10
+const KDA_CAP = 10
 /** Bar height (percent) for a KDA ratio on a scale that stops at 10; `clipped` marks a bar that hit the stop. */
 export function kdaBar(ratio, cap = KDA_CAP) {
   if (!finite(ratio)) return null

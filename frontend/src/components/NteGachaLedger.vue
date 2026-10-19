@@ -258,7 +258,7 @@ function pityGauge(item) {
 .pool-card-head > button { margin-left:auto; }
 .pity-kv { --kv-min:100px; }
 .pity-kv dd { font-size:20px; line-height:26px; font-weight:550; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
-.pool-card .kv-grid.tiles > div, .pity-kv > div { padding:0; background:none; }
+.pity-kv > div { padding:0; background:none; }
 .sep::before { content:'·'; margin:0 6px; color:var(--text-faint); }
 .requirements { margin:0; padding-left:16px; list-style:disc; color:var(--text-muted); font-size:12px; line-height:1.6; }
 

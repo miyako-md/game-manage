@@ -78,7 +78,7 @@ onBeforeUnmount(() => resizer?.disconnect())
       <template v-if="shown">
         <span v-if="active >= 0" class="trend-cursor" :style="{ left: `${shown.x}px` }" aria-hidden="true"></span>
         <span class="trend-dot" :style="{ left: `${shown.x}px`, top: `${shown.y}px` }" aria-hidden="true"></span>
-        <span class="trend-tip" :class="{ start: shown.x < width * .25, end: shown.x > width * .75, below: shown.y < 44 && height >= 90 }" :style="{ left: `${shown.x}px`, top: `${shown.y}px` }" aria-hidden="true"><b>{{ format(shown.value) }}</b><small>{{ shown.label }}</small></span>
+        <span class="trend-tip" :class="{ start: shown.x < width * .25, end: shown.x > width * .75, below: shown.y < 36 }" :style="{ left: `${shown.x}px`, top: `${shown.y}px` }" aria-hidden="true"><b>{{ format(shown.value) }}</b><small>{{ shown.label }}</small></span>
       </template>
     </div>
     <ol class="sr-only"><li v-for="point in known" :key="point.i">{{ point.label }}：{{ format(point.value) }}</li></ol>
@@ -95,11 +95,10 @@ onBeforeUnmount(() => resizer?.disconnect())
 .trend-cursor { position:absolute; top:0; bottom:0; width:1px; margin-left:-.5px; background:var(--border-strong); pointer-events:none; }
 /* End dot: 8px in the series colour with a 2px ring in the card colour. */
 .trend-dot { position:absolute; width:12px; height:12px; margin:-6px 0 0 -6px; border:2px solid var(--card-bg); border-radius:50%; background:var(--series); pointer-events:none; transition:left var(--duration-quick) var(--ease-smooth-out), top var(--duration-quick) var(--ease-smooth-out); }
-.trend-tip { position:absolute; display:grid; justify-items:center; gap:1px; transform:translate(-50%, calc(-100% - 12px)); padding:4px 8px; border-radius:var(--radius-control); background:var(--text); color:var(--bg); white-space:nowrap; pointer-events:none; line-height:1.25; transition:left var(--duration-quick) var(--ease-smooth-out), top var(--duration-quick) var(--ease-smooth-out); }
+.trend-tip { position:absolute; z-index:3; display:grid; justify-items:center; gap:1px; transform:translate(-50%, calc(-100% - 12px)); padding:4px 8px; border-radius:var(--radius-control); background:var(--text); color:var(--bg); white-space:nowrap; pointer-events:none; line-height:1.25; transition:left var(--duration-quick) var(--ease-smooth-out), top var(--duration-quick) var(--ease-smooth-out); }
 .trend-tip.start { transform:translate(-12px, calc(-100% - 12px)); justify-items:start; }
 .trend-tip.end { transform:translate(calc(-100% + 12px), calc(-100% - 12px)); justify-items:end; }
-/* In a tall plot a point near the top takes its label below, so it never covers what sits above the chart.
-   A short sparkline has no room below: its host leaves room above instead. */
+/* A point near the top takes its label below, so it never covers what sits above the chart. */
 .trend-tip.below { transform:translate(-50%, 12px); }
 .trend-tip.below.start { transform:translate(-12px, 12px); }
 .trend-tip.below.end { transform:translate(calc(-100% + 12px), 12px); }

@@ -1,6 +1,5 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { nextTick } from 'vue'
 import { loadVue, mount, nodes, content, flushAsyncComponents } from '../test-utils/vue.js'
 import { configureHttpClient } from '../http-client.js'
 import { createCloudDashboard } from '../cloud-dashboard.js'

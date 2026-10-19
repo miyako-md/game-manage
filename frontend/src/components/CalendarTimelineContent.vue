@@ -7,7 +7,7 @@ import { beijingDayStart, eventGeometry, eventStatus, browserDayStart, browserEv
 import { presentationGroups, activityBoundaryDays } from '../calendar-presentation.js'
 import { useCalendarPan } from '../calendar-pan.js'
 import { createCalendarDefaultPosition } from '../calendar-position.js'
-import { gameStyle, gameVars } from '../dashboard.js'
+import { gameVars } from '../dashboard.js'
 const props = defineProps({ events:{type:Array,default:()=>[]}, snapshots:{type:Object,default:()=>({})}, range:{type:Object,default:null}, asOf:{type:Number,required:true}, rangeMode:{type:String,default:'rolling'}, mode:{type:String,default:'screen'}, selectedId:{type:String,default:null}, emptyTitle:{type:String,default:'暂无活动数据'}, showUnplaced:{type:Boolean,default:true} })
 const emit = defineEmits(['select'])
 const viewport = ref(null)
@@ -44,7 +44,6 @@ const groups = computed(() => presentationGroups(events.value.filter(event => ev
 const boundaryDays = computed(() => props.mode === 'image' ? new Set() : activityBoundaryDays(events.value,dayStart))
 const undated = computed(() => props.showUnplaced ? events.value.filter(event => event.geometry.kind==='undated') : [])
 const invalid = computed(() => props.showUnplaced ? events.value.filter(event => event.geometry.kind==='invalid') : [])
-const gameAccent = id => gameStyle(id==='lol' ? 'league_of_legends' : id).color
 const groupVars = id => gameVars(id==='lol' ? 'league_of_legends' : id)
 const barStyle = event => ({left:event.geometry.left+'%',width:event.geometry.kind==='range' ? event.geometry.width+'%' : undefined})
 function stateLabel(event) {
@@ -220,7 +219,7 @@ function selectEvent(event, interaction) { if (props.mode!=='image') emit('selec
 .calendar-content:not(.image-mode) .timeline-event:not(.is-point) { height:72px; min-height:72px; padding:10px 13px; color:#fff; background:color-mix(in srgb,var(--game-accent) 28%,#18212b); }
 .calendar-content:not(.image-mode) .timeline-event:not(.is-point)::before { inset:0; width:auto; border-radius:inherit; background:linear-gradient(90deg,rgba(7,13,22,.78) 0%,rgba(7,13,22,.58) 28%,rgba(7,13,22,.18) 60%,rgba(7,13,22,.04) 100%); z-index:1; }
 .calendar-content:not(.image-mode) .timeline-event:not(.is-point) .event-artwork { object-position:center 38%; }
-.calendar-content:not(.image-mode) .timeline-event:not(.is-point) .event-summary { width:min(300px,76%); z-index:2; text-shadow:0 1px 3px #000; }
+.calendar-content:not(.image-mode) .timeline-event:not(.is-point) .event-summary { width:max-content; max-width:min(300px,calc(100% - 14px)); z-index:2; text-shadow:0 1px 3px #000; }
 .calendar-content:not(.image-mode) .timeline-event:not(.is-point) .event-heading { gap:5px; }
 .calendar-content:not(.image-mode) .timeline-event:not(.is-point) .event-bar-title { flex-basis:100%; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:1; overflow:hidden; font-size:13px; font-weight:600; line-height:18px; }
 .calendar-content:not(.image-mode) .timeline-event:not(.is-point) .event-category,

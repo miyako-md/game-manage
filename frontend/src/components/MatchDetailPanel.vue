@@ -182,7 +182,7 @@ const compare = computed(() => {
   border-radius: var(--radius-well);
   background: var(--card-bg);
   padding: 10px 12px;
-  min-width: 260px;
+  min-width: 0;
 }
 
 .team-col.team-own {

@@ -35,7 +35,8 @@ function position() {
   if (!box) return
   // Fixed offsets are measured without a classic (Windows) scrollbar, hence clientWidth.
   const width = document.documentElement.clientWidth
-  const below = innerHeight - box.bottom - GAP - EDGE
+  const bottomInset = innerWidth <= 960 && !trigger.value?.closest?.('dialog') ? 84 : EDGE
+  const below = innerHeight - box.bottom - GAP - bottomInset
   const above = box.top - GAP - EDGE
   const wanted = Math.min(288, items.value.length * 34 + 10)
   const up = below < wanted && above > below
@@ -66,7 +67,15 @@ function raise(on) {
   else if (!on && showing) el.hidePopover()
 }
 function scrollActive() {
-  list.value?.querySelector?.('[data-active]')?.scrollIntoView?.({ block: 'nearest' })
+  const el = list.value, item = el?.querySelector?.('[data-active]')
+  if (!item) return
+  if (el.clientHeight > 0 && item.offsetHeight > 0) {
+    const top = item.offsetTop, bottom = top + item.offsetHeight
+    if (top < el.scrollTop) el.scrollTop = top
+    else if (bottom > el.scrollTop + el.clientHeight) el.scrollTop = bottom - el.clientHeight
+  } else {
+    item.scrollIntoView?.({ block: 'nearest' })
+  }
 }
 
 function outside(event) {

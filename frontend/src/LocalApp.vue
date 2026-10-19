@@ -39,12 +39,14 @@ useElasticCards(mainContent, {
   resetOn: () => route.value,
 })
 
+const clockFormatter = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hourCycle: 'h23', hour: '2-digit', minute: '2-digit' })
+const todayFormatter = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'long', day: 'numeric', weekday: 'long' })
 const now = ref(Date.now())
 const clock = ref('')
-function tickClock() { clock.value = new Intl.DateTimeFormat('zh-CN', { timeZone:'Asia/Shanghai', hourCycle:'h23', hour:'2-digit',minute:'2-digit' }).format(Date.now()) }
+function tickClock() { clock.value = clockFormatter.format(Date.now()) }
 const accountRevisions = ref({})
 const selectedGame = computed(() => state.games.find(game => game.game_id === route.value.game))
-const today = computed(() => new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'long', day: 'numeric', weekday: 'long' }).format(now.value))
+const today = computed(() => todayFormatter.format(now.value))
 const refreshing = computed(() => Object.values(state.refreshing).some(Boolean))
 const calendarErrors = computed(() => Object.fromEntries(state.games.map(g => {
   const source = state.collection.find(row => row.game_id === g.game_id && row.capability === 'events' && ['error', 'auth_expired'].includes(row.state))

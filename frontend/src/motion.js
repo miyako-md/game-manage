@@ -9,6 +9,28 @@ function domReady(el) {
 
 const FINE_POINTER = '(hover: hover) and (pointer: fine)'
 
+export const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
+
+const H = 1 / 240
+export function stepSpringRk4(pos, vel, target, k, c, dt, wall = 0) {
+  const steps = Math.max(1, Math.min(24, Math.round(dt / H)))
+  const h = dt / steps
+  let x = pos, v = vel
+  const accel = (px, pv) => {
+    const outside = wall ? px - clamp(px, 0, 1) : 0
+    return (target - px) * k - pv * c - outside * wall
+  }
+  for (let i = 0; i < steps; i++) {
+    const a1 = accel(x, v)
+    const v2 = v + 0.5 * h * a1, a2 = accel(x + 0.5 * h * v, v2)
+    const v3 = v + 0.5 * h * a2, a3 = accel(x + 0.5 * h * v2, v3)
+    const v4 = v + h * a3, a4 = accel(x + h * v3, v4)
+    x += (h / 6) * (v + 2 * v2 + 2 * v3 + v4)
+    v += (h / 6) * (a1 + 2 * a2 + 2 * a3 + a4)
+  }
+  return [x, v]
+}
+
 export function prefersReducedMotion() {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 }
@@ -24,12 +46,19 @@ function revealControl(el, active, smooth) {
 }
 
 function placeSlip(slip, item) {
-  if (!item?.offsetWidth) { slip.style.opacity = '0'; return }
+  if (!item?.offsetWidth) {
+    if (slip.style.opacity !== '0') slip.style.opacity = '0'
+    return
+  }
+  const width = `${item.offsetWidth}px`
+  const height = `${item.offsetHeight}px`
+  const transform = `translate(${item.offsetLeft}px, ${item.offsetTop}px)`
   const first = slip.style.opacity !== '1'
+  if (!first && slip.__w === width && slip.__h === height && slip.__t === transform) return
   if (first) slip.style.transition = 'none'
-  slip.style.width = `${item.offsetWidth}px`
-  slip.style.height = `${item.offsetHeight}px`
-  slip.style.transform = `translate(${item.offsetLeft}px, ${item.offsetTop}px)`
+  if (slip.__w !== width) { slip.style.width = width; slip.__w = width }
+  if (slip.__h !== height) { slip.style.height = height; slip.__h = height }
+  if (slip.__t !== transform) { slip.style.transform = transform; slip.__t = transform }
   slip.style.opacity = '1'
   if (first) { void slip.offsetWidth; slip.style.transition = '' }
 }
@@ -89,7 +118,9 @@ export const vGlide = {
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(() => { frame = 0; measure() })
     }
-    const observer = new MutationObserver(schedule)
+    const observer = new MutationObserver(records => {
+      if (records.some(m => m.type === 'childList' || m.target === el || m.target.parentElement === el)) schedule()
+    })
     observer.observe(el, { attributes: true, subtree: true, childList: true, attributeFilter: ['aria-current', 'aria-pressed', 'aria-selected', 'class'] })
     const resizer = typeof ResizeObserver === 'function' ? new ResizeObserver(schedule) : null
     resizer?.observe(el)
@@ -165,7 +196,11 @@ function moveParallax() {
     const box = el.getBoundingClientRect()
     if (box.bottom < -height || box.top > height * 2) continue
     const offset = (box.top + box.height / 2 - height / 2) / height
-    el.style.setProperty('--plx', Math.max(-1, Math.min(1, offset)).toFixed(4))
+    const next = clamp(offset, -1, 1).toFixed(4)
+    if (el.__plx !== next) {
+      el.__plx = next
+      el.style.setProperty('--plx', next)
+    }
   }
 }
 const scheduleParallax = () => { if (!parallaxFrame) parallaxFrame = requestAnimationFrame(moveParallax) }
@@ -183,6 +218,7 @@ export const vParallax = {
   },
   unmounted(el) {
     if (!parallaxItems.delete(el)) return
+    delete el.__plx
     el.style.removeProperty('--plx')
     if (parallaxItems.size) return
     window.removeEventListener('scroll', scheduleParallax)

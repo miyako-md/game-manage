@@ -1,5 +1,4 @@
 <script setup>
-import {computed} from 'vue'
 import CloudCalendar from './CloudCalendar.vue'
 import NteCommunityGacha from '../components/NteCommunityGacha.vue'
 import EndfieldGachaPanel from '../components/EndfieldGachaPanel.vue'
@@ -9,10 +8,9 @@ import WuwaGuideVisual from '../components/WuwaGuideVisual.vue'
 import NteGuideVisual from '../components/NteGuideVisual.vue'
 import EndfieldArtwork from '../components/EndfieldArtwork.vue'
 import {guideLines} from './guide-presentation.js'
-defineProps({panel:Object,index:Number,scheme:String})
+defineProps({panel:Object})
 const percent=v=>v==null?'—':Math.round(v)+'%'
 const ringStyle=p=>({'--pct':(p??0)+'%'})
-const noMax=m=>m.max===null
 </script>
 <template>
  <section class="block" :class="['kind-'+panel.type,{'long-title':panel.title.length>4}]" :data-kind="panel.type">

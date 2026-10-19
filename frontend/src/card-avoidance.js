@@ -1,7 +1,9 @@
+import { stepSpringRk4 } from './motion.js'
+
 const CARD = [
-  '.workspace-topbar', '.page-heading', '.h-rail-head', '.ov-hero', '.ov-tasks', '.ov-deadlines', '.ov-gacha', '.ov-news', '.ov-game', '.event-card',
+  '.workspace-topbar', '.page-heading', '.h-rail-head', '.ov-section > .section-heading', '.ov-hero', '.ov-tasks', '.ov-deadlines', '.ov-gacha', '.ov-news', '.ov-game', '.event-card',
   '.card-head', '.cap-card', '.wuwa-panel', '.wuwa-board-head', '.wuwa-board > .toolbar', '.wuwa-role', '.calendar-board', '.calendar-agenda', '.calendar-detail', '.account-row',
-  '.calendar-stat', '.calendar-split', '.ef-card', '.ef-count', '.eg-card', '.endfield-gacha > .eg-pools', '.endfield-gacha > .record-list', '.pool-card', '.hl-card', '.challenge-report',
+  '.calendar-stat', '.calendar-split', '.ef-card', '.ef-count', '.ef-locked', '.ef-detail > .ef-detail-toolbar', '.ef-detail > header', '.ef-detail > .ef-detail-time', '.eg-card', '.endfield-gacha > .eg-pools', '.endfield-gacha > .record-list', '.pool-card', '.hl-card', '.challenge-report',
   '.ef-news-summary', '.ef-attendance', '.ef-source', '.loadout-hero', '.loadout-module', '.ef-gacha-summary', '.ef-tactical', '.match-item', '.match-detail', '.role-card',
   '.game-card > .error-bar', '.game-card > .detail-navigation', '.wuwa-nav', '.endfield-nav', '.endfield-stack > p',
   '.lol-header', '.lol-toolbar', '.coverage-line', '.lol-dashboard > .lol-notice', '.lol-dashboard > .lol-error', '.lol-view > .legacy-note',
@@ -65,7 +67,7 @@ export function createCardAvoidance(root) {
     // invalidate the original horizontal slots or restart their measurement.
     if (changed) schedule()
   }) : null
-  let records = [], menu = null, enabled = false, dirty = true, frame = 0, time = 0, disposed = false
+  let records = [], menu = null, enabled = false, listening = false, dirty = true, frame = 0, time = 0, disposed = false
   function restoreRail(rail, saved) {
     for (const [name, value, priority] of saved) {
       if (value) rail.style.setProperty(name, value, priority)
@@ -148,19 +150,7 @@ export function createCardAvoidance(root) {
         const target = record.target[key]
         if (record.fresh || media.matches) { record[key] = target; record[velocity] = 0 }
         else {
-          const steps = Math.max(1, Math.min(24, Math.round(dt * 240)))
-          const h = dt / steps
-          let x = record[key], v = record[velocity]
-          const accel = (px, pv) => (target - px) * 260 - pv * 28
-          for (let i = 0; i < steps; i++) {
-            const a1 = accel(x, v)
-            const v2 = v + 0.5 * h * a1, a2 = accel(x + 0.5 * h * v, v2)
-            const v3 = v + 0.5 * h * a2, a3 = accel(x + 0.5 * h * v2, v3)
-            const v4 = v + h * a3, a4 = accel(x + h * v3, v4)
-            x += (h / 6) * (v + 2 * v2 + 2 * v3 + v4)
-            v += (h / 6) * (a1 + 2 * a2 + 2 * a3 + a4)
-          }
-          record[key] = x; record[velocity] = v
+          ;[record[key], record[velocity]] = stepSpringRk4(record[key], record[velocity], target, 260, 28, dt)
           if (Math.abs(target - record[key]) < .05 && Math.abs(record[velocity]) < .1) { record[key] = target; record[velocity] = 0 }
           else moving = true
         }
@@ -182,38 +172,48 @@ export function createCardAvoidance(root) {
   const observer = new view.MutationObserver(changes => {
     if (changes.some(change => [...change.addedNodes, ...change.removedNodes].some(node => node.nodeType === 1))) refresh()
   })
-  observer.observe(root, { childList: true, subtree: true })
-  // Scroll is not cancelled. Re-measure horizontal rails against their own slots.
-  doc.addEventListener('scroll', scrolled, { capture: true, passive: true })
-  view.addEventListener('resize', refresh)
-  media.addEventListener?.('change', schedule)
+  function connect() {
+    if (listening || disposed) return
+    listening = true
+    observer.observe(root, { childList: true, subtree: true })
+    // Scroll is not cancelled. Re-measure horizontal rails against their own slots.
+    doc.addEventListener('scroll', scrolled, { capture: true, passive: true })
+    view.addEventListener('resize', refresh)
+    media.addEventListener?.('change', schedule)
+  }
+  function disconnect() {
+    if (!listening) return
+    listening = false
+    observer.disconnect()
+    sizes?.disconnect()
+    doc.removeEventListener('scroll', scrolled, true)
+    view.removeEventListener('resize', refresh)
+    media.removeEventListener?.('change', schedule)
+  }
   return {
     update(rect, active) {
       menu = rect
       if (!active) {
         if (!enabled && !records.length && !rails.size) return
         enabled = false
+        disconnect()
         if (frame) view.cancelAnimationFrame(frame)
         frame = 0; time = 0; dirty = true
         records.forEach(restore); records = []
-        sizes?.disconnect()
         for (const [rail, saved] of rails) restoreRail(rail, saved)
         return
       }
       enabled = true
+      connect()
       schedule()
     },
     refresh,
     destroy() {
       disposed = true
+      disconnect()
       if (frame) view.cancelAnimationFrame(frame)
       records.forEach(restore); records = []
       for (const [rail, saved] of rails) restoreRail(rail, saved)
-      observer.disconnect()
-      sizes?.disconnect()
-      doc.removeEventListener('scroll', scrolled, true)
-      view.removeEventListener('resize', refresh)
-      media.removeEventListener?.('change', schedule)
     },
   }
 }

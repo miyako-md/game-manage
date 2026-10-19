@@ -33,3 +33,31 @@ test('Escape closes a showing tip without also closing the surrounding dialog', 
   assert.ok(root.querySelector('.info-hint').classList.contains('is-dismissed'))
   assert.equal(escape(), false, 'with the tip gone, Escape is left to the dialog')
 })
+
+test('promotes tooltip to popover top layer and clamps horizontal and mobile bottom tabbar bounds', async t => {
+  const root = document.createElement('div')
+  document.body.append(root)
+  const app = createApp({ render: () => h(InfoHint, { text: '说明文字', align: 'start' }) })
+  app.mount(root)
+  t.after(() => { app.unmount(); root.remove() })
+  const hint = root.querySelector('.info-hint')
+  const tip = root.querySelector('.info-hint-tip')
+  const trigger = root.querySelector('.info-hint-trigger')
+  assert.equal(tip.getAttribute('popover'), 'manual')
+  let shown = 0, hidden = 0
+  tip.showPopover = () => { shown++ }
+  tip.hidePopover = () => { hidden++ }
+  globalThis.innerWidth = 760
+  globalThis.innerHeight = 640
+  Object.defineProperty(document.documentElement, 'clientWidth', { value: 760, configurable: true })
+  hint.getBoundingClientRect = () => ({ left: 720, right: 744, top: 100, bottom: 520 })
+  trigger.click()
+  await nextTick()
+  assert.equal(shown, 1)
+  assert.equal(tip.dataset.side, 'above', 'flips above when near mobile/tablet bottom tabbar')
+  assert.equal(tip.style.left, '448px', 'clamps left so a 300px tooltip stays within 12px of the right edge')
+  trigger.click()
+  await nextTick()
+  assert.equal(hidden, 1)
+})
+

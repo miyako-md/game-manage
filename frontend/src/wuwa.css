@@ -18,7 +18,6 @@
   --wuwa-gold: var(--wuwa-ink);
   --wuwa-tone: var(--game-tone, var(--game-wuwa-tone));
   --wuwa-vivid: var(--game-vivid, var(--game-wuwa-vivid));
-  --wuwa-vivid-2: var(--game-vivid-2, var(--game-wuwa-2));
 }
 .wuwa-dashboard {
   --game-color: var(--game-wuwa);
@@ -1395,9 +1394,6 @@ button.wuwa-role:not(:disabled):active {
 .tower-areas .bar-row > .v small,
 .tower-summary .ring-cap {
   color: var(--wuwa-ink);
-}
-.combat-tower .meter {
-  background: var(--card-bg);
 }
 .combat-tower .wuwa-meta .chip {
   margin-left: 8px;

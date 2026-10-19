@@ -1,4 +1,5 @@
 import { DAY_MS, parseBeijingTime } from './calendar.js'
+import { ENDFIELD_SPECIAL_POOL } from './dashboard.js'
 import { gachaPools, gachaView as endfieldGachaView, kindSummary, poolTotal, recentSixStars, sixPullsText } from './endfield-gacha-summary.js'
 
 // Data for the overview's cards, read from snapshots the page already has. Nothing here fetches.
@@ -88,7 +89,7 @@ function endfieldDigest(game, snaps, account) {
   const operators = kindSummary(pools, 'character'), weapons = kindSummary(pools, 'weapon')
   const total = weapons ? operators?.total : count(report?.total) ?? poolTotal(pools, 'total')
   if (total == null) return null
-  const special = pools.find(pool => pool.key === 'E_CharacterGachaPoolType_Special')?.since_last_six
+  const special = pools.find(pool => pool.key === ENDFIELD_SPECIAL_POOL)?.since_last_six
   const average = operators ? operators.pace.average : count(report?.known_exact_intervals) ? count(report.average_exact_pulls) : null
   const latest = recentSixStars(pools.filter(pool => pool.kind !== 'weapon'), 1)[0]
   return {

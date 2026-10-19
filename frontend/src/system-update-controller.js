@@ -2,7 +2,7 @@ import { reactive } from 'vue'
 import { subscribeSessionInvalidation } from './http-client.js'
 import { getSystemUpdate, checkSystemUpdate, applySystemUpdate } from './system-update-api.js'
 
-export const UPDATE_PHASES = {
+const UPDATE_PHASES = {
   queued: '更新已排队', preparing: '正在准备更新', stopping: '正在停止服务', backing_up: '正在备份当前版本',
   activating: '正在切换到新版本', restarting: '正在启动服务', verifying: '正在核对新版本',
   completed: '更新完成', failed: '更新失败', rolled_back: '更新未完成，已恢复原版本', recovery_required: '更新需要人工处理',

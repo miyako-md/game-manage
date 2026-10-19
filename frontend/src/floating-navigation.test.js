@@ -290,3 +290,26 @@ test('in-flight mobile drawer frames update surface and scrim without mutating r
   assert.equal($('#root').style.getPropertyValue('--drawer-progress'), '1')
   assert.equal(scrim.style.getPropertyValue('--drawer-progress'), '1')
 })
+
+test('window gesture listeners attach only during an active gesture and detach on release', t => {
+  const { win, $, pointer, flush } = setup(t, true)
+  const active = new Set()
+  const origAdd = win.addEventListener.bind(win)
+  const origRemove = win.removeEventListener.bind(win)
+  t.mock.method(win, 'addEventListener', (type, fn, opts) => {
+    if (type.startsWith('pointer')) active.add(type)
+    return origAdd(type, fn, opts)
+  })
+  t.mock.method(win, 'removeEventListener', (type, fn, opts) => {
+    if (type.startsWith('pointer')) active.delete(type)
+    return origRemove(type, fn, opts)
+  })
+  assert.equal(active.size, 0, 'no window pointer listeners while idle')
+  pointer('pointerdown', 100, 750, $('#toggle'))
+  assert.equal(active.has('pointermove'), true)
+  assert.equal(active.has('pointerup'), true)
+  pointer('pointerup', 100, 500, $('#toggle'))
+  assert.equal(active.size, 0, 'window pointer listeners detach immediately on release')
+  flush()
+})
+

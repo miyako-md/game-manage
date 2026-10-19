@@ -470,4 +470,7 @@ button.ef-count:active { transform:translateY(1px); }
   .ef-medal { gap:12px; padding:14px; border-radius:22px; }
   .ef-medal > .endfield-artwork { width:60px; height:70px; }
 }
+@media (max-width:420px) {
+  .ef-filters, .ef-medal-filters { grid-template-columns:1fr; }
+}
 </style>

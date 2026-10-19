@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { nextTick, reactive } from 'vue'
 import { loadVue, mount, nodes, content } from '../test-utils/vue.js'
-import { browserCalendarRange as calendarRange, calendarDaysRange, browserCalendarDaysRange, collectVersionCalendars } from '../calendar.js'
+import { browserCalendarRange as calendarRange, browserCalendarDaysRange, collectVersionCalendars } from '../calendar.js'
 
 const Page = await loadVue(new URL('./CalendarPage.vue', import.meta.url))
 const Version = await loadVue(new URL('./VersionCalendarContent.vue', import.meta.url))

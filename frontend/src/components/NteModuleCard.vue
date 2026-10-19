@@ -422,8 +422,6 @@ const pulls=computed(()=>gacha.value.recent.map(item=>({...item,
 .guide-points span{color:var(--text-muted);font-size:12px;line-height:18px}
 .guide-points strong{font-size:18px;line-height:26px;font-weight:600;letter-spacing:-.02em}
 .guide-kinds{padding-block:12px !important}
-.guide-role{display:grid;justify-items:center;gap:10px;width:clamp(120px,calc((100% - 48px) / 5),190px);margin:0;padding:18px 8px 14px;border-radius:var(--radius-tile);background:var(--surface-soft);box-shadow:inset 0 0 0 1px var(--overlay-2)}
-.guide-role figcaption{color:var(--text);font-size:13px;line-height:18px;font-weight:500}
 
 @media(max-width:1240px){.gacha-hero{grid-column:span 5}.gacha-pools{grid-column:span 7}.gacha-luck{grid-column:1/-1}}
 @media(max-width:1000px){.roles-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.sum-levels{grid-column:1/-1}.own-rings{grid-template-columns:repeat(2,minmax(0,1fr))}}

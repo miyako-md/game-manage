@@ -35,7 +35,8 @@ const allNews = computed(() => recentNews(props.games, props.snapshots))
 const news = computed(() => allNews.value.filter(item => (!newsFilter.value || item.gameId === newsFilter.value) && (!sourceFilter.value || item.source === sourceFilter.value)).slice(0, 6))
 const anyRefreshing = computed(() => Object.values(props.refreshing).some(Boolean))
 const notices = computed(() => cards.value.filter(g => props.readErrors[g.game_id] || props.refreshErrors[g.game_id]))
-const dateLabel = computed(() => new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'long', day: 'numeric', weekday: 'long' }).format(props.now))
+const dateFormatter = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'long', day: 'numeric', weekday: 'long' })
+const dateLabel = computed(() => dateFormatter.format(props.now))
 
 function status(card) {
   if (props.readErrors[card.game_id]) return '读取异常'
@@ -291,7 +292,7 @@ function quickLinks(card) {
 /* The art steps down as the hero narrows, so it never runs into the text. `scale` composes with the parallax transform. */
 @container (max-width:760px) { .hero-art { scale:.82; } }
 @container (max-width:600px) { .hero-art { scale:.7; right:2%; } .hero-copy { max-width:62%; } }
-@container (max-width:480px) { .hero-art { scale:.6; right:-10px; bottom:38px; } .hero-copy { max-width:66%; } }
+@container (max-width:480px) { .hero-art { scale:.6; right:-10px; bottom:38px; } .hero-copy { max-width:66%; } .hero-eyebrow { flex-wrap:wrap; white-space:normal; } .hero-title b { white-space:normal; } }
 .hero-face { position:absolute; object-fit:cover; background:var(--card-bg); border:5px solid var(--card-bg); box-shadow:0 18px 40px -22px rgba(38, 40, 46, .45); }
 .face-0 { right:24px; bottom:0; z-index:3; width:172px; height:172px; border-radius:40px; transform:rotate(5deg); }
 .face-1 { right:170px; bottom:22px; z-index:2; width:96px; height:96px; border-radius:26px; transform:rotate(-9deg); }
@@ -300,8 +301,9 @@ function quickLinks(card) {
 .hero-big-mark { width:150px; height:150px; border-radius:38px; background:var(--card-bg); box-shadow:0 18px 40px -22px rgba(38, 40, 46, .45); transform:rotate(-9deg); color:var(--game-accent); font-size:64px; font-weight:600; }
 .hero-en { writing-mode:vertical-rl; transform:rotate(180deg); max-height:200px; overflow:hidden; color:var(--game-accent); font-size:20px; font-weight:600; letter-spacing:2px; opacity:.38; white-space:nowrap; }
 /* Game switcher at the foot of the hero: plain names, a white slip under the shown one. */
-.hero-index { position:absolute; left:22px; bottom:8px; z-index:4; display:flex; gap:2px; }
-.hero-index button { position:relative; z-index:1; min-width:58px; min-height:44px; padding:8px 12px; border:0; border-radius:10px; background:transparent; color:var(--game-accent); font-size:12px; }
+.hero-index { position:absolute; left:22px; bottom:8px; z-index:4; display:flex; gap:2px; max-width:calc(100% - 32px); overflow-x:auto; scrollbar-width:none; }
+.hero-index::-webkit-scrollbar { display:none; }
+.hero-index button { position:relative; z-index:1; flex-shrink:0; min-width:58px; min-height:44px; padding:8px 12px; border:0; border-radius:10px; background:transparent; color:var(--game-accent); font-size:12px; }
 .hero-index button[aria-pressed="true"] { color:var(--text); font-weight:600; }
 .hero-index:not([data-glide]) button[aria-pressed="true"] { background:var(--card-bg); }
 .hero-index > :deep(.t-glide) { background:var(--card-bg); box-shadow:none; border-radius:10px; }
@@ -430,7 +432,6 @@ function quickLinks(card) {
 .event-watermark { position:absolute; right:-22px; top:-18px; z-index:-1; width:120px; height:120px; border-radius:34px; opacity:.16; transform:rotate(-9deg); font-size:52px; font-weight:600; filter:grayscale(.2); }
 @media(hover:hover) and (pointer:fine) { .event-card:hover { box-shadow:var(--card-hover-shadow); } .event-card:hover .event-watermark { transform:rotate(-4deg) scale(1.04); } }
 .event-watermark { transition:transform var(--duration-medium) var(--ease-smooth-out); }
-.event-card:active { transform:translateY(1px); }
 
 .ov-news { margin-top:28px; padding:22px 24px 12px; }
 .ov-news .section-heading { margin-bottom:8px; }
@@ -443,7 +444,7 @@ function quickLinks(card) {
 .news-visual:has(.news-cover) .news-mark { display:none; }
 .news-summary:has(.news-cover) .news-source { flex-wrap:wrap; gap:2px 6px; }
 .news-summary:has(.news-cover) .news-source time { margin-left:0; }
-.news-summary:has(.news-cover) .news-copy>a { white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.news-summary:has(.news-cover) .news-copy>:is(a, p) { white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 .news-copy { flex:1; min-width:0; }
 .news-summary a,.news-summary .news-copy>p { display:block; color:var(--text); text-decoration:none; font-size:14px; font-weight:500; line-height:20px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.news-summary a span { color:var(--text-faint); }
 .news-source { display:flex; align-items:center; gap:6px; margin-top:2px; color:var(--text-muted); font-size:12px; line-height:18px; min-width:0; }.news-source>span { color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.news-source time { margin-left:auto; flex-shrink:0; }
@@ -451,8 +452,8 @@ function quickLinks(card) {
 
 @media(max-width:1250px) { .ov-top { grid-template-columns:minmax(0, 1.6fr) minmax(270px, 1fr); gap:16px; } .hero-inner { padding-left:22px; } .hero-index { left:16px; } .ov-analytics { grid-template-columns:minmax(0, 1.5fr) minmax(280px, 1fr); gap:16px; } }
 @media(max-width:1180px) { .ov-top,.ov-analytics { grid-template-columns:minmax(0, 1fr); } .ov-tasks .task-list { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); column-gap:18px; } .task:nth-child(2) { border-top:0; padding-top:0; } }
+@media(max-width:960px) { .ov-today { display:inline-flex !important; color:var(--text-body); } }
 @media(max-width:720px) {
-  .ov-today { display:inline-flex !important; color:var(--text-body); }
   .ov-actions { width:100%; } .ov-actions .ui-button { flex:1; }
   .ov-hero { border-radius:24px; } .hero-inner { padding:22px 20px 62px; border-radius:18px; }
   .hero-title b { font-size:36px; line-height:42px; }
@@ -461,7 +462,13 @@ function quickLinks(card) {
   .ov-deadlines,.ov-gacha { padding:20px 18px 14px; }
   .gacha-number b { font-size:40px; }
 }
-@media(max-width:420px) { .hero-index button { min-width:0; padding:8px 9px; } .ov-news .section-heading { flex-wrap:wrap; gap:8px; } .news-filters { width:100%; margin-left:0; } }
-@media(max-width:600px) { .hero-inner:has(.hero-backdrop)::after { background:linear-gradient(90deg,var(--game-tone),color-mix(in srgb,var(--game-tone) 84%,transparent) 46%,color-mix(in srgb,var(--game-tone) 25%,transparent)),linear-gradient(0deg,var(--game-tone),transparent 24%); }.news-cover { width:86px; height:72px; } }
-@media(prefers-reduced-motion:reduce) { .event-card:active,.ov-next:active,.hero-cta:active { transform:none; } }
+@media(max-width:600px) {
+  .hero-inner:has(.hero-backdrop)::after { background:linear-gradient(90deg,var(--game-tone),color-mix(in srgb,var(--game-tone) 84%,transparent) 46%,color-mix(in srgb,var(--game-tone) 25%,transparent)),linear-gradient(0deg,var(--game-tone),transparent 24%); }
+  .news-cover { width:86px; height:72px; }
+  .ov-news .section-heading { flex-wrap:wrap; gap:8px; }
+  .news-filters { width:100%; margin-left:0; }
+  .news-filters :deep(.menu-select) { flex:1; }
+}
+@media(max-width:420px) { .hero-index button { min-width:0; padding:8px 9px; } }
+@media(prefers-reduced-motion:reduce) { .ov-next:active,.hero-cta:active { transform:none; } }
 </style>

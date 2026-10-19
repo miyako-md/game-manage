@@ -15,7 +15,7 @@ body { margin:0; }
 .render-page-footer { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; margin-top:22px; border-top:1px solid var(--border); padding-top:16px; font-size:22px; line-height:1.5; color:var(--text-muted); }
 .render-page-footer span:last-child { color:var(--game-accent,var(--accent)); }
 .render-image :is(.info-hint,.nte-roles-panel .toolbar,.compare-tray,.role-actions,.wuwa-pager,.pagination,.records-toolbar .menu-select,.h-rail-nav,.t-glide,.t-glide-hover,.record-toggle,.t-disclosure) { display:none !important; }
-.render-image :is(.cap-card,.wuwa-panel,.ef-card,.challenge-report,.profile-account,.wuwa-detail-section,.role-assessment) { border-radius:24px; padding:22px; min-width:0; box-shadow:0 3px 12px #20263108,0 1px 2px #20263105; }
+.render-image :is(.cap-card,.wuwa-panel,.ef-card,.challenge-report,.profile-account,.wuwa-detail-section) { border-radius:24px; padding:22px; min-width:0; box-shadow:0 3px 12px #20263108,0 1px 2px #20263105; }
 .render-image :is(.cap-title,.wuwa-subhead,.snapshot-game-name,.report-heading) { line-height:1.4; margin-bottom:16px; flex-wrap:wrap; }
 .render-image :is(.cap-meta,.wuwa-meta,.ef-note,.render-observation,.notice-text,.challenge-note,.challenge-status) { color:var(--text-muted); }
 .render-image :is(.badge,.chip,.count-badge,.rank,.level,.record-result) { height:auto; min-height:0; line-height:1.5; white-space:normal; padding:3px 9px; }
@@ -23,8 +23,8 @@ body { margin:0; }
 .render-image :is(.wuwa-description,.wuwa-effect,.notice-text) { white-space:normal; overflow-wrap:anywhere; }
 .render-image details > summary { pointer-events:none; }
 .render-image :is(.wuwa-table-wrap,.table-scroll,.comparison-scroll) { overflow:visible; max-height:none; }
-.render-image :is(.wuwa-tiles,.wuwa-skills,.wuwa-echoes,.wuwa-chains,.role-grid,.wuwa-roster,.ef-operators,.ef-regions,.ef-ship-rooms,.challenge-weeks,.monument-groups,.nte-equipped-details,.gacha-overview,.ch-top-body,.ef-overview,.ef-hero-grid) { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; min-width:0; }
-.render-image :is(.kv-grid,.wuwa-kv,.wuwa-attrs,.summary-metrics,.ef-counts,.detail-rows,.ef-medals) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.render-image :is(.wuwa-tiles,.wuwa-skills,.wuwa-echoes,.wuwa-chains,.role-grid,.ef-ship-rooms,.challenge-weeks,.monument-groups,.nte-equipped-details,.gacha-overview,.ch-top-body) { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; min-width:0; }
+.render-image :is(.kv-grid,.wuwa-kv,.wuwa-attrs,.summary-metrics,.detail-rows,.ef-medals) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
 .render-image :is(.wuwa-tile,.role-card,.challenge-week,.ef-operator,.ef-medal) { width:auto; min-width:0; max-width:100%; }
 .render-image .role-card { padding:18px; }
 .render-image .role-top { gap:16px; }
@@ -49,8 +49,7 @@ body { margin:0; }
 .render-image .bar-col { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; min-height:42px; }
 .render-image .bar-slot { display:contents; }
 .render-image .bar-fill,.render-image .bar-unknown { display:none; }
-.render-image .bar-label { order:-1; width:auto; overflow:visible; text-overflow:clip; white-space:normal; }
-.render-image .bar-label { text-align:left; }
+.render-image .bar-label { order:-1; width:auto; overflow:visible; text-overflow:clip; white-space:normal; text-align:left; }
 .render-image .bar-value { position:static; opacity:1; transform:none; white-space:normal; }
 .render-image .bar-note { display:block; }
 .render-image .community-stats + .ledger { margin-top:20px; }

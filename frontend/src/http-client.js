@@ -8,7 +8,7 @@ export const isCloudMode = () => mode === 'cloud'
 export const getAccountScope = () => scope
 // Server text is shown only when it is Chinese; machine codes (csrf_required, authorization_changed ...) get the caller's fixed text.
 export const safeDetail = (detail, fallback) => typeof detail === 'string' && /[\u4e00-\u9fff]/.test(detail) ? detail.slice(0, 256) : fallback
-export function invalidateRequests() { epoch++; for (const controller of controllers.keys()) controller.abort(cancelled()); controllers.clear() }
+function invalidateRequests() { epoch++; for (const controller of controllers.keys()) controller.abort(cancelled()); controllers.clear() }
 // An account or role switch ends only the reads routed under that scope; session-level reads do not depend on it.
 function invalidateScope() { scopeEpoch++; for (const [controller, bound] of controllers) if (bound) { controller.abort(cancelled()); controllers.delete(controller) } }
 export function invalidateSession() {

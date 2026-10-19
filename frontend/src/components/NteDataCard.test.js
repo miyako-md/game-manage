@@ -1,6 +1,5 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { nextTick } from 'vue'
 import { loadVue, mount, content, nodes, flushAsyncComponents } from '../test-utils/vue.js'
 
 const NteDataCard = await loadVue(new URL('./NteDataCard.vue', import.meta.url))

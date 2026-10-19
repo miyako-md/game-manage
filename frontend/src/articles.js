@@ -22,7 +22,7 @@ const text = value => typeof value === 'string' ? value : ''
 const normalizedTitle = value => text(value).normalize('NFKC').replace(/#[^#]*#/g, '').replace(/[\s\p{P}\p{S}]/gu, '').toLowerCase()
 const contentRank = row => row.body || row.images.length ? row.content_status === 'full' && !row.source_stale ? 3 : row.content_status === 'stale' || row.content_status === 'full' ? 2 : 1 : 0
 
-export function classifyArticle(item) {
+function classifyArticle(item) {
   const title = text(item.title).replace(/#[^#]*#/g, '').trim(), body = text(item.body || item.summary)
   const explicit = ARTICLE_CATEGORIES.find(rule => rule.id === item.content_category || rule.label === item.category)
   const matchingTitle = ARTICLE_CATEGORIES.find(rule => rule.pattern?.test(title))

@@ -5,7 +5,7 @@ import { displayBeijing } from '../time.js'
 import { safeUrl } from '../calendar.js'
 import { finiteValue } from '../dashboard.js'
 import { vGlide } from '../motion.js'
-import { gachaRating, gachaTone, luckTone, officialPullIcon } from '../nte-charts.js'
+import { gachaRating, gachaTone, luckTone, officialPullIcon, pullTime } from '../nte-charts.js'
 import InfoHint from './InfoHint.vue'
 import { nteRewardIcon } from '../nte-icons.js'
 
@@ -40,13 +40,7 @@ function barStyle(entry, pool) {
   return { width: `${Math.min(100, entry.pity / limit * 100)}%` }
 }
 // Verified against Tajiduo scard/main.149e4946.js: no local rarity thresholds.
-const rating = gachaRating, tone = gachaTone
-function obtained(value) {
-  if (typeof value !== 'string' || !value.trim()) return '时间未提供'
-  const normalized = value.replace(' ', 'T')
-  const source = /(?:Z|[+-]\d{2}:\d{2})$/i.test(normalized) ? normalized : `${normalized}+08:00`
-  return Number.isNaN(new Date(source).getTime()) ? '时间未提供' : displayBeijing(source)
-}
+const obtained = value => pullTime(value) || '时间未提供'
 </script>
 
 <template>
@@ -80,7 +74,7 @@ function obtained(value) {
           <li v-for="(entry, index) in group.entries" :key="`${groupIndex}-${entry.item_id}-${index}`" class="pull-row">
             <div class="reward-icon"><img v-if="icon(entry)" :src="icon(entry)" :alt="nteItemLabel(entry.item_id,entry.name)" loading="lazy" referrerpolicy="no-referrer" @error="imageFailed(entry)" /><span v-else aria-hidden="true">{{ nteItemLabel(entry.item_id,entry.name).slice(0, 2) }}</span></div>
             <strong class="pull-name" :title="entry.name || entry.item_id">{{ nteItemLabel(entry.item_id,entry.name) }}</strong>
-            <div class="bar-track" :aria-label="known(entry.pity) ? `本次出 S：${entry.pity} 抽` : '本次抽数未提供'"><div class="pull-bar" :class="tone(entry)" :style="barStyle(entry, group.pool)" /><div class="bar-values"><template v-if="known(entry.pity)"><strong>{{ entry.pity }}</strong><span>抽</span></template><span v-else>本次抽数未提供</span><span v-if="rating(entry)" class="rating" :class="tone(entry)" title="塔吉多社区评价">{{ rating(entry) }}</span></div></div>
+            <div class="bar-track" :aria-label="known(entry.pity) ? `本次出 S：${entry.pity} 抽` : '本次抽数未提供'"><div class="pull-bar" :class="gachaTone(entry)" :style="barStyle(entry, group.pool)" /><div class="bar-values"><template v-if="known(entry.pity)"><strong>{{ entry.pity }}</strong><span>抽</span></template><span v-else>本次抽数未提供</span><span v-if="gachaRating(entry)" class="rating" :class="gachaTone(entry)" title="塔吉多社区评价">{{ gachaRating(entry) }}</span></div></div>
             <time class="pull-time">{{ obtained(entry.obtained_at) }}</time>
           </li>
         </ol>

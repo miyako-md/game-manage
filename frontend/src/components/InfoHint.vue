@@ -11,20 +11,31 @@ import AppIcon from './AppIcon.vue'
 const props = defineProps({ text: { type: String, required: true }, label: { type: String, default: '说明' }, align: { type: String, default: 'auto' } })
 const id = useId()
 const root = ref(null)
+const tip = ref(null)
 const open = ref(false)
 const hovered = ref(false)
 const dismissed = ref(false)
 const tipStyle = ref({})
 const side = ref('above')
 let focused = false
+let raised = false
 let leaveTimer = 0
+
+function raise(on) {
+  const el = tip.value
+  if (typeof el?.showPopover !== 'function' || raised === on) return
+  raised = on
+  if (on) el.showPopover()
+  else el.hidePopover()
+}
 
 function place() {
   const box = root.value?.getBoundingClientRect?.()
   if (!box) return
+  const inDialog = Boolean(root.value?.closest?.('dialog'))
   // Phones: a full-width tip below the icon, or above it when the icon sits low on the screen.
   if (innerWidth <= 600) {
-    side.value = box.top > innerHeight * 0.6 ? 'above' : 'below'
+    side.value = box.top > innerHeight * 0.6 || (!inDialog && box.bottom > innerHeight - 140) ? 'above' : 'below'
     const edge = side.value === 'above' ? { bottom: `${innerHeight - box.top + 8}px` } : { top: `${box.bottom + 8}px` }
     tipStyle.value = { ...edge, left: '16px', right: '16px', width: 'auto', maxWidth: 'none' }
     return
@@ -33,8 +44,11 @@ function place() {
   // Fixed offsets are measured without a classic (Windows) scrollbar, hence clientWidth.
   const width = document.documentElement.clientWidth
   const end = props.align === 'end' || (props.align === 'auto' && box.left > width / 2)
-  const style = end ? { right: `${Math.max(12, width - box.right - 6)}px` } : { left: `${Math.max(12, box.left - 6)}px` }
-  side.value = box.top > 140 ? 'above' : 'below'
+  const maxEdge = Math.max(12, width - 312)
+  const style = end
+    ? { right: `${Math.max(12, Math.min(maxEdge, width - box.right - 6))}px` }
+    : { left: `${Math.max(12, Math.min(maxEdge, box.left - 6))}px` }
+  side.value = box.top > 140 || (innerWidth <= 960 && !inDialog && box.bottom > innerHeight - 160) ? 'above' : 'below'
   if (side.value === 'above') style.bottom = `${innerHeight - box.top + 6}px`
   else style.top = `${box.bottom + 6}px`
   tipStyle.value = style
@@ -59,10 +73,13 @@ function onEscape(event) {
 // Listeners stay attached only while the tip can be showing.
 function sync() {
   if (typeof document === 'undefined') return
-  const method = hovered.value || focused || open.value ? 'addEventListener' : 'removeEventListener'
+  const active = !dismissed.value && (hovered.value || focused || open.value)
+  const method = active ? 'addEventListener' : 'removeEventListener'
   window[method]('scroll', onScroll, true)
+  window[method]('resize', place)
   document[method]('pointerdown', onOutside, true)
   document[method]('keydown', onEscape)
+  raise(active)
 }
 function close() {
   open.value = false
@@ -114,6 +131,6 @@ onBeforeUnmount(() => {
 <template>
   <span ref="root" class="info-hint" :class="{ 'is-open': open, 'is-hovered': hovered, 'is-dismissed': dismissed }" @pointerenter="enter" @pointerleave="leave" @focusin="focusIn" @focusout="focusOut">
     <button type="button" class="info-hint-trigger" :aria-label="label" :aria-describedby="id" @click="toggle"><AppIcon name="info" :size="14" /></button>
-    <span :id="id" role="tooltip" class="info-hint-tip" :data-side="side" :style="tipStyle">{{ text }}</span>
+    <span :id="id" ref="tip" popover="manual" role="tooltip" class="info-hint-tip" :data-side="side" :style="tipStyle">{{ text }}</span>
   </span>
 </template>

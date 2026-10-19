@@ -32,16 +32,55 @@ export function installIconMotion(document) {
   if (!win || typeof document.addEventListener !== 'function' || !document.documentElement) return { destroy() {} }
   const media = win.matchMedia?.('(prefers-reduced-motion: reduce)')
   const active = new Map()
-  let destroyed = false
+  let destroyed = false, observing = false, lastClickUntil = -Infinity
   let recentClicks = new WeakMap()
   const CLICK_WINDOW = 1200
   const imageMode = () => Boolean(win.__RENDER_STATE__ || document.querySelector('.render-root, [data-image-mode="true"]'))
-  const eligible = (icon, control) => {
-    if (!icon.isConnected || !control.isConnected || icon.closest(BLOCKED) || icon.closest(CONTROL) !== control ||
-      icon.getAttribute('data-active') === 'false' || icon.closest('.render-root, [data-image-mode="true"]')) return false
+  const eligibleDom = (icon, control) => (
+    icon.isConnected && control.isConnected && !icon.closest(BLOCKED) && icon.closest(CONTROL) === control &&
+    icon.getAttribute('data-active') !== 'false' && !icon.closest('.render-root, [data-image-mode="true"]')
+  )
+  const eligible = (icon, control, checkStyle = true) => {
+    if (!eligibleDom(icon, control)) return false
+    if (!checkStyle) return true
     const style = win.getComputedStyle(icon)
     const alreadyAnimating = style.animationName?.split(',').some(name => name.trim() && name.trim() !== 'none')
     return style.display !== 'none' && style.visibility !== 'hidden' && !alreadyAnimating
+  }
+  const observer = win.MutationObserver ? new win.MutationObserver(records => {
+    const now = win.performance.now()
+    if (!active.size && now > lastClickUntil) {
+      unobserve()
+      return
+    }
+    for (const [icon, record] of active) {
+      const styleTouched = records.some(m => m.type === 'attributes' && m.attributeName === 'class' && m.target?.contains?.(icon))
+      if (imageMode() || !eligible(icon, record.control, styleTouched) || icon.getAttribute('data-app-icon') !== record.name) cancel(icon)
+    }
+    if (now > lastClickUntil) {
+      if (!active.size) unobserve()
+      return
+    }
+    // View Transitions may swap the theme icons in a later task. Only a recent
+    // click on this control authorizes that newly active icon's feedback.
+    for (const mutation of records) {
+      if (mutation.type !== 'attributes' || !['data-active', 'data-app-icon'].includes(mutation.attributeName)) continue
+      const icon = mutation.target
+      if (!icon.matches?.('svg[data-app-icon]') || (mutation.attributeName === 'data-active' && icon.getAttribute('data-active') !== 'true')) continue
+      const control = icon.closest(CONTROL)
+      if (control) playForClick(icon, control, recentClicks.get(control))
+    }
+  }) : null
+  function observe() {
+    if (observing || !observer || destroyed) return
+    observing = true
+    observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true,
+      attributeFilter: ['disabled', 'aria-disabled', 'aria-busy', 'inert', 'hidden', 'data-icon-motion', 'data-busy', 'data-active', 'data-app-icon', 'class'] })
+  }
+  function unobserve() {
+    if (!observing) return
+    observing = false
+    observer?.disconnect()
   }
   function cancel(icon) {
     const record = active.get(icon)
@@ -51,12 +90,14 @@ export function installIconMotion(document) {
       animation.onfinish = null; animation.oncancel = null
       animation.cancel()
     }
+    if (!active.size && win.performance.now() > lastClickUntil) unobserve()
   }
   function cancelAll() { for (const icon of [...active.keys()]) cancel(icon) }
   function play(icon, control) {
     cancel(icon)
     const record = { animations: [], control, name: icon.getAttribute('data-app-icon') }
     active.set(icon, record)
+    observe()
     for (const { target, frames, duration, delay = 0 } of motions(icon)) {
       if (typeof target?.animate !== 'function') continue
       const animation = target.animate(frames, { duration, delay, easing: EASE, fill: 'none' })
@@ -64,7 +105,10 @@ export function installIconMotion(document) {
       const finished = () => {
         animation.onfinish = null; animation.oncancel = null
         record.animations = record.animations.filter(item => item !== animation)
-        if (!record.animations.length && active.get(icon) === record) active.delete(icon)
+        if (!record.animations.length && active.get(icon) === record) {
+          active.delete(icon)
+          if (!active.size && win.performance.now() > lastClickUntil) unobserve()
+        }
       }
       animation.onfinish = finished
       animation.oncancel = finished
@@ -86,8 +130,11 @@ export function installIconMotion(document) {
     const element = event.target?.nodeType === 1 ? event.target : event.target?.parentElement
     const control = element?.closest?.(CONTROL)
     if (!control || control.closest(BLOCKED)) return
-    const click = { until: win.performance.now() + CLICK_WINDOW, played: new WeakMap() }
+    const until = win.performance.now() + CLICK_WINDOW
+    lastClickUntil = Math.max(lastClickUntil, until)
+    const click = { until, played: new WeakMap() }
     recentClicks.set(control, click)
+    observe()
     // Vue normally updates busy flags and active icons before this microtask.
     // Neither the action nor navigation waits for the animation.
     win.queueMicrotask(() => {
@@ -97,30 +144,14 @@ export function installIconMotion(document) {
       }
     })
   }
-  function preferenceChanged() { if (media.matches) { recentClicks = new WeakMap(); cancelAll() } }
-  const observer = win.MutationObserver ? new win.MutationObserver(records => {
-    for (const [icon, record] of active) {
-      if (imageMode() || !eligible(icon, record.control) || icon.getAttribute('data-app-icon') !== record.name) cancel(icon)
-    }
-    // View Transitions may swap the theme icons in a later task. Only a recent
-    // click on this control authorizes that newly active icon's feedback.
-    for (const mutation of records) {
-      if (mutation.type !== 'attributes' || !['data-active', 'data-app-icon'].includes(mutation.attributeName)) continue
-      const icon = mutation.target
-      if (!icon.matches?.('svg[data-app-icon]') || (mutation.attributeName === 'data-active' && icon.getAttribute('data-active') !== 'true')) continue
-      const control = icon.closest(CONTROL)
-      if (control) playForClick(icon, control, recentClicks.get(control))
-    }
-  }) : null
-  observer?.observe(document.documentElement, { subtree: true, childList: true, attributes: true,
-    attributeFilter: ['disabled', 'aria-disabled', 'aria-busy', 'inert', 'hidden', 'data-icon-motion', 'data-busy', 'data-active', 'data-app-icon', 'class'] })
+  function preferenceChanged() { if (media.matches) { recentClicks = new WeakMap(); lastClickUntil = -Infinity; cancelAll(); unobserve() } }
   document.addEventListener('click', clicked)
   media?.addEventListener?.('change', preferenceChanged)
   return {
     destroy() {
-      destroyed = true; recentClicks = new WeakMap(); document.removeEventListener('click', clicked)
+      destroyed = true; recentClicks = new WeakMap(); lastClickUntil = -Infinity; document.removeEventListener('click', clicked)
       media?.removeEventListener?.('change', preferenceChanged)
-      observer?.disconnect(); cancelAll()
+      unobserve(); cancelAll()
     },
   }
 }

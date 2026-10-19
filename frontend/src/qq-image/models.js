@@ -1,12 +1,11 @@
 import {fieldLabels} from '../wuwa-display.js'
-import {collectVersionCalendars,collectCalendarEvents,versionCalendarRange,parseBeijingTime,eventGeometry,eventStatus,calendarBoundary,formatBeijingDateTime} from '../calendar.js'
-import {eventArtwork} from '../event-artwork.js'
+import {collectVersionCalendars,collectCalendarEvents,formatBeijingDateTime} from '../calendar.js'
 import nteIcons from '../nte-icon-catalog.js'
 import wuwaIcons from '../wuwa-icon-catalog.js'
 import endfieldIcons from '../endfield-icon-catalog.js'
-import {nteNamedIcon,nteRoleIcon,nteSkillIcon} from '../nte-icons.js'
+import {nteNamedIcon,nteRoleIcon} from '../nte-icons.js'
 const list=v=>Array.isArray(v)?v.filter(Boolean):[]
-export const display=v=>v===undefined||v===null||v===''?'未提供':typeof v==='boolean'?(v?'是':'否'):typeof v==='number'?v.toLocaleString('zh-CN',{maximumFractionDigits:3}):String(v)
+const display=v=>v===undefined||v===null||v===''?'未提供':typeof v==='boolean'?(v?'是':'否'):typeof v==='number'?v.toLocaleString('zh-CN',{maximumFractionDigits:3}):String(v)
 const pct=(v,m)=>typeof v==='number'&&typeof m==='number'&&m>0?Math.max(0,Math.min(100,v/m*100)):null
 const kv=(label,value)=>({label,value:display(value)})
 const metric=(label,cur,max,extra='')=>({label,cur:display(cur),max:max==null?null:display(max),pct:pct(cur,max),extra})
@@ -30,7 +29,7 @@ export function configure(cases,assets){
   if(c.snapshot.kind==='nte_role')for(const r of list(d.snapshot.payload.entries))roleMaps.nte[String(r.id)]={...r,icon:r.icon_url}
  }
 }
-export function asset(url){return url&&allAssets[url]?.file?'/'+allAssets[url].file:url&&allAssets[url]===true?url:''}
+function asset(url){return url&&allAssets[url]?.file?'/'+allAssets[url].file:url&&allAssets[url]===true?url:''}
 export function knownRoles(game){return Object.entries(roleMaps[game]||{}).map(([id,r])=>({id,name:r.name,icon_url:r.icon}))}
 export function roleIdentity(game,r){
  const saved=roleMaps[game]?.[String(r.role_id??r.id)]
