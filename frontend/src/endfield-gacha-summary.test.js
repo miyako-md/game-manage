@@ -97,6 +97,10 @@ test('each operator pool type is its own category and all weapon banners share o
   assert.deepEqual([weapons.key, weapons.label, weapons.total, weapons.six_star, weapons.latest.key, weapons.newest_at, weapons.oldest_at, weapons.pending], ['weapon', '武器申领', 50, 3, 'weapon:b', 9, 1, true])
   assert.deepEqual(weapons.history.map(item => item.name), ['b', 'a'])
   assert.equal(poolCategories(pools.slice(0, 1)).length, 1)
+  // A newer pool holding only gifts (older snapshots still dated it by the gift) never leads.
+  const gifted = { key: 'weapon:c', label: 'C', kind: 'weapon', total: 0, gifts: 1, newest_at: 12, since_last_six: { count: null, status: 'unknown' } }
+  assert.equal(poolCategories([...pools, gifted])[1].latest.key, 'weapon:b')
+  assert.equal(poolCategories([pools[0], gifted])[1].latest.key, 'weapon:c')
 })
 
 test('banners keep their own counts and only their own 6★; older snapshots fall back to the 6★ banner names', () => {
