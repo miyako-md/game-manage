@@ -27,7 +27,7 @@ GACHA |= frozenset('resource_id resource_type reward_type'.split())
 # Named business fields used by the corresponding website components. Raw
 # evolving dictionaries and account identity fields are never copied wholesale.
 COMMON = frozenset('schema_version name title id level value count total current maximum expected_full_at updated_at state complete fetched_at icon_url description type entries items details'.split())
-ACCOUNT = COMMON | frozenset('nickname server_name world_level active_days tycoon_level character_count achievement_count achievement_total house_count house_total vehicle_count vehicle_total extra profile unlock level_name next_exp exp_limit achievement_star big_count small_count box_list treasure_box_list phantom_box_list box_name num creat_time'.split())
+ACCOUNT = COMMON | frozenset('nickname server_name world_level active_days tycoon_level character_count role_total gold_role_total achievement_count achievement_total house_count house_total vehicle_count vehicle_total extra profile unlock level_name next_exp exp_limit achievement_star big_count small_count box_list treasure_box_list phantom_box_list box_name num creat_time'.split())
 STAMINA = COMMON | frozenset('city_current city_maximum daily_activity weekly_remaining energy max_energy liveness liveness_max_count weekly_inst_count weekly_inst_count_limit weekly_inst_title store_energy store_energy_limit store_energy_title store_energy_recover_time'.split())
 PROGRESS = COMMON | frozenset('completed bronze silver gold categories cur refresh_at progress'.split())
 EXPLORATION = COMMON | frozenset('areas country_groups detections by_level progress'.split())
@@ -165,6 +165,26 @@ def game_panel(game,provider,capability,row,*,summary=False,resolved=None):
         raw=project(raw,fields)
     if summary and capability=='gacha':raw=project(raw,PANEL_CAPS[game]['gacha']-{'details','records','items','gold','recent_six','history','aggregates'})
     return {'game':game,'provider':provider,'capability':capability,'snapshot':metadata(row,panel_payload(game,provider,capability,raw))}
+
+
+def role_totals(game,payload):
+    """Full roster counts before the overview truncates roles to six entries.
+
+    The gold count is omitted when any entry lacks its rarity: unknown is not zero.
+    """
+    if game=='wuthering_waves':
+        entries=payload if isinstance(payload,list) else payload.get('roles') if isinstance(payload,dict) else None
+        grade,gold=lambda entry:entry.get('star_level'),lambda value:type(value) is int and value>=5
+    elif game=='nte':
+        entries=payload.get('entries') if isinstance(payload,dict) else None
+        grade,gold=lambda entry:entry.get('quality'),lambda value:value=='S'
+    else:return {}
+    entries=[entry for entry in entries if isinstance(entry,dict)] if isinstance(entries,list) else []
+    if not entries:return {}
+    grades=[grade(entry) for entry in entries]
+    totals={'role_total':len(entries)}
+    if all(value is not None for value in grades):totals['gold_role_total']=sum(1 for value in grades if gold(value))
+    return totals
 
 
 def game_snapshot(panels,now,page=1,*,title='游戏数据',command='总览',notices=()):

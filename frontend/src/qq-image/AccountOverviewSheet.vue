@@ -241,8 +241,9 @@ const gameBlocks = computed(() => {
 
       const stats = [
         { label: '活跃天数', value: display(acc.active_days) },
-        { label: '解锁角色', value: display(acc.character_count ?? (roles.length || null)) },
-        { label: '五星角色', value: display(roles.length ? goldCount : gacha?.gold_total) },
+        { label: '解锁角色', value: display(acc.character_count ?? acc.role_total ?? (roles.length || null)) },
+        // The roles panel holds at most six entries; full totals ride on the account panel.
+        { label: '五星角色', value: display(acc.gold_role_total ?? (acc.role_total > roles.length ? null : roles.length ? goldCount : gacha?.gold_total)) },
         {
           label: cal?.level != null ? '数据坞等级' : '结晶单质',
           value: cal?.level != null ? display(cal.level) : display(stam?.store_energy),
@@ -328,8 +329,8 @@ const gameBlocks = computed(() => {
       const sCount = roles.filter(r => r.isGold).length
       const stats = [
         { label: '活跃天数', value: display(acc.active_days) },
-        { label: '解锁角色', value: display(acc.character_count ?? (roles.length || null)) },
-        { label: 'S级角色', value: display(roles.length ? sCount : null) },
+        { label: '解锁角色', value: display(acc.character_count ?? acc.role_total ?? (roles.length || null)) },
+        { label: 'S级角色', value: display(acc.gold_role_total ?? (acc.role_total > roles.length ? null : roles.length ? sCount : null)) },
         { label: '大亨等级', value: acc.tycoon_level != null ? `Lv.${acc.tycoon_level}` : '未提供' },
         { label: '已达成成就', value: display(acc.achievement_count) },
         { label: '成就总数', value: display(acc.achievement_total) },

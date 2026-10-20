@@ -137,6 +137,28 @@ def test_overview_keeps_both_endfield_providers_and_bounded_roster_summary():
     assert len(context['grants'])==3
 
 
+def test_overview_account_panels_carry_full_role_totals_before_six_role_truncation():
+    query=CachedQuery()
+    query.add('wuthering_waves','kuro','ww',{'account':{'nickname':'鸣潮'},
+        'roles':[{'role_id':i,'name':f'角色{i}','star_level':5 if i<7 else 4} for i in range(10)]})
+    query.add('nte','tajiduo','nte',{'account':{'nickname':'异环'},
+        'roles':{'entries':[{'id':str(i),'name':f'异能者{i}','quality':'S' if i%2 else 'A'} for i in range(9)]}})
+    context={};service(query).query(IDENTITY,'overview',image_context=context)
+    panels=context['render_snapshot']['display_data']['panels']
+    account={p['game']:p['snapshot']['payload'] for p in panels if p['capability']=='account'}
+    roles={p['game']:p['snapshot']['payload'] for p in panels if p['capability']=='roles'}
+    assert len(roles['wuthering_waves'])==6 and len(roles['nte']['entries'])==6
+    assert (account['wuthering_waves']['role_total'],account['wuthering_waves']['gold_role_total'])==(10,7)
+    assert (account['nte']['role_total'],account['nte']['gold_role_total'])==(9,4)
+    validate_snapshot(context['render_snapshot'])
+
+
+def test_role_totals_omit_gold_count_when_any_rarity_is_unknown():
+    assert shared.role_totals('wuthering_waves',[{'star_level':5},{'star_level':None}])=={'role_total':2}
+    assert shared.role_totals('nte',{'entries':[{'quality':'S'},{}]})=={'role_total':2}
+    assert shared.role_totals('nte',{'entries':[]})=={} and shared.role_totals('endfield',{'operators':[{}]})=={}
+
+
 def test_shared_full_roster_does_not_inherit_legacy_document_clipping_notices():
     query=CachedQuery();query.add('wuthering_waves','kuro','private-account',{'roles':[{'role_id':i,'name':f'合成角色{i:03}','level':0} for i in range(300)]})
     context={};service(query).query(IDENTITY,'roles','wuthering_waves',image_context=context)

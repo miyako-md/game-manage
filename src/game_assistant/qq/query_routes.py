@@ -126,7 +126,11 @@ class QqQueryService:
     def _panel(self,context,row,cap,snapshot,*,summary=False,resolved=None):
         if context is None or cap not in shared_view.PANEL_CAPS.get(row['game'],{}):return
         context['panels'].append(shared_view.game_panel(row['game'],row['provider'],cap,snapshot,summary=summary,resolved=resolved))
-        if summary and cap=='roles':context['panel_notices'].append(GAME_NAMES[row['game']]+'总览最多展示 6 名角色；完整角色请使用角色指令。')
+        if summary and cap=='roles':
+            # The sheet's unlocked/gold counts must not come from the six shown roles.
+            account=next((panel for panel in reversed(context['panels']) if panel['capability']=='account' and (panel['game'],panel['provider'])==(row['game'],row['provider'])),None)
+            if account is not None and isinstance(account['snapshot']['payload'],dict):account['snapshot']['payload'].update(shared_view.role_totals(row['game'],snapshot.payload))
+            context['panel_notices'].append(GAME_NAMES[row['game']]+'总览最多展示 6 名角色；完整角色请使用角色指令。')
 
     def _ledger_snapshot(self, scope, game):
         """Read only an existing scoped shard; missing files never get initialized."""
