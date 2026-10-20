@@ -352,7 +352,8 @@ def _install_wuwa_archive(bundle,app):
         ledger=bundle.ledger(scope,'wuwa_history')
         inserted=0
         for capability in ('combat','roles'):
-            snapshot=bundle.snapshots.get_scoped(scope,capability,grant_version=version)
+            snapshot=bundle.snapshots.get_scoped(scope,capability,grant_version=version,
+                minimum_version=bundle.accounts.snapshot_generation(scope,version))
             if snapshot:
                 try:
                     inserted+=ledger.capture(scope,capability,json.loads(snapshot['payload']),

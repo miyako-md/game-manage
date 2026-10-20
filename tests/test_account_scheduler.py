@@ -156,14 +156,15 @@ async def test_reauthorization_cancels_old_queued_work(tmp_path):
     polling = scheduler(tmp_path,accounts,query)
     polling.start(periodic=False)
     first = query.request_refresh(scope,'account')
+    info = accounts.describe(scope)
+    saved = accounts.credentials.load_grant(scope.user_id, info['grant_id'])
     accounts.revoke(Principal('a',False),scope.account_id)
-    accounts.connection.execute("UPDATE grants SET state='active'")
-    accounts.connection.commit()
+    accounts.save_verified(Principal('a',False), 'tajiduo', saved)
     second = query.request_refresh(scope,'account')
     assert second.state == 'queued' and second.job_id != first.job_id
     gate.set()
     await polling.drain()
-    assert store.get_scoped(scope,'account')['grant_version'] == 2
+    assert store.get_scoped(scope,'account')['grant_version'] == 3
     await polling.shutdown()
 
 

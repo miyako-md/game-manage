@@ -212,7 +212,8 @@ class AccountPollingScheduler:
 
     def _paused(self, scope):
         info = self.accounts.describe(scope)
-        return any((self.query.snapshots.get_poll_status_scoped(scope, cap, grant_version=info['version']) or
+        generation = self.accounts.snapshot_generation(scope, info['version'])
+        return any((self.query.snapshots.get_poll_status_scoped(scope, cap, grant_version=info['version'], minimum_version=generation) or
                     {}).get('state') == 'auth_expired' for cap in self.query.capabilities(scope))
 
     def _queue(self, key, action):
@@ -268,12 +269,14 @@ class AccountPollingScheduler:
         return self._queue(key, refresh)
 
     def _failed(self, scope, capability, version):
-        status = self.query.snapshots.get_poll_status_scoped(scope, capability, grant_version=version)
+        status = self.query.snapshots.get_poll_status_scoped(scope, capability, grant_version=version,
+            minimum_version=self.accounts.snapshot_generation(scope, version))
         return status and status['state'] == 'error'
 
     def _persisted_due(self, scope, capability, version):
         from datetime import datetime, timezone
-        status = self.query.snapshots.get_poll_status_scoped(scope, capability, grant_version=version)
+        status = self.query.snapshots.get_poll_status_scoped(scope, capability, grant_version=version,
+            minimum_version=self.accounts.snapshot_generation(scope, version))
         if not status or not status.get('last_attempt_at'):
             return self.clock()
         delay = self.settings.cloud_private_poll_seconds if status['state'] == 'ok' else min(

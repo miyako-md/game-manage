@@ -62,7 +62,10 @@ async def test_capabilities_use_registry_and_reject_public_or_unknown(tmp_path):
 async def test_version_mismatch_cannot_read_old_cache(tmp_path):
     accounts, scope, store, query = await query_fixture(tmp_path)
     store.save_scoped(scope, 'account', '{"secret":"old"}', 1)
-    accounts.connection.execute('UPDATE grants SET version=2')
+    info = accounts.describe(scope)
+    credentials = accounts.credentials.load_grant(scope.user_id, info['grant_id'])
+    sealed = accounts.credentials.seal_grant(scope.user_id, info['grant_id'], credentials, 2)
+    accounts.connection.execute('UPDATE grants SET version=2,encrypted_payload=?', (sealed,))
     accounts.connection.commit()
     assert query.read(scope, 'account').payload is None
 

@@ -43,15 +43,17 @@ class AccountQuery:
 
     def read(self, scope, capability):
         info = self.validate(scope, capability)
-        snapshot = self.snapshots.get_scoped(scope, capability, grant_version=info['version'])
-        status = self.snapshots.get_poll_status_scoped(scope, capability, grant_version=info['version'])
+        generation = self.accounts.snapshot_generation(scope, info['version'])
+        snapshot = self.snapshots.get_scoped(scope, capability, grant_version=info['version'], minimum_version=generation)
+        status = self.snapshots.get_poll_status_scoped(scope, capability, grant_version=info['version'], minimum_version=generation)
         payload = json.loads(snapshot['payload']) if snapshot else None
         return QueryResult(payload, snapshot['fetched_at'] if snapshot else None,
                            status['state'] if status else 'never', completeness(payload))
 
     def status(self, scope, capability):
         info = self.validate(scope, capability)
-        stored = self.snapshots.get_poll_status_scoped(scope, capability, grant_version=info['version'])
+        generation = self.accounts.snapshot_generation(scope, info['version'])
+        stored = self.snapshots.get_poll_status_scoped(scope, capability, grant_version=info['version'], minimum_version=generation)
         return {**(stored or dict(state='never', last_attempt_at=None, last_success_at=None,
                                  consecutive_failures=0, error=None, error_kind=None)),
                 'refresh_state': self.scheduler.refresh_state(scope, capability) if self.scheduler else 'idle',
