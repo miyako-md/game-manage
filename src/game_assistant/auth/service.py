@@ -466,12 +466,14 @@ class ScopedLoginService:
                 raise LoginError('该社区不支持续期',400,'auth_expired')
             try:
                 credentials = self.accounts.credentials.load_grant(principal.user_id,grant_id)
-                previous = deepcopy(credentials)
                 if role_id is not None:
                     if not any(str(role.get('role_id'))==role_id and str(role.get('server_id'))==server_id
                                for role in credentials.get('_verified_roles',[])):
                         raise LoginError('该角色不在授权绑定列表中',404,'auth_expired')
                     credentials.update(role_id=role_id,server_id=server_id)
+                # Switching between roles of the grant's verified set is not an identity
+                # change; compare the renewal with the role-switched credentials.
+                previous = deepcopy(credentials)
                 updated = await self.providers[provider].renew(deepcopy(credentials))
                 if provider == 'hypergryph':
                     if str(updated.get('uid')) != str(credentials.get('uid')):
