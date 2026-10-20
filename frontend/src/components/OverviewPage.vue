@@ -84,7 +84,7 @@ const heroBanner = computed(() => featured.value ? gameBanner(featured.value.gam
 const tasks = computed(() => dailyTasks(props.games, props.snapshots, props.now))
 const tasksDone = computed(() => tasks.value.filter(task => task.done).length)
 // How full each row's little ring is, 0–100; a countdown without a total is empty until it reaches zero.
-const taskShare = task => task.done ? 100 : task.total ? Math.round(Math.min(1, task.current / task.total) * 100) : 0
+const taskShare = task => task.pending ? null : task.done ? 100 : task.total ? Math.round(Math.min(1, task.current / task.total) * 100) : 0
 
 // Deadlines for the next 7 or 30 days, and the one that comes first.
 const range = ref(7)
@@ -159,13 +159,13 @@ function quickLinks(card) {
         <template v-if="tasks.length">
           <div class="tasks-progress">
             <RingGauge :value="tasksDone" :max="tasks.length" label="已完成的日常进度" :size="72" :stroke="7"><span class="tasks-count"><b>{{ tasksDone }}</b><small>/{{ tasks.length }}</small></span></RingGauge>
-            <span>已完成</span>
+            <span>{{ tasks.some(task => task.pending) ? '已确认完成' : '已完成' }}</span>
           </div>
           <ul class="task-list">
             <li v-for="task in tasks.slice(0, 6)" :key="task.key" class="task" :class="{ done: task.done }" :style="gameVars(task.gameId)">
               <span class="task-mark" aria-hidden="true"><AppIcon v-if="task.done" name="check" :size="11" /><RingGauge v-else :value="taskShare(task)" :max="100" :label="task.name" :size="18" :stroke="4" color="var(--game-vivid)" /></span>
-              <span class="task-name">{{ task.name }}<small>{{ task.gameName }}<template v-if="task.reset"> · {{ task.reset }}</template></small></span>
-              <span class="task-value">{{ task.total == null ? `${task.current} ${task.unit}` : `${task.current}/${task.total}` }}<span class="sr-only">，{{ task.done ? '已完成' : '未完成' }}</span></span>
+              <span class="task-name">{{ task.name }}<small>{{ task.gameName }}<template v-if="task.pending"> · 待更新，当前周期未确认</template><template v-else-if="task.retained"> · 来源待更新</template><template v-if="task.reset"> · {{ task.reset }}</template></small></span>
+              <span class="task-value">{{ task.total == null ? `${task.current} ${task.unit}` : `${task.current}/${task.total}` }}<span class="sr-only">，{{ task.pending ? '待更新' : task.done ? '已完成' : '未完成' }}</span></span>
             </li>
           </ul>
         </template>

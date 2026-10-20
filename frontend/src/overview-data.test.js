@@ -90,3 +90,21 @@ test('the Endfield pull card counts operator headhunting only once the ledger al
   const [digest] = gachaDigests([endfield], { endfield: snaps })
   assert.deepEqual([digest.total, digest.scope, digest.stats[0].value, digest.stats[1].value, digest.latest.name], [150, '干员寻访', 2, '70 抽', '伊冯'])
 })
+
+
+test('daily completion retains historical values but requires evidence of the current cycle', () => {
+  const now = Date.parse('2026-10-20T12:00:00+08:00')
+  const progress = (extra, refresh_at) => ({ wuthering_waves: { progress: {
+    fetched_at: '2026-10-19T23:00:00+08:00', ...extra,
+    payload: [{ name: '活跃度', cur: 100, total: 100, refresh_at }],
+  } } })
+  const expired = dailyTasks([wuwa], progress({ stale: true, state: 'error' }, '2026-10-20T04:00:00+08:00'), now)[0]
+  assert.deepEqual([expired.current, expired.total, expired.done, expired.pending], [100, 100, false, true])
+  assert.equal(dailyTasks([wuwa], progress({ stale: false, state: 'ok' }, '2026-10-20T04:00:00+08:00'), now)[0].done, false)
+  const current = dailyTasks([wuwa], progress({ stale: true, state: 'error', fetched_at: '2026-10-20T10:00:00+08:00' }, '2026-10-21T04:00:00+08:00'), now)[0]
+  assert.deepEqual([current.done, current.pending, current.retained], [true, false, true])
+  assert.equal(dailyTasks([wuwa], progress({ stale: true }, null), now)[0].pending, true)
+  assert.equal(dailyTasks([wuwa], progress({ stale: false, state: 'ok' }, null), now)[0].done, true)
+  const nteTasks = dailyTasks([nte], { nte: { stamina: { stale: true, payload: { schema_version: 1, daily_activity: 100, weekly_remaining: 0 } } } }, now)
+  assert.deepEqual(nteTasks.map(task => [task.current, task.done, task.pending]), [[100, false, true], [0, false, true]])
+})

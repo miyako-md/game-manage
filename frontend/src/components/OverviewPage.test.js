@@ -96,3 +96,15 @@ test('a date-only deadline counts on its stated day and shows no invented clock 
   assert.match(content(byClass(root, 'ov-next')[0]), /2026-10-21 截止/)
   assert.doesNotMatch(content(byClass(root, 'ov-next')[0]), /2026-10-22|00:00/)
 })
+
+
+test('expired daily completion keeps its old count with an explicit unconfirmed state', t => {
+  const root = mount(t, Overview, { games: [wuwa], now, snapshots: { wuthering_waves: { progress: {
+    stale: true, state: 'error', fetched_at: '2026-10-16T23:00:00+08:00',
+    payload: [{ name: '活跃度', cur: 100, total: 100, refresh_at: '2026-10-17T04:00:00+08:00' }],
+  } } } })
+  const tasks = byClass(root, 'ov-tasks')[0]
+  assert.match(content(tasks), /0 \/1 已确认完成/)
+  assert.match(content(tasks), /待更新，当前周期未确认.*100\/100/)
+  assert.equal(byClass(tasks, 'task')[0].props.class.includes('done'), false)
+})
