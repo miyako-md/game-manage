@@ -55,6 +55,9 @@ test('pity parts split the big numeral from its unit and agree with the plain wo
     assert.equal(`${parts.prefix}${parts.count} ${parts.unit}`, pityText(pity))
   }
   assert.equal(pityParts({ count: 3, status: 'unknown' }).prefix, '≥')
+  // "≥0" proves nothing: a zero minimum reads as unknown, an exact zero stays 0.
+  for (const zero of [{ count: 0, status: 'lower_bound' }, { count: 0, status: 'unknown' }]) { assert.equal(pityParts(zero), null); assert.equal(pityText(zero), '未知') }
+  assert.equal(pityText({ count: 0, status: 'exact' }), '0 抽')
   for (const missing of [null, undefined, {}, { count: 1.5 }, { count: '3' }]) { assert.equal(pityParts(missing), null); assert.equal(pityText(missing), '未知') }
 })
 

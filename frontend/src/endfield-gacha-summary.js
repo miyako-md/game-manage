@@ -43,8 +43,9 @@ export function gachaPools(summary) {
 }
 
 // How many pulls a 6★ took, in the wording the ledger can prove: exact, a known minimum, or unknown (null).
+// A minimum of zero ("≥0") proves nothing and is unknown too.
 export function sixPullsParts(item) {
-  if (item?.pulls == null || (item.status !== 'exact' && item.status !== 'lower_bound')) return null
+  if (item?.pulls == null || (item.status !== 'exact' && item.status !== 'lower_bound') || (item.status === 'lower_bound' && item.pulls === 0)) return null
   return { prefix: item.status === 'exact' ? '' : '≥', count: item.pulls, unit: '抽' }
 }
 export const sixPullsText = item => { const parts = sixPullsParts(item); return parts ? `${parts.prefix}${parts.count} ${parts.unit}` : '未知' }

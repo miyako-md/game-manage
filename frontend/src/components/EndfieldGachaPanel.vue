@@ -214,6 +214,7 @@ async function download() {
         <p v-if="view.category.history_truncated === true" class="notice">仅显示最近 {{ view.category.history_available }} 次 6★（账本共 {{ view.category.history_total }} 次）；{{ imageMode ? '完整记录请在网页查看。' : '更早的可在逐条记录中查看或导出。' }}</p>
         <p v-else-if="view.category.kind !== 'weapon' && view.category.history_truncated == null" class="notice">6★ 历史的覆盖范围未知。</p>
       </article>
+      <p v-if="pools.length" class="eg-footnote">≥ 表示含未计入的免费抽或记录断档。</p>
 
       <details v-if="!imageMode" class="panel record-list" @toggle="opened = $event.target.open">
         <summary>逐条记录（北京时间）<AppIcon name="chevron" :size="14" class="t-disclosure" /></summary>
@@ -329,6 +330,7 @@ small { margin-left:3px; color:var(--text-muted); font-size:.5em; font-weight:50
 .rarity .stack-rest { background:transparent; }
 .rarity .legend { gap:4px 16px; margin-top:8px; }
 .legend li { font-variant-numeric:tabular-nums; }
+.eg-footnote { margin:0; font-size:12px; color:var(--text-faint); }
 .legend b { color:var(--text); font-weight:500; }
 .legend small { margin-left:2px; font-size:12px; color:var(--text-faint); }
 

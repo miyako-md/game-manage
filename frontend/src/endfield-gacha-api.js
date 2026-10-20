@@ -14,7 +14,7 @@ export const getRecords = (poolKey = '', offset = 0, limit = 50, kind = '') => {
 export const exportRecords = () => request('export')
 
 export function pityText(pity) {
-  if (!pity || !Number.isInteger(pity.count)) return '未知'
+  if (!pity || !Number.isInteger(pity.count) || unknownZero(pity.status, pity.count)) return '未知'
   return pity.status === 'exact' ? `${pity.count} 抽` : `≥${pity.count} 抽`
 }
 const pullDateFormatter = new Intl.DateTimeFormat('zh-CN', {
@@ -33,8 +33,10 @@ export function pullDay(value) {
   return pullDayFormatter.format(new Date(value))
 }
 
+// "≥0" says nothing: a minimum of zero is shown as unknown.
+const unknownZero = (status, count) => status !== 'exact' && count === 0
 /** The pity count split for a big numeral: `≥` marks a known minimum; the unit stays small. */
 export function pityParts(pity) {
-  if (!pity || !Number.isInteger(pity.count)) return null
+  if (!pity || !Number.isInteger(pity.count) || unknownZero(pity.status, pity.count)) return null
   return { prefix: pity.status === 'exact' ? '' : '≥', count: pity.count, unit: '抽' }
 }

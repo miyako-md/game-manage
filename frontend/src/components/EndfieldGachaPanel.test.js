@@ -233,7 +233,8 @@ test('6★ rows show weapons by pool kind and keep the name when artwork fails',
   const rows = by(shared, 'li', 'pull-row')
   assert.deepEqual(rows.map(row => nodes(row, 'img')[0]?.props.alt), ['祀', '破碎君王', '玉中身'])
   assert.ok(nodes(rows[1], 'img')[0].props.src.startsWith('https://bbs.hycdn.cn/image/'))
-  assert.match(content(rows[2]), /玉中身 .*≥0 抽/)
+  assert.match(content(rows[2]), /玉中身 .*抽数未知/); assert.doesNotMatch(content(shared), /≥0/)
+  assert.match(content(shared), /≥ 表示含未计入的免费抽或记录断档/)
   nodes(rows[1], 'img')[0].props.onError()
   await nextTick()
   assert.equal(nodes(rows[1], 'img').length, 0)
@@ -283,4 +284,11 @@ test('pools the last sync could not read are named with their reason, without hi
   assert.match(content(root), /本次未能读取： 熔铸申领 （接口错误 code=1001：参数错误） 、 武器池列表 （原因未知） 。其他卡池已正常同步，下次刷新会重试。/)
   assert.match(content(root), /特许寻访/)
   assert.doesNotMatch(content(mount(t, Panel, { accountId: 'r1', snap })), /本次未能读取/)
+})
+
+test('a zero lower-bound pity reads as unknown in the image instead of ≥0', t => {
+  const pool = { ...summary.pools[0], since_last_six: { count: 0, status: 'lower_bound' } }
+  const root = mount(t, Panel, { imageMode: true, snap: { payload: { ...summary, pools: [pool] } } })
+  assert.match(content(root), /已垫 未知 距上次 6★/)
+  assert.doesNotMatch(content(root), /≥0/)
 })

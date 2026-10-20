@@ -68,6 +68,8 @@ test('6★ pull wording separates exact, minimum and unknown values', () => {
   assert.deepEqual(sixPullsParts({ pulls: 52, status: 'lower_bound' }), { prefix: '≥', count: 52, unit: '抽' })
   assert.deepEqual(sixPullsParts({ pulls: 0, status: 'exact' }), { prefix: '', count: 0, unit: '抽' })
   assert.equal(sixPullsParts({ pulls: 12, status: 'unknown' }), null)
+  assert.equal(sixPullsParts({ pulls: 0, status: 'lower_bound' }), null)
+  assert.equal(sixPullsText({ pulls: 0, status: 'lower_bound' }), '未知')
   assert.equal(sixPullsParts(undefined), null)
 })
 
