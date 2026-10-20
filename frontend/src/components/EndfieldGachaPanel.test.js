@@ -111,7 +111,51 @@ test('a tile per operator pool type and one for all weapon banners; choosing one
   const detail = details(root)[0]
   assert.match(content(detail), /^武器申领 武器申领 .*当期已垫 20 抽 熔铸申领 · 距上次 6★/)
   assert.deepEqual(by(detail, 'section', 'banner').map(node => content(nodes(node, 'header')[0])), ['熔铸申领 已垫 20 · 48 抽 · 6★ 1 · 5★ 7', '行舟申领 已垫 4 · 48 抽 · 6★ 1 · 5★ 7'])
-  assert.match(calls.at(-1), /pool_key=&offset=0/) // weapons span several ledger pools
+  assert.match(calls.at(-1), /pool_key=&offset=0&limit=50&kind=weapon/) // weapons span several ledger pools, excluding operators
+})
+
+test('weapon ledger pagination retains its kind and a pool change drops late records', async t => {
+  let finishOld
+  const calls = api(t, url => {
+    if (url.includes('offset=50')) return new Promise(resolve => { finishOld = resolve })
+    return [200, { total: 60, records: [{ seq_id: 'w1', pool_key: 'weapon:w1', name: '武器记录', rarity: 4 }] }]
+  })
+  const weapon = { ...second, key: 'weapon:w1', kind: 'weapon', label: '武库申领' }
+  const root = mount(t, Panel, { accountId: 'r1', snap: { payload: { ...summary, pools: [wide, weapon] } } })
+  tiles(root)[1].props.onClick(); await flush()
+  nodes(root, 'details')[0].props.onToggle({ target: { open: true } }); await flush()
+  assert.match(calls.at(-1), /kind=weapon/)
+  const pending = nodes(root, 'button').find(node => content(node) === '下一页').props.onClick(); await flush()
+  assert.match(calls.at(-1), /offset=50&limit=50&kind=weapon/)
+  tiles(root)[0].props.onClick(); await flush()
+  assert.match(calls.at(-1), /pool_key=E_CharacterGachaPoolType_Special&offset=0/)
+  assert.doesNotMatch(calls.at(-1), /kind=weapon/)
+  finishOld([200, { total: 60, records: [{ seq_id: 'old', name: '迟到的武器记录' }] }]); await pending; await flush()
+  assert.doesNotMatch(content(root), /迟到的武器记录/)
+})
+
+test('gifts stay labelled in the ledger while verified totals and legacy-record notices coexist', async t => {
+  api(t, () => [200, { total: 2, records: [
+    { seq_id: 'gift', pool_key: 'weapon:w1', kind: 'weapon', record_kind: 'gift_10', reward_label: '额外奖励', name: '赠送武器', rarity: 6 },
+    { seq_id: 'pull', pool_key: 'weapon:w1', kind: 'weapon', record_kind: 'draw', name: '申领武器', rarity: 6 },
+    { seq_id: 'old', pool_key: 'weapon:w1', kind: 'weapon', record_kind: null, name: '旧武器', rarity: 6 },
+  ] }])
+  const weapon = { ...second, key: 'weapon:w1', kind: 'weapon', label: '武库申领', total: 12, six_star: 1,
+    gifts: 1, unverified_records: 3, history: [{ name: '正常出货', pulls: 12, status: 'exact' }, { name: '不应显示的赠礼', record_kind: 'gift', pulls: 0, status: 'exact' }] }
+  const root = mount(t, Panel, { accountId: 'r1', snap: { payload: { ...summary, pools: [weapon] } } })
+  assert.match(content(root), /武器申领 12 抽 6★ 1/)
+  assert.match(content(root), /另有 3 条武器记录类型不明确，暂不计入统计/)
+  assert.match(content(root), /超出查询期限的记录会保留在明细中/)
+  assert.match(content(root), /正常出货/)
+  assert.doesNotMatch(content(root), /不应显示的赠礼/)
+  nodes(root, 'details')[0].props.onToggle({ target: { open: true } }); await flush()
+  const table = by(root, 'table', 'records')[0], entries = nodes(table, 'tr').slice(1)
+  assert.match(content(entries[0]), /赠送武器 额外奖励 6★/)
+  assert.doesNotMatch(entries[0].props.class, /\bsix\b/)
+  assert.match(entries[1].props.class, /\bsix\b/)
+  assert.match(content(entries[2]), /旧武器 类型待核验/)
+  assert.doesNotMatch(entries[2].props.class, /\bsix\b/)
+  assert.match(content(root), /额外奖励不计入抽数、出货和垫抽/)
 })
 
 test('an operator pool type lists each banner with its own counts and only its own 6★', t => {

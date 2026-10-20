@@ -51,7 +51,7 @@ PANEL_CAPS = {
  'wuthering_waves':{'account':ACCOUNT,'stamina':STAMINA,'progress':PROGRESS,'exploration':EXPLORATION,'roles':ROLE|frozenset(('extra',)),'gacha':GACHA,'combat':COMBAT,'calabash':CALABASH,'activities':ACTIVITIES,'resources':RESOURCES},
  'endfield':{cap:END_REPORT for cap in ('account','stamina','progress','exploration','roles','record','training','regions','ship','honor','operator_detail')},
 }
-PANEL_CAPS['endfield']['gacha']=END_GACHA | frozenset('report four_star unknown_rarity history_total history_available history_limit history_truncated known_exact_intervals average_exact_pulls pool_label banners errors'.split())
+PANEL_CAPS['endfield']['gacha']=END_GACHA | frozenset('report four_star unknown_rarity history_total history_available history_limit history_truncated known_exact_intervals average_exact_pulls pool_label banners errors gifts unverified_records'.split())
 PANEL_CAPS['endfield']['combat']=END_CHALLENGES
 for _game in PANEL_CAPS:
  PANEL_CAPS[_game].update(news=NEWS,events=CALENDAR,recent_events=CALENDAR)

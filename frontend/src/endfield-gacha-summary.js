@@ -27,13 +27,16 @@ export function gachaView({ snaps = {}, cloudAccount, cloudRole, configured, aut
 
 const number = value => (typeof value === 'number' || typeof value === 'string' && value.trim() !== '') && Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null
 const rows = value => Array.isArray(value) ? value.filter(item=>item && typeof item==='object' && !Array.isArray(item)) : []
+export const isGachaGift = row => String(row?.record_kind || row?.kind || '').startsWith('gift')
 export function gachaPools(summary) {
   const values = summary?.report?.schema_version === 1 && Array.isArray(summary.report.pools) ? summary.report.pools : summary?.pools
   return rows(values).map(pool => {
-    const history = rows(pool.history), available = history.length
+    const unverified = number(pool.unverified_records) ?? 0
+    const history = rows(pool.history).filter(item => !isGachaGift(item)), available = history.length
     const declared = number(pool.history_total) ?? number(pool.six_star)
     const total = declared != null && declared >= available ? declared : null
-    return { ...pool, history, banners: rows(pool.banners), history_available: available, history_total: total,
+    return { ...pool, gifts: number(pool.gifts) ?? 0, unverified_records: unverified,
+      history, banners: rows(pool.banners), history_available: available, history_total: total,
       history_truncated: total == null ? null : total > available,
       history_limit: number(pool.history_limit), four_star:number(pool.four_star), unknown_rarity:number(pool.unknown_rarity) }
   })
@@ -69,7 +72,8 @@ export function kindSummary(pools, kind) {
   const list = rows(pools).filter(pool => isWeapon(pool) === (kind === 'weapon'))
   if (!list.length) return null
   return { kind, label: kind === 'weapon' ? '武器申领' : '干员寻访', total: poolTotal(list, 'total'), six_star: poolTotal(list, 'six_star'),
-    five_star: poolTotal(list, 'five_star'), pace: poolPace({ history: list.flatMap(pool => rows(pool.history)) }) }
+    five_star: poolTotal(list, 'five_star'), gifts: list.reduce((sum, pool) => sum + (number(pool.gifts) ?? 0), 0),
+    unverified_records: list.reduce((sum, pool) => sum + (number(pool.unverified_records) ?? 0), 0), pace: poolPace({ history: list.flatMap(pool => rows(pool.history)) }) }
 }
 
 // What the page lets you pick: each operator pool type on its own (pity runs through a type),
@@ -82,6 +86,7 @@ export function poolCategories(pools) {
     const times = field => weapons.map(pool => number(pool[field])).filter(value => value != null)
     categories.push({ key: 'weapon', label: '武器申领', kind: 'weapon', pools: weapons, latest,
       ...Object.fromEntries(['total', 'six_star', 'five_star', 'four_star', 'unknown_rarity', 'free', 'gaps'].map(field => [field, poolTotal(weapons, field)])),
+      gifts: weapons.reduce((sum, pool) => sum + (number(pool.gifts) ?? 0), 0), unverified_records: weapons.reduce((sum, pool) => sum + (number(pool.unverified_records) ?? 0), 0),
       pending: weapons.some(pool => pool.pending === true) ? true : weapons.every(pool => pool.pending === false) ? false : null,
       newest_at: times('newest_at').length ? Math.max(...times('newest_at')) : null, oldest_at: times('oldest_at').length ? Math.min(...times('oldest_at')) : null,
       history: weapons.flatMap(pool => rows(pool.history)).sort((a, b) => (number(b.obtained_at) ?? 0) - (number(a.obtained_at) ?? 0)) })
@@ -108,7 +113,7 @@ export function bannerGroups(category) {
 // A pool's 6★ pace from the exact intervals in its shown history only; a lower bound is never averaged in.
 // The fastest and slowest need two intervals to compare, otherwise they stay null.
 export function poolPace(pool) {
-  const exact = rows(pool?.history).filter(item => item.status === 'exact' && number(item.pulls) != null)
+  const exact = rows(pool?.history).filter(item => !isGachaGift(item) && item.status === 'exact' && number(item.pulls) != null)
   if (!exact.length) return { count: 0, average: null, fastest: null, slowest: null }
   const pulls = exact.map(item => number(item.pulls))
   const pick = target => exact[pulls.indexOf(target)]
