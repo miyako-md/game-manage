@@ -184,7 +184,7 @@ class SnapshotStore:
                 (*key, capability, payload_json, datetime.now(timezone.utc).isoformat(), grant_version))
             self._conn.commit()
 
-    def get_scoped(self, scope, capability, *, grant_version=None):
+    def get_scoped(self, scope, capability, *, grant_version=None, minimum_version=None):
         from .private_data import validate_scope
         key = validate_scope(scope)
         with self._lock:
@@ -192,7 +192,7 @@ class SnapshotStore:
                 'SELECT payload,fetched_at,grant_version FROM scoped_snapshots '
                 'WHERE user_id=? AND account_id=? AND role_id=? AND capability=?',
                 (*key,capability)).fetchone()
-        if row is None or (grant_version is not None and row[2] != grant_version):
+        if row is None or (grant_version is not None and not (minimum_version or grant_version) <= row[2] <= grant_version):
             return None
         return dict(payload=row[0],fetched_at=row[1],grant_version=row[2])
 
@@ -233,10 +233,10 @@ class SnapshotStore:
             self._conn.commit()
         return status
 
-    def get_poll_status_scoped(self, scope, capability, *, grant_version=None):
+    def get_poll_status_scoped(self, scope, capability, *, grant_version=None, minimum_version=None):
         from .private_data import validate_scope
         key = validate_scope(scope)
         with self._lock:
             row=self._conn.execute('SELECT status,grant_version FROM scoped_poll_status '
                 'WHERE user_id=? AND account_id=? AND role_id=? AND capability=?',(*key,capability)).fetchone()
-        return json.loads(row[0]) if row and (grant_version is None or row[1]==grant_version) else None
+        return json.loads(row[0]) if row and (grant_version is None or (minimum_version or grant_version) <= row[1] <= grant_version) else None

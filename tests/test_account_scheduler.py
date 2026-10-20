@@ -156,14 +156,15 @@ async def test_reauthorization_cancels_old_queued_work(tmp_path):
     polling = scheduler(tmp_path,accounts,query)
     polling.start(periodic=False)
     first = query.request_refresh(scope,'account')
+    info = accounts.describe(scope)
+    saved = accounts.credentials.load_grant(scope.user_id, info['grant_id'])
     accounts.revoke(Principal('a',False),scope.account_id)
-    accounts.connection.execute("UPDATE grants SET state='active'")
-    accounts.connection.commit()
+    accounts.save_verified(Principal('a',False), 'tajiduo', saved)
     second = query.request_refresh(scope,'account')
     assert second.state == 'queued' and second.job_id != first.job_id
     gate.set()
     await polling.drain()
-    assert store.get_scoped(scope,'account')['grant_version'] == 2
+    assert store.get_scoped(scope,'account')['grant_version'] == 3
     await polling.shutdown()
 
 
@@ -184,3 +185,100 @@ async def test_bad_grant_does_not_abort_public_tick(tmp_path):
     assert calls == ['nte']
     await polling.shutdown()
     await query.runtime.aclose()
+
+
+@pytest.mark.parametrize('method', ['save_scoped', 'record_poll_scoped', 'get_poll_status_scoped'])
+async def test_storage_failure_logs_safe_code_and_keeps_queue_usable(tmp_path, monkeypatch, caplog, method):
+    import sqlite3
+    accounts, scope, store, query = await query_fixture(tmp_path)
+    polling = scheduler(tmp_path, accounts, query)
+    await polling.poll_once(scope, 'account')
+    original = getattr(store, method)
+    def fail(*args, **kwargs):
+        raise sqlite3.OperationalError('private credential and snapshot details')
+    polling.start(periodic=False)
+    try:
+        query.request_refresh(scope, 'account')
+        monkeypatch.setattr(store, method, fail)
+        await polling.drain()
+        assert polling.refresh_state(scope, 'account') == 'idle'
+        assert polling._due[(scope, 'account')] > polling.clock()
+        messages = [record.getMessage() for record in caplog.records
+                    if record.name == 'game_assistant.scheduler']
+        assert messages == ['scoped_refresh_failed']
+        assert 'private credential' not in caplog.text
+        monkeypatch.setattr(store, method, original)
+        query.request_refresh(scope, 'account')
+        await polling.drain()
+        assert query.read(scope, 'account').state == 'ok'
+    finally:
+        await polling.shutdown()
+
+
+async def test_queued_scope_removal_is_not_logged_as_storage_failure(tmp_path, monkeypatch, caplog):
+    from game_assistant.accounts.store import AccountNotFoundError
+    accounts, scope, store, query = await query_fixture(tmp_path)
+    polling = scheduler(tmp_path, accounts, query)
+    polling.start(periodic=False)
+    try:
+        query.request_refresh(scope, 'account')
+        def removed(*args, **kwargs):
+            raise AccountNotFoundError()
+        monkeypatch.setattr(accounts, 'describe', removed)
+        await polling.drain()
+        assert not [record for record in caplog.records
+                    if record.name == 'game_assistant.scheduler']
+        assert polling.refresh_state(scope, 'account') == 'idle'
+    finally:
+        await polling.shutdown()
+
+
+@pytest.mark.parametrize('manual',[True,False])
+async def test_successful_rotation_unpauses_old_token_failure(tmp_path, manual):
+    from game_assistant.accounts.runtime import AccountRuntime
+    from game_assistant.accounts.query import AccountQuery
+    from game_assistant.models import Capability
+    from game_assistant.snapshots import SnapshotStore
+    from tests.test_account_auth import setup,authorize
+    db, credentials, accounts, login = setup(tmp_path)
+    row = await authorize(login)
+    principal = Principal('a',False)
+    scope = accounts.require_scope(principal,row['account_id'],row['role_id'])
+    runtime = AccountRuntime(accounts,Settings(),tmp_path/'runtime',login=login)
+    store = SnapshotStore(str(tmp_path/'snapshots.db'))
+    store.save_scoped(scope,'account','{"level":40}',1)
+    store.record_poll_scoped(scope,'account',FetchResult(ok=False,error='old token',error_kind='auth_expired'),1)
+    old = store.get_scoped(scope,'account')
+    query = AccountQuery(accounts,runtime,store)
+    polling = scheduler(tmp_path,accounts,query)
+    assert polling._paused(scope)
+    await login.renew(principal,row['grant_id'])
+    adapter = runtime.for_scope(scope).get('nte')
+    adapter.capabilities = [Capability.ACCOUNT]
+    async def fresh():
+        return FetchResult(ok=True,payload={'level':41})
+    adapter.fetch_account = fresh
+    assert not polling._paused(scope)
+    assert query.read(scope,'account').payload == {'level':40}
+    assert query.read(scope,'account').fetched_at == old['fetched_at']
+    assert query.read(scope,'account').state == 'never'
+    status = query.status(scope,'account')
+    assert status['refresh_required'] and status['error'] is None and status['error_kind'] is None
+    assert store.get_poll_status_scoped(scope,'account',grant_version=1)['state'] == 'auth_expired'
+    clock = [1000]
+    polling.clock = lambda:clock[0]
+    assert polling._persisted_due(scope,'account',2) == clock[0]
+    polling.start(periodic=False)
+    try:
+        if manual:
+            assert query.request_refresh(scope,'account').state == 'queued'
+        else:
+            await polling.tick()
+            clock[0] += 31
+            await polling.tick()
+        await polling.drain()
+        assert query.read(scope,'account').payload == {'level':41}
+        assert query.read(scope,'account').state == 'ok'
+    finally:
+        await polling.shutdown()
+        await runtime.aclose()

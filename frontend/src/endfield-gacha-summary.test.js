@@ -147,3 +147,14 @@ test('sync status puts an unfinished scan first and only calls a proven scan com
   assert.equal(syncStatus({ complete: null }, { pending: null }).label, '完整性未知')
   assert.equal(syncStatus(null, null).tone, 'unknown')
 })
+
+test('weapon categories sum gifts and unverified records without altering verified pull statistics', () => {
+  const pools = gachaPools({ pools: [
+    { key: 'weapon:a', kind: 'weapon', total: 10, six_star: 1, gifts: 2, unverified_records: 3, history: [{ name: '正常', pulls: 10, status: 'exact' }, { name: '赠礼', record_kind: 'gift_10', pulls: 0, status: 'exact' }] },
+    { key: 'weapon:b', kind: 'weapon', total: 20, six_star: 2, gifts: 1, unverified_records: 4, history: [] },
+  ] })
+  const category = poolCategories(pools)[0], summary = kindSummary(pools, 'weapon')
+  assert.deepEqual([category.total, category.six_star, category.gifts, category.unverified_records], [30, 3, 3, 7])
+  assert.deepEqual([summary.total, summary.six_star, summary.gifts, summary.unverified_records, summary.pace.average], [30, 3, 3, 7, 10])
+  assert.deepEqual(pools[0].history.map(item => item.name), ['正常'])
+})

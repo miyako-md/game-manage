@@ -96,10 +96,11 @@ class ReminderStore:
             db.execute('UPDATE reminder_delivery SET lease=NULL,lease_until=NULL WHERE lease=?', (lease,))
             return True
 
-    def inbox(self, scope, version):
+    def inbox(self, scope, version, *, minimum_version=None):
         with self.lock:
             return [dict(row) for row in self.db.execute('SELECT id,title,body,source_read_at,delivered_at FROM reminder_inbox '
-                'WHERE user_id=? AND account_id=? AND role_id=? AND grant_version=? ORDER BY id DESC LIMIT 100', (*self.scope_key(scope), version))]
+                'WHERE user_id=? AND account_id=? AND role_id=? AND grant_version BETWEEN ? AND ? ORDER BY id DESC LIMIT 100',
+                (*self.scope_key(scope), minimum_version if minimum_version is not None else version, version))]
 
     def close(self):
         with self.lock:
@@ -143,7 +144,8 @@ class ScopedReminderService:
 
     def inbox(self, scope):
         info = self.accounts.describe(scope)
-        return self.store.inbox(scope, info['version'])
+        return self.store.inbox(scope, info['version'],
+            minimum_version=self.accounts.snapshot_generation(scope, info['version']))
 
     def handle_poll(self, scope, capability, result, version):
         info = self.accounts.describe(scope)

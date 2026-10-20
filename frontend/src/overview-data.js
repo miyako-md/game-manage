@@ -1,5 +1,6 @@
 import { DAY_MS, parseBeijingTime } from './calendar.js'
 import { ENDFIELD_SPECIAL_POOL } from './dashboard.js'
+import { collectionState } from './snapshot-state.js'
 import { gachaPools, gachaView as endfieldGachaView, kindSummary, poolTotal, recentSixStars, sixPullsText } from './endfield-gacha-summary.js'
 
 // Data for the overview's cards, read from snapshots the page already has. Nothing here fetches.
@@ -29,10 +30,18 @@ export function resetLabel(at, now) {
 export function dailyTasks(games, snapshots = {}, now = Date.now()) {
   const tasks = games.flatMap(game => {
     const id = game.game_id, snaps = snapshots[id] || {}
-    const task = (key, name, current, total, daily, resetAt = null, unit = '') => ({
-      key: `${id}:${key}`, gameId: id, gameName: game.display_name, name, current, total, unit, daily,
-      done: total == null ? current === 0 : current >= total, resetAt, reset: resetLabel(resetAt, now),
-    })
+    const task = (snapshot, key, name, current, total, daily, resetAt = null, unit = '') => {
+      const retained = snapshot?.stale === true || collectionState(snapshot) === 'failed' || !!snapshot?.readError
+      const fetchedAt = parseBeijingTime(snapshot?.fetched_at)
+      // A retained value can still prove completion before its recorded next
+      // reset. Without that boundary, its current cycle cannot be established.
+      const sameCycle = resetAt != null && resetAt > now && fetchedAt != null && fetchedAt <= now && fetchedAt < resetAt
+      const pending = resetAt != null && resetAt <= now || retained && !sameCycle
+      return {
+        key: `${id}:${key}`, gameId: id, gameName: game.display_name, name, current, total, unit, daily, pending, retained,
+        done: !pending && (total == null ? current === 0 : current >= total), resetAt, reset: resetLabel(resetAt, now),
+      }
+    }
     if (id === 'wuthering_waves') {
       const items = rows(snaps.progress?.payload)
       return items.flatMap((item, index) => {
@@ -40,21 +49,21 @@ export function dailyTasks(games, snapshots = {}, now = Date.now()) {
         const daily = item.name === '活跃度'
         if (current == null || !total || typeof item.name !== 'string') return []
         if (!daily && (resetAt == null || resetAt <= now || resetAt - now > 7 * DAY_MS)) return []
-        return [task(`p${index}`, item.name, current, total, daily, resetAt)]
+        return [task(snaps.progress, `p${index}`,  item.name, current, total, daily, resetAt)]
       })
     }
     if (id === 'nte') {
       const stamina = versioned(snaps, 'stamina')
       const activity = count(stamina?.daily_activity), weekly = count(stamina?.weekly_remaining)
       return [
-        ...(activity == null ? [] : [task('daily', '日常活跃', activity, 100, true)]),
-        ...(weekly == null ? [] : [task('weekly', '周本剩余', weekly, null, false, null, '次')]),
+        ...(activity == null ? [] : [task(snaps.stamina, 'daily', '日常活跃', activity, 100, true)]),
+        ...(weekly == null ? [] : [task(snaps.stamina, 'weekly', '周本剩余', weekly, null, false, null, '次')]),
       ]
     }
     if (id === 'endfield') {
       return rows(versioned(snaps, 'progress')?.items).flatMap(item => {
         const current = count(item.cur), total = count(item.total)
-        return ['daily', 'weekly'].includes(item.id) && current != null && total ? [task(item.id, item.name || (item.id === 'daily' ? '每日活跃' : '每周任务'), current, total, item.id === 'daily')] : []
+        return ['daily', 'weekly'].includes(item.id) && current != null && total ? [task(snaps.progress, item.id, item.name || (item.id === 'daily' ? '每日活跃' : '每周任务'), current, total, item.id === 'daily')] : []
       })
     }
     return []

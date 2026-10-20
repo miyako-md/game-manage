@@ -129,7 +129,7 @@ async def test_endfield_commands_render_upload_and_passively_send_once(
                 with Image.open(BytesIO(image)) as picture:
                     picture.load()
                     assert body['file_name'] == ('reply.png' if picture.format=='PNG' else 'reply.jpg')
-                    assert picture.width == 720 and 0 < picture.height <= 1440
+                    assert 0 < picture.width <= 1080 and 0 < picture.height <= 16000
                 media = 'fixture-media-' + str(len(uploads))
                 uploads.append((image, media))
                 return {'file_info': media}

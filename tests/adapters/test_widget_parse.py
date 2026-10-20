@@ -89,5 +89,18 @@ def test_parse_progress_invalid_timestamp_values_to_none():
 
 
 def test_parse_progress_empty_or_missing_data():
-    assert parse_progress(_raw({})) == []
-    assert parse_progress(_raw(None)) == []
+    import pytest
+    for data in ({}, None, {'energyData': {'cur': 1}}):
+        with pytest.raises(ValueError):
+            parse_progress(_raw(data))
+
+
+def test_progress_requires_observed_counts_and_preserves_true_zero():
+    import pytest
+    for entry in ({'total': 3}, {'cur': 3}, {'cur': None, 'total': 3}, {}):
+        with pytest.raises(ValueError):
+            parse_progress(_raw({'slashTowerData': entry}))
+        with pytest.raises(ValueError):
+            parse_progress(_raw({'battlePassData': [entry]}))
+    row = parse_progress(_raw({'slashTowerData': {'cur': 0, 'total': 3}}))[0]
+    assert (row.cur, row.total) == (0, 3)

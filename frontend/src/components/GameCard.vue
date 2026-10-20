@@ -90,8 +90,8 @@ function capProps(cap) {
   }
   // Async wrappers do not expose the loaded component's prop declarations.
   const declared = cap === 'gacha' ? ['snap','accountId','roles']
-    : ['realestate','vehicles','teams'].includes(cap) ? ['snap','capability','roles']
-      : ['snap','capability']
+      : ['realestate','vehicles','teams'].includes(cap) ? ['snap','capability','roles']
+        : ['snap','capability']
   return Object.fromEntries(Object.entries(offered).filter(([key]) => declared.includes(key)))
 }
 </script>

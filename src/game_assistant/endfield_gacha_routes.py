@@ -28,7 +28,10 @@ def install_endfield_gacha_routes(app, settings):
             raise HTTPException(status_code=400, detail='分页参数不正确') from None
         if not 1 <= limit <= 1000 or not 0 <= offset <= 2**31:
             raise HTTPException(status_code=400, detail='分页参数不正确')
-        return store.records(role(), request.query_params.get('pool_key') or None, limit, offset)
+        kind = request.query_params.get('kind') or None
+        if kind not in (None, 'character', 'weapon'):
+            raise HTTPException(status_code=400, detail='寻访记录类别不正确')
+        return store.records(role(), request.query_params.get('pool_key') or None, limit, offset, kind=kind)
 
     @router.get('/export')
     async def export():
@@ -36,9 +39,3 @@ def install_endfield_gacha_routes(app, settings):
                             headers={'Content-Disposition': 'attachment; filename="endfield-gacha.json"'})
 
     app.include_router(router)
-
-
-def install_cloud_endfield_gacha_routes(app, boundary):
-    """Install scoped cloud routes; the legacy local router stays separate."""
-    from game_assistant.private_routes import _install_endfield_gacha
-    _install_endfield_gacha(boundary, app)

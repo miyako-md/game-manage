@@ -145,3 +145,22 @@ test('QQ ledger keeps reward types separate and uses identity before a stale nam
  ])
  assert.match(content(root),/勿忘伞.*旧名称.*早雾.*早雾/)
 })
+
+
+test('a file within the file limit cannot send an oversized wrapper or clear the saved ledger', async t => {
+  let writes = 0
+  api(t, (url, init) => {
+    if (init?.body) { writes++; return {} }
+    return url.includes('/summary') ? { total_records: 7, pools: [] } : read(url)
+  })
+  const root = mount(t, Panel, { accountId: 'r' }); await flush()
+  const document = { padding: '' }, limit = 8 * 1024 * 1024
+  document.padding = 'a'.repeat(limit - JSON.stringify(document).length)
+  const text = JSON.stringify(document)
+  const file = nodes(root, 'input').find(node => node.props.type === 'file')
+  await file.props.onChange({ target: { files: [{ name: 'large.json', size: limit, text: async () => text }] } }); await nextTick()
+  await button(root, '校验并预览').props.onClick(); await nextTick()
+  assert.match(content(root), /连同确认信息超过 8 MB.*当前账本未更改/)
+  assert.match(content(root), /7 条已保存记录/)
+  assert.equal(writes, 0)
+})

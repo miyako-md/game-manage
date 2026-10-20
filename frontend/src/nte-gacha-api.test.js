@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { pityLabel, ledgerDate, poolLabel, previewLedger, getLedgerSummary } from './nte-gacha-api.js'
+import { pityLabel, ledgerDate, poolLabel, previewLedger, importLedger, getLedgerSummary } from './nte-gacha-api.js'
 test('pity distinguishes exact, lower bound and unknown, including a real zero', () => {
   assert.equal(pityLabel({ status: 'exact', count: 0 }), '0 抽')
   assert.equal(pityLabel({ status: 'lower_bound', count: 12 }), '至少 12 抽')
@@ -33,4 +33,26 @@ test('an abort reaches the caller unchanged', async t => {
   const aborted = Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' })
   globalThis.fetch = async () => { throw aborted }
   await assert.rejects(getLedgerSummary(), error => error === aborted)
+})
+
+test('NTE preview and import bound their actual UTF-8 JSON request including confirmation metadata', async t => {
+  const limit = 8 * 1024 * 1024
+  let calls = 0
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    calls++
+    assert.equal(new TextEncoder().encode(options.body).byteLength, limit)
+    return new Response('{}')
+  })
+  for (const send of [previewLedger, importLedger]) {
+    const body = { document: { name: '中文', padding: '' }, latest_confirmed: false, preview_id: 'ticket' }
+    const overhead = new TextEncoder().encode(JSON.stringify(body)).byteLength
+    body.document.padding = 'a'.repeat(limit - overhead)
+    await send(body)
+    body.document.padding += 'a'
+    await assert.rejects(send(body), /连同确认信息超过 8 MB.*当前账本未更改/)
+    body.document.padding = '汉'.repeat(Math.ceil((limit - overhead) / 3))
+    assert.ok(JSON.stringify(body).length < limit)
+    await assert.rejects(send(body), /超过 8 MB/)
+  }
+  assert.equal(calls, 2)
 })

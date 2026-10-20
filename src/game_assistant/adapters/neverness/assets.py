@@ -9,7 +9,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from .data_models import NtePayload
-from .parse import _ERROR, _count, _http_url, _id, _object, _rows, _text, _unwrap
+from .parse import _ERROR, _count, _http_url, _id, _object, _optional_id, _rows, _text, _unwrap
 
 
 class NteFurniture(BaseModel):
@@ -78,10 +78,6 @@ def _owned(value: Any) -> bool | None:
         if value in (0, "0", "false"):
             return False
     return None
-
-
-def _optional_id(value: Any) -> str | None:
-    return None if value in (None, "") else _id(value)
 
 
 def _residents(value: Any) -> list[str]:

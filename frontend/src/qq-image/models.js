@@ -64,7 +64,7 @@ function stateNotes(s){return [s?.state==='auth_expired'?'登录已过期，请�
 function timelineGroups(c){
  const s=c.snapshot,d=s.display_data,now=Date.parse(s.as_of)
  const groups=s.kind==='calendar'?collectVersionCalendars(d.games,d.snapshots,'',now):(d.panels||[]).filter(p=>['events','recent_events'].includes(p.capability)).map(p=>({gameId:p.game,gameName:names[p.game],version:{id:list(p.snapshot.payload)[0]?.version},events:collectCalendarEvents([{game_id:p.game,display_name:names[p.game]}],{[p.game]:{events:p.snapshot}})}))
- return groups.map(g=>({title:`${g.gameName}　${g.version?.id?g.version.id+' 版本':'活动日历'}`,type:'cloud_calendar',events:g.events,snapshots:d.snapshots||{},asOf:now,caption:'北京时间。展示前天起的 14 天；左右箭头表示活动持续到当前日期范围外。“预计”标记保留来源的时间精度。'}))
+ return groups.map((g,i)=>({title:`${g.gameName} · ${g.version?.id?g.version.id+' 版本':'活动日历'}`,gameId:g.gameId,type:'cloud_calendar',events:g.events,snapshots:d.snapshots||{},asOf:now,caption:i===groups.length-1?'北京时间 · 展示近 14 天活动排期，左右箭头代表跨窗口延续':''}))
 }
 
 function combat(p){

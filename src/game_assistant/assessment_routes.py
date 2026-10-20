@@ -116,7 +116,8 @@ def install_assessment_routes(app,accounts=None,private_root=None,snapshots=None
     async def equipped(game:Literal['nte','wuthering_waves'],character:Character,authorization=Depends(owner)):
         scope,version=authorization; payload={}; observed=None
         if game=='nte':
-            snap=snapshots.get_scoped(scope,'roles',grant_version=version) if cloud and snapshots else app.state.store.get(game,'roles') if not cloud else None
+            snap=snapshots.get_scoped(scope,'roles',grant_version=version,
+                minimum_version=accounts.snapshot_generation(scope,version)) if cloud and snapshots else app.state.store.get(game,'roles') if not cloud else None
             if snap: payload=json.loads(snap['payload']); observed=snap['fetched_at']
         elif cloud:
             from .wuwa_history import WuwaHistory

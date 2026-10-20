@@ -75,6 +75,8 @@ class EndfieldGachaPool(BaseModel):
     four_star: int | None = None
     unknown_rarity: int | None = None
     free: int = 0
+    gifts: int = 0  # 额外奖励保留在明细中，不计抽数、星级出货或保底
+    unverified_records: int = 0  # 武器记录缺少可识别类型，补读核验前不混入确定统计
     since_last_six: EndfieldPity = EndfieldPity()
     history: list[EndfieldSixStar] = []
     history_total: int | None = None
@@ -89,9 +91,17 @@ class EndfieldGachaPool(BaseModel):
     banners: list[EndfieldGachaBanner] = []  # 由新到旧
 
 
+class EndfieldGachaError(BaseModel):
+    # 本轮同步里读取失败的卡池（或武器池列表），下次同步时重试
+    key: str
+    label: str
+    message: str
+
+
 class EndfieldGacha(EndfieldPayload):
     role_id: str
     total: int = 0
     complete: bool | None = None  # 未采集或旧账本缺少覆盖证据时保持未知
     pools: list[EndfieldGachaPool] = []
+    errors: list[EndfieldGachaError] = []
     report: dict | None = None

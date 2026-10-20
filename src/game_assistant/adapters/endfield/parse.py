@@ -110,9 +110,15 @@ def normalize_record(raw: dict, kind: str) -> dict:
         raise ValueError(_ERROR)
     prefix = "char" if kind == "character" else "weapon"
     rarity = _count(raw.get("rarity"))
+    record_kind = _text(raw.get("kind"))
+    reward = bool(record_kind and record_kind.startswith("gift"))
     return {
         "seq_id": int(seq), "kind": kind,
-        "item_id": _text(raw.get(f"{prefix}Id")), "name": _text(raw.get(f"{prefix}Name")),
+        "record_kind": record_kind, "pool_version": _count(raw.get("poolVersion")),
+        "reward_label": _text(raw.get("giftRewardLabel")),
+        "item_id": _text(raw.get(f"{prefix}Id")),
+        "name": (_text(raw.get("nameText")) if reward else _text(raw.get(f"{prefix}Name")))
+                or _text(raw.get("nameText")) or _text(raw.get(f"{prefix}Name")),
         "rarity": rarity if rarity is not None and rarity <= 6 else None,
         "pool_id": _text(raw.get("poolId")), "pool_name": _text(raw.get("poolName")),
         "is_free": _flag(raw.get("isFree")), "is_new": _flag(raw.get("isNew")),
@@ -125,20 +131,27 @@ def record_page(data: Any, kind: str) -> tuple[list[dict], bool]:
     """record/char、record/weapon 的 data → (记录列表, 是否还有下一页)。"""
     if not isinstance(data, dict):
         raise ValueError(_ERROR)
-    rows = [normalize_record(row, kind) for row in _rows(data.get("list", []))]
-    has_more = data.get("hasMore")
-    if not isinstance(has_more, bool):
+    if "list" not in data:
         raise ValueError(_ERROR)
-    return rows, has_more
+    rows = [normalize_record(row, kind) for row in _rows(data["list"] or [])]
+    # 参考实现按真值读取 hasMore（缺省即没有后续）；只接受布尔、0/1 和缺省，其他类型仍视为格式无效。
+    has_more = data.get("hasMore")
+    if has_more is None or (has_more in (0, 1) and not isinstance(has_more, float)):
+        return rows, bool(has_more)
+    raise ValueError(_ERROR)
 
 
 def weapon_pools(data: Any) -> list[tuple[str, str]]:
     """record/weapon/pool 的 data → [(pool_id, pool_name)]；参考项目见过列表与 {list} 两种包装。"""
-    rows = data.get("list", []) if isinstance(data, dict) else data
-    pools = []
+    if isinstance(data, dict) and "list" not in data:
+        raise ValueError(_ERROR)
+    rows = data["list"] if isinstance(data, dict) else data
+    pools, seen = [], set()
     for row in _rows(rows):
         pool_id = _text(row.get("poolId"))
         if not pool_id:
             raise ValueError(_ERROR)
-        pools.append((pool_id, _text(row.get("poolName")) or pool_id))
+        if pool_id not in seen:
+            pools.append((pool_id, _text(row.get("poolName")) or pool_id))
+            seen.add(pool_id)
     return pools

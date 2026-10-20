@@ -1,10 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { calendarRange, eventGeometry, eventStatus, versionCalendarRange } from './calendar.js'
+import { eventGeometry, eventStatus, versionCalendarRange } from './calendar.js'
+
+import { beijingRange } from './test-utils/calendar.js'
 
 test('an explicit permanent opening remains visible after its start without fabricating an end', () => {
   const event = { start_date:'2026-09-30', start_precision:'relative', permanent:true, end_precision:'permanent' }
-  const range = calendarRange('2026-10-15', 'rolling')
+  const range = beijingRange('2026-10-12', '2026-11-11')
   const geometry = eventGeometry(event, range)
   assert.equal(geometry.kind, 'range')
   assert.equal(geometry.visible, true)

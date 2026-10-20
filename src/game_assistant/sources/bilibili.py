@@ -7,7 +7,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from .article_content import article_images
 
-from game_assistant.event_calendar import BEIJING_TZ as BJ
+from game_assistant.event_calendar import BEIJING_TZ as BJ, nearest_year
 
 logger = logging.getLogger(__name__)
 RULE_VERSION = 7
@@ -107,12 +107,8 @@ def classify_dynamic(item, uid, now):
     for match in DATE.finditer(policy_text):
         y, m, d, h, minute = match.groups()
         try:
-            years = [int(y)] if y else [published.astimezone(BJ).year + n for n in (-1, 0, 1)]
-            candidates = []
-            for year in years:
-                try: candidates.append(datetime(year, int(m), int(d), int(h or 0), int(minute or 0), tzinfo=BJ))
-                except ValueError: pass
-            date = min(candidates, key=lambda t: abs((t - published).total_seconds()))
+            parts = int(m), int(d), int(h or 0), int(minute or 0)
+            date = datetime(int(y), *parts, tzinfo=BJ) if y else nearest_year(*parts, near=published)
             evidence.append({'text': match.group(), 'date': date.strftime('%Y-%m-%d' + (' %H:%M' if h else '')), 'year_inferred': not bool(y)})
         except (ValueError, OverflowError):
             continue

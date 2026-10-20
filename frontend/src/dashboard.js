@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { DAY_MS, parseBeijingTime, safeUrl } from './calendar.js'
+import { DAY_MS, collectCalendarEvents, eventGeometry, parseBeijingTime, safeUrl } from './calendar.js'
 import { createEsportsBrowseState } from './esports.js'
 import { capabilityLabel } from './cloud-display.js'
 
@@ -65,18 +65,14 @@ export function summaryFor(game, snapshots = {}) {
 }
 
 export function upcomingEvents(games, snapshots, now = Date.now()) {
-  return games.flatMap(game => {
-    const snap = snapshots[game.game_id]?.events
-    if (!Array.isArray(snap?.payload)) return []
-    return snap.payload.flatMap((ev, index) => {
-      if (!ev || typeof ev !== 'object') return []
-      // Same start and staleness rules as the calendar (eventGeometry, collectCalendarEvents).
-      const end = parseBeijingTime(ev.end_at), start = parseBeijingTime(ev.start_at || ev.start_date)
-      if (end == null || end <= now || (ev.start_at && start == null) || (start != null && start > end)) return []
-      return [{ ...ev, id: `${game.game_id}:${index}`, gameId: game.game_id, gameName: game.display_name,
-        endTime: end, remainingDays: Math.ceil((end - now) / DAY_MS), upcoming: start != null && start > now,
-        stale: Boolean(snap.stale || ev.source_stale) }]
-    })
+  return collectCalendarEvents(games, snapshots).flatMap(event => {
+    const geometry = eventGeometry(event, { start: now, end: now + DAY_MS })
+    if (geometry.kind === 'invalid' || geometry.end == null || geometry.end <= now) return []
+    // Date-only deadlines belong to the stated day; geometry.end includes that
+    // whole day and is used only to decide whether the event has ended.
+    const endTime = parseBeijingTime(event.end_at || event.end_date)
+    return [{ ...event, endTime, endBoundary: geometry.end,
+      remainingDays: Math.ceil((geometry.end - now) / DAY_MS), upcoming: geometry.start != null && geometry.start > now }]
   }).sort((a, b) => a.endTime - b.endTime)
 }
 
@@ -118,7 +114,7 @@ export function createDashboard(api) {
   const state = reactive({ games: [], snapshots: {}, notify: null, accounts: {}, collection: [], readErrors: {}, refreshErrors: {}, refreshing: {},
     loading: false, loadError: '', serviceError: '', loadedAt: null,
     esportsBrowse: { league_of_legends: createEsportsBrowseState() } })
-  const requests = new Map(), epochs = new Map(), refreshResults = new Map()
+  const requests = new Map(), epochs = new Map(), refreshResults = new Map(), reads = new Map()
   let catalogRequest = 0, statusRequest = 0, disposed = false
 
   function renderRefreshErrors(id) {
@@ -162,21 +158,31 @@ export function createDashboard(api) {
     await Promise.all(selected.map(async game => {
       const id = game.game_id, request = (requests.get(id) || 0) + 1
       requests.set(id, request)
-      const results = await Promise.allSettled(game.capabilities.map(cap => api.getSnapshot(id, cap)))
-      if (disposed || request !== requests.get(id)) return
-      const next = { ...(state.snapshots[id] || {}) }, failed = []
-      results.forEach((r, index) => {
-        const cap = game.capabilities[index]
-        if (r.status === 'fulfilled' && r.value && 'payload' in r.value) {
-          next[cap] = r.value
-          if (r.value.poll_status) {
-            mergeCollection([r.value.poll_status])
+      reads.get(id)?.abort()
+      const controller = new AbortController()
+      reads.set(id, controller)
+      const current = () => !disposed && request === requests.get(id)
+      const failed = []
+      await Promise.all(game.capabilities.map(async cap => {
+        try {
+          const value = await api.getSnapshot(id, cap, { signal: controller.signal })
+          if (!current()) return
+          if (!value || !('payload' in value)) throw new Error('invalid snapshot')
+          state.snapshots[id] = { ...(state.snapshots[id] || {}), [cap]: value }
+          if (value.poll_status) {
+            mergeCollection([value.poll_status])
             reconcileRefreshErrors(id, state.collection.find(row => row.game_id === id && row.capability === cap))
           }
+        } catch (error) {
+          if (current() && error?.name !== 'AbortError') {
+            failed.push(cap)
+            const retained = state.snapshots[id]?.[cap]
+            if (retained) state.snapshots[id] = { ...state.snapshots[id], [cap]: { ...retained, readError: '快照读取失败，保留已有数据。' } }
+          }
         }
-        else failed.push(cap)
-      })
-      state.snapshots[id] = next
+      }))
+      if (!current()) return
+      reads.delete(id)
       state.readErrors[id] = failed.length ? `快照读取失败（${failed.join('、')}），保留已有数据。` : ''
     }))
     if (!disposed) state.loadedAt = Date.now()
@@ -202,6 +208,7 @@ export function createDashboard(api) {
   }
 
   function invalidateGame(id) {
+    reads.get(id)?.abort(); reads.delete(id)
     statusRequest += 1
     epochs.set(id, (epochs.get(id) || 0) + 1)
     requests.set(id, (requests.get(id) || 0) + 1)
@@ -234,5 +241,5 @@ export function createDashboard(api) {
     }
   }
 
-  return { state, load, loadSnapshots, loadStatus, refresh, invalidateGame, dispose() { disposed = true } }
+  return { state, load, loadSnapshots, loadStatus, refresh, invalidateGame, dispose() { disposed = true; for (const controller of reads.values()) controller.abort(); reads.clear() } }
 }

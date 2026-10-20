@@ -22,7 +22,7 @@ const kinds = computed(()=>['character','weapon'].map(kind=>kindSummary(gachaPoo
           <span class="gs-kind-stats"><span class="six">6★ <b>{{ show(kind.six_star) }}</b></span><span class="five">5★ <b>{{ show(kind.five_star) }}</b></span><span>平均出 6★ <b>{{ kind.pace.average ?? '—' }}</b><template v-if="kind.pace.average != null"> 抽</template></span></span></li>
       </ul>
       <div v-else class="gs-center plain"><span class="k">已记录寻访</span><strong>{{ show(total) }}</strong></div>
-      <div class="coverage"><span>同步于 {{ view.snapshot.fetched_at ? displayBeijing(view.snapshot.fetched_at) : '未知' }}（北京时间）</span><span>{{ report?.pending === true ? '部分待同步' : report?.pending === false ? '本轮同步完成' : '记录完整性未知' }}</span></div>
+      <div class="coverage"><span>同步于 {{ view.snapshot.fetched_at ? displayBeijing(view.snapshot.fetched_at) : '未知' }}（北京时间）</span><span>{{ report?.pending === true ? '部分待同步' : report?.pending === false ? '本轮同步完成' : '记录完整性未知' }}</span><span v-if="summary.errors?.length" class="gs-failed">{{ summary.errors.length }} 个卡池读取失败，详见寻访详情</span></div>
     </template>
     <div v-else class="gs-empty"><span class="gs-ghost" aria-hidden="true"></span><p>{{ view.message || '尚未同步寻访记录，请刷新数据。' }}</p></div>
     <footer><button type="button" class="ui-button primary" @click="emit('details')">查看寻访详情 →</button><button type="button" class="ui-button" :disabled="refreshing" @click="emit('refresh')">{{ refreshing ? '同步中…' : '刷新寻访数据' }}</button></footer>
@@ -50,6 +50,7 @@ const kinds = computed(()=>['character','weapon'].map(kind=>kindSummary(gachaPoo
 .gs-center.plain{justify-items:start;padding:8px 0}
 .gs-center.plain strong{font-size:44px;line-height:48px;letter-spacing:-.05em}
 .coverage{display:flex;gap:4px 20px;flex-wrap:wrap}
+.gs-failed{color:var(--stale-text)}
 .gs-empty{display:flex;align-items:center;gap:18px;padding:6px 0}
 .gs-ghost{flex:0 0 auto;width:72px;height:72px;border:10px solid var(--track);border-radius:50%}
 .ef-gacha-summary footer{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:2px}

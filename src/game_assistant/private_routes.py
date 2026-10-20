@@ -18,6 +18,13 @@ from .wuwa_gacha import GachaStore as WuwaStore, fetch_official
 from .wuwa_history import WuwaHistory
 
 PREFIX='/api/accounts/{account_id}/roles/{role_id}'
+NTE_IMPORT_BODY_LIMIT = 8 * 1024 * 1024
+WUWA_IMPORT_BODY_LIMIT = 2 * 1024 * 1024
+IMPORT_BODY_LIMITS = {
+    PREFIX + '/nte/gacha/' + action: NTE_IMPORT_BODY_LIMIT for action in ('preview', 'import')
+} | {
+    PREFIX + '/wuwa/gacha/' + action: WUWA_IMPORT_BODY_LIMIT for action in ('preview', 'import')
+}
 
 
 class PrivateRoutes:
@@ -150,10 +157,11 @@ class PrivateRoutes:
         """Explicit opt-in after the cloud boundary has been installed."""
         from .cloud_app import allow_cloud_route
         for path,methods,_ in self.routes:
-            allow_cloud_route(app,path,methods,access='user')
+            allow_cloud_route(app,path,methods,access='user',
+                body_limit=IMPORT_BODY_LIMITS.get(path) if methods == frozenset({'POST'}) else None)
 
 
-async def _body(request,maximum=8*1024*1024):
+async def _body(request,maximum=NTE_IMPORT_BODY_LIMIT):
     raw=bytearray()
     async for chunk in request.stream():
         raw.extend(chunk)
@@ -242,8 +250,9 @@ def _install_endfield_gacha(bundle,app):
 
     @router.get('/records')
     async def records(pool_key:str|None=None,limit:int=Query(100,ge=1,le=1000),
-                      offset:int=Query(0,ge=0,le=2**31),scope=Depends(owner)):
-        return bundle.ledger(scope,'endfield_gacha').records(scope,pool_key,limit,offset)
+                      offset:int=Query(0,ge=0,le=2**31),kind:Literal['character','weapon']|None=None,
+                      scope=Depends(owner)):
+        return bundle.ledger(scope,'endfield_gacha').records(scope,pool_key,limit,offset,kind=kind)
 
     @router.get('/export')
     async def export(scope=Depends(owner)):
@@ -308,7 +317,7 @@ def _install_wuwa_archive(bundle,app):
     @router.post('/gacha/preview')
     async def preview_gacha(request:Request,scope=Depends(owner)):
         info=bundle.accounts.describe(scope)
-        value=await _body(request,2*1024*1024)
+        value=await _body(request,WUWA_IMPORT_BODY_LIMIT)
         if bundle.accounts.describe(scope)['version']!=info['version']:
             raise HTTPException(409,'authorization_changed')
         if set(value)=={'url'}:
@@ -351,7 +360,8 @@ def _install_wuwa_archive(bundle,app):
         ledger=bundle.ledger(scope,'wuwa_history')
         inserted=0
         for capability in ('combat','roles'):
-            snapshot=bundle.snapshots.get_scoped(scope,capability,grant_version=version)
+            snapshot=bundle.snapshots.get_scoped(scope,capability,grant_version=version,
+                minimum_version=bundle.accounts.snapshot_generation(scope,version))
             if snapshot:
                 try:
                     inserted+=ledger.capture(scope,capability,json.loads(snapshot['payload']),
@@ -364,7 +374,7 @@ def _install_wuwa_archive(bundle,app):
     @router.post('/gacha/import')
     async def import_gacha(request:Request,scope=Depends(owner)):
         info=bundle.accounts.describe(scope)
-        value=await _body(request,2*1024*1024)
+        value=await _body(request,WUWA_IMPORT_BODY_LIMIT)
         if bundle.accounts.describe(scope)['version']!=info['version']:
             raise HTTPException(409,'authorization_changed')
         if set(value)=={'preview_id'}:
@@ -463,16 +473,9 @@ def install_cloud_private_routes(app,accounts,runtime,private_root,*,snapshots=N
     async def ledger_error(request,error):
         return JSONResponse({'error_code':'invalid_gacha_input','detail':str(error)},status_code=error.status)
 
-    from .nte_gacha_routes import install_cloud_nte_gacha_routes
-    from .endfield_gacha_routes import install_cloud_endfield_gacha_routes
-    from .endfield_blueprint_routes import install_cloud_endfield_blueprint_routes
-    from .wuwa_archive_routes import install_cloud_wuwa_archive_routes
-    from .adapters.wuthering_waves.routes import install_cloud_wuwa_routes
-    from .endfield_skland_routes import install_cloud_endfield_skland_routes
-    for install in (install_cloud_nte_gacha_routes,install_cloud_endfield_gacha_routes,
-                    install_cloud_endfield_blueprint_routes,install_cloud_wuwa_archive_routes,
-                    install_cloud_wuwa_routes,install_cloud_endfield_skland_routes):
-        install(app,bundle)
+    for install in (_install_nte, _install_endfield_gacha, _install_blueprints,
+                    _install_wuwa_archive, _install_wuwa_details, _install_skland):
+        install(bundle, app)
     return bundle
 
 

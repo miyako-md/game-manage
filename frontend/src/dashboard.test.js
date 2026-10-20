@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createDashboard, percentOf, summaryFor, upcomingEvents, recentNews, readRoute } from './dashboard.js'
 import { collectCalendarEvents, eventStatus } from './calendar.js'
+import { dailyTasks } from './overview-data.js'
 
 const game = { game_id: 'nte', display_name: '异环', capabilities: ['account', 'stamina', 'events'] }
 test('mobile duplicate notices prefer Bilibili but LOL keeps both different links', () => {
@@ -260,4 +261,97 @@ test('percentOf takes numbers or numeric text and refuses unknown or non-positiv
   for (const [current, total] of [[null, 10], [5, 0], [5, null], [-1, 10], ['', 10], ['abc', 10], [true, 10], [5, Infinity]]) {
     assert.equal(percentOf(current, total), null, `${current} / ${total}`)
   }
+})
+
+
+test('overview deadlines retain date-only final days and expand phases like the calendar', () => {
+  const now = Date.parse('2026-10-20T12:00:00+08:00')
+  const day = { name: '日期截止', start_date: '2026-10-19', end_date: '2026-10-21', end_precision: 'day' }
+  const phase = { name: '分阶段', phases: [{ start_date: '2026-10-19', end_date: '2026-10-21', end_precision: 'day' }] }
+  const snapshots = { nte: { events: snapshot([day, day, phase, { name: '常驻', start_date: '2026-10-01', permanent: true, end_precision: 'permanent' }]) } }
+  const items = upcomingEvents([game], snapshots, now)
+  assert.deepEqual(items.map(item => item.name), ['日期截止', '分阶段 · 阶段 1'])
+  assert.equal(items[0].endTime, Date.parse('2026-10-21T00:00:00+08:00'))
+  assert.equal(items[0].endBoundary, Date.parse('2026-10-22T00:00:00+08:00'))
+  assert.equal(upcomingEvents([game], snapshots, Date.parse('2026-10-21T23:59:00+08:00')).length, 2)
+  assert.equal(upcomingEvents([game], snapshots, Date.parse('2026-10-22T00:00:00+08:00')).length, 0)
+  const precise = { nte: { events: snapshot([{ name: '准确截止', end_at: '2026-10-20T12:01:00+08:00' }, { name: '未知截止' }]) } }
+  assert.equal(upcomingEvents([game], precise, now).length, 1)
+  assert.equal(upcomingEvents([game], precise, now + 60000).length, 0)
+})
+
+
+test('a pending capability does not hide successful reads and a failure preserves its previous value', async () => {
+  const pending = deferred()
+  let delay = false, fail = false
+  const d = createDashboard(api({ getSnapshot: async (_id, cap) => {
+    if (cap === 'events' && delay) return pending.promise
+    if (cap === 'events' && fail) throw Error('unavailable')
+    return snapshot(cap === 'events' ? ['retained'] : { current: delay ? 20 : 10 })
+  } }))
+  await d.load()
+  delay = true
+  const reading = d.loadSnapshots()
+  await new Promise(setImmediate)
+  assert.equal(d.state.snapshots.nte.stamina.payload.current, 20)
+  assert.deepEqual(d.state.snapshots.nte.events.payload, ['retained'])
+  pending.resolve(snapshot(['new'])); await reading
+  delay = false; fail = true
+  await d.loadSnapshots()
+  assert.deepEqual(d.state.snapshots.nte.events.payload, ['new'])
+  assert.match(d.state.readErrors.nte, /events/)
+  d.dispose()
+})
+
+test('initial successful capabilities appear before a pending peer and disposal cancels that read', async () => {
+  const pending = deferred(), signals = []
+  const d = createDashboard(api({ getSnapshot: async (_id, cap, options) => {
+    signals.push(options.signal)
+    return cap === 'events' ? pending.promise : snapshot({ current: 10 })
+  } }))
+  const loading = d.load()
+  await new Promise(setImmediate)
+  assert.equal(d.state.loading, true)
+  assert.equal(d.state.snapshots.nte.stamina.payload.current, 10)
+  d.dispose()
+  assert.ok(signals.every(signal => signal.aborted))
+  pending.resolve(snapshot(['late'])); await loading
+  assert.equal(d.state.snapshots.nte.events, undefined)
+  assert.equal(d.state.snapshots.nte.stamina.payload.current, 10)
+})
+
+
+test('retained completion follows the failed capability and recovers after a successful reread', async () => {
+  const games = [
+    { game_id: 'wuthering_waves', display_name: '鸣潮', capabilities: ['progress', 'stamina', 'events'] },
+    { game_id: 'nte', display_name: '异环', capabilities: ['stamina', 'events'] },
+  ]
+  const now = Date.parse('2026-10-20T12:00:00+08:00')
+  let fail = false
+  const d = createDashboard(api({
+    getGames: async () => games,
+    getSnapshot: async (id, cap) => {
+      if (fail && (id === 'wuthering_waves' && cap === 'progress' || id === 'nte' && cap === 'events')) throw Error('unavailable')
+      const payload = cap === 'progress' ? [{ name: '活跃度', cur: 100, total: 100 }]
+        : cap === 'stamina' ? { schema_version: 1, daily_activity: 100, current: 20, maximum: 100 } : []
+      return { payload, stale: false, state: 'ok', fetched_at: '2026-10-19T23:00:00+08:00' }
+    },
+  }))
+  await d.load()
+  assert.ok(dailyTasks(games, d.state.snapshots, now).every(task => task.done))
+  fail = true; await d.loadSnapshots()
+  const tasks = dailyTasks(games, d.state.snapshots, now)
+  const retained = tasks.find(task => task.gameId === 'wuthering_waves')
+  const fresh = tasks.find(task => task.gameId === 'nte')
+  assert.deepEqual([retained.current, retained.done, retained.pending], [100, false, true])
+  assert.deepEqual([fresh.current, fresh.done, fresh.pending], [100, true, false])
+  assert.match(d.state.snapshots.wuthering_waves.progress.readError, /读取失败/)
+  assert.equal(d.state.snapshots.wuthering_waves.stamina.readError, undefined)
+  assert.equal(d.state.snapshots.nte.stamina.readError, undefined)
+  assert.match(d.state.snapshots.nte.events.readError, /读取失败/)
+  fail = false; await d.loadSnapshots()
+  assert.equal(d.state.snapshots.wuthering_waves.progress.readError, undefined)
+  assert.equal(d.state.snapshots.nte.events.readError, undefined)
+  assert.ok(dailyTasks(games, d.state.snapshots, now).every(task => task.done && !task.pending))
+  d.dispose()
 })

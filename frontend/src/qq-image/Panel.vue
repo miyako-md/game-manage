@@ -1,4 +1,5 @@
 <script setup>
+import {gameVars} from '../dashboard.js'
 import CloudCalendar from './CloudCalendar.vue'
 import NteCommunityGacha from '../components/NteCommunityGacha.vue'
 import EndfieldGachaPanel from '../components/EndfieldGachaPanel.vue'
@@ -13,7 +14,7 @@ const percent=v=>v==null?'—':Math.round(v)+'%'
 const ringStyle=p=>({'--pct':(p??0)+'%'})
 </script>
 <template>
- <section class="block" :class="['kind-'+panel.type,{'long-title':panel.title.length>4}]" :data-kind="panel.type">
+ <section class="block" :class="['kind-'+panel.type,{'long-title':panel.title.length>4}]" :data-kind="panel.type" :style="(panel.gameId||panel.game)?gameVars(panel.gameId||panel.game):undefined">
   <header class="block-cap"><span class="chapter-mark" aria-hidden="true"></span><h2>{{panel.title}}</h2></header>
   <div class="block-content">
    <p v-if="panel.caption" class="caption">{{panel.caption}}</p>
@@ -53,7 +54,7 @@ const ringStyle=p=>({'--pct':(p??0)+'%'})
    </div>
    <div v-else-if="panel.type==='guide_visual'" class="guide-visual"><div v-for="(line,i) in guideLines(panel)" :key="i" class="guide-source-line"><WuwaGuideVisual v-if="panel.game==='wuthering_waves'" :text="line" :section-key="panel.sectionKey" :character-id="panel.characterId" image-mode /><NteGuideVisual v-else :text="line" :section-key="panel.sectionKey" :role-name="panel.roleName" image-mode /></div></div>
    <div v-else-if="panel.type==='guide_context'" class="guide-empty"><p>{{panel.text}}</p><div v-if="panel.role" class="guide-role-context"><EndfieldArtwork :src="panel.role.avatar_url" :name="panel.role.name" role /><div><h3>{{panel.role.name}}</h3><p>角色资料已收录</p><p>查看本人面板：{{panel.command}}</p></div></div></div>
-   <div v-else-if="panel.type==='guide_index'" class="guide-list"><article v-for="g in panel.guides" class="guide-entry"><div v-if="g.images?.length" class="guide-entry-art" :class="{multi:g.images.length>1}"><figure v-for="(src,i) in g.images"><img :src="src" :alt="g.name+(g.avatarLabels[i]||'')" /><figcaption v-if="g.avatarLabels[i]">{{g.avatarLabels[i]}}</figcaption></figure></div><div><h3>{{g.name}}<small>{{g.attribute}}</small></h3><p>{{g.game==='nte'?'异环':'鸣潮'}} 攻略 {{g.name}}</p><small>{{g.version}}　{{g.status==='original_only'?'原图索引':'社区建议摘要'}}</small></div></article></div>
+   <div v-else-if="panel.type==='guide_index'" class="guide-list"><article v-for="g in panel.guides" class="guide-entry"><div v-if="g.images?.length" class="guide-entry-art" :class="{multi:g.images.length>1}"><figure v-for="(src,i) in g.images"><img :src="src" :alt="g.avatarLabels[i]||g.name.replace(/\s+/g,'').slice(0,2)" /><figcaption v-if="g.avatarLabels[i]">{{g.avatarLabels[i]}}</figcaption></figure></div><div><h3>{{g.name}}<small>{{g.attribute}}</small></h3><p>{{g.game==='nte'?'异环':'鸣潮'}} 攻略 {{g.name}}</p><small>{{g.version}}　{{g.status==='original_only'?'原图索引':'社区建议摘要'}}</small></div></article></div>
    <div v-else-if="panel.type==='textlines'" class="text-lines"><article v-for="line in panel.lines"><h3 v-if="line.name">{{line.name}}</h3><p>{{line.text}}</p></article></div>
    <p v-else class="prose">{{panel.text}}</p>
    <p v-if="panel.source" class="source-line">来源：{{panel.source}}</p>

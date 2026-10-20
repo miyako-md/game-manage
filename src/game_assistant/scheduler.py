@@ -243,6 +243,7 @@ class AccountPollingScheduler:
 
     def request_refresh(self, scope, capability):
         from fastapi import HTTPException
+        from game_assistant.accounts.store import AccountNotFoundError
         if not self._running:
             raise HTTPException(503, 'scheduler_unavailable')
         info = self.query.validate(scope, capability)
@@ -252,25 +253,32 @@ class AccountPollingScheduler:
         if key not in self._due:
             self._due[key] = self._persisted_due(scope, capability, info['version'])
         async def refresh():
-            await asyncio.sleep(max(0, self._due.get(key, 0) - self.clock()) if
-                                self._failed(scope, capability, info['version']) else 0)
             try:
+                await asyncio.sleep(max(0, self._due.get(key, 0) - self.clock()) if
+                                    self._failed(scope, capability, info['version']) else 0)
                 if self.accounts.describe(scope)['version'] != info['version']:
                     return
                 await self.poll_once(scope, capability)
+            except AccountNotFoundError:
+                return
             except Exception:
-                # Scope revocation/cleanup must not fail background queue management.
+                # Exception messages can contain credentials or private snapshot data.
+                logger.error('scoped_refresh_failed')
                 self._due[key] = self.clock() + self.settings.cloud_private_poll_seconds
         return self._queue(key, refresh)
 
     def _failed(self, scope, capability, version):
-        status = self.query.snapshots.get_poll_status_scoped(scope, capability, grant_version=version)
+        status = self.query.snapshots.get_poll_status_scoped(scope, capability, grant_version=version,
+            minimum_version=self.accounts.snapshot_generation(scope, version))
         return status and status['state'] == 'error'
 
     def _persisted_due(self, scope, capability, version):
         from datetime import datetime, timezone
-        status = self.query.snapshots.get_poll_status_scoped(scope, capability, grant_version=version)
-        if not status or not status.get('last_attempt_at'):
+        status = self.query.snapshots.get_poll_status_scoped(scope, capability, grant_version=version,
+            minimum_version=self.accounts.snapshot_generation(scope, version))
+        if (not status or not status.get('last_attempt_at') or
+                status['state'] == 'auth_expired' and not self.query.snapshots.get_poll_status_scoped(
+                    scope, capability, grant_version=version)):
             return self.clock()
         delay = self.settings.cloud_private_poll_seconds if status['state'] == 'ok' else min(
             3600, 60 * 2 ** min(max(0, status['consecutive_failures'] - 1), 6))

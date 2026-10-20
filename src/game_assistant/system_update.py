@@ -8,7 +8,6 @@ from urllib.parse import quote
 import math
 import asyncio
 from contextlib import asynccontextmanager
-import os
 from pathlib import Path
 import re
 import sys

@@ -106,3 +106,37 @@ def test_tower_season_end_is_remaining_milliseconds_and_rejects_old_cycle():
 def test_invalid_base_energy_is_not_fabricated_zero(data):
     with pytest.raises(ValueError):
         role.parse_base_energy(data, NOW)
+
+
+@pytest.mark.parametrize('rolebox', [False, True])
+@respx.mock
+async def test_incomplete_progress_keeps_last_success_until_valid_zero(rolebox, monkeypatch):
+    from game_assistant.registry import GameRegistry
+    from game_assistant.scheduler import PollingScheduler
+    from game_assistant.snapshots import SnapshotStore
+
+    a = adapter() if rolebox else WutheringWavesAdapter(Settings(wuwa_token='token', wuwa_user_id='u'))
+    if rolebox:
+        respx.post(BASE + '/refreshData').respond(200, json={'code':200, 'data':True})
+        respx.post(BASE + '/towerDataDetail').mock(return_value=response(TOWER))
+        respx.post(BASE + '/baseData').mock(return_value=response(BASE_PROGRESS))
+    raw = {'data': {'slashTowerData': {'name':'海墟', 'cur':3, 'total':3}}}
+    async def widget_data():
+        return raw, NOW
+    monkeypatch.setattr(a, '_fetch_widget', widget_data)
+    registry = GameRegistry()
+    registry.register(a)
+    store = SnapshotStore(':memory:')
+    scheduler = PollingScheduler(registry, store, Settings())
+    assert (await scheduler.poll_once(a.game_id, Capability.PROGRESS)).ok
+    previous = store.get(a.game_id, 'progress')
+    for data in ({'slashTowerData':{'name':'海墟', 'total':3}}, None):
+        raw = {'data': data}
+        assert not (await scheduler.poll_once(a.game_id, Capability.PROGRESS)).ok
+        assert store.get(a.game_id, 'progress') == previous
+        assert store.get_poll_status(a.game_id, 'progress')['state'] == 'error'
+    raw = {'data': {'slashTowerData': {'name':'海墟', 'cur':0, 'total':3}}}
+    assert (await scheduler.poll_once(a.game_id, Capability.PROGRESS)).ok
+    rows = json.loads(store.get(a.game_id, 'progress')['payload'])
+    assert next(row for row in rows if row['name'] == '海墟')['cur'] == 0
+    store._conn.close()

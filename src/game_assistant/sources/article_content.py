@@ -38,7 +38,6 @@ def article_images(*sources, upgrade_http_hosts=()):
             if url.startswith('https://') and url not in result:
                 result.append(url)
     return result
-    return result
 
 
 class _Text(HTMLParser):

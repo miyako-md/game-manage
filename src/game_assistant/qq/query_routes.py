@@ -524,7 +524,7 @@ class QqQueryService:
                         return reply(card)
                     if command=='gacha' and context is not None:
                         context['render_snapshot']=shared_view.gacha_snapshot(game,snapshot,self.clock(),page)
-                    self._panel(context,row,cap,snapshot,summary=command=='summary')
+                    self._panel(context,row,cap,snapshot,summary=(command=='summary' and cap!='roles'))
                     if command!='summary':return reply(view.snapshot_card(game,row['provider'],cap,snapshot,self.asset_cache))
                     if cap=='roles':
                         card=view.role_card(game,row['provider'],snapshot,asset_cache=self.asset_cache)
@@ -534,6 +534,9 @@ class QqQueryService:
                     else:section=view.capability_section(game,row['provider'],cap,snapshot,self.asset_cache)
                     section.setdefault('fields',[]).extend(view.metadata(snapshot))
                     sections.append(section)
+                if command=='summary' and game=='wuthering_waves' and context is not None:
+                    calabash=self._snapshot(row,scope,'calabash',context,read_cache)
+                    if calabash is not None:self._panel(context,row,'calabash',calabash)
             if not sections and not notices:notices=['当前授权没有可用查询能力；请在网站检查授权。']
             if command=='refresh':
                 notices.append('只提交现有能力的刷新队列；查询时仍读取缓存。抽卡导入和缺失详情请在网站操作。')

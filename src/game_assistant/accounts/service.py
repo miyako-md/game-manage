@@ -106,9 +106,20 @@ class AccountService:
                 raise AccountNotFoundError()
         return dict(zip(('game','provider','grant_id','version','state','game_uid','server','channel'), row))
 
+    def snapshot_generation(self, scope, version):
+        from .identities import snapshot_generation
+        info = self.describe(scope)
+        if info['version'] != version:
+            raise AccountNotFoundError()
+        credentials = self.credentials.load_grant(scope.user_id, info['grant_id'])
+        return snapshot_generation(credentials, version)
+
     def save_verified(self, principal, provider, credentials, *, expected_versions=None):
         """Internal-only: credentials are returned by a verified provider, never body UIDs."""
         self._user(principal)
+        credentials = dict(credentials)
+        # A fresh authorization never inherits the previous snapshot identity.
+        credentials.pop('_snapshot_generation', None)
         game = PROVIDER_GAMES[provider]
         subject_key = {'kuro': 'user_id', 'tajiduo': 'center_uid', 'hypergryph': 'uid', 'skland': 'user_id'}[provider]
         subject = str(credentials.get(subject_key) or '')

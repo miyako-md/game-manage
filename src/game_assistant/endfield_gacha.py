@@ -14,12 +14,20 @@ from pathlib import Path
 
 from game_assistant.adapters.endfield import parse
 from game_assistant.adapters.endfield.data_models import (
-    EndfieldGacha, EndfieldGachaBanner, EndfieldGachaPool, EndfieldPity, EndfieldSixStar,
+    EndfieldGacha, EndfieldGachaBanner, EndfieldGachaError, EndfieldGachaPool, EndfieldPity, EndfieldSixStar,
 )
+from game_assistant.adapters.endfield.hypergryph import EndfieldError
 from game_assistant.adapters.endfield.endpoints import CHAR_POOL_TYPES
 
 EXPORT_FORMAT = "game-assistant-endfield-gacha"
 HISTORY_LIMIT = 50
+# 武器池列表读取失败时记在这一行，下次列表读取成功即删除；它没有记录，不会出现在卡池统计里。
+WEAPON_LIST_KEY = "weapon:*"
+
+
+def _classified_weapon_record(row):
+    record_kind = row.get("record_kind")
+    return record_kind == "draw" or isinstance(record_kind, str) and record_kind.startswith("gift")
 
 
 def store_path(db_path: str) -> Path:
@@ -67,6 +75,8 @@ class EndfieldGachaStore:
                 # A prior successful head walk is evidence of a scanned pool.
                 # Legacy rows without that evidence remain unknown, not empty.
                 db.execute("UPDATE pools SET scan_pending=0 WHERE last_sync_at IS NOT NULL")
+            if "last_error" not in columns:
+                db.execute("ALTER TABLE pools ADD COLUMN last_error TEXT")
 
     @contextmanager
     def _db(self):
@@ -81,7 +91,11 @@ class EndfieldGachaStore:
 
     async def sync(self, role: str, client, u8_token: str, *, budget: int = 120, interval: float = 0.3,
                    sleep=asyncio.sleep) -> int:
-        """按预算同步全部卡池，返回实际请求页数。先抓各池最新记录，再用剩余预算续传断档。"""
+        """按预算同步全部卡池，返回实际请求页数。先抓各池最新记录，再用剩余预算续传断档。
+
+        单个卡池（或武器池列表）读取失败只记在该池上，其余卡池照常同步；登录失效立即中止。
+        本轮尝试过的卡池全部失败时抛出第一个错误，让轮询状态显示失败。
+        """
         if not role:
             raise ValueError("缺少终末地角色")
 
@@ -92,14 +106,30 @@ class EndfieldGachaStore:
 
         def weapon_fetch(pool_id):
             async def fetch(cursor):
-                return parse.record_page(await client.weapon_records(u8_token, pool_id, cursor), "weapon")
+                rows, has_more = parse.record_page(await client.weapon_records(u8_token, pool_id, cursor), "weapon")
+                if any(row["pool_id"] != pool_id for row in rows):
+                    raise ValueError("武器记录所属卡池不一致，请刷新重试")
+                return rows, has_more
             return fetch
 
         pools = [(key, label, "character", char_fetch(key)) for key, label in CHAR_POOL_TYPES.items()]
         # Mark the new attempt before discovery/network I/O. In particular, a
         # failed weapon-pool listing must not leave the previous run "complete".
         self._mark_pending(role, pools)
-        weapons = parse.weapon_pools(await client.weapon_pools(u8_token))
+        failures, succeeded = [], 0
+        try:
+            weapons = parse.weapon_pools(await client.weapon_pools(u8_token))
+        except (EndfieldError, ValueError) as error:
+            if getattr(error, "expired", False):
+                raise
+            # Character pools still sync; the listing stays pending until it succeeds.
+            self._mark_pending(role, [(WEAPON_LIST_KEY, "武器池列表", "weapon", None)])
+            self._fail(role, WEAPON_LIST_KEY, error)
+            failures.append(error)
+            weapons = []
+        else:
+            with self._db() as db:
+                db.execute("DELETE FROM pools WHERE role=? AND pool_key=?", (role, WEAPON_LIST_KEY))
         used = 1
         weapon_jobs = [(f"weapon:{pool_id}", name, "weapon", weapon_fetch(pool_id)) for pool_id, name in weapons]
         self._mark_pending(role, weapon_jobs)
@@ -108,7 +138,11 @@ class EndfieldGachaStore:
         for key, _, _, fetch in pools:
             if used >= budget:
                 break
-            used, outcome = await self._walk(role, key, fetch, None, used, budget, interval, sleep)
+            used, outcome, error = await self._walk(role, key, fetch, None, used, budget, interval, sleep)
+            if error is not None:
+                failures.append(error)
+                continue
+            succeeded += 1
             if outcome in ("overlap", "end"):
                 with self._db() as db:
                     db.execute("UPDATE pools SET last_sync_at=?, scan_pending=0 WHERE role=? AND pool_key=?",
@@ -116,48 +150,68 @@ class EndfieldGachaStore:
         for key, _, _, fetch in pools:
             for seq in self._open_breaks(role, key):
                 if used >= budget:
-                    return used
-                used, _ = await self._walk(role, key, fetch, seq, used, budget, interval, sleep)
+                    break
+                used, _, error = await self._walk(role, key, fetch, seq, used, budget, interval, sleep)
+                if error is not None:
+                    failures.append(error)
+                    break
+        if failures and not succeeded:
+            raise failures[0]
         return used
+
+    def _fail(self, role, key, error):
+        with self._db() as db:
+            db.execute("UPDATE pools SET last_error=? WHERE role=? AND pool_key=?", (str(error)[:200], role, key))
 
     def _mark_pending(self, role, pools):
         with self._db() as db:
             for key, label, kind, _ in pools:
                 db.execute("INSERT INTO pools (role, pool_key, kind, label, scan_pending) VALUES (?,?,?,?,1)"
-                           " ON CONFLICT(role, pool_key) DO UPDATE SET label=excluded.label, scan_pending=1",
+                           " ON CONFLICT(role, pool_key) DO UPDATE SET label=excluded.label, scan_pending=1, last_error=NULL",
                            (role, key, kind, label))
 
     async def _walk(self, role, key, fetch, start, used, budget, interval, sleep):
+        """返回 (请求页数, 结果, 错误)。卡池自身的读取错误只记在该池上，登录失效照常抛出。"""
         cursor = str(start) if start is not None else None
-        bottom, outcome = start, "budget"
+        bottom, outcome, failure = start, "budget", None
         try:
             while used < budget:
+                used += 1  # Count the request once, including parse/network failures.
                 rows, has_more = await fetch(cursor)
-                used += 1
                 if not rows:
-                    if has_more:
-                        raise ValueError("寻访记录返回空页但仍声明有后续记录")
-                    outcome = "end"
+                    # 参考实现都把空页当作到底；续传途中的空页却声明还有后续时不当作到底，
+                    # 留下可续传的断档下次再试，不记永久缺口。
+                    outcome = "budget" if has_more and cursor is not None else "end"
                     break
                 known = self._known(role, key, [row["seq_id"] for row in rows])
-                fresh = [row for row in rows if row["seq_id"] not in known]
-                self._add(role, key, fresh)
+                # Refresh saved payloads too: old weapon ledgers dropped the
+                # official gift kind and must be repaired without deleting history.
+                self._add(role, key, rows)
                 bottom = rows[-1]["seq_id"]
                 # 游标是否包含自身尚未实测：游标那条已保存不代表衔接上了更早的记录。
                 if known - {int(cursor or 0)}:
                     outcome = "overlap"
                     break
-                if not has_more:
+                if not has_more or bottom == 0:
                     outcome = "end"
                     break
+                if cursor is not None and bottom >= int(cursor):
+                    raise ValueError("寻访记录分页未向前推进，请刷新重试")
                 cursor = str(bottom)
                 await sleep(interval)
+        except (EndfieldError, ValueError) as error:
+            outcome = "error"
+            if getattr(error, "expired", False):
+                raise
+            failure = error
         except BaseException:
             outcome = "error"
             raise
         finally:
             self._settle(role, key, start, bottom, outcome)
-        return used, outcome
+        if failure is not None:
+            self._fail(role, key, failure)
+        return used, outcome, failure
 
     def _settle(self, role, key, start, bottom, outcome):
         with self._db() as db:
@@ -179,15 +233,19 @@ class EndfieldGachaStore:
             return set()
         marks = ",".join("?" * len(seqs))
         with self._db() as db:
-            rows = db.execute(f"SELECT seq_id FROM records WHERE role=? AND pool_key=? AND seq_id IN ({marks})",
+            rows = db.execute(f"SELECT seq_id,payload FROM records WHERE role=? AND pool_key=? AND seq_id IN ({marks})",
                               (role, key, *seqs)).fetchall()
-        return {row[0] for row in rows}
+        # A legacy weapon row proves that we saved it, but not that it was a
+        # draw rather than a gift. Keep paging until classified records overlap.
+        return {seq for seq, payload in rows if not key.startswith("weapon:")
+                or _classified_weapon_record(json.loads(payload))}
 
     def _add(self, role, key, rows):
         if not rows:
             return
         with self._db() as db:
-            db.executemany("INSERT OR IGNORE INTO records VALUES (?,?,?,?)",
+            db.executemany("INSERT INTO records VALUES (?,?,?,?) ON CONFLICT(role,pool_key,seq_id)"
+                           " DO UPDATE SET payload=excluded.payload",
                            [(role, key, row["seq_id"], json.dumps(row, ensure_ascii=False)) for row in rows])
 
     def _open_breaks(self, role, key) -> list[int]:
@@ -202,6 +260,8 @@ class EndfieldGachaStore:
         with self._db() as db:
             meta = db.execute("SELECT pool_key, kind, label, last_sync_at, scan_pending FROM pools WHERE role=?",
                               (role,)).fetchall()
+            errors = [EndfieldGachaError(key=key, label=label, message=message) for key, label, message in db.execute(
+                "SELECT pool_key, label, last_error FROM pools WHERE role=? AND last_error IS NOT NULL ORDER BY pool_key", (role,))]
             pools = []
             has_pending = False
             for key, kind, label, last_sync_at, scan_pending in meta:
@@ -224,14 +284,21 @@ class EndfieldGachaStore:
         # Empty/unvisited pools participate in coverage even though the UI's
         # record list continues to contain only pools with saved pulls.
         complete = False if has_pending else True if coverage_known else None
-        summary = EndfieldGacha(role_id=_public_role(role), total=sum(p.total for p in pools), complete=complete, pools=pools)
+        summary = EndfieldGacha(role_id=_public_role(role), total=sum(p.total for p in pools), complete=complete, pools=pools,
+                                errors=errors)
         summary.report = build_gacha_report(summary)
         return summary
 
-    def records(self, role: str, pool_key: str | None = None, limit: int = 100, offset: int = 0) -> dict:
+    def records(self, role: str, pool_key: str | None = None, limit: int = 100, offset: int = 0,
+                *, kind: str | None = None) -> dict:
+        if kind not in (None, "character", "weapon"):
+            raise ValueError("寻访记录类别不正确")
         where, args = "role=?", [role]
         if pool_key:
             where, args = where + " AND pool_key=?", args + [pool_key]
+        if kind is not None:
+            where += " AND pool_key IN (SELECT pool_key FROM pools WHERE role=? AND kind=?)"
+            args += [role, kind]
         with self._db() as db:
             total = db.execute(f"SELECT COUNT(*) FROM records WHERE {where}", args).fetchone()[0]
             rows = db.execute(f"SELECT pool_key, payload FROM records WHERE {where} ORDER BY seq_id DESC"
@@ -241,8 +308,8 @@ class EndfieldGachaStore:
 
     def export(self, role: str) -> dict:
         with self._db() as db:
-            pools = db.execute("SELECT pool_key, kind, label, last_sync_at FROM pools WHERE role=?"
-                               " ORDER BY pool_key", (role,)).fetchall()
+            pools = db.execute("SELECT pool_key, kind, label, last_sync_at FROM pools WHERE role=? AND pool_key<>?"
+                               " ORDER BY pool_key", (role, WEAPON_LIST_KEY)).fetchall()
             rows = db.execute("SELECT pool_key, payload FROM records WHERE role=? ORDER BY seq_id DESC",
                               (role,)).fetchall()
             breaks = db.execute("SELECT pool_key, seq_id, permanent FROM breaks WHERE role=?", (role,)).fetchall()
@@ -262,15 +329,30 @@ def _public_record(pool_key: str, payload: str) -> dict:
 def _pool_summary(key, kind, label, last_sync_at, rows, breaks) -> EndfieldGachaPool:
     count, exact, free_in_count = 0, False, False
     history: list[EndfieldSixStar] = []
+    draws, gifts, unverified = [], 0, 0
+    pool_version = None
     for row in rows:  # 由旧到新
         if row["seq_id"] in breaks:  # 这一条之前可能缺记录
             count, exact, free_in_count = 0, False, False
+        if str(row.get("record_kind") or "").startswith("gift"):
+            gifts += 1
+            continue  # A bonus, including a six-star weapon, never resets pity.
+        if kind == "weapon" and not _classified_weapon_record(row):
+            unverified += 1
+            count, exact, free_in_count = 0, False, False
+            continue
+        draws.append(row)
+        version = row.get("pool_version")
+        if kind == "weapon" and version is not None:
+            if pool_version is not None and version != pool_version:
+                count, exact, free_in_count = 0, False, False
+            pool_version = version
         if row.get("rarity") is None:
             # This pull could itself have been a six-star: only later known
             # pulls are a defensible lower bound for the next interval.
             count, exact, free_in_count = 0, False, False
             continue
-        if row.get("is_free") is not False:
+        if kind != "weapon" and row.get("is_free") is not False:
             # Missing free/paid status cannot be counted as a paid pull.
             free_in_count = True
         else:
@@ -282,18 +364,19 @@ def _pool_summary(key, kind, label, last_sync_at, rows, breaks) -> EndfieldGacha
             count, exact, free_in_count = 0, True, False
     times = [row["gacha_ts"] for row in rows if row.get("gacha_ts")]
     return EndfieldGachaPool(
-        key=key, label=label, kind=kind, total=len(rows),
-        six_star=sum(row.get("rarity") == 6 for row in rows), five_star=sum(row.get("rarity") == 5 for row in rows),
-        four_star=sum(row.get("rarity") == 4 for row in rows),
-        unknown_rarity=sum(row.get("rarity") not in (4, 5, 6) for row in rows),
-        free=sum(row.get("is_free") is True for row in rows),
-        since_last_six=EndfieldPity(count=count, status="exact" if exact and not free_in_count else "lower_bound"),
+        key=key, label=label, kind=kind, total=len(draws),
+        six_star=sum(row.get("rarity") == 6 for row in draws), five_star=sum(row.get("rarity") == 5 for row in draws),
+        four_star=sum(row.get("rarity") == 4 for row in draws),
+        unknown_rarity=sum(row.get("rarity") not in (4, 5, 6) for row in draws),
+        free=sum(row.get("is_free") is True for row in draws), gifts=gifts, unverified_records=unverified,
+        since_last_six=(EndfieldPity(count=count, status="exact" if exact and not free_in_count else "lower_bound")
+                        if draws else EndfieldPity()),
         history=list(reversed(history))[:HISTORY_LIMIT],
         history_total=len(history), history_available=min(len(history), HISTORY_LIMIT),
         history_limit=HISTORY_LIMIT, history_truncated=len(history)>HISTORY_LIMIT,
         newest_at=max(times, default=None), oldest_at=min(times, default=None),
         gaps=len(breaks), pending=any(not permanent for permanent in breaks.values()), last_sync_at=last_sync_at,
-        banners=_banners(rows))
+        banners=_banners(draws))
 
 
 def _banners(rows) -> list[EndfieldGachaBanner]:

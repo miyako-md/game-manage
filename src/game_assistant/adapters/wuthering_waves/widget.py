@@ -35,6 +35,8 @@ def _seconds_ts(v) -> datetime | None:
 
 def parse_progress(raw: dict, *, include_tower: bool = True, overrides: dict[str, ProgressItem] | None = None) -> list[ProgressItem]:
     data = _data(raw)
+    if not isinstance(data, dict) or not data:
+        raise ValueError('小组件未返回有效进度')
     items = []
     for key in PROGRESS_KEYS:
         if key == 'towerData' and not include_tower:
@@ -42,20 +44,26 @@ def parse_progress(raw: dict, *, include_tower: bool = True, overrides: dict[str
         if overrides and key in overrides:
             items.append(overrides[key])
             continue
-        obj = data.get(key)
-        if not obj:
+        if key not in data:
             continue
+        obj = data[key]
+        if not isinstance(obj, dict) or any(obj.get(field) is None or isinstance(obj[field], bool) for field in ('cur', 'total')):
+            raise ValueError('小组件进度缺少有效计数')
         items.append(ProgressItem(name=obj.get("name") or key,
-                                  cur=int(obj.get("cur") or 0),
-                                  total=int(obj.get("total") or 0),
+                                  cur=int(obj['cur']),
+                                  total=int(obj['total']),
                                   refresh_at=_seconds_ts(obj.get("refreshTimeStamp")),
                                   status=int(obj.get("status") or 0)))
     for bp in data.get("battlePassData") or []:
+        if not isinstance(bp, dict) or any(bp.get(field) is None or isinstance(bp[field], bool) for field in ('cur', 'total')):
+            raise ValueError('电台进度缺少有效计数')
         items.append(ProgressItem(name=bp.get("name") or "",
-                                  cur=int(bp.get("cur") or 0),
-                                  total=int(bp.get("total") or 0),
+                                  cur=int(bp['cur']),
+                                  total=int(bp['total']),
                                   refresh_at=_seconds_ts(bp.get("refreshTimeStamp")),
                                   status=int(bp.get("status") or 0)))
+    if not items:
+        raise ValueError('小组件未返回有效进度')
     return items
 
 

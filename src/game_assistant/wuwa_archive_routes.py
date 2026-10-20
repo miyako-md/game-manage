@@ -118,9 +118,3 @@ def install_wuwa_archive_routes(app):
             except (ValueError, TypeError):
                 raise HTTPException(409, '预览已过期或账号会话已变化，请重新预览') from None
         raise HTTPException(422, '请先预览，再使用 preview_id 确认导入')
-
-
-def install_cloud_wuwa_archive_routes(app, boundary):
-    """Install scoped cloud routes; the legacy local router stays separate."""
-    from game_assistant.private_routes import _install_wuwa_archive
-    _install_wuwa_archive(boundary, app)

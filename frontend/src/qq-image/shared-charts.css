@@ -1,32 +1,678 @@
-/* Dashboard charts are reused directly; these overrides only set a readable
-   QQ size, unroll dates vertically and remove interactive controls. */
-.cloud-gacha,.cloud-calendar{--text:var(--ink);--text-muted:var(--muted);--text-body:var(--ink);--text-faint:var(--muted);--card-bg:var(--surface);--surface-soft:var(--soft);--bg:var(--paper);--border:var(--line);--overlay-1:var(--soft);--overlay-2:var(--line);--overlay-3:var(--line);--accent-fill:var(--accent);--accent-ink:var(--surface);--font-sans:var(--body-font);--radius-chip:999px;--radius-tile:16px;--radius-control:999px;--control-track:var(--soft);--track:#eeefec;--game-tone:var(--soft);--game-accent:var(--accent);--chart-3:#70b999;--chart-4:#dbaa43;--chart-8:#d9868d;--success:#30715b;--danger:#a6444c;--stale-text:#896415}
-.news-item p,.reuse .article-image .item-summary{text-wrap:pretty}
-.lab-sheet .cloud-calendar .day-today{font-size:18px!important;line-height:1.4!important;background:var(--accent);color:var(--paper);padding:0 5px;border-radius:4px;min-width:46px;z-index:6}.lab-sheet .cloud-calendar .date-cell.is-month-start strong{font-size:22px!important}
-.lab-sheet .cloud-calendar .date-cell{position:relative;min-width:0;width:100%}.lab-sheet .cloud-calendar .date-cell strong,.lab-sheet .cloud-calendar .date-cell.is-month-start strong{font-size:20px!important;padding:0!important;max-width:100%;min-width:0;white-space:nowrap}.lab-sheet .cloud-calendar .day-today{position:absolute;left:50%;transform:translateX(-50%);bottom:4px;width:46px}
-.cloud-gacha .info-hint{display:none!important}
-.lab-sheet .cloud-gacha .stats-header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-bottom:24px}.lab-sheet .cloud-gacha .stats-header h2{font-size:30px;line-height:1.4}.lab-sheet .cloud-gacha .read-time{width:100%;font-size:21px}.lab-sheet .cloud-gacha .source-tag,.lab-sheet .cloud-gacha .luck-title{font-size:21px;line-height:1.5;padding:4px 12px}.lab-sheet .cloud-gacha .luck-title :is(small,strong){font-size:21px;line-height:1.5}.cloud-gacha button{display:none!important}.lab-sheet .cloud-gacha .pool-overview{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.lab-sheet .cloud-gacha .pool-stat{grid-template-columns:1fr;grid-template-areas:"name" "total" "stats";padding:22px;gap:12px}.lab-sheet .cloud-gacha .pool-stat h3{font-size:24px;line-height:1.5;white-space:nowrap;overflow:visible}.lab-sheet .cloud-gacha .draw-total strong{font-size:40px;line-height:1.4;letter-spacing:0;white-space:nowrap}.lab-sheet .cloud-gacha .draw-total>span{font-size:24px}.lab-sheet .cloud-gacha .pool-stat dl{gap:8px;margin:0}.lab-sheet .cloud-gacha .pool-stat dl>div{justify-content:space-between}.lab-sheet .cloud-gacha .pool-stat :is(dt,dd){font-size:23px;line-height:1.5;white-space:nowrap}.lab-sheet .cloud-gacha .history-panel{margin-top:32px}.lab-sheet .cloud-gacha .history-bar{margin-bottom:18px}.lab-sheet .cloud-gacha .history-bar h3{font-size:28px;line-height:1.5;margin-left:0;white-space:normal}.lab-sheet .cloud-gacha .history-bar h3 span{font-size:22px}.lab-sheet .cloud-gacha .pull-list{gap:16px}.lab-sheet .cloud-gacha .pull-row{grid-template-columns:56px 178px minmax(0,1fr) 194px;gap:16px;min-height:62px}.lab-sheet .cloud-gacha .reward-icon{width:56px;height:56px}.lab-sheet .cloud-gacha .pull-name{font-size:25px;line-height:1.4;white-space:normal;overflow:visible;text-overflow:clip;text-wrap:balance}.lab-sheet .cloud-gacha .bar-track{height:50px;border-radius:999px;background:#eceee9}.lab-sheet .cloud-gacha .pull-bar{border-radius:999px}.lab-sheet .cloud-gacha .bar-values{height:50px;padding:0 18px;gap:6px;color:#26362f}.lab-sheet .cloud-gacha .bar-values strong{font-size:26px;line-height:1.4}.lab-sheet .cloud-gacha .bar-values>span{font-size:22px;line-height:1.4}.lab-sheet .cloud-gacha .bar-values .rating{font-size:21px;line-height:1.4;padding:2px 9px;background:#fff;color:#625b4c}.lab-sheet .cloud-gacha .pull-time{font-size:20px;line-height:1.5;white-space:nowrap;text-align:right}.lab-sheet .cloud-gacha .pull-bar.short{background:#b6dec8}.lab-sheet .cloud-gacha .pull-bar.medium{background:#f0d497}.lab-sheet .cloud-gacha .pull-bar.long{background:#e9b5b7}.lab-sheet .cloud-gacha .bar-legend{gap:10px 18px;font-size:21px;margin-top:20px}.lab-sheet .cloud-gacha .bar-legend>span{font-size:21px}.lab-sheet .cloud-gacha .bar-legend i{width:18px;height:12px}.lab-sheet .cloud-gacha .empty{font-size:24px}
-.cloud-calendar{display:grid;gap:30px}.window-title{display:flex;justify-content:space-between;align-items:baseline;gap:20px;margin-bottom:18px!important;font-size:27px!important;line-height:1.5!important}.window-title small{font-size:21px}.lab-sheet .cloud-calendar .calendar-content{--timeline-label-width:136px;overflow:visible!important;display:block}.lab-sheet .cloud-calendar .timeline-scroll{overflow:visible!important;min-height:0}.lab-sheet .cloud-calendar .timeline-canvas{min-width:0!important}.lab-sheet .cloud-calendar .timeline-header{position:static!important;z-index:auto}.lab-sheet .cloud-calendar .timeline-label{position:static!important;border-right:1px solid var(--line)}.lab-sheet .cloud-calendar .header-label{padding:12px;font-size:22px;line-height:1.5}.lab-sheet .cloud-calendar .date-cell{min-height:90px;grid-template-rows:24px 28px 22px;padding:10px 0;gap:2px}.lab-sheet .cloud-calendar .date-cell small{font-size:18px;line-height:1.4}.lab-sheet .cloud-calendar .date-cell strong{font-size:22px;line-height:1.2;min-width:0;padding:0 2px;height:auto}.lab-sheet .cloud-calendar .date-cell.is-month-start strong{font-size:18px}.lab-sheet .cloud-calendar .day-today{font-size:16px;line-height:1.4}.lab-sheet .cloud-calendar .group-label{padding:16px 12px;display:block}.lab-sheet .cloud-calendar .game-monogram{width:42px;height:42px;font-size:24px;margin-bottom:12px}.lab-sheet .cloud-calendar .group-label>div,.lab-sheet .cloud-calendar .group-label>.game-monogram{position:static!important}.lab-sheet .cloud-calendar .group-label strong{font-size:24px;line-height:1.5}.lab-sheet .cloud-calendar .group-category{font-size:22px;line-height:1.5;margin-top:10px}.lab-sheet .cloud-calendar .group-label small{font-size:20px;line-height:1.5;margin-top:8px}.lab-sheet .cloud-calendar .timeline-group{border-top:8px solid var(--soft);margin-top:0}.lab-sheet .cloud-calendar .group-track{overflow:visible!important;padding:10px 0;min-width:0}.lab-sheet .cloud-calendar .event-lane{min-height:120px;padding-bottom:10px}.lab-sheet .cloud-calendar .timeline-event:not(.is-point){height:auto!important;min-height:110px;padding:14px 16px;overflow:visible!important;background:#263747;color:#fff;border-radius:10px}.lab-sheet .cloud-calendar .timeline-event:not(.is-point)::before{inset:0;z-index:1;border-radius:inherit;background:linear-gradient(90deg,rgba(7,13,22,.9),rgba(7,13,22,.7) 50%,rgba(7,13,22,.1))}.lab-sheet .cloud-calendar .event-artwork{object-position:center 38%;height:100%;object-fit:cover}.lab-sheet .cloud-calendar .timeline-event .event-summary{position:relative!important;left:0!important;transform:none!important;max-width:none!important;width:100%!important;z-index:2;padding:0!important;background:rgba(7,13,22,.58)!important;border-radius:4px;overflow:visible!important}.lab-sheet .cloud-calendar .event-heading{gap:5px 7px}.lab-sheet .cloud-calendar .event-bar-title{font-size:24px!important;line-height:1.45!important;display:block!important;white-space:normal!important;overflow:visible!important;-webkit-line-clamp:unset!important;font-weight:600;overflow-wrap:normal}.lab-sheet .cloud-calendar :is(.event-category,.event-status,.event-remaining){font-size:19px!important;line-height:1.5!important;padding:1px 6px!important;white-space:nowrap!important}.lab-sheet .cloud-calendar .timeline-event.is-short:not(.is-point){padding:14px 0;overflow:visible!important}.lab-sheet .cloud-calendar .timeline-event.is-short .event-summary{width:340px!important;max-width:340px!important;left:4px!important;box-shadow:0 0 0 1px rgba(255,255,255,.22);padding:5px 7px!important;background:rgba(11,19,30,.95)!important}.lab-sheet .cloud-calendar .timeline-event.is-short.label-left .event-summary{left:100%!important;transform:translateX(-100%)!important}.lab-sheet .cloud-calendar .timeline-event.is-short .event-bar-title{font-size:23px!important}.lab-sheet .cloud-calendar .timeline-event.is-point{min-height:110px!important;height:110px}.lab-sheet .cloud-calendar .point-diamond{top:26px}.lab-sheet .cloud-calendar .point-label{width:340px!important;max-width:340px!important;font-size:23px;line-height:1.5;padding:10px;background:var(--surface);min-height:90px}.lab-sheet .cloud-calendar .point-label strong{font-size:23px;line-height:1.45;white-space:normal}.lab-sheet .cloud-calendar .point-artwork{width:70px;height:58px}.lab-sheet .cloud-calendar .calendar-unplaced{margin:20px 0 0;padding:20px;background:var(--soft)}.lab-sheet .cloud-calendar .unplaced-heading h2{font-size:27px;line-height:1.5}.lab-sheet .cloud-calendar .unplaced-bucket h3{font-size:23px;line-height:1.5}.lab-sheet .cloud-calendar .unplaced-event strong{font-size:24px;line-height:1.5}.lab-sheet .cloud-calendar .unplaced-event small{font-size:21px;line-height:1.5}.lab-sheet .cloud-calendar .unplaced-artwork{width:92px;height:64px}
-.lab-sheet .cloud-teams .cap-title{display:none}
-.lab-sheet .cloud-teams.render-image{width:100%!important;max-width:none!important}
-.lab-sheet .nte-assets .team-list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:24px}
-.lab-sheet .nte-assets .team-list .asset{min-width:0;padding:0;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink)}
-.lab-sheet .nte-assets .team-list .asset>summary{display:grid!important;grid-template-columns:52px minmax(0,1fr);gap:12px;padding:20px;cursor:default}
-.lab-sheet .nte-assets .team-list .team-icon{width:52px;height:52px;object-fit:contain}
-.lab-sheet .nte-assets .team-list .asset-name{font-size:28px!important;line-height:1.5;white-space:normal!important;overflow:visible!important}
-.lab-sheet .nte-assets .team-list :is(.preview,summary>svg){display:none!important}
-.lab-sheet .nte-assets .team-list .detail-body{display:grid;gap:20px;padding:0 20px 20px}
-.lab-sheet .nte-assets .team-list .description{font-size:24px!important;line-height:1.6!important;color:var(--ink);white-space:normal}
-.lab-sheet .nte-assets .team-list .recommendation-images{display:grid;grid-template-columns:1fr;gap:16px}
-.lab-sheet .nte-assets .team-list .recommendation-images a{grid-column:1/-1!important}
-.lab-sheet .nte-assets .team-list .recommendation-images img{max-height:none!important;width:100%;height:auto;object-fit:contain;border-radius:8px}
+/* Shared dashboard charts adapted for QQ image rendering: crisp light/tinted timeline cards and balanced gacha bars. */
+.cloud-gacha,
+.cloud-calendar {
+  --text: var(--ink);
+  --text-muted: var(--muted);
+  --text-body: var(--ink);
+  --text-faint: var(--muted);
+  --card-bg: var(--surface);
+  --surface-soft: var(--soft);
+  --bg: var(--paper);
+  --border: var(--line);
+  --overlay-1: var(--soft);
+  --overlay-2: var(--line);
+  --overlay-3: var(--line);
+  --accent-fill: var(--accent);
+  --accent-ink: var(--surface);
+  --font-sans: var(--body-font);
+  --radius-chip: 999px;
+  --radius-tile: 16px;
+  --radius-control: 999px;
+  --control-track: var(--soft);
+  --track: #eeefec;
+  --game-tone: var(--soft);
+  --game-accent: var(--accent);
+  --chart-3: #70b999;
+  --chart-4: #dbaa43;
+  --chart-8: #d9868d;
+  --success: #30715b;
+  --danger: #a6444c;
+  --stale-text: #896415;
+}
+
+.news-item p,
+.reuse .article-image .item-summary {
+  text-wrap: pretty;
+}
+
+/* NTE Community Gacha */
+.cloud-gacha .info-hint,
+.cloud-gacha button {
+  display: none !important;
+}
+
+.lab-sheet .cloud-gacha .stats-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-bottom: 18px;
+}
+
+.lab-sheet .cloud-gacha .stats-header h2 {
+  font-size: 24px;
+  line-height: 1.35;
+}
+
+.lab-sheet .cloud-gacha .read-time {
+  width: 100%;
+  font-size: 17px;
+}
+
+.lab-sheet .cloud-gacha .source-tag,
+.lab-sheet .cloud-gacha .luck-title {
+  font-size: 17px;
+  line-height: 1.45;
+  padding: 4px 12px;
+}
+
+.lab-sheet .cloud-gacha .luck-title :is(small, strong) {
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.lab-sheet .cloud-gacha .pool-overview {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.lab-sheet .cloud-gacha .pool-stat {
+  grid-template-columns: 1fr;
+  grid-template-areas: "name" "total" "stats";
+  padding: 18px;
+  gap: 10px;
+}
+
+.lab-sheet .cloud-gacha .pool-stat h3 {
+  font-size: 20px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.lab-sheet .cloud-gacha .draw-total strong {
+  font-size: 32px;
+  line-height: 1.3;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.lab-sheet .cloud-gacha .draw-total > span {
+  font-size: 18px;
+}
+
+.lab-sheet .cloud-gacha .pool-stat dl {
+  gap: 6px;
+  margin: 0;
+}
+
+.lab-sheet .cloud-gacha .pool-stat dl > div {
+  justify-content: space-between;
+}
+
+.lab-sheet .cloud-gacha .pool-stat :is(dt, dd) {
+  font-size: 18px;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.lab-sheet .cloud-gacha .history-panel {
+  margin-top: 24px;
+}
+
+.lab-sheet .cloud-gacha .history-bar {
+  margin-bottom: 14px;
+}
+
+.lab-sheet .cloud-gacha .history-bar h3 {
+  font-size: 22px;
+  line-height: 1.4;
+  margin-left: 0;
+  white-space: normal;
+}
+
+.lab-sheet .cloud-gacha .history-bar h3 span {
+  font-size: 18px;
+}
+
+.lab-sheet .cloud-gacha .pull-list {
+  gap: 12px;
+}
+
+.lab-sheet .cloud-gacha .pull-row {
+  grid-template-columns: 48px 168px minmax(0, 1fr) 168px;
+  gap: 14px;
+  min-height: 52px;
+}
+
+.lab-sheet .cloud-gacha .reward-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.lab-sheet .cloud-gacha .pull-name {
+  font-size: 19px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  text-wrap: balance;
+}
+
+.lab-sheet .cloud-gacha .bar-track {
+  height: 42px;
+  border-radius: 999px;
+  background: #eceee9;
+}
+
+.lab-sheet .cloud-gacha .pull-bar {
+  border-radius: 999px;
+}
+
+.lab-sheet .cloud-gacha .bar-values {
+  height: 42px;
+  padding: 0 16px;
+  gap: 6px;
+  color: #26362f;
+}
+
+.lab-sheet .cloud-gacha .bar-values strong {
+  font-size: 21px;
+  line-height: 1.35;
+}
+
+.lab-sheet .cloud-gacha .bar-values > span {
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.lab-sheet .cloud-gacha .bar-values .rating {
+  font-size: 16px;
+  line-height: 1.35;
+  padding: 2px 8px;
+  background: #ffffff;
+  color: #625b4c;
+}
+
+.lab-sheet .cloud-gacha .pull-time {
+  font-size: 16px;
+  line-height: 1.45;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.lab-sheet .cloud-gacha .pull-bar.short {
+  background: #b6dec8;
+}
+
+.lab-sheet .cloud-gacha .pull-bar.medium {
+  background: #f0d497;
+}
+
+.lab-sheet .cloud-gacha .pull-bar.long {
+  background: #e9b5b7;
+}
+
+.lab-sheet .cloud-gacha .bar-legend {
+  gap: 8px 16px;
+  font-size: 17px;
+  margin-top: 16px;
+}
+
+.lab-sheet .cloud-gacha .bar-legend > span {
+  font-size: 17px;
+}
+
+.lab-sheet .cloud-gacha .bar-legend i {
+  width: 16px;
+  height: 10px;
+}
+
+.lab-sheet .cloud-gacha .empty {
+  font-size: 19px;
+}
+
+/* Cloud Calendar Timeline */
+.cloud-calendar {
+  display: grid;
+  gap: 24px;
+}
+
+.window-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 14px !important;
+  font-size: 21px !important;
+  line-height: 1.45 !important;
+}
+
+.window-title small {
+  font-size: 17px;
+}
+
+.lab-sheet .cloud-calendar .calendar-content {
+  --timeline-label-width: 132px;
+  overflow: visible !important;
+  display: block;
+}
+
+.lab-sheet .cloud-calendar .timeline-scroll {
+  overflow: visible !important;
+  min-height: 0;
+}
+
+.lab-sheet .cloud-calendar .timeline-canvas {
+  min-width: 0 !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-header {
+  position: static !important;
+  z-index: auto;
+}
+
+.lab-sheet .cloud-calendar .timeline-label {
+  position: static !important;
+  border-right: 1px solid var(--line);
+}
+
+.lab-sheet .cloud-calendar .header-label {
+  padding: 10px;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.lab-sheet .cloud-calendar .date-cell {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+  min-height: 82px;
+  grid-template-rows: 22px 26px 20px;
+  padding: 8px 0;
+  gap: 2px;
+}
+
+.lab-sheet .cloud-calendar .date-cell small {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.lab-sheet .cloud-calendar .date-cell strong,
+.lab-sheet .cloud-calendar .date-cell.is-month-start strong {
+  font-size: 18px !important;
+  line-height: 1.2;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 !important;
+  height: auto;
+  white-space: nowrap;
+}
+
+.lab-sheet .cloud-calendar .day-today {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 4px;
+  width: 44px;
+  min-width: 44px;
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+  background: var(--game-accent, var(--accent));
+  color: #ffffff;
+  padding: 0 4px;
+  border-radius: 6px;
+  z-index: 6;
+}
+
+.lab-sheet .cloud-calendar .group-label {
+  padding: 14px 12px;
+  display: block;
+}
+
+.lab-sheet .cloud-calendar .game-monogram {
+  width: 38px;
+  height: 38px;
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.lab-sheet .cloud-calendar .group-label > div,
+.lab-sheet .cloud-calendar .group-label > .game-monogram {
+  position: static !important;
+}
+
+.lab-sheet .cloud-calendar .group-label strong {
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.lab-sheet .cloud-calendar .group-category {
+  font-size: 17px;
+  line-height: 1.4;
+  margin-top: 6px;
+}
+
+.lab-sheet .cloud-calendar .group-label small {
+  font-size: 16px;
+  line-height: 1.4;
+  margin-top: 6px;
+}
+
+.lab-sheet .cloud-calendar .timeline-group {
+  border-top: 6px solid var(--soft);
+  margin-top: 0;
+}
+
+.lab-sheet .cloud-calendar .group-track {
+  overflow: visible !important;
+  padding: 10px 0;
+  min-width: 0;
+}
+
+.lab-sheet .cloud-calendar .event-lane {
+  min-height: 100px;
+  padding-bottom: 8px;
+}
+
+/* Crisp light/game-tinted event card when no artwork is present */
+.lab-sheet .cloud-calendar .timeline-event:not(.is-point) {
+  height: auto !important;
+  min-height: 90px;
+  padding: 10px 14px;
+  overflow: visible !important;
+  background: linear-gradient(90deg, #ffffff 0%, var(--game-tone, #f3f5f8) 100%) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line) !important;
+  border-left: 4px solid var(--game-accent, var(--accent)) !important;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(18, 24, 34, 0.05) !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-event:not(.is-point)::before {
+  display: none !important;
+}
+
+/* Dark scrim only when artwork is actually present */
+.lab-sheet .cloud-calendar .timeline-event:not(.is-point):has(.event-artwork) {
+  background: #1b2634 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-left: 4px solid var(--game-accent, var(--accent)) !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-event:not(.is-point):has(.event-artwork)::before {
+  display: block !important;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(12, 19, 29, 0.88) 0%, rgba(12, 19, 29, 0.66) 55%, rgba(12, 19, 29, 0.16) 100%) !important;
+}
+
+.lab-sheet .cloud-calendar .event-artwork {
+  object-position: center 38%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lab-sheet .cloud-calendar .timeline-event .event-summary {
+  position: relative !important;
+  left: 0 !important;
+  transform: none !important;
+  max-width: none !important;
+  width: 100% !important;
+  z-index: 2;
+  padding: 0 !important;
+  background: transparent !important;
+  border-radius: 6px;
+  overflow: visible !important;
+  color: inherit !important;
+  text-shadow: none !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-event:has(.event-artwork) .event-summary {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85) !important;
+}
+
+.lab-sheet .cloud-calendar .event-heading {
+  gap: 4px 8px;
+}
+
+.lab-sheet .cloud-calendar .event-bar-title {
+  font-size: 19px !important;
+  line-height: 1.4 !important;
+  display: block !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  -webkit-line-clamp: unset !important;
+  font-weight: 600;
+  overflow-wrap: normal;
+  color: inherit !important;
+}
+
+.lab-sheet .cloud-calendar :is(.event-category, .event-status, .event-remaining) {
+  font-size: 15px !important;
+  line-height: 1.4 !important;
+  padding: 2px 8px !important;
+  border-radius: 999px;
+  white-space: nowrap !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-event:not(:has(.event-artwork)) .event-category {
+  background: var(--soft) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line) !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-event:not(:has(.event-artwork)) .event-status {
+  background: var(--game-accent, var(--accent)) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-event:not(:has(.event-artwork)) .event-remaining {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: var(--muted) !important;
+  border: 1px solid var(--line) !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-event.is-short:not(.is-point) {
+  padding: 10px 0;
+  overflow: visible !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-event.is-short .event-summary {
+  width: 300px !important;
+  max-width: 300px !important;
+  left: 4px !important;
+  padding: 8px 12px !important;
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--game-accent, var(--accent));
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(18, 24, 34, 0.08);
+}
+
+.lab-sheet .cloud-calendar .timeline-event.is-short.label-left .event-summary {
+  left: 100% !important;
+  transform: translateX(-100%) !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-event.is-short .event-bar-title {
+  font-size: 18px !important;
+  color: var(--ink) !important;
+}
+
+.lab-sheet .cloud-calendar .timeline-event.is-point {
+  min-height: 94px !important;
+  height: 94px;
+}
+
+.lab-sheet .cloud-calendar .point-diamond {
+  top: 22px;
+}
+
+.lab-sheet .cloud-calendar .point-label {
+  width: 300px !important;
+  max-width: 300px !important;
+  font-size: 18px;
+  line-height: 1.45;
+  padding: 8px 10px;
+  background: var(--surface);
+  min-height: 76px;
+}
+
+.lab-sheet .cloud-calendar .point-label strong {
+  font-size: 18px;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.lab-sheet .cloud-calendar .point-artwork {
+  width: 64px;
+  height: 52px;
+}
+
+.lab-sheet .cloud-calendar .calendar-unplaced {
+  margin: 16px 0 0;
+  padding: 16px;
+  background: var(--soft);
+  border-radius: 14px;
+}
+
+.lab-sheet .cloud-calendar .unplaced-heading h2 {
+  font-size: 21px;
+  line-height: 1.45;
+}
+
+.lab-sheet .cloud-calendar .unplaced-bucket h3 {
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+.lab-sheet .cloud-calendar .unplaced-event strong {
+  font-size: 19px;
+  line-height: 1.45;
+}
+
+.lab-sheet .cloud-calendar .unplaced-event small {
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.lab-sheet .cloud-calendar .unplaced-artwork {
+  width: 84px;
+  height: 58px;
+}
+
+/* NTE Teams inside Cloud / Reuse */
+.lab-sheet .cloud-teams .cap-title {
+  display: none;
+}
+
+.lab-sheet .cloud-teams.render-image {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.lab-sheet .nte-assets .team-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 18px;
+}
+
+.lab-sheet .nte-assets .team-list .asset {
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.lab-sheet .nte-assets .team-list .asset > summary {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  cursor: default;
+}
+
+.lab-sheet .nte-assets .team-list .team-icon {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.lab-sheet .nte-assets .team-list .asset-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 21px !important;
+  font-weight: 800;
+  line-height: 1.4;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+.lab-sheet .nte-assets .team-list :is(.preview, summary > svg) {
+  display: none !important;
+}
+
+.lab-sheet .nte-assets .team-list .detail-body {
+  display: grid;
+  gap: 14px;
+  padding: 0 16px 16px;
+}
+
+.lab-sheet .nte-assets .team-list .description {
+  font-size: 18px !important;
+  line-height: 1.55 !important;
+  color: var(--ink);
+  white-space: normal;
+}
+
+.lab-sheet .nte-assets .team-list .recommendation-images {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.lab-sheet .nte-assets .team-list .recommendation-images a {
+  grid-column: 1 / -1 !important;
+}
+
+.lab-sheet .nte-assets .team-list .recommendation-images img {
+  max-height: none !important;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
 
 /* Preserve the accepted three-row QQ date header when the shared screen
    calendar adds explicit grid rows for its separate month labels. */
 .lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .date-cell {
-  min-height:90px;grid-template-rows:24px 28px 22px;padding:10px 0;gap:2px;
+  min-height: 82px;
+  grid-template-rows: 22px 26px 20px;
+  padding: 8px 0;
+  gap: 2px;
 }
-.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .day-month {display:none}
-.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .day-weekday {grid-row:1}
-.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .date-cell strong {grid-row:2;height:auto}
-.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .day-today {grid-row:auto}
+
+.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .day-month {
+  display: none;
+}
+
+.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .day-weekday {
+  grid-row: 1;
+}
+
+.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .date-cell strong {
+  grid-row: 2;
+  height: auto;
+}
+
+.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .day-today {
+  grid-row: auto;
+}

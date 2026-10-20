@@ -176,3 +176,34 @@ def test_local_equipped_finds_the_character_behind_newer_rows_of_others(tmp_path
         body=TestClient(app).get('/api/assessment/wuthering_waves/c1/equipped').json()
         assert len(body['configuration']['items'])==1
     finally:store.close()
+
+
+def test_cloud_equipped_survives_token_rotation_but_not_reauthorization(tmp_path):
+    from fastapi.testclient import TestClient
+    from game_assistant.cloud_app import create_cloud_app
+    from game_assistant.auth.service import ScopedLoginService
+    from game_assistant.identity.models import Principal
+    from tests.test_account_queries import cloud_settings
+    from tests.test_account_auth import Provider
+    app = create_cloud_app(cloud_settings(tmp_path), start_scheduler=False)
+    admin = app.state.identity.bootstrap_admin('admin', 'Admin-password-123')
+    with TestClient(app, base_url='https://cloud.example') as client:
+        write(client,'/api/identity/login',{'username':'admin','password':'Admin-password-123'})
+        principal = Principal(admin.user_id,True)
+        credentials = {'center_uid':'u','role_id':'77','access_token':'token','device_id':'device'}
+        def seed():
+            row = app.state.accounts.save_verified(principal,'tajiduo',credentials)
+            scope = app.state.accounts.require_scope(principal,row['account_id'],row['role_id'])
+            app.state.store.save_scoped(scope,'roles',json.dumps({'entries':[{'id':'c1',
+                'suit':{'core':[{'id':'i','properties':[{'id':'p','value':'3'}]}]}}]}),row['version'])
+            return row
+        row = client.portal.call(seed)
+        path = f"/api/accounts/{row['account_id']}/roles/{row['role_id']}/assessment/nte/c1/equipped"
+        before = client.get(path)
+        assert before.status_code == 200
+        assert len(before.json()['configuration']['items']) == 1
+        login = ScopedLoginService(app.state.accounts,providers={'tajiduo':Provider()})
+        client.portal.call(login.renew,principal,row['grant_id'])
+        assert client.get(path).json()['configuration'] == before.json()['configuration']
+        client.portal.call(app.state.accounts.save_verified,principal,'tajiduo',credentials)
+        assert client.get(path).json()['configuration']['items'] == []

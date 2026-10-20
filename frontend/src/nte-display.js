@@ -19,7 +19,7 @@ for (const bucket of [catalog.roles, catalog.weapons]) for (const [name, item] o
 export function nteItemLabel(id, suppliedName) {
   const names = namesById.get(String(id))
   const name = String(suppliedName || '').trim()
-  const raw = !name || name === String(id) || /^角色\/弧盘\s/.test(name) || /^fork_/.test(name)
+  const raw = !name || name === String(id) || /^角色\/弧盘\s/.test(name) || /\bfork_[a-z0-9_]+|^CHARACTER_|^char_/i.test(name)
   if (names) return raw ? names[0] : names.includes(name) ? name : '名称待核验'
   return raw ? '名称待核验' : displayNteText(name)
 }

@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { isCloudMode } from '../http-client.js'
 import { fetchedLabel } from '../time.js'
 import { exportRecords, getRecords, pityParts, pullDate, pullDay, rarityLabel } from '../endfield-gacha-api.js'
-import { bannerGroups, gachaPools, kindSummary, poolCategories, poolPace, poolTotal, pullRuler, rarityShares, sixPullsParts, syncStatus } from '../endfield-gacha-summary.js'
+import { bannerGroups, gachaPools, isGachaGift, kindSummary, poolCategories, poolPace, poolTotal, pullRuler, rarityShares, sixPullsParts, syncStatus } from '../endfield-gacha-summary.js'
 import { gachaArtwork } from '../endfield-reports.js'
 import { vReveal } from '../motion.js'
 import AppIcon from './AppIcon.vue'
@@ -19,13 +19,16 @@ const show = value => value == null || value === '' ? '未知' : value
 const pools = computed(() => gachaPools(summary.value))
 const categories = computed(() => poolCategories(pools.value))
 const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))
-const poolOptions = computed(() => [{ value: '', label: '全部卡池' }, ...pools.value.map(pool => ({ value: pool.key, label: pool.label }))])
+const poolOptions = computed(() => [{ value: '', label: '全部卡池' }, ...(pools.value.some(pool => pool.kind === 'weapon') ? [{ value: 'weapon', label: '武器申领（全部）' }] : []), ...pools.value.map(pool => ({ value: pool.key, label: pool.label }))])
 const opened = ref(false), recordPool = ref(''), records = ref([]), total = ref(0), offset = ref(0), busy = ref(false), message = ref('')
 const PAGE = 50
 let generation = 0
 
 // The headline keeps operator headhunting and weapon requisition apart; they never add up.
 const kinds = computed(() => ['character', 'weapon'].map(kind => kindSummary(pools.value, kind)).filter(Boolean))
+const unverifiedRecords = computed(() => kinds.value.reduce((sum, kind) => sum + kind.unverified_records, 0))
+// Pools the last sync could not read; the rest of the ledger synced normally and they are retried next time.
+const failures = computed(() => (Array.isArray(summary.value?.errors) ? summary.value.errors : []).filter(item => item && typeof item.label === 'string'))
 const status = computed(() => syncStatus(summary.value, report.value))
 const statusHint = computed(() => {
   const gaps = report.value?.gaps ?? poolTotal(pools.value, 'gaps')
@@ -51,9 +54,9 @@ const views = computed(() => (props.imageMode ? categories.value : current.value
     banners: split ? banners : [{ ...banners[0], key: 'all', history: category.history }],
     range: dayRange(category) }
 }))
-function select(key) { selected.value = key; recordPool.value = pools.value.some(pool => pool.key === key) ? key : '' }
+function select(key) { selected.value = key; recordPool.value = key === 'weapon' || pools.value.some(pool => pool.key === key) ? key : '' }
 // A category that is gone after a sync no longer filters the ledger either.
-watch(categories, list => { if (selected.value && !list.some(category => category.key === selected.value)) { selected.value = ''; if (!pools.value.some(pool => pool.key === recordPool.value)) recordPool.value = '' } })
+watch(categories, list => { if (selected.value && !list.some(category => category.key === selected.value)) { selected.value = ''; if (!poolOptions.value.some(option => option.value === recordPool.value)) recordPool.value = '' } })
 const pity = pool => pityParts(pool?.since_last_six)
 // Each weapon banner keeps its own pity, so the weapon category shows its newest banner's.
 const categoryPity = category => pity(category.kind === 'weapon' ? category.latest : category)
@@ -63,7 +66,8 @@ const banner = (item, view) => !view.split && item.pool_name && item.pool_name !
 const barWidth = (item, ruler) => { const parts = sixPullsParts(item); return parts && ruler ? `${Math.min(100, Math.round(parts.count / ruler * 10000) / 100)}%` : '0%' }
 const tag = (item, pace) => item === pace.fastest ? { label: '最欧', tone: 'lucky' } : item === pace.slowest ? { label: '最非', tone: 'unlucky' } : null
 // Ledger rows carry their kind; older exports only say it through a weapon pool key.
-const recordKind = row => row.kind || (String(row.pool_key || '').startsWith('weapon:') ? 'weapon' : 'character')
+const recordKind = row => ['weapon', 'character'].includes(row.kind) ? row.kind : (String(row.pool_key || '').startsWith('weapon:') ? 'weapon' : 'character')
+const unverifiedWeapon = row => recordKind(row) === 'weapon' && row.record_kind !== 'draw' && !isGachaGift(row)
 const RARITY_COLOR = { six_star: 'var(--eg-six)', five_star: 'var(--eg-five)', four_star: 'var(--eg-four)', unknown_rarity: 'var(--eg-unknown)' }
 
 async function load(start = 0) {
@@ -72,7 +76,7 @@ async function load(start = 0) {
   const request = ++generation
   busy.value = true; message.value = ''
   try {
-    const page = await getRecords(recordPool.value, start, PAGE)
+    const page = await getRecords(recordPool.value === 'weapon' ? '' : recordPool.value, start, PAGE, recordPool.value === 'weapon' ? 'weapon' : '')
     if (request !== generation) return
     records.value = page.records || []; total.value = page.total || 0; offset.value = start
   } catch (error) {
@@ -128,6 +132,9 @@ async function download() {
             </dl>
           </section>
         </div>
+        <p v-if="failures.length" class="notice warn eg-failures" role="status">本次未能读取：<template v-for="(item, index) in failures" :key="item.key"><template v-if="index">、</template><b>{{ item.label }}</b>（{{ item.message || '原因未知' }}）</template>。其他卡池已正常同步，下次刷新会重试。</p>
+        <p v-if="unverifiedRecords > 0" class="notice warn" role="status">另有 {{ unverifiedRecords }} 条武器记录类型不明确，暂不计入统计。刷新可核验官方仍可查询的部分，超出查询期限的记录会保留在明细中。</p>
+        <p v-if="kinds.some(kind => kind.gifts > 0)" class="notice">额外奖励保留在逐条记录中，不计入抽数、出货和垫抽。</p>
         <p v-if="summary.complete === false" class="notice warn" role="status">还有记录未同步完，下次刷新会接着同步。</p>
       </template>
     </div>
@@ -217,13 +224,14 @@ async function download() {
             <button type="button" class="ui-button small-button" :disabled="busy || offset === 0" @click="load(Math.max(0, offset - PAGE))">上一页</button>
             <button type="button" class="ui-button small-button" :disabled="busy || offset + PAGE >= total" @click="load(offset + PAGE)">下一页</button>
           </div>
+          <p v-if="records.some(isGachaGift)" class="notice">额外奖励不计入抽数、出货和垫抽。</p>
           <div v-if="records.length" class="table-scroll">
             <table class="data-table records">
               <thead><tr><th>时间</th><th>名称</th><th>稀有度</th><th>卡池</th></tr></thead>
               <tbody>
-                <tr v-for="row in records" :key="`${row.pool_key}-${row.seq_id}`" :class="{ six: row.rarity === 6, five: row.rarity === 5 }">
+                <tr v-for="row in records" :key="`${row.pool_key}-${row.seq_id}`" :class="{ six: !isGachaGift(row) && !unverifiedWeapon(row) && row.rarity === 6, five: !isGachaGift(row) && !unverifiedWeapon(row) && row.rarity === 5 }">
                   <td class="when">{{ pullDate(row.gacha_ts) }}</td>
-                  <td class="name"><span class="name-cell"><EndfieldArtwork class="row-art" :src="gachaArtwork(row, recordKind(row))" :name="row.name || '未知'" />{{ row.name || '未知' }}<span v-if="row.is_free" class="chip">免费</span></span></td>
+                  <td class="name"><span class="name-cell"><EndfieldArtwork class="row-art" :src="gachaArtwork(row, recordKind(row))" :name="row.name || '未知'" />{{ row.name || '未知' }}<span v-if="isGachaGift(row)" class="chip">{{ row.reward_label || '额外奖励' }}</span><span v-else-if="unverifiedWeapon(row)" class="chip">类型待核验</span><span v-else-if="row.is_free" class="chip">免费</span></span></td>
                   <td class="rarity">{{ rarityLabel(row.rarity) }}</td>
                   <td>{{ row.pool_name || '—' }}</td>
                 </tr>
@@ -254,6 +262,7 @@ async function download() {
 .eg-card { position:relative; padding:20px; border:1px solid var(--card-border); border-radius:var(--radius-card); background:var(--card-bg); box-shadow:var(--card-shadow); }
 .notice { margin:0; color:var(--text-muted); font-size:13px; line-height:1.6; }
 .notice.warn { color:var(--stale-text); }
+.eg-failures b { font-weight:600; }
 .k { display:inline-flex; align-items:center; color:var(--text-muted); font-size:12px; line-height:18px; font-weight:500; }
 small { margin-left:3px; color:var(--text-muted); font-size:.5em; font-weight:500; letter-spacing:0; }
 

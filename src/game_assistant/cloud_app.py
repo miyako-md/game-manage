@@ -37,7 +37,7 @@ def source_ip(request: Request) -> str:
     return peer
 
 
-def allow_cloud_route(app: FastAPI, path: str, methods, *, access='user'):
+def allow_cloud_route(app: FastAPI, path: str, methods, *, access='user', body_limit=None):
     """Explicit policy registration. Adding a FastAPI route alone grants no access.
 
     Future service routes require app.state.service_authenticator(request), an
@@ -46,12 +46,19 @@ def allow_cloud_route(app: FastAPI, path: str, methods, *, access='user'):
     """
     if access not in {'user', 'public', 'preauth', 'service'}:
         raise ValueError('Unknown cloud route access policy')
+    if body_limit is not None and (access != 'user' or type(body_limit) is not int or not 1 <= body_limit <= 8 * 1024 * 1024):
+        raise ValueError('Invalid private route body limit')
     regex, _, _ = compile_path(path)
     methods = frozenset(method.upper() for method in methods)
     for old_regex, old_methods, _ in app.state.cloud_route_policy:
         if old_regex.pattern == regex.pattern and old_methods & methods:
             raise ValueError('Cloud route policy already exists')
     app.state.cloud_route_policy.append((regex, methods, access))
+    if body_limit is not None:
+        if not hasattr(app.state, 'cloud_route_body_limits'):
+            app.state.cloud_route_body_limits = {}
+        for method in methods:
+            app.state.cloud_route_body_limits[(regex.pattern, method)] = body_limit
 
 
 class CloudBoundary:
@@ -93,9 +100,12 @@ class CloudBoundary:
             return await reject('untrusted_origin', 403)
 
         access = None
+        body_limit = self.settings.cloud_body_limit_bytes
         for regex, methods, policy in self.owner.state.cloud_route_policy:
             if scope['method'] in methods and regex.fullmatch(scope['path']):
                 access = policy
+                body_limit = getattr(self.owner.state, 'cloud_route_body_limits', {}).get(
+                    (regex.pattern, scope['method']), body_limit)
                 break
         if access is None:
             return await reject('route_not_available', 404)
@@ -132,7 +142,7 @@ class CloudBoundary:
                 return
             chunk = message.get('body', b'')
             size += len(chunk)
-            if size > self.settings.cloud_body_limit_bytes:
+            if size > body_limit:
                 return await reject('body_too_large', 413)
             chunks.append(chunk)
             if not message.get('more_body', False):

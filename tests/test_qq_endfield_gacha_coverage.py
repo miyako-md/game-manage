@@ -121,7 +121,22 @@ def test_banner_breakdowns_and_six_star_banner_ids_reach_the_shared_image_view()
     rows=[{'seq_id':i,'rarity':6 if i in (3,8) else 4,'is_free':False,'name':f'合成{i}','pool_id':'s2' if i>5 else 's1',
            'pool_name':'晨星' if i>5 else '冬猎','gacha_ts':1791950400000+i} for i in range(1,11)]
     pool=_pool_summary('special','character','特许',None,rows,{}).model_dump(mode='json')
-    data=game_panel('endfield','hypergryph','gacha',QueryResult({'schema_version':1,'role_id':'r','pools':[pool]},'2026-10-14T08:00:00+00:00','ok',None))['snapshot']['payload']
+    errors=[{'key':'weapon:w1','label':'熔铸申领','message':'接口错误 code=1001'}]
+    data=game_panel('endfield','hypergryph','gacha',QueryResult({'schema_version':1,'role_id':'r','pools':[pool],'errors':errors},'2026-10-14T08:00:00+00:00','ok',None))['snapshot']['payload']
     projected=data['pools'][0]
     assert [(b['pool_id'],b['name'],b['total'],b['six_star'],b['four_star']) for b in projected['banners']]==[('s2','晨星',5,1,4),('s1','冬猎',5,1,4)]
     assert [(h['name'],h['pool_id']) for h in projected['history']]==[('合成8','s2'),('合成3','s1')]
+    assert data['errors']==errors
+
+
+def test_weapon_rewards_and_unverified_history_are_preserved_in_image_and_text_notices():
+    from game_assistant.qq.render_snapshot import game_panel
+    from game_assistant.qq.endfield_presentation import gacha_document
+    payload=stress_gacha(1)
+    payload['pools'][0].update(kind='weapon',gifts=1,unverified_records=10)
+    row=QueryResult(payload,'2026-10-20T07:00:00+00:00','ok',None)
+    projected=game_panel('endfield','hypergryph','gacha',row)['snapshot']['payload']['pools'][0]
+    assert (projected['gifts'],projected['unverified_records'])==(1,10)
+    card=gacha_document(row)
+    assert any('1 条额外奖励' in notice for notice in card['notices'])
+    assert any('10 条旧武器记录' in notice for notice in card['notices'])

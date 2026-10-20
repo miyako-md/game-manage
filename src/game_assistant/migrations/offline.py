@@ -282,6 +282,7 @@ def build_plan(source, mapping):
                         accepted = {expected}
                         if d['kind'] == 'endfield_gacha' and name == 'pools':
                             accepted.add((expected[0] + ('scan_pending',), expected[1]))
+                            accepted.add((expected[0] + ('scan_pending','last_error'), expected[1]))
                         if (columns,pk) not in accepted:
                             issue('legacy_schema_mismatch',relative,name)
                         else:

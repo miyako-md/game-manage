@@ -1,23 +1,174 @@
-/* Existing dashboard guide modules, at the same readable QQ type scale. */
-.guide-role-context{display:grid;grid-template-columns:112px minmax(0,1fr);align-items:center;gap:24px;padding:24px;background:var(--surface);border:1px solid var(--line);border-radius:20px}
-.guide-role-context>img,.guide-role-context>.endfield-artwork{width:112px;height:128px;object-fit:contain;border-radius:16px;background:var(--soft)}
-.guide-role-context p{font-size:23px;line-height:1.6;color:var(--muted);margin-top:10px;overflow-wrap:break-word}
-.guide-empty{display:grid;gap:24px}
-.guide-visual{display:grid;gap:16px}
-.lab-sheet .guide-visual :is(.guide-visual-flow,.nte-visual-flow){font-size:26px;line-height:1.75;white-space:pre-wrap;padding:0;gap:12px 14px}
-.lab-sheet .guide-visual :is(.guide-connector,.plain-token){font-size:26px;line-height:1.75;color:var(--ink)}
-.lab-sheet .guide-visual :is(.guide-entity,.visual-token){max-width:240px;min-width:96px;padding:12px 16px;gap:10px;margin:6px 4px;border-radius:14px;background:var(--soft);box-shadow:inset 0 0 0 1px var(--line);vertical-align:middle;white-space:normal}
-.lab-sheet .guide-visual :is(.guide-entity,.visual-token)>span:last-child{font-size:24px;line-height:1.5;max-width:208px;color:var(--ink);text-align:center;text-wrap:balance;overflow-wrap:normal}
-.lab-sheet .guide-visual :is(.wuwa-item-icon,.nte-icon){width:64px;height:64px;--size:64px}
-.lab-sheet .guide-visual :is(.visual-skill_priority,.skills) :is(.wuwa-item-icon,.nte-icon){width:52px;height:52px;--size:52px}
-.lab-sheet .guide-visual .visual-echo_stats .wuwa-item-icon{width:32px;height:32px}
-.lab-sheet .guide-visual .icon-fallback{font-size:24px}
-.lab-sheet .guide-visual .nte-visual-flow{display:block}
-.guide-visual .guide-atom{display:inline-flex;align-items:center;vertical-align:middle;white-space:nowrap;max-width:100%}
-.guide-visual .guide-punctuation{font-size:26px;line-height:1.75;color:var(--ink)}
-.lab-sheet .guide-visual :is(.visual-skill_priority,.skills) :is(.wuwa-item-icon,.nte-icon){background:#526477}
-.guide-entry-art{display:flex;gap:4px;flex:none;width:64px;align-items:center}
-.guide-entry-art figure{margin:0;min-width:0}
-.guide-entry-art.multi{width:96px}
-.guide-entry-art.multi img{width:46px;height:64px}
-.guide-entry-art figcaption{text-align:center;color:var(--muted);font-size:18px;line-height:1.5}
+/* Shared dashboard guide visual tokens calibrated for QQ image rendering. */
+.guide-role-context {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding: 20px 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.guide-role-context > img,
+.guide-role-context > .endfield-artwork {
+  width: 96px;
+  height: 112px;
+  object-fit: contain;
+  border-radius: 14px;
+  background: var(--soft);
+}
+
+.guide-role-context p {
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin-top: 8px;
+  overflow-wrap: break-word;
+}
+
+.guide-empty {
+  display: grid;
+  gap: 18px;
+}
+
+.guide-visual {
+  display: grid;
+  gap: 12px;
+}
+
+.lab-sheet .guide-visual :is(.guide-visual-flow, .nte-visual-flow) {
+  font-size: 20px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  padding: 0;
+  gap: 10px 12px;
+}
+
+.lab-sheet .guide-visual :is(.guide-connector, .plain-token) {
+  font-size: 20px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.lab-sheet .guide-visual :is(.guide-entity, .visual-token) {
+  max-width: 220px;
+  min-width: 84px;
+  padding: 10px 14px;
+  gap: 8px;
+  margin: 4px 3px;
+  border-radius: 14px;
+  background: var(--soft);
+  box-shadow: inset 0 0 0 1px var(--line);
+  vertical-align: middle;
+  white-space: normal;
+}
+
+.lab-sheet .guide-visual :is(.guide-entity, .visual-token) > span:last-child {
+  font-size: 18px;
+  line-height: 1.45;
+  max-width: 192px;
+  color: var(--ink);
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: normal;
+}
+
+.lab-sheet .guide-visual :is(.wuwa-item-icon, .nte-icon) {
+  width: 56px;
+  height: 56px;
+  --size: 56px;
+}
+
+.lab-sheet .guide-visual :is(.visual-skill_priority, .skills) :is(.wuwa-item-icon, .nte-icon) {
+  width: 46px;
+  height: 46px;
+  --size: 46px;
+  background: #526477;
+}
+
+.lab-sheet .guide-visual :is(.visual-skill_priority, .skills) :is(.wuwa-item-icon, .nte-icon):has(.icon-fallback) {
+  background: var(--soft) !important;
+  box-shadow: inset 0 0 0 1px var(--line) !important;
+}
+
+.page-guide .page-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  gap: 18px;
+}
+
+.page-guide .page-body > :is(.guide-role-context, .kind-textlines, .kind-guide_context) {
+  grid-column: 1 / -1;
+}
+
+.page-guide .page-body > .kind-guide_visual:has(.visual-weapons, .visual-teams, .visual-echo_stats, .weapons, .teams, .stats) {
+  grid-column: 1 / -1;
+}
+
+.page-guide .page-body > .kind-guide_visual:only-of-type {
+  grid-column: 1 / -1;
+}
+
+.lab-sheet .guide-visual .visual-echo_stats .wuwa-item-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.lab-sheet .guide-visual .icon-fallback {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.lab-sheet .guide-visual .visual-echo_stats .wuwa-item-icon .icon-fallback {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.lab-sheet .guide-visual .nte-visual-flow {
+  display: block;
+}
+
+.guide-visual .guide-atom {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.guide-visual .guide-punctuation {
+  font-size: 20px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.guide-entry-art {
+  display: flex;
+  gap: 4px;
+  flex: none;
+  width: 54px;
+  align-items: center;
+}
+
+.guide-entry-art figure {
+  margin: 0;
+  min-width: 0;
+}
+
+.guide-entry-art.multi {
+  width: 84px;
+}
+
+.guide-entry-art.multi img {
+  width: 40px;
+  height: 54px;
+}
+
+.guide-entry-art figcaption {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+}

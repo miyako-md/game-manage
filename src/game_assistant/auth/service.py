@@ -466,6 +466,7 @@ class ScopedLoginService:
                 raise LoginError('该社区不支持续期',400,'auth_expired')
             try:
                 credentials = self.accounts.credentials.load_grant(principal.user_id,grant_id)
+                previous = deepcopy(credentials)
                 if role_id is not None:
                     if not any(str(role.get('role_id'))==role_id and str(role.get('server_id'))==server_id
                                for role in credentials.get('_verified_roles',[])):
@@ -479,6 +480,8 @@ class ScopedLoginService:
                     if credentials.get('_authorization_id'):
                         updated['_authorization_id'] = credentials['_authorization_id']
                 updated['_updated_at'] = self.clock()
+                from game_assistant.accounts.identities import renewed_snapshot_generation
+                updated['_snapshot_generation'] = renewed_snapshot_generation(previous, updated, version)
                 sealed = self.accounts.credentials.seal_grant(principal.user_id,grant_id,updated,version+1)
                 with transaction(self.accounts.connection):
                     cursor = self.accounts.connection.execute(
@@ -626,6 +629,8 @@ class ScopedLoginService:
                 if updated['user_id'] != saved['user_id']:
                     raise LoginError('森空岛账号已改变，请重新连接或使用手动授权',409,'auth_expired')
                 updated['_parent'] = parent
+                from game_assistant.accounts.identities import renewed_snapshot_generation
+                updated['_snapshot_generation'] = renewed_snapshot_generation(saved, updated, expected_version)
                 sealed = self.accounts.credentials.seal_grant(principal.user_id,grant_id,updated,expected_version+1)
                 with transaction(self.accounts.connection):
                     self.accounts.credentials.validate_parent(principal.user_id,parent)

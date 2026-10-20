@@ -17,13 +17,6 @@ class AccountScope:
 
 
 @dataclass(frozen=True, slots=True)
-class GrantRef:
-    grant_id: str
-    provider: str
-    version: int
-
-
-@dataclass(frozen=True, slots=True)
 class QueryResult:
     payload: dict | list | None
     fetched_at: str | None

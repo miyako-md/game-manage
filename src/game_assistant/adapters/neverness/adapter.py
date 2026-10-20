@@ -188,6 +188,11 @@ class NteAdapter(BaseGameAdapter):
                 # independent notice must retain the previous full snapshot.
                 from game_assistant.sources.public_content import _same_event
                 base_stamp = event_calendar.parse_ms_or_iso(post.get('createTime'))
+                from game_assistant.version_calendar import select_unversioned_events, version_metadata
+                meta = version_metadata('nte', dict(id=post_id, title=post.get('subject'),
+                    body='\n'.join(event_calendar.strip_html(str(base_detail.get('content') or ''))),
+                    published_at=base_stamp.isoformat() if base_stamp else None, fetched_at=datetime.now(timezone.utc).isoformat(),
+                    url=GET_POST_FULL+'?'+urlencode({'postId':post_id}), source_name='塔吉多官方公告'), notices)
                 candidates = []
                 for row in tajiduo._extract_rows(raw):
                     if not isinstance(row, dict) or str(row.get('postId')) == post_id:
@@ -231,11 +236,8 @@ class NteAdapter(BaseGameAdapter):
                     if not parsed:
                         raise ValueError('independent public notice has no dated events')
                     if not declared:
-                        base_rows = [e.model_dump(mode='json') for e in events]
-                        start_day = min((e.get('start_at') or e.get('start_date') or (base_stamp.isoformat() if base_stamp else ''))[:10] for e in base_rows)
-                        end_day = max((e.get('end_at') or e.get('end_date') or '')[:10] for e in base_rows)
-                        parsed = [e for e in parsed if (e.end_at or e.end_date)
-                                  and start_day <= (e.end_at.date().isoformat() if e.end_at else e.end_date) <= end_day]
+                        parsed = [NteCalendarEvent(**row) for row in select_unversioned_events(
+                            [e.model_dump(mode='json') for e in parsed], meta)]
                     independent.extend(parsed)
                 if independent:
                     merged = []
@@ -247,11 +249,6 @@ class NteAdapter(BaseGameAdapter):
             if not events:
                 return FetchResult(ok=False, error='版本公告正文为空或无法解析活动，保留上次成功日历',
                                    error_kind='invalid_data')
-            from game_assistant.version_calendar import version_metadata
-            meta = version_metadata('nte', dict(id=post_id, title=post.get('subject'),
-                body='\n'.join(event_calendar.strip_html(str(base_detail.get('content') or ''))),
-                published_at=base_stamp.isoformat() if base_stamp else None, fetched_at=datetime.now(timezone.utc).isoformat(),
-                url=GET_POST_FULL+'?'+urlencode({'postId':post_id}), source_name='塔吉多官方公告'), notices)
             events = [event.model_copy(update={'version_metadata':meta}) for event in events]
             return FetchResult(ok=True, payload=events)
         return await self._guarded_run(run)

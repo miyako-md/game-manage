@@ -208,6 +208,15 @@ def test_scoped_history_backfill_uses_only_owned_current_snapshots(tmp_path):
     from tests.test_private_data_isolation import cloud_fixture, A, B
     from game_assistant.snapshots import SnapshotStore
     client, app, bundle, db = cloud_fixture(tmp_path, 'wuthering_waves', 'kuro')
+    credentials = bundle.accounts.credentials
+    credentials.key_path.write_bytes(b'x' * 32)
+    credentials.key_path.chmod(0o600)
+    for scope in (A, B):
+        info = bundle.accounts.describe(scope)
+        credentials.save_grant(scope.user_id, info['grant_id'], {
+            'user_id': 'synthetic-user', 'role_id': info['game_uid'],
+            'server_id': info['server'], 'token': 'synthetic-token',
+        }, info['version'])
     snapshots = SnapshotStore(str(tmp_path / 'snapshots.db'))
     bundle.snapshots = snapshots
     def roles(level):

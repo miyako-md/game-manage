@@ -15,6 +15,7 @@ import hashlib
 import ipaddress
 from itertools import islice
 from io import BytesIO
+import logging
 import re
 import socket
 import ssl
@@ -26,6 +27,8 @@ import warnings
 from PIL import Image, UnidentifiedImageError
 
 from .public_asset_catalog import CATALOG, OWNED_EMBLEMS
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_HOSTS = frozenset(('web-static.kurobbs.com', 'prod-alicdn-community.kurobbs.com',
                          'webstatic.tajiduo.com', 'bbs-upload.tajiduo.com',
@@ -392,7 +395,9 @@ class PublicAssetCache:
                 if not task.done():
                     task.cancel()
             if owned:
-                await asyncio.gather(*owned, return_exceptions=True)
+                results = await asyncio.gather(*owned, return_exceptions=True)
+                if any(isinstance(result, Exception) for result in results):
+                    logger.warning('qq_asset_prefetch_failed')
 
     async def aclose(self):
         tasks = list(self._inflight.values())

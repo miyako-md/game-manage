@@ -310,16 +310,17 @@ def test_pre_archive_wuwa_two_table_layout_remains_migratable(case):
 @pytest.mark.parametrize('current,last_sync,scan_pending,expected', [
     (False, None, None, None), (False, '2026-10-15T00:00:00Z', None, 0),
     (True, None, None, None), (True, '2026-10-15T00:00:00Z', 1, 1),
-    (True, '2026-10-15T00:00:00Z', 0, 0),
+    (True, '2026-10-15T00:00:00Z', 0, 0), ('errors', '2026-10-15T00:00:00Z', 1, 1),
 ])
 def test_endfield_pool_scan_schema_migrates_without_losing_coverage_evidence(case, current, last_sync, scan_pending, expected):
     source, _, mapping, destination = case
     path = source / 'endfield.sqlite3'
     with sqlite3.connect(path) as db:
-        extra = ',scan_pending INTEGER' if current else ''
+        # 'errors' is the layout that also keeps the last per-pool sync failure.
+        extra = ',scan_pending INTEGER,last_error TEXT' if current == 'errors' else ',scan_pending INTEGER' if current else ''
         db.execute('CREATE TABLE pools(role TEXT NOT NULL,pool_key TEXT NOT NULL,kind TEXT NOT NULL,'
                    f'label TEXT NOT NULL,last_sync_at TEXT{extra},PRIMARY KEY(role,pool_key))')
-        values = ('uid', 'pool', 'character', 'synthetic', last_sync) + ((scan_pending,) if current else ())
+        values = ('uid', 'pool', 'character', 'synthetic', last_sync) + ((scan_pending,) if current else ()) + (('接口错误',) if current == 'errors' else ())
         db.execute('INSERT INTO pools VALUES (' + ','.join('?' for _ in values) + ')', values)
     mapping['datasets'].append({'database':path.name,'kind':'endfield_gacha','user_id':'u','account_id':'e','role_id':'e'})
     before = hashes(source)

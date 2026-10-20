@@ -34,3 +34,9 @@ test('an unsynced account gets a quiet placeholder and both actions keep working
   assert.deepEqual(events, ['details', 'refresh'])
   assert.equal(content(mount(t, Summary, { view: view({ total: 1 }), refreshing: true }).children[0]).includes('同步中…'), true)
 })
+
+test('the overview card says how many pools failed to read', t => {
+  const base = view({ total: 10, pending: true })
+  const root = mount(t, Summary, { view: { ...base, snapshot: { ...base.snapshot, payload: { ...base.snapshot.payload, errors: [{ key: 'weapon:w1', label: '熔铸申领', message: 'x' }] } } } })
+  assert.match(content(root), /1 个卡池读取失败，详见寻访详情/)
+})

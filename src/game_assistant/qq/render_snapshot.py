@@ -51,7 +51,7 @@ PANEL_CAPS = {
  'wuthering_waves':{'account':ACCOUNT,'stamina':STAMINA,'progress':PROGRESS,'exploration':EXPLORATION,'roles':ROLE|frozenset(('extra',)),'gacha':GACHA,'combat':COMBAT,'calabash':CALABASH,'activities':ACTIVITIES,'resources':RESOURCES},
  'endfield':{cap:END_REPORT for cap in ('account','stamina','progress','exploration','roles','record','training','regions','ship','honor','operator_detail')},
 }
-PANEL_CAPS['endfield']['gacha']=END_GACHA | frozenset('report four_star unknown_rarity history_total history_available history_limit history_truncated known_exact_intervals average_exact_pulls pool_label banners'.split())
+PANEL_CAPS['endfield']['gacha']=END_GACHA | frozenset('report four_star unknown_rarity history_total history_available history_limit history_truncated known_exact_intervals average_exact_pulls pool_label banners errors gifts unverified_records'.split())
 PANEL_CAPS['endfield']['combat']=END_CHALLENGES
 for _game in PANEL_CAPS:
  PANEL_CAPS[_game].update(news=NEWS,events=CALENDAR,recent_events=CALENDAR)
@@ -160,7 +160,7 @@ def game_panel(game,provider,capability,row,*,summary=False,resolved=None):
     if summary and capability=='roles':
         if isinstance(raw,list):raw=raw[:6]
         elif isinstance(raw,dict):raw={**raw,**{key:raw[key][:6] for key in ('entries','operators') if isinstance(raw.get(key),list)}}
-        fields=NTE_OVERVIEW|frozenset('schema_version entries operators role_id role_name attribute weapon chain breach star_level extra total_skill_level chain_unlock_num rarity potential evolve_phase profession property'.split())
+        fields=NTE_OVERVIEW|frozenset('schema_version entries operators role_id role_name role_icon_url weapon_type_name attribute weapon chain breach star_level extra total_skill_level chain_unlock_num rarity potential evolve_phase profession property'.split())
         if game=='nte':fields=NTE_OVERVIEW|{'schema_version','entries'}
         raw=project(raw,fields)
     if summary and capability=='gacha':raw=project(raw,PANEL_CAPS[game]['gacha']-{'details','records','items','gold','recent_six','history','aggregates'})
@@ -454,6 +454,8 @@ def asset_requests(node):
                             yield from roster()
                         else:
                             yield from visit(report.get('overview',{'base':payload.get('base')}),current)
+                            if cap=='account' and training.get('items'):
+                                yield from roster()
                     elif cap=='roles' and current=='nte':
                         entries=payload.get('entries',[]) if isinstance(payload,dict) else payload if isinstance(payload,list) else []
                         for entry in entries:

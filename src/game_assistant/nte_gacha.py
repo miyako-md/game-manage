@@ -160,6 +160,12 @@ class GachaStore:
                   PRIMARY KEY(role,pool));
                 CREATE TABLE IF NOT EXISTS accounts (
                   role TEXT PRIMARY KEY, metadata TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS records_by_time ON records (
+                  role, json_extract(payload, '$.timestamp') DESC,
+                  json_extract(payload, '$.timestamp_group_ordinal'), pool, uid);
+                CREATE INDEX IF NOT EXISTS records_by_pool_time ON records (
+                  role, pool, json_extract(payload, '$.timestamp') DESC,
+                  json_extract(payload, '$.timestamp_group_ordinal'), uid);
             ''')
 
     @contextmanager
@@ -323,12 +329,19 @@ class GachaStore:
 
     def records(self, role, pool_id=None, limit=100, offset=0):
         with self._db() as db:
-            sql, args = 'SELECT payload FROM records WHERE role=?', [role]
+            db.execute('BEGIN')
+            where, args = 'WHERE role=?', [role]
             if pool_id:
-                sql += ' AND pool=?'
+                where += ' AND pool=?'
                 args.append(pool_id)
-            rows = _ordered([json.loads(row[0]) for row in db.execute(sql, args)])
-        return dict(role_id=role, total=len(rows), records=rows[offset:offset+limit])
+            total = db.execute('SELECT count(*) FROM records ' + where, args).fetchone()[0]
+            start, stop, _ = slice(offset, offset + limit).indices(total)
+            rows = db.execute(
+                'SELECT payload FROM records ' + where +
+                " ORDER BY json_extract(payload, '$.timestamp') DESC,"
+                " json_extract(payload, '$.timestamp_group_ordinal'), pool, uid LIMIT ? OFFSET ?",
+                [*args, max(0, stop - start), start]).fetchall()
+        return dict(role_id=role, total=total, records=[json.loads(row[0]) for row in rows])
 
     def rules(self, role):
         with self._db() as db:

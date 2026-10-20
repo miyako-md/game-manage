@@ -28,6 +28,18 @@ def test_bilibili_string_timestamp_is_parsed_as_seconds():
     item = post('9月15日活动开启公告', published='1789401600')
     assert classify_dynamic(item, UID, NOW)['decision'] == 'accepted'
 
+
+@pytest.mark.parametrize('published,text,expected', [
+    ('2026-12-28T04:00:00+00:00', '1月7日06:00活动开启', '2027-01-07 06:00'),
+    ('2027-01-02T04:00:00+00:00', '12月30日活动开启', '2026-12-30'),
+    ('2027-12-28T04:00:00+00:00', '2月29日活动开启', '2028-02-29'),
+    ('2026-12-28T04:00:00+00:00', '2026年1月7日活动开启', '2026-01-07'),
+])
+def test_notice_year_inference_preserves_cross_year_leap_and_explicit_dates(published, text, expected):
+    stamp = datetime.fromisoformat(published).timestamp()
+    result = classify_dynamic(post(text, published=stamp), UID, NOW)
+    assert result['time_evidence'][0]['date'] == expected
+
 @pytest.mark.parametrize('text,kind,reason', [
     ('9月15日版本活动公告', 'DYNAMIC_TYPE_AV', 'video'),
     ('9月15日版本PV正式发布', 'DYNAMIC_TYPE_DRAW', 'promotion'),

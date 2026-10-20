@@ -40,7 +40,10 @@ function barStyle(entry, pool) {
   return { width: `${Math.min(100, entry.pity / limit * 100)}%` }
 }
 // Verified against Tajiduo scard/main.149e4946.js: no local rarity thresholds.
-const obtained = value => pullTime(value) || '时间未提供'
+function obtained(value) {
+  const time = pullTime(value)
+  return time == null ? '时间未提供' : displayBeijing(time)
+}
 </script>
 
 <template>

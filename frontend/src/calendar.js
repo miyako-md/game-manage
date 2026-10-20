@@ -34,14 +34,6 @@ export function beijingDayStart(value = Date.now()) {
   return time === null ? null : Math.floor((time + BEIJING_OFFSET) / DAY_MS) * DAY_MS - BEIJING_OFFSET
 }
 
-export function calendarRange(anchor = Date.now(), mode = 'month') {
-  const day = beijingDayStart(anchor) ?? beijingDayStart()
-  const local = new Date(day + BEIJING_OFFSET)
-  const start = mode === 'month' ? Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) - BEIJING_OFFSET : mode === 'rolling' ? day - 3 * DAY_MS : day
-  const end = mode === 'month' ? Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + 1, 1) - BEIJING_OFFSET : start + (mode === 'rolling' ? 30 : 14) * DAY_MS
-  return calendarDaysRange(start, end)
-}
-
 /** Display bounds only; these are never inferred version boundaries. */
 export function calendarDaysRange(start, end) {
   const days = Array.from({ length: Math.round((end - start) / DAY_MS) }, (_, index) => {
@@ -62,14 +54,6 @@ export function versionCalendarRange(events = [], asOf = Date.now()) {
   })
   if (!dates.length) return null
   return calendarDaysRange(beijingDayStart(Math.min(...dates)), beijingDayStart(Math.max(...dates)) + DAY_MS)
-}
-
-export function shiftCalendarAnchor(anchor, mode, direction) {
-  if (mode === 'rolling') return beijingDayStart(anchor) + direction * 30 * DAY_MS
-  const range = calendarRange(anchor, mode)
-  if (mode !== 'month') return range.start + direction * 14 * DAY_MS
-  const local = new Date(range.start + BEIJING_OFFSET)
-  return Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + direction, 1) - BEIJING_OFFSET
 }
 
 /** Browser display helpers are separate from the China-server source parser above. */

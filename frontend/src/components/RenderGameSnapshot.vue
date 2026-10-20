@@ -54,7 +54,7 @@ const events=computed(()=>collectCalendarEvents([{game_id:props.panel.game,displ
 const error=computed(()=>snap.value?.state==='auth_expired'?friendlyDataError('',snap.value.state):'')
 </script>
 <template>
- <section class="render-snapshot-panel game-theme" :style="gameVars(panel.game)">
+ <section class="render-snapshot-panel game-theme" :class="`cap-${cap}`" :data-capability="cap" :data-game="panel.game" :style="gameVars(panel.game)">
   <h2 class="snapshot-game-name">{{ gameTitle || '游戏数据' }}</h2>
   <p v-if="error" class="error-bar" role="status">{{ error }}</p>
   <RenderCalendar v-if="['events','recent_events'].includes(cap)" :events="events" :as-of="asOf" />
