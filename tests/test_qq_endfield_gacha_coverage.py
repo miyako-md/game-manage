@@ -127,3 +127,16 @@ def test_banner_breakdowns_and_six_star_banner_ids_reach_the_shared_image_view()
     assert [(b['pool_id'],b['name'],b['total'],b['six_star'],b['four_star']) for b in projected['banners']]==[('s2','晨星',5,1,4),('s1','冬猎',5,1,4)]
     assert [(h['name'],h['pool_id']) for h in projected['history']]==[('合成8','s2'),('合成3','s1')]
     assert data['errors']==errors
+
+
+def test_weapon_rewards_and_unverified_history_are_preserved_in_image_and_text_notices():
+    from game_assistant.qq.render_snapshot import game_panel
+    from game_assistant.qq.endfield_presentation import gacha_document
+    payload=stress_gacha(1)
+    payload['pools'][0].update(kind='weapon',gifts=1,unverified_records=10)
+    row=QueryResult(payload,'2026-10-20T07:00:00+00:00','ok',None)
+    projected=game_panel('endfield','hypergryph','gacha',row)['snapshot']['payload']['pools'][0]
+    assert (projected['gifts'],projected['unverified_records'])==(1,10)
+    card=gacha_document(row)
+    assert any('1 条额外奖励' in notice for notice in card['notices'])
+    assert any('10 条旧武器记录' in notice for notice in card['notices'])

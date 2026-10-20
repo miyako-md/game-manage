@@ -75,6 +75,8 @@ class EndfieldGachaPool(BaseModel):
     four_star: int | None = None
     unknown_rarity: int | None = None
     free: int = 0
+    gifts: int = 0  # 额外奖励保留在明细中，不计抽数、星级出货或保底
+    unverified_records: int = 0  # 武器记录缺少可识别类型，补读核验前不混入确定统计
     since_last_six: EndfieldPity = EndfieldPity()
     history: list[EndfieldSixStar] = []
     history_total: int | None = None

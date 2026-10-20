@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { getRecords, pityText, pityParts, pullDay } from './endfield-gacha-api.js'
+import { configureHttpClient, setAccountScope } from './http-client.js'
 function serve(t, handler) {
   const old = globalThis.fetch; t.after(() => { globalThis.fetch = old })
   globalThis.fetch = handler
@@ -13,6 +14,29 @@ test('an abort reaches the caller unchanged', async t => {
   const aborted = Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' })
   serve(t, async () => { throw aborted })
   await assert.rejects(getRecords(), error => error === aborted)
+})
+
+test('weapon category requests keep the server kind filter alongside pagination and exact pools', async t => {
+  const calls = []
+  serve(t, async url => { calls.push(new URL(url, 'http://localhost')); return new Response(JSON.stringify({ total: 0, records: [] })) })
+  await getRecords('', 50, 50, 'weapon')
+  assert.equal(calls[0].searchParams.get('kind'), 'weapon')
+  assert.equal(calls[0].searchParams.get('offset'), '50')
+  assert.equal(calls[0].searchParams.get('pool_key'), '')
+  await getRecords('weapon:one', 0, 50)
+  assert.equal(calls[1].searchParams.get('pool_key'), 'weapon:one')
+  assert.equal(calls[1].searchParams.has('kind'), false)
+})
+
+test('cloud weapon pagination keeps its filter on the owned Eagle account route', async t => {
+  configureHttpClient({ mode: 'cloud' }); t.after(() => configureHttpClient({ mode: 'local' }))
+  setAccountScope({ account_id: 'eagle-account', role_id: 'role-one', provider: 'hypergryph' })
+  let called
+  serve(t, async url => { called = new URL(url, 'http://localhost'); return new Response(JSON.stringify({ total: 0, records: [] })) })
+  await getRecords('', 100, 50, 'weapon')
+  assert.equal(called.pathname, '/api/accounts/eagle-account/roles/role-one/endfield/gacha/records')
+  assert.equal(called.searchParams.get('kind'), 'weapon')
+  assert.equal(called.searchParams.get('offset'), '100')
 })
 test('server errors keep their own message and a non-JSON page is replaced by fixed text', async t => {
   serve(t, async () => new Response(JSON.stringify({ detail: '没有可用的寻访记录' }), { status: 409 }))

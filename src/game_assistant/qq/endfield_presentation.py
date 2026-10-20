@@ -592,6 +592,12 @@ def gacha_document(snapshot, asset_cache=None, *, compact=False):
     sections=compose(counts)
     notices = [state, '仅统计已同步的寻访记录。',
                '均抽来自报告中准确区间，不随图片裁减重算；免费抽与缺口不当作确定垫抽。']
+    gifts = sum(pool.get('gifts') or 0 for pool in report['pools'])
+    unverified = sum(pool.get('unverified_records') or 0 for pool in report['pools'])
+    if gifts:
+        notices.append(f'另有 {gifts} 条额外奖励保留在网站明细中，不计抽数、出货和垫抽。')
+    if unverified:
+        notices.append(f'另有 {unverified} 条旧武器记录缺少奖励类型，暂不计入统计；超出官方查询期限的原记录仍会保留。')
     clipped=len(pools)<len(report['pools']) or any(count<len(entries) for count,entries in zip(counts,histories))
     if clipped or any(pool['history_truncated'] is True for pool in pools):
         notices.append('6 星明细按各池覆盖数展示；更早或超限内容已省略，完整逐抽请到网站查看或导出。')

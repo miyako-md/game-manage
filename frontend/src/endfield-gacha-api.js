@@ -6,7 +6,11 @@ async function request(path) {
   if (!response.ok) throw new Error(safeDetail(result.detail, '寻访账本请求失败，请稍后重试'))
   return result
 }
-export const getRecords = (poolKey = '', offset = 0, limit = 50) => request(`records?${new URLSearchParams({ pool_key: poolKey, offset, limit })}`)
+export const getRecords = (poolKey = '', offset = 0, limit = 50, kind = '') => {
+  const params = new URLSearchParams({ pool_key: poolKey, offset, limit })
+  if (kind) params.set('kind', kind)
+  return request(`records?${params}`)
+}
 export const exportRecords = () => request('export')
 
 export function pityText(pity) {
