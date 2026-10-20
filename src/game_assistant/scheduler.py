@@ -254,9 +254,9 @@ class AccountPollingScheduler:
         if key not in self._due:
             self._due[key] = self._persisted_due(scope, capability, info['version'])
         async def refresh():
-            await asyncio.sleep(max(0, self._due.get(key, 0) - self.clock()) if
-                                self._failed(scope, capability, info['version']) else 0)
             try:
+                await asyncio.sleep(max(0, self._due.get(key, 0) - self.clock()) if
+                                    self._failed(scope, capability, info['version']) else 0)
                 if self.accounts.describe(scope)['version'] != info['version']:
                     return
                 await self.poll_once(scope, capability)

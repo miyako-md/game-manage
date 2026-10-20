@@ -187,7 +187,7 @@ async def test_bad_grant_does_not_abort_public_tick(tmp_path):
     await query.runtime.aclose()
 
 
-@pytest.mark.parametrize('method', ['save_scoped', 'record_poll_scoped'])
+@pytest.mark.parametrize('method', ['save_scoped', 'record_poll_scoped', 'get_poll_status_scoped'])
 async def test_storage_failure_logs_safe_code_and_keeps_queue_usable(tmp_path, monkeypatch, caplog, method):
     import sqlite3
     accounts, scope, store, query = await query_fixture(tmp_path)
@@ -196,10 +196,10 @@ async def test_storage_failure_logs_safe_code_and_keeps_queue_usable(tmp_path, m
     original = getattr(store, method)
     def fail(*args, **kwargs):
         raise sqlite3.OperationalError('private credential and snapshot details')
-    monkeypatch.setattr(store, method, fail)
     polling.start(periodic=False)
     try:
         query.request_refresh(scope, 'account')
+        monkeypatch.setattr(store, method, fail)
         await polling.drain()
         assert polling.refresh_state(scope, 'account') == 'idle'
         assert polling._due[(scope, 'account')] > polling.clock()
