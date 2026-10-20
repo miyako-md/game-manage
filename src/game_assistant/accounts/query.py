@@ -41,11 +41,22 @@ class AccountQuery:
             raise AccountNotFoundError()
         return info
 
+    def _poll_status(self, scope, capability, version, generation):
+        stored = self.snapshots.get_poll_status_scoped(scope, capability,
+            grant_version=version, minimum_version=generation)
+        if (stored and stored['state'] == 'auth_expired' and
+                self.snapshots.get_poll_status_scoped(scope, capability, grant_version=version) is None):
+            # The old token's failure remains in storage; it says nothing about
+            # the replacement token. Keep the last data while awaiting its first read.
+            return {**stored, 'state':'never', 'error':None, 'error_kind':None,
+                    'consecutive_failures':0, 'refresh_required':True}
+        return stored
+
     def read(self, scope, capability):
         info = self.validate(scope, capability)
         generation = self.accounts.snapshot_generation(scope, info['version'])
         snapshot = self.snapshots.get_scoped(scope, capability, grant_version=info['version'], minimum_version=generation)
-        status = self.snapshots.get_poll_status_scoped(scope, capability, grant_version=info['version'], minimum_version=generation)
+        status = self._poll_status(scope, capability, info['version'], generation)
         payload = json.loads(snapshot['payload']) if snapshot else None
         return QueryResult(payload, snapshot['fetched_at'] if snapshot else None,
                            status['state'] if status else 'never', completeness(payload))
@@ -53,7 +64,7 @@ class AccountQuery:
     def status(self, scope, capability):
         info = self.validate(scope, capability)
         generation = self.accounts.snapshot_generation(scope, info['version'])
-        stored = self.snapshots.get_poll_status_scoped(scope, capability, grant_version=info['version'], minimum_version=generation)
+        stored = self._poll_status(scope, capability, info['version'], generation)
         return {**(stored or dict(state='never', last_attempt_at=None, last_success_at=None,
                                  consecutive_failures=0, error=None, error_kind=None)),
                 'refresh_state': self.scheduler.refresh_state(scope, capability) if self.scheduler else 'idle',

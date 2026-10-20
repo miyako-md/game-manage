@@ -212,8 +212,7 @@ class AccountPollingScheduler:
 
     def _paused(self, scope):
         info = self.accounts.describe(scope)
-        generation = self.accounts.snapshot_generation(scope, info['version'])
-        return any((self.query.snapshots.get_poll_status_scoped(scope, cap, grant_version=info['version'], minimum_version=generation) or
+        return any((self.query.snapshots.get_poll_status_scoped(scope, cap, grant_version=info['version']) or
                     {}).get('state') == 'auth_expired' for cap in self.query.capabilities(scope))
 
     def _queue(self, key, action):
@@ -277,7 +276,9 @@ class AccountPollingScheduler:
         from datetime import datetime, timezone
         status = self.query.snapshots.get_poll_status_scoped(scope, capability, grant_version=version,
             minimum_version=self.accounts.snapshot_generation(scope, version))
-        if not status or not status.get('last_attempt_at'):
+        if (not status or not status.get('last_attempt_at') or
+                status['state'] == 'auth_expired' and not self.query.snapshots.get_poll_status_scoped(
+                    scope, capability, grant_version=version)):
             return self.clock()
         delay = self.settings.cloud_private_poll_seconds if status['state'] == 'ok' else min(
             3600, 60 * 2 ** min(max(0, status['consecutive_failures'] - 1), 6))

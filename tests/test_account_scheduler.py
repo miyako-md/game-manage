@@ -231,3 +231,54 @@ async def test_queued_scope_removal_is_not_logged_as_storage_failure(tmp_path, m
         assert polling.refresh_state(scope, 'account') == 'idle'
     finally:
         await polling.shutdown()
+
+
+@pytest.mark.parametrize('manual',[True,False])
+async def test_successful_rotation_unpauses_old_token_failure(tmp_path, manual):
+    from game_assistant.accounts.runtime import AccountRuntime
+    from game_assistant.accounts.query import AccountQuery
+    from game_assistant.models import Capability
+    from game_assistant.snapshots import SnapshotStore
+    from tests.test_account_auth import setup,authorize
+    db, credentials, accounts, login = setup(tmp_path)
+    row = await authorize(login)
+    principal = Principal('a',False)
+    scope = accounts.require_scope(principal,row['account_id'],row['role_id'])
+    runtime = AccountRuntime(accounts,Settings(),tmp_path/'runtime',login=login)
+    store = SnapshotStore(str(tmp_path/'snapshots.db'))
+    store.save_scoped(scope,'account','{"level":40}',1)
+    store.record_poll_scoped(scope,'account',FetchResult(ok=False,error='old token',error_kind='auth_expired'),1)
+    old = store.get_scoped(scope,'account')
+    query = AccountQuery(accounts,runtime,store)
+    polling = scheduler(tmp_path,accounts,query)
+    assert polling._paused(scope)
+    await login.renew(principal,row['grant_id'])
+    adapter = runtime.for_scope(scope).get('nte')
+    adapter.capabilities = [Capability.ACCOUNT]
+    async def fresh():
+        return FetchResult(ok=True,payload={'level':41})
+    adapter.fetch_account = fresh
+    assert not polling._paused(scope)
+    assert query.read(scope,'account').payload == {'level':40}
+    assert query.read(scope,'account').fetched_at == old['fetched_at']
+    assert query.read(scope,'account').state == 'never'
+    status = query.status(scope,'account')
+    assert status['refresh_required'] and status['error'] is None and status['error_kind'] is None
+    assert store.get_poll_status_scoped(scope,'account',grant_version=1)['state'] == 'auth_expired'
+    clock = [1000]
+    polling.clock = lambda:clock[0]
+    assert polling._persisted_due(scope,'account',2) == clock[0]
+    polling.start(periodic=False)
+    try:
+        if manual:
+            assert query.request_refresh(scope,'account').state == 'queued'
+        else:
+            await polling.tick()
+            clock[0] += 31
+            await polling.tick()
+        await polling.drain()
+        assert query.read(scope,'account').payload == {'level':41}
+        assert query.read(scope,'account').state == 'ok'
+    finally:
+        await polling.shutdown()
+        await runtime.aclose()

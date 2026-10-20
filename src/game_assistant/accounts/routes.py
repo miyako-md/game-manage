@@ -70,7 +70,7 @@ def install_account_routes(app, service, login=None, *, query=None):
                 result.fetched_at)).total_seconds()>app.state.settings.cloud_private_poll_seconds*2)
             return {**asdict(result),'account_id':account_id,'role_id':role_id,
                     'game_id':service.describe(scope)['game'],'capability':capability,
-                    'stale':bool(result.payload is not None and (old or result.state in ('error','auth_expired'))),
+                    'stale':bool(result.payload is not None and (old or result.state in ('error','auth_expired','never'))),
                     'poll_status':query.status(scope,capability)}
 
         @router.post('/{account_id}/roles/{role_id}/refresh/{capability}',status_code=202)
