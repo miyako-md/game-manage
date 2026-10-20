@@ -26,6 +26,14 @@ const request = useWuwaRequest(
   },
 )
 const kinds = { week: '周', month: '月', version: '版本' }
+// A month period is YYYYMM; other kinds keep the source wording unless their format is known.
+function periodLabel(kind, period) {
+  const text = String(period ?? '')
+  const month = kind === 'month' && /^(\d{4})(0[1-9]|1[0-2])$/.exec(text)
+  if (month) return `${month[1]} 年 ${Number(month[2])} 月`
+  if (kind === 'version' && /^\d+\.\d+$/.test(text)) return `${text} 版本`
+  return `${kinds[kind] || '未知'}周期 ${period}`
+}
 const periods = computed(() =>
   Object.entries(kinds).flatMap(([kind, name]) =>
     list(props.snap?.payload?.periods?.[kind])
@@ -124,8 +132,7 @@ const totals = computed(() => {
       <header v-if="current?.data" class="wuwa-report-head">
         <h3>
           {{
-            selected?.title ||
-            `${kinds[current.kind] || '未知'}周期 ${current.period}`
+            selected?.title || periodLabel(current.kind, current.period)
           }}
           · 期间获取
         </h3>
@@ -200,12 +207,13 @@ const totals = computed(() => {
           <p v-else class="wuwa-muted">未提供明细</p>
         </section>
       </div>
-      <section v-if="current.data.copy_writing || list(current.data.item_list).length || current.data.recommend" class="wuwa-panel">
+      <!-- The bot image skips the category dump: the two donuts above already carry it. -->
+      <section v-if="current.data.copy_writing || (!imageMode && list(current.data.item_list).length) || current.data.recommend" class="wuwa-panel">
         <p v-if="current.data.copy_writing" class="wuwa-note">
           {{ current.data.copy_writing }}
         </p>
         <details
-          v-if="list(current.data.item_list).length"
+          v-if="!imageMode && list(current.data.item_list).length"
           class="wuwa-supplement"
         >
           <summary>全部资源类别与明细</summary>

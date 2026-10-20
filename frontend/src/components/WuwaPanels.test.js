@@ -835,3 +835,16 @@ test('a chosen resource period survives polling; a newer fetch replaces only the
   await tick()
   assert.equal(coin(root), '444')
 })
+
+test('resource heading formats a month period and the image hides the generic category dump', async (t) => {
+  const payload = (kind, period) => ({ fetched_at: '2026-10-16T04:00:00Z', stale: false, payload: { current: { kind, period, state: 'ok',
+    data: { total_coin: 3244215, total_star: 5768, item_list: [{ type: 1, total: 3244215 }, { type: 4, total: 19 }] } } } })
+  const Resources = await component('WuwaResources')
+  const image = mount(t, Resources, { snap: payload('month', '202610'), imageMode: true })
+  assert.match(content(image), /2026 年 10 月 · 期间获取/)
+  assert.doesNotMatch(content(image), /月周期|全部资源类别|类别|3244215 /)
+  const web = mount(t, Resources, { snap: payload('month', '202610') })
+  assert.match(content(web), /2026 年 10 月 · 期间获取/); assert.match(content(web), /全部资源类别与明细/)
+  assert.match(content(mount(t, Resources, { snap: payload('version', '3.7') })), /3\.7 版本 · 期间获取/)
+  assert.match(content(mount(t, Resources, { snap: payload('week', '7') })), /周周期 7 · 期间获取/)
+})
