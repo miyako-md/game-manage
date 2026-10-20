@@ -95,3 +95,34 @@ def test_year_less_maintenance_date_takes_the_year_nearest_the_notice():
     assert maintenance(december) == (datetime(2027, 1, 7, 6, tzinfo=BEIJING_TZ), 'minute')
     january = {'body': '更新维护时间：12月30日', 'published_at': '2027-01-02T04:00:00+00:00'}
     assert maintenance(january) == (datetime(2026, 12, 30, tzinfo=BEIJING_TZ), 'day')
+
+
+def test_late_independent_events_use_version_boundaries_and_keep_unknown_ownership():
+    now = datetime(2026, 10, 20, 4, tzinfo=timezone.utc)
+    base = notice('3.7版本内容说明\n更新维护时间：2026年10月1日06:00\n[首周活动]活动\n活动时间：2026年10月1日10:00 ~ 2026年10月10日10:00',
+                  published='2026-09-30T04:00:00+00:00')
+    late = notice('[后半程活动]活动\n活动时间：2026年10月12日10:00 ~ 2026年10月25日10:00',
+                  id='2', published='2026-10-11T04:00:00+00:00')
+    future = notice('3.8版本内容说明\n更新维护时间：2026年11月1日06:00\n[未来活动]活动\n活动时间：2026年11月1日10:00 ~ 2026年11月10日10:00',
+                    id='3', published='2026-10-19T04:00:00+00:00')
+    outside = notice('[下一窗口活动]活动\n活动时间：2026年11月2日10:00 ~ 2026年11月10日10:00',
+                     id='4', published='2026-10-19T04:00:00+00:00')
+    result = calendar_from_posts([base, late, future, outside], 'wuthering_waves', now)
+    assert {e['name'] for e in result['events']} == {'首周活动', '后半程活动'}
+    assert result['version_metadata']['end_at'] == '2026-11-01T06:00:00+08:00'
+    assert next(e for e in result['events'] if e['name'] == '后半程活动')['version'] is None
+    unknown_end = calendar_from_posts([base, outside], 'wuthering_waves', now)
+    assert next(e for e in unknown_end['events'] if e['name'] == '下一窗口活动')['version'] is None
+
+
+def test_day_precision_extension_merges_but_distinct_phases_and_identities_remain():
+    base = notice('3.9版本内容说明\n[活动甲]活动\n活动时间：2026年12月1日 ~ 2026年12月10日')
+    revision = notice('3.9版本活动延期\n[活动甲]活动\n活动时间：2026年12月1日 ~ 2026年12月12日',
+                      id='2', published='2026-12-08T04:00:00+00:00')
+    result = calendar_from_posts([base, revision], 'wuthering_waves', NOW)
+    assert len(result['events']) == 1 and result['events'][0]['end_date'] == '2026-12-12'
+    from game_assistant.sources.public_content import _same_event
+    a = result['events'][0]
+    assert not _same_event(a, {**a, 'start_date':'2026-12-13', 'end_date':'2026-12-15'})
+    assert not _same_event({**a, 'server_id':'one'}, {**a, 'server_id':'two'})
+    assert not _same_event(a, {**a, 'version':'4.0'})

@@ -146,13 +146,13 @@ async def test_selected_independent_notice_failure_does_not_publish_partial_cale
     assert not result.ok and result.error_kind=='source_error' and result.payload is None
 
 
-@pytest.mark.parametrize('title,body', [
-    ('「其它棋盘」限定棋盘开放', '1.5版本「其它棋盘」限定棋盘\n开放时间：10月12日05:00-11月5日05:59'),
-    ('「其它棋盘」限定棋盘开放', '「其它棋盘」限定棋盘\n开放时间：12月12日05:00-12月15日05:59'),
-    ('1.4版本「其它棋盘」限定棋盘开放', '1.5版本「其它棋盘」限定棋盘\n开放时间：10月12日05:00-11月5日05:59'),
+@pytest.mark.parametrize('title,body,unknown', [
+    ('「其它棋盘」限定棋盘开放', '1.5版本「其它棋盘」限定棋盘\n开放时间：10月12日05:00-11月5日05:59', False),
+    ('「其它棋盘」限定棋盘开放', '「其它棋盘」限定棋盘\n开放时间：12月12日05:00-12月15日05:59', True),
+    ('1.4版本「其它棋盘」限定棋盘开放', '1.5版本「其它棋盘」限定棋盘\n开放时间：10月12日05:00-11月5日05:59', False),
 ])
 @respx.mock
-async def test_independent_notice_requires_consistent_version_or_matching_dates(title, body):
+async def test_independent_notice_rejects_other_version_but_retains_unknown_scope(title, body, unknown):
     respx.get(BASE+'/apihub/wapi/getAllCommunity').respond(200,json=COMMUNITY_RAW)
     card={'postId':700001,'subject':title,'createTime':1791741600000}
     respx.get(LIST).respond(200,json={'code':0,'data':{'posts':[*NOTICES['data']['posts'],card]}})
@@ -160,8 +160,11 @@ async def test_independent_notice_requires_consistent_version_or_matching_dates(
         **NOTICES['data']['posts'][1],'content':NOTICE_BODY}}})
     respx.get(DETAIL,params={'postId':'700001'}).respond(200,json={'code':0,'data':{'post':{**card,'content':body}}})
     result=await NteAdapter(Settings()).fetch(Capability.EVENTS)
-    assert result.ok and len(result.payload)==3
-    assert all(e.name!='其它棋盘' for e in result.payload)
+    assert result.ok and len(result.payload)==(4 if unknown else 3)
+    if unknown:
+        assert next(e for e in result.payload if e.name=='其它棋盘').version is None
+    else:
+        assert all(e.name!='其它棋盘' for e in result.payload)
 
 
 @respx.mock
@@ -178,3 +181,27 @@ async def test_independent_notice_reads_have_finite_budget():
     result=await NteAdapter(Settings()).fetch(Capability.EVENTS)
     assert result.ok and len(result.payload)==4
     assert detail.call_count==7
+
+
+@respx.mock
+async def test_unversioned_independent_activity_uses_maintenance_window_not_first_activity():
+    respx.get(BASE+'/apihub/wapi/getAllCommunity').respond(200,json=COMMUNITY_RAW)
+    base = NOTICES['data']['posts'][1]
+    future = {'postId':700003,'subject':'1.5版本更新公告','createTime':1791849600000}
+    late = {'postId':700001,'subject':'「后半程」限时活动开启','createTime':1791676800000}
+    outside = {**late,'postId':700002,'subject':'「未来」限时活动开启'}
+    rows = [base, future, late, outside]
+    bodies = {
+        base['postId']:'更新维护时间：2026年10月1日06:00\n[首周]活动\n活动时间：2026年10月1日10:00 ~ 2026年10月10日10:00',
+        700003:'更新维护时间：2030年11月1日06:00',
+        700001:'「后半程」限时活动\n活动时间：2026年10月12日10:00 ~ 2026年10月25日10:00',
+        700002:'「未来」限时活动\n活动时间：2030年11月2日10:00 ~ 2030年11月10日10:00'}
+    respx.get(LIST).respond(200,json={'code':0,'data':{'posts':rows}})
+    def detail(request):
+        ident = int(request.url.params['postId'])
+        row = next(r for r in rows if r['postId']==ident)
+        return httpx.Response(200,json={'code':0,'data':{'post':{**row,'content':bodies[ident]}}})
+    respx.get(DETAIL).mock(side_effect=detail)
+    result = await NteAdapter(Settings()).fetch(Capability.EVENTS)
+    assert result.ok and {e.name for e in result.payload} == {'首周','后半程'}
+    assert next(e for e in result.payload if e.name=='后半程').version is None

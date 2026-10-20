@@ -235,7 +235,12 @@ def _overlap(a, b):
         return True
     try:
         start_a, end_a, start_b, end_b = [datetime.fromisoformat(x).replace(tzinfo=BJ) if len(x) == 10 else datetime.fromisoformat(x) for x in
-            (a.get('start_at') or a.get('start_date'), a.get('end_at'), b.get('start_at') or b.get('start_date'), b.get('end_at'))]
+            (a.get('start_at') or a.get('start_date'), a.get('end_at') or a.get('end_date'),
+             b.get('start_at') or b.get('start_date'), b.get('end_at') or b.get('end_date'))]
+        if not a.get('end_at'):
+            end_a += timedelta(days=1)
+        if not b.get('end_at'):
+            end_b += timedelta(days=1)
         return start_a < end_b and start_b < end_a
     except (TypeError, ValueError):
         return False
@@ -450,8 +455,9 @@ def calendar_from_posts(posts, game, now=None):
                     available.append({**event, 'version_metadata':meta})
         return dict(version=None, events=_resolve_undated_placeholders(available), version_metadata=meta)
     base, version, baseline = max(bases, key=lambda b: tuple(int(n) for n in b[1].split('.')))
-    version_end = max(((e.get('end_at') or e.get('end_date') or '')[:10] for e in baseline), default='')
-    version_start = min((e.get('start_at') or e.get('start_date') or base['published_at'])[:10] for e in baseline)
+    from game_assistant.version_calendar import select_unversioned_events, version_metadata
+    meta = version_metadata(game, {**base, 'title':content_title(base)},
+                            [{**p, 'title':content_title(p)} for p in posts], now=now)
     relevant = []
     for post in posts:
         if post['id'] == base['id']:
@@ -461,10 +467,8 @@ def calendar_from_posts(posts, game, now=None):
             continue
         if not declared and post.get('published_at', '') < base['published_at']:
             continue
-        for event in parse_post_events(post, game, version):
-            event_end = (event.get('end_at') or event.get('end_date') or '')[:10]
-            if declared or (event_end and event_end >= version_start and event_end <= version_end):
-                relevant.append(event)
+        parsed = parse_post_events(post, game, version)
+        relevant.extend(parsed if declared else select_unversioned_events(parsed, meta))
     # Newer independent notices take precedence over baseline dates.
     result = []
     resolved = resolve_relative_starts(relevant + baseline, posts, game, version)
@@ -474,9 +478,6 @@ def calendar_from_posts(posts, game, now=None):
             _fill_announced_pool_dates(same, event)
         else:
             result.append(event)
-    from game_assistant.version_calendar import version_metadata
-    meta = version_metadata(game, {**base, 'title':content_title(base)},
-                            [{**p, 'title':content_title(p)} for p in posts], now=now)
     result = [{**e, 'version_metadata':meta} for e in _resolve_undated_placeholders(result)]
     return dict(version=version, events=result, source_post_id=base['id'], version_metadata=meta)
 

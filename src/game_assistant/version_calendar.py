@@ -143,3 +143,26 @@ def select_version_events(events, metadata):
             if a < end and b > start:
                 output.append({**row, 'cross_version': True})
     return output
+
+
+def select_unversioned_events(events, metadata):
+    """Exclude proven out-of-version dates without inventing missing ownership."""
+    start_day = metadata.get('start_date')
+    end_day = metadata.get('end_date')
+    end = parse_ms_or_iso(metadata.get('end_at'))
+    output = []
+    for event in events:
+        a = event.get('start_at') or event.get('start_date')
+        b = event.get('end_at') or event.get('end_date')
+        if start_day and b and b[:10] < start_day:
+            continue
+        if end and a:
+            stamp = parse_ms_or_iso(a)
+            if stamp and (stamp.replace(tzinfo=BEIJING_TZ) if stamp.tzinfo is None else stamp) >= end:
+                continue
+        elif end_day and a and a[:10] > end_day:
+            continue
+        # A known intersection is not proof that this notice belongs to this
+        # version. Keep its source dates visible with ownership unconfirmed.
+        output.append({**event, 'version': None})
+    return output

@@ -90,6 +90,8 @@ async def read_calendar(client, rows, title_keys):
             continue
         if not baseline:
             raise ValueError('public calendar notice has no dated events')
+        from game_assistant.version_calendar import select_unversioned_events, version_metadata
+        meta = version_metadata('wuthering_waves', post, notices, now=now)
         candidates = []
         for row in rows:
             if str(row.get('postId')) == post['id'] or not re.search(r'(?:角色|武器)活动唤取|唤取(?:活动|说明|公告)', str(row.get('postTitle') or '')):
@@ -118,10 +120,7 @@ async def read_calendar(client, rows, title_keys):
             candidate, events = await read(row, version, optional=True,
                                           require_version=bool(stamp and base_stamp and stamp < base_stamp))
             if candidate and not (VERSION.search(candidate['title']) or VERSION.search(candidate['body'][:4000])):
-                start_day = min((e.get('start_at') or e.get('start_date') or post.get('published_at') or '')[:10] for e in baseline)
-                end_day = max((e.get('end_at') or e.get('end_date') or '')[:10] for e in baseline)
-                events = [e for e in events if e.get('end_at') or e.get('end_date')
-                          if start_day <= (e.get('end_at') or e.get('end_date'))[:10] <= end_day]
+                events = select_unversioned_events(events, meta)
             if candidate:
                 notices.append(candidate)
             relevant.extend(events)
@@ -130,7 +129,6 @@ async def read_calendar(client, rows, title_keys):
         for event in sorted(resolved, key=lambda e: e.get('published_at') or '', reverse=True):
             if not any(_same_event(e, event) for e in result):
                 result.append(event)
-        from game_assistant.version_calendar import version_metadata
         meta = version_metadata('wuthering_waves', post, notices, now=now)
         return [PublicCalendarEvent(**{**event, 'version_metadata':meta}) for event in result]
     return []

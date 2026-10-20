@@ -144,6 +144,22 @@ async def test_future_maintenance_notice_without_activities_keeps_the_current_ca
     assert result.ok and [e.name for e in result.payload] == ['签到']
 
 
+@respx.mock
+async def test_unversioned_late_pool_survives_short_baseline_but_next_window_does_not():
+    base = {**BASE, 'postTitle':'3.7版本内容说明', 'publishTime':1790737200000}
+    future = {**BASE, 'postId':'9003', 'postTitle':'3.8版本维护更新公告', 'publishTime':1791849600000}
+    late = {**CARD, 'postTitle':'「后半程」角色活动唤取', 'publishTime':1791676800000}
+    outside = {**late, 'postId':'9004', 'postTitle':'「未来」角色活动唤取'}
+    mock_notices([base, future, late, outside], {
+        '9001':'更新维护时间：2026年10月1日06:00\n[签到]活动\n活动时间：2026年10月1日10:00 ~ 2026年10月10日10:00',
+        '9003':'更新维护时间：2030年11月1日06:00',
+        '9002':'活动时间：2026年10月12日10:00 ~ 2026年10月25日10:00',
+        '9004':'活动时间：2030年11月2日10:00 ~ 2030年11月10日10:00'})
+    result = await WutheringWavesAdapter(Settings()).fetch(Capability.EVENTS)
+    assert result.ok and {e.name for e in result.payload} == {'签到','后半程'}
+    assert next(e for e in result.payload if e.name=='后半程').version is None
+
+
 @pytest.mark.parametrize('with_dated_supplement', [False, True])
 @respx.mock
 async def test_announced_future_pool_is_retained_and_exact_supplement_replaces_unknown(with_dated_supplement):
