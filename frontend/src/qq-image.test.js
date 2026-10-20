@@ -41,3 +41,12 @@ test('persistent browser configuration clears previous account context between r
  assert.equal(viewModel(input).panels[0].role.name,'私人角色示例')
  configure([],{});assert.notEqual(viewModel(input).panels[0].role?.name,'私人角色示例')
 })
+test('guide sources without a version say so instead of printing VNone',()=>{
+ configure([],{})
+ const guide={id:'1507',name:'示例角色',sources:[{id:'1',title:'甲',author:'作者甲',version:'3.2',url:'u1'},{id:'2',title:'乙',author:'作者乙',version:null,url:'u2'}],sections:[]}
+ const model=viewModel({command:'鸣潮 攻略 示例角色',snapshot:{kind:'guide',game:'wuthering_waves',as_of:'2026-10-18T00:00:00+08:00',display_data:{guide}}})
+ assert.ok(model.hero.meta.includes('V3.2 / 版本未确认'))
+ const lines=model.panels.at(-1).lines.map(l=>l.text)
+ assert.match(lines[0],/V3\.2/);assert.match(lines[1],/版本未确认/)
+ assert.doesNotMatch(JSON.stringify(model),/VNone|Vnull|Vundefined/)
+})

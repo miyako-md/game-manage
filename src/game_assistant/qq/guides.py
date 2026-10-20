@@ -14,7 +14,8 @@ def _guide(row):
     fields=('id','name','game','attribute','element','role','status','image','aliases')
     guide={key:row[key] for key in fields if key in row}
     guide['asset_hints']=[url for url in row.get('asset_hints',[]) if safe_public_url(url)]
-    guide['sources']=[{key:(str(source[key]) if key=='id' else shared.display_text(source[key])) for key in ('id','title','author','version','url') if key in source} for source in row.get('sources',[])]
+    # A missing version stays null: str(None) printed "VNone" in the image.
+    guide['sources']=[{key:(str(source[key]) if key=='id' else None if source[key] is None else shared.display_text(source[key])) for key in ('id','title','author','version','url') if key in source} for source in row.get('sources',[])]
     guide['sections']=[{key:(str(section[key]) if key=='sourceId' else shared.display_text(section[key])) for key in ('key','title','text','note','sourceId') if key in section} for section in row.get('sections',[])]
     return guide
 
@@ -41,6 +42,6 @@ def reply(game,name,now,page=1):
     entries=[]
     for row in rows:
         guide=_guide(row)
-        entries.append({key:guide.get(key,'') for key in ('name','game','image','status')}|{'attribute':guide.get('attribute') or guide.get('element'),'version':' / '.join('V'+s.get('version','?') for s in guide['sources']), 'asset_hints':[url for url in guide['asset_hints'] if url==guide.get('image') or row['name']=='主角·零']})
+        entries.append({key:guide.get(key,'') for key in ('name','game','image','status')}|{'attribute':guide.get('attribute') or guide.get('element'),'version':' / '.join('V'+s['version'] if s.get('version') else '版本未确认' for s in guide['sources']), 'asset_hints':[url for url in guide['asset_hints'] if url==guide.get('image') or row['name']=='主角·零']})
     card=view.document('help',game,title,sections=[{'title':'查询方式','fields':[view.field('角色攻略','游戏 攻略 精确角色名')]},{'title':'已收录角色','fields':[view.field(view.GAME_NAMES.get(game,'角色'), '、'.join(g['name'] for g in rows))]}])
     return card,shared.snapshot('guide_index',game,{'guides':entries},now,page,title,command)

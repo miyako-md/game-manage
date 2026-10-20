@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import pytest
 from game_assistant.qq.commands import parse_command
 from game_assistant.qq.guides import reply
@@ -44,3 +45,13 @@ def test_guide_index_uses_all_reviewed_entries_and_missing_sources_are_explicit(
     assert len(snapshot['display_data']['guides'])==69
     card,missing=reply('endfield','伊冯',datetime.fromisoformat('2026-10-18T00:00:00+08:00'))
     assert missing['kind']=='notice' and '尚未收录' in str(card)
+
+def test_guide_missing_source_version_stays_null_instead_of_vnone():
+    now=datetime.fromisoformat('2026-10-18T00:00:00+08:00')
+    _,snapshot=reply('wuthering_waves','赞妮',now)
+    sources=snapshot['display_data']['guide']['sources']
+    assert [source['version'] for source in sources]==['3.2',None]
+    assert 'None' not in json.dumps(snapshot,ensure_ascii=False)
+    _,index=reply('wuthering_waves',None,now)
+    entry=next(g for g in index['display_data']['guides'] if g['name']=='赞妮')
+    assert entry['version']=='V3.2 / 版本未确认'

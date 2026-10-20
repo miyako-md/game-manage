@@ -261,9 +261,9 @@ export function viewModel(c){
  else if(s.kind==='game_snapshot')result.panels=d.panels.flatMap(gamePanel).concat((d.notices||[]).map(n=>note('说明',n)))
  else if(s.kind==='guide_index')result.panels=[{title:'角色攻略',type:'guide_index',guides:guideIndex(d.guides),caption:'使用“游戏 攻略 精确角色名”。社区推荐保留原始版本与出处；未收录角色不推测。'}]
  else if(s.kind==='guide'){
-  const g=d.guide;result.hero={name:g.name+' · 攻略',image:asset(g.image|| (s.game==='nte'?nteRoleIcon(g.id||g.name):wuwaIcons.characters[String(g.id)]?.icon)),meta:[g.attribute||g.element,g.role,g.sources?.map(s=>'V'+s.version).join(' / '),g.status==='original_only'?'仅原图索引':'已整理的社区建议'].filter(Boolean)}
+  const g=d.guide,version=v=>v?'V'+v:'版本未确认';result.hero={name:g.name+' · 攻略',image:asset(g.image|| (s.game==='nte'?nteRoleIcon(g.id||g.name):wuwaIcons.characters[String(g.id)]?.icon)),meta:[g.attribute||g.element,g.role,g.sources?.map(s=>version(s.version)).join(' / '),g.status==='original_only'?'仅原图索引':'已整理的社区建议'].filter(Boolean)}
   result.panels=g.sections.map(sec=>({title:sec.title,type:'guide_visual',game:s.game,characterId:g.id,roleName:g.name,sectionKey:sec.key,text:sec.text||sec.items?.join('\n')||'暂无已核验文字摘要，请查看来源原图。',caption:sec.note,source:g.sources?.find(s=>String(s.id)===String(sec.sourceId))?.title||g.sources?.[0]?.title}))
-  result.panels.push({title:'攻略来源',type:'textlines',lines:g.sources.map(src=>({name:src.title,text:`${src.author}　V${src.version}\n${src.url}`})),caption:'社区建议的原始版本可能早于当前版本；适用性请按装备和版本判断。'})
+  result.panels.push({title:'攻略来源',type:'textlines',lines:g.sources.map(src=>({name:src.title,text:`${src.author}　${version(src.version)}\n${src.url}`})),caption:'社区建议的原始版本可能早于当前版本；适用性请按装备和版本判断。'})
  }else if(s.game==='endfield'&&/攻略/.test(c.command)){
   const publicRole=Object.values(endfieldIcons.roles).find(r=>r.name==='伊冯')
   const role=endfieldOperators.find(r=>r.name==='伊冯')||endfieldOperators[0]||(publicRole?{name:publicRole.name,avatar_url:publicRole.icon}:null)
