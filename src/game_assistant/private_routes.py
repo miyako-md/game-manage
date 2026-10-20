@@ -242,8 +242,9 @@ def _install_endfield_gacha(bundle,app):
 
     @router.get('/records')
     async def records(pool_key:str|None=None,limit:int=Query(100,ge=1,le=1000),
-                      offset:int=Query(0,ge=0,le=2**31),scope=Depends(owner)):
-        return bundle.ledger(scope,'endfield_gacha').records(scope,pool_key,limit,offset)
+                      offset:int=Query(0,ge=0,le=2**31),kind:Literal['character','weapon']|None=None,
+                      scope=Depends(owner)):
+        return bundle.ledger(scope,'endfield_gacha').records(scope,pool_key,limit,offset,kind=kind)
 
     @router.get('/export')
     async def export(scope=Depends(owner)):

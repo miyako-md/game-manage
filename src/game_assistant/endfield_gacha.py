@@ -25,6 +25,11 @@ HISTORY_LIMIT = 50
 WEAPON_LIST_KEY = "weapon:*"
 
 
+def _classified_weapon_record(row):
+    record_kind = row.get("record_kind")
+    return record_kind == "draw" or isinstance(record_kind, str) and record_kind.startswith("gift")
+
+
 def store_path(db_path: str) -> Path:
     return Path(db_path).with_suffix(".endfield-gacha.sqlite3")
 
@@ -101,7 +106,10 @@ class EndfieldGachaStore:
 
         def weapon_fetch(pool_id):
             async def fetch(cursor):
-                return parse.record_page(await client.weapon_records(u8_token, pool_id, cursor), "weapon")
+                rows, has_more = parse.record_page(await client.weapon_records(u8_token, pool_id, cursor), "weapon")
+                if any(row["pool_id"] != pool_id for row in rows):
+                    raise ValueError("武器记录所属卡池不一致，请刷新重试")
+                return rows, has_more
             return fetch
 
         pools = [(key, label, "character", char_fetch(key)) for key, label in CHAR_POOL_TYPES.items()]
@@ -168,24 +176,27 @@ class EndfieldGachaStore:
         bottom, outcome, failure = start, "budget", None
         try:
             while used < budget:
+                used += 1  # Count the request once, including parse/network failures.
                 rows, has_more = await fetch(cursor)
-                used += 1
                 if not rows:
                     # 参考实现都把空页当作到底；续传途中的空页却声明还有后续时不当作到底，
                     # 留下可续传的断档下次再试，不记永久缺口。
                     outcome = "budget" if has_more and cursor is not None else "end"
                     break
                 known = self._known(role, key, [row["seq_id"] for row in rows])
-                fresh = [row for row in rows if row["seq_id"] not in known]
-                self._add(role, key, fresh)
+                # Refresh saved payloads too: old weapon ledgers dropped the
+                # official gift kind and must be repaired without deleting history.
+                self._add(role, key, rows)
                 bottom = rows[-1]["seq_id"]
                 # 游标是否包含自身尚未实测：游标那条已保存不代表衔接上了更早的记录。
                 if known - {int(cursor or 0)}:
                     outcome = "overlap"
                     break
-                if not has_more:
+                if not has_more or bottom == 0:
                     outcome = "end"
                     break
+                if cursor is not None and bottom >= int(cursor):
+                    raise ValueError("寻访记录分页未向前推进，请刷新重试")
                 cursor = str(bottom)
                 await sleep(interval)
         except (EndfieldError, ValueError) as error:
@@ -193,8 +204,6 @@ class EndfieldGachaStore:
             if getattr(error, "expired", False):
                 raise
             failure = error
-            # The failed request still counts against the budget.
-            used += 1
         except BaseException:
             outcome = "error"
             raise
@@ -224,15 +233,19 @@ class EndfieldGachaStore:
             return set()
         marks = ",".join("?" * len(seqs))
         with self._db() as db:
-            rows = db.execute(f"SELECT seq_id FROM records WHERE role=? AND pool_key=? AND seq_id IN ({marks})",
+            rows = db.execute(f"SELECT seq_id,payload FROM records WHERE role=? AND pool_key=? AND seq_id IN ({marks})",
                               (role, key, *seqs)).fetchall()
-        return {row[0] for row in rows}
+        # A legacy weapon row proves that we saved it, but not that it was a
+        # draw rather than a gift. Keep paging until classified records overlap.
+        return {seq for seq, payload in rows if not key.startswith("weapon:")
+                or _classified_weapon_record(json.loads(payload))}
 
     def _add(self, role, key, rows):
         if not rows:
             return
         with self._db() as db:
-            db.executemany("INSERT OR IGNORE INTO records VALUES (?,?,?,?)",
+            db.executemany("INSERT INTO records VALUES (?,?,?,?) ON CONFLICT(role,pool_key,seq_id)"
+                           " DO UPDATE SET payload=excluded.payload",
                            [(role, key, row["seq_id"], json.dumps(row, ensure_ascii=False)) for row in rows])
 
     def _open_breaks(self, role, key) -> list[int]:
@@ -276,10 +289,16 @@ class EndfieldGachaStore:
         summary.report = build_gacha_report(summary)
         return summary
 
-    def records(self, role: str, pool_key: str | None = None, limit: int = 100, offset: int = 0) -> dict:
+    def records(self, role: str, pool_key: str | None = None, limit: int = 100, offset: int = 0,
+                *, kind: str | None = None) -> dict:
+        if kind not in (None, "character", "weapon"):
+            raise ValueError("寻访记录类别不正确")
         where, args = "role=?", [role]
         if pool_key:
             where, args = where + " AND pool_key=?", args + [pool_key]
+        if kind is not None:
+            where += " AND pool_key IN (SELECT pool_key FROM pools WHERE role=? AND kind=?)"
+            args += [role, kind]
         with self._db() as db:
             total = db.execute(f"SELECT COUNT(*) FROM records WHERE {where}", args).fetchone()[0]
             rows = db.execute(f"SELECT pool_key, payload FROM records WHERE {where} ORDER BY seq_id DESC"
@@ -310,15 +329,30 @@ def _public_record(pool_key: str, payload: str) -> dict:
 def _pool_summary(key, kind, label, last_sync_at, rows, breaks) -> EndfieldGachaPool:
     count, exact, free_in_count = 0, False, False
     history: list[EndfieldSixStar] = []
+    draws, gifts, unverified = [], 0, 0
+    pool_version = None
     for row in rows:  # 由旧到新
         if row["seq_id"] in breaks:  # 这一条之前可能缺记录
             count, exact, free_in_count = 0, False, False
+        if str(row.get("record_kind") or "").startswith("gift"):
+            gifts += 1
+            continue  # A bonus, including a six-star weapon, never resets pity.
+        if kind == "weapon" and not _classified_weapon_record(row):
+            unverified += 1
+            count, exact, free_in_count = 0, False, False
+            continue
+        draws.append(row)
+        version = row.get("pool_version")
+        if kind == "weapon" and version is not None:
+            if pool_version is not None and version != pool_version:
+                count, exact, free_in_count = 0, False, False
+            pool_version = version
         if row.get("rarity") is None:
             # This pull could itself have been a six-star: only later known
             # pulls are a defensible lower bound for the next interval.
             count, exact, free_in_count = 0, False, False
             continue
-        if row.get("is_free") is not False:
+        if kind != "weapon" and row.get("is_free") is not False:
             # Missing free/paid status cannot be counted as a paid pull.
             free_in_count = True
         else:
@@ -330,18 +364,19 @@ def _pool_summary(key, kind, label, last_sync_at, rows, breaks) -> EndfieldGacha
             count, exact, free_in_count = 0, True, False
     times = [row["gacha_ts"] for row in rows if row.get("gacha_ts")]
     return EndfieldGachaPool(
-        key=key, label=label, kind=kind, total=len(rows),
-        six_star=sum(row.get("rarity") == 6 for row in rows), five_star=sum(row.get("rarity") == 5 for row in rows),
-        four_star=sum(row.get("rarity") == 4 for row in rows),
-        unknown_rarity=sum(row.get("rarity") not in (4, 5, 6) for row in rows),
-        free=sum(row.get("is_free") is True for row in rows),
-        since_last_six=EndfieldPity(count=count, status="exact" if exact and not free_in_count else "lower_bound"),
+        key=key, label=label, kind=kind, total=len(draws),
+        six_star=sum(row.get("rarity") == 6 for row in draws), five_star=sum(row.get("rarity") == 5 for row in draws),
+        four_star=sum(row.get("rarity") == 4 for row in draws),
+        unknown_rarity=sum(row.get("rarity") not in (4, 5, 6) for row in draws),
+        free=sum(row.get("is_free") is True for row in draws), gifts=gifts, unverified_records=unverified,
+        since_last_six=(EndfieldPity(count=count, status="exact" if exact and not free_in_count else "lower_bound")
+                        if draws else EndfieldPity()),
         history=list(reversed(history))[:HISTORY_LIMIT],
         history_total=len(history), history_available=min(len(history), HISTORY_LIMIT),
         history_limit=HISTORY_LIMIT, history_truncated=len(history)>HISTORY_LIMIT,
         newest_at=max(times, default=None), oldest_at=min(times, default=None),
         gaps=len(breaks), pending=any(not permanent for permanent in breaks.values()), last_sync_at=last_sync_at,
-        banners=_banners(rows))
+        banners=_banners(draws))
 
 
 def _banners(rows) -> list[EndfieldGachaBanner]:

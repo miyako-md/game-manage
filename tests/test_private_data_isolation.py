@@ -182,6 +182,25 @@ def test_cloud_disables_game_write_actions(tmp_path):
     assert all('sign_attendance' not in route.endpoint.__name__ for route in bundle_route_objects(app))
 
 
+def test_cloud_weapon_record_filter_stays_inside_the_authorized_role(tmp_path):
+    import asyncio
+    from tests.test_endfield_gacha import FakeClient,history,weapon_draws
+    client,app,bundle,connection=cloud_fixture(tmp_path)
+    first=bundle.ledger(A,'endfield_gacha')
+    second=bundle.ledger(B,'endfield_gacha')
+    fake=FakeClient(special=history(1,20),weapons={'weapon_1':('合成申领',weapon_draws(1,4))})
+    asyncio.run(first.sync(A,fake,'u8',interval=0))
+    asyncio.run(second.sync(B,fake,'u8',interval=0))
+    path=f'/api/accounts/{A.account_id}/roles/{A.role_id}/endfield/gacha/records'
+    page=client.get(path,params={'kind':'weapon','limit':2,'offset':1})
+    assert page.status_code==200
+    assert page.json()['total']==4 and [row['seq_id'] for row in page.json()['records']]==['3','2']
+    assert all(row['kind']=='weapon' for row in page.json()['records'])
+    assert client.get(path,params={'kind':'invalid'}).status_code==422
+    other=f'/api/accounts/{B.account_id}/roles/{B.role_id}/endfield/gacha/records?kind=weapon'
+    assert client.get(other).status_code==404
+
+
 def bundle_route_objects(app):
     from game_assistant.private_routes import iter_routes
     return list(iter_routes(app.routes))
