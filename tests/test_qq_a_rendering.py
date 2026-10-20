@@ -86,3 +86,28 @@ async def test_real_a_calendar_one_image_cached_and_account_context_disposed():
         assert not renderer.cache
     finally:await renderer.aclose()
     assert renderer._browser is None and renderer._a_page is None
+
+
+async def test_real_a_house_cover_sits_beside_its_name():
+    executable=os.environ.get('QQ_RENDER_TEST_EXECUTABLE');font=os.environ.get('QQ_RENDER_TEST_FONT')
+    if not executable or not font:pytest.skip('Set isolated Chromium/font paths for native acceptance')
+    houses={'schema_version':1,'owned_count':1,'total':2,'entries':[
+        {'id':'bigword_house_1','name':'合成公寓','owned':True,'resident_ids':['1019'],'furniture':[{'id':'f','name':'椅子','owned':True}]},
+        {'id':'bigword_house_2','name':'合成空馆','owned':False,'resident_ids':[],'furniture':[]}]}
+    snap=game_snapshot([game_panel('nte','tajiduo','realestate',QueryResult(houses,NOW.isoformat(),'ok',True))],NOW,title='异环 · 房产',command='异环 房产')
+    renderer=BrowserRenderer(template='a',executable_path=executable,font_path=font,dist_path=os.environ.get('QQ_RENDER_TEST_DIST',''))
+    # The same per-render state _render_a prepares; the DOM is read before disposal.
+    renderer._a_images={};renderer._a_forbidden=[];renderer._a_asset_misses=[]
+    try:
+        async with asyncio.timeout(30):
+            await renderer._a_ready()
+            await renderer._a_page.evaluate('(input)=>window.mountLongRender(input)',{'snapshot':snap,'asset_urls':[],'job_id':'house','input_fingerprint':'house'})
+            assert (await renderer._a_page.evaluate('window.__LONG_RENDER_STATE__'))['state']=='ready'
+            boxes=await renderer._a_page.evaluate("""()=>[...document.querySelectorAll('.asset-grid .asset')].map(asset=>{
+                const cover=asset.querySelector('.asset-cover').getBoundingClientRect(),name=asset.querySelector('.asset-name').getBoundingClientRect()
+                return {cover:[cover.left,cover.right,cover.width],name:[name.left,name.right]}})""")
+            assert len(boxes)==2
+            for box in boxes:
+                # The 104px cover keeps its own column; the name starts after it instead of under it.
+                assert box['cover'][2]>=100 and box['name'][0]>=box['cover'][1],box
+    finally:await renderer.aclose()

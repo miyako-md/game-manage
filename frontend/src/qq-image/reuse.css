@@ -1059,6 +1059,16 @@
   padding: 10px 12px !important;
 }
 
+/* A house cover is 104px wide; the old 64px column let it paint over the estate name. */
+.reuse.lab-sheet #render-content .asset-grid > .asset > summary {
+  grid-template-columns: 104px minmax(0, 1fr) !important;
+}
+
+.reuse.lab-sheet #render-content .asset-grid .asset-cover {
+  grid-row: 1 / span 3;
+  align-self: start;
+}
+
 .reuse.lab-sheet #render-content .asset-grid > .asset > summary > .chip {
   grid-column: 2;
   flex-shrink: 0 !important;
