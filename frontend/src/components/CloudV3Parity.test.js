@@ -26,7 +26,7 @@ test('cloud favorites persist by user account and role and reject a shared uid',
 })
 test('NTE restores guides and the original full ledger panel',async t=>{
  const root=mount(t,Card,{account:account('tajiduo'),role:'r',userId:'u'})
- btn(root,'角色与探索').props.onClick();await tick();assert.ok(btn(root,'浏览全部攻略'));btn(root,'抽卡统计').props.onClick();await tick();btn(root,'查看抽卡统计').props.onClick();await tick();assert.match(content(root),/逐抽账本/);assert.doesNotMatch(content(root),/暂未开放/)
+ btn(root,'角色').props.onClick();await tick();assert.ok(btn(root,'浏览全部攻略'));btn(root,'抽卡统计').props.onClick();await tick();btn(root,'查看抽卡统计').props.onClick();await tick();assert.match(content(root),/逐抽账本/);assert.doesNotMatch(content(root),/暂未开放/)
 })
 test('Endfield uses original dashboard without fetching another authorization identity',async t=>{
  configureHttpClient({mode:'cloud'});t.after(()=>configureHttpClient({mode:'local'}));setAccountScope({user_id:'u',account_id:'a',role_id:'r',provider:'hypergryph'})
@@ -36,7 +36,7 @@ test('Endfield uses original dashboard without fetching another authorization id
 })
 test('NTE residence names and name search use selected role mapping',async t=>{
  const root=mount(t,Card,{account:account('tajiduo'),role:'r',userId:'u',snapshots:{roles:{payload:{schema_version:1,entries:[{id:'1019',name:'合成住户'}]}},realestate:{payload:{schema_version:1,entries:[{id:'h',name:'合成房产',owned:true,resident_ids:['1019']}]}}}})
- btn(root,'房产与载具').props.onClick();await tick();btn(root,'查看房产详情').props.onClick();await tick()
+ btn(root,'房产、载具与探索').props.onClick();await tick();btn(root,'查看房产详情').props.onClick();await tick()
  assert.match(content(root),/合成住户/)
  const search=nodes(root,'input').find(n=>n.props['aria-label']==='搜索房产');search.props.onInput({target:{value:'合成住户'}});await tick();assert.match(content(root),/合成房产/)
 })

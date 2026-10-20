@@ -52,8 +52,8 @@ const identity = computed(() => {
 const groups = computed(() => [
   { id: 'all', label: '全部', caps: props.game.capabilities },
   { id: 'overview', label: '概览', caps: ['account', 'stamina', 'progress', 'record'] },
-  { id: 'characters', label: '角色与探索', caps: ['roles', 'exploration', 'calabash'] },
-  { id: 'assets', label: '房产与载具', caps: ['realestate', 'vehicles'] },
+  { id: 'characters', label: '角色', caps: ['roles', 'calabash'] },
+  { id: 'assets', label: '房产、载具与探索', caps: ['realestate', 'vehicles', 'exploration'] },
   { id: 'teams', label: '官方配队', caps: ['teams'] },
   { id: 'gacha', label: '抽卡统计', caps: ['gacha'] },
   { id: 'news', label: '公告与资讯', caps: ['announcement', 'news'] },

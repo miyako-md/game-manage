@@ -45,7 +45,7 @@ test('an empty query offers pages and games; a query ranks title matches before 
   assert.deepEqual(searchItems(index, '').map(item => item.title), ['今日总览', '活动日历', '鸣潮', '异环'])
   assert.deepEqual(searchItems(index, '鸣潮抽卡').map(item => item.href), ['#/game/wuthering_waves?tab=gacha'])
   // 「角色」 finds the tabs named for roles, not every role through its hint.
-  assert.deepEqual(searchItems(index, '角色').map(item => item.title), ['角色', '角色与探索'])
+  assert.deepEqual(searchItems(index, '角色').map(item => [item.title, item.hint]), [['角色', '鸣潮'], ['角色', '异环']])
   assert.equal(searchItems(index, '今汐')[0].kind, 'role')
   assert.deepEqual(searchItems(index, '没有这个').length, 0)
   assert.deepEqual(groupResults(searchItems(index, '鸣潮')).map(group => group.label), ['游戏', '栏目', '角色', '活动'])
