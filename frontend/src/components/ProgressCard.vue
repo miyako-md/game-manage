@@ -14,11 +14,6 @@ function toLocal(value) {
   return displayBeijing(value)
 }
 
-// refresh_at 重置提示：负数=已可重置，同日=今日重置，否则 X天后重置
-function refreshText(value) {
-  return resetLabel(value)
-}
-
 const shown = v => (v == null || v === '' || (typeof v === 'number' && !Number.isFinite(v)) ? '未知' : v)
 // A ring only where the source states a cap; the others stay plain values.
 const rows = computed(() => {
@@ -27,7 +22,7 @@ const rows = computed(() => {
   return items.map(it => {
     const total = it.total > 0 ? it.total : null
     const ratio = total == null ? null : share(it.cur, total)
-    return { label: it.name || '未命名项目', cur: it.cur, total, percent: ratio == null ? '—' : `${Math.round(ratio * 100)}%`, note: refreshText(it.refresh_at) }
+    return { label: it.name || '未命名项目', cur: it.cur, total, percent: ratio == null ? '—' : `${Math.round(ratio * 100)}%`, note: resetLabel(it.refresh_at) }
   })
 })
 
