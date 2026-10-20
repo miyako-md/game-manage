@@ -18,6 +18,13 @@ from .wuwa_gacha import GachaStore as WuwaStore, fetch_official
 from .wuwa_history import WuwaHistory
 
 PREFIX='/api/accounts/{account_id}/roles/{role_id}'
+NTE_IMPORT_BODY_LIMIT = 8 * 1024 * 1024
+WUWA_IMPORT_BODY_LIMIT = 2 * 1024 * 1024
+IMPORT_BODY_LIMITS = {
+    PREFIX + '/nte/gacha/' + action: NTE_IMPORT_BODY_LIMIT for action in ('preview', 'import')
+} | {
+    PREFIX + '/wuwa/gacha/' + action: WUWA_IMPORT_BODY_LIMIT for action in ('preview', 'import')
+}
 
 
 class PrivateRoutes:
@@ -150,10 +157,11 @@ class PrivateRoutes:
         """Explicit opt-in after the cloud boundary has been installed."""
         from .cloud_app import allow_cloud_route
         for path,methods,_ in self.routes:
-            allow_cloud_route(app,path,methods,access='user')
+            allow_cloud_route(app,path,methods,access='user',
+                body_limit=IMPORT_BODY_LIMITS.get(path) if methods == frozenset({'POST'}) else None)
 
 
-async def _body(request,maximum=8*1024*1024):
+async def _body(request,maximum=NTE_IMPORT_BODY_LIMIT):
     raw=bytearray()
     async for chunk in request.stream():
         raw.extend(chunk)
@@ -309,7 +317,7 @@ def _install_wuwa_archive(bundle,app):
     @router.post('/gacha/preview')
     async def preview_gacha(request:Request,scope=Depends(owner)):
         info=bundle.accounts.describe(scope)
-        value=await _body(request,2*1024*1024)
+        value=await _body(request,WUWA_IMPORT_BODY_LIMIT)
         if bundle.accounts.describe(scope)['version']!=info['version']:
             raise HTTPException(409,'authorization_changed')
         if set(value)=={'url'}:
@@ -366,7 +374,7 @@ def _install_wuwa_archive(bundle,app):
     @router.post('/gacha/import')
     async def import_gacha(request:Request,scope=Depends(owner)):
         info=bundle.accounts.describe(scope)
-        value=await _body(request,2*1024*1024)
+        value=await _body(request,WUWA_IMPORT_BODY_LIMIT)
         if bundle.accounts.describe(scope)['version']!=info['version']:
             raise HTTPException(409,'authorization_changed')
         if set(value)=={'preview_id'}:
