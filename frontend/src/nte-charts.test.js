@@ -69,6 +69,10 @@ test('pull times without a zone are Beijing time, and a missing or bad time sort
   assert.equal(pullTime(''), null)
   assert.equal(pullTime('later'), null)
   assert.equal(pullTime(null), null)
+  assert.equal(pullTime(1789910040000), null)
+  assert.equal(pullTime(new Date('2026-09-20T13:14:00Z')), null)
+  assert.equal(pullTime('2026-02-30T10:00:00+08:00'), null)
+  assert.equal(pullTime('2026-09-20T21:14:00+0800'), Date.parse('2026-09-20T13:14:00Z'))
 })
 
 test('gacha view totals the pools, splits S pulls by luck and lists the newest pulls first', () => {
@@ -108,4 +112,13 @@ test('houses and vehicles count furniture and read stats as the source wrote the
   assert.equal(car.models, 2)
   assert.equal(vehicleView({ id: 'v1' }, '').showcase, false)
   assert.equal(vehicleView({ id: 'v1' }, undefined).showcase, false)
+})
+
+
+test('recent pull ordering uses the same validated date contract as display', () => {
+  const view = gachaView({ pools: [{ details: [
+    { item_id: 'invalid', obtained_at: '2026-02-30T10:00:00+08:00' },
+    { item_id: 'known', obtained_at: '2026-02-28T10:00:00+0800' },
+  ] }] })
+  assert.deepEqual(view.recent.map(item => item.entry.item_id), ['known', 'invalid'])
 })

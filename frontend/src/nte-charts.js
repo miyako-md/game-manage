@@ -1,3 +1,4 @@
+import { parseBeijingTime } from './calendar.js'
 import { nteAssetImage } from './nte-artwork.js'
 import { displayVehicleStat } from './nte-display.js'
 // View-models behind the NTE cards and charts. Pure functions (no DOM), so the
@@ -81,13 +82,9 @@ export function officialPullIcon(itemId) {
   return /^fork_[a-zA-Z0-9_-]+$/.test(id) ? `${CDN}/fork/${id}.png` : /^\d+$/.test(id) ? `${CDN}/tall/${id}.PNG` : null
 }
 
-const SPACED = /^\d{4}-\d{2}-\d{2} /
 /** Milliseconds for a pull time; no zone means Beijing, like every time the community card shows. */
 export function pullTime(value) {
-  if (typeof value !== 'string' || !value.trim()) return null
-  const iso = SPACED.test(value) ? value.replace(' ', 'T') : value
-  const time = Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/i.test(iso) ? iso : `${iso}+08:00`)
-  return Number.isNaN(time) ? null : time
+  return typeof value === 'string' && value.trim() ? parseBeijingTime(value) : null
 }
 
 /** Pools, the luck split of every S pull and the newest S pulls across pools, newest first. */

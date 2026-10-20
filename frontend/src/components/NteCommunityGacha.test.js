@@ -101,3 +101,16 @@ test('community artwork uses known names and catalog fallbacks before leaving a 
  assert.equal(nodes(root,'img')[2].props.src,'https://webstatic.tajiduo.com/bbs/pic/player_057_256.png')
  assert.match(content(root),/未收录物品/)
 })
+
+
+test('pull dates share strict calendar parsing while preserving the missing-time label', t => {
+  const root = mount(t, Panel, { snap: snapshot([{ name: '记录', details: [
+    { name: '非法日期', obtained_at: '2026-02-30T10:00:00+08:00' },
+    { name: '有效日期', obtained_at: '2026-09-20T21:14:00+0800' },
+    { name: '缺失日期', obtained_at: null },
+    { name: '非字符串', obtained_at: 1789910040000 },
+  ] }]) })
+  assert.deepEqual(nodes(root, 'time').filter(node => node.props.class === 'pull-time').map(content), [
+    '时间未提供', '2026-09-20 21:14', '时间未提供', '时间未提供',
+  ])
+})

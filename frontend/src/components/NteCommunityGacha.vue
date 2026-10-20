@@ -5,7 +5,7 @@ import { displayBeijing } from '../time.js'
 import { safeUrl } from '../calendar.js'
 import { finiteValue } from '../dashboard.js'
 import { vGlide } from '../motion.js'
-import { gachaRating, gachaTone, luckTone, officialPullIcon } from '../nte-charts.js'
+import { gachaRating, gachaTone, luckTone, officialPullIcon, pullTime } from '../nte-charts.js'
 import InfoHint from './InfoHint.vue'
 import { nteRewardIcon } from '../nte-icons.js'
 
@@ -42,10 +42,8 @@ function barStyle(entry, pool) {
 // Verified against Tajiduo scard/main.149e4946.js: no local rarity thresholds.
 const rating = gachaRating, tone = gachaTone
 function obtained(value) {
-  if (typeof value !== 'string' || !value.trim()) return '时间未提供'
-  const normalized = value.replace(' ', 'T')
-  const source = /(?:Z|[+-]\d{2}:\d{2})$/i.test(normalized) ? normalized : `${normalized}+08:00`
-  return Number.isNaN(new Date(source).getTime()) ? '时间未提供' : displayBeijing(source)
+  const time = pullTime(value)
+  return time == null ? '时间未提供' : displayBeijing(time)
 }
 </script>
 
