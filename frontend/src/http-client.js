@@ -82,7 +82,7 @@ export class RequestTimeoutError extends Error {
   constructor() { super('读取超时，请重试；已有数据仍保留。'); this.name = 'RequestTimeoutError' }
 }
 export async function requestJson(path, options = {}) {
-  const { response: returnResponse = false, body, timeoutMs = 0, ...rest } = options
+  const { response: returnResponse = false, body, timeoutMs = 0, readResponse, ...rest } = options
   if (!path.startsWith('/api/') || path.includes('..') || path.includes('\\')) throw new Error('无效的服务路径')
   const current = epoch, scopedCurrent = scopeEpoch, cloud = isCloudMode(), method = (rest.method || 'GET').toUpperCase()
   // Logout must finish after the UI synchronously drops the active scope. Its
@@ -108,7 +108,13 @@ export async function requestJson(path, options = {}) {
       controller.abort(error); reject(error)
     }, timeoutMs)
   }) : null
-  const bounded = promise => timeout ? Promise.race([promise, timeout]) : promise
+  let abortRead
+  const aborted = readResponse ? new Promise((_resolve, reject) => {
+    abortRead = () => reject(signal.reason || cancelled())
+    if (signal.aborted) abortRead()
+    else signal.addEventListener('abort', abortRead, { once: true })
+  }) : null
+  const bounded = promise => timeout || aborted ? Promise.race([promise, ...[timeout, aborted].filter(Boolean)]) : promise
   try {
     let result
     try {
@@ -128,6 +134,13 @@ export async function requestJson(path, options = {}) {
       try { denial = await bounded(result.clone().json()) } catch(error) { if(error instanceof RequestTimeoutError) throw error /* unreadable: treated as a website-session 401 */ }
       if (!logout && stale()) throw cancelled()
       if (denial?.error_code !== 'auth_expired' && denial?.detail !== 'private_query_failed') { invalidateSession(); throw new HttpError(401) }
+    }
+    // A caller-owned reader keeps legacy status/JSON errors while the transport
+    // owns its deadline and cancellation until the response body has been read.
+    if (readResponse) {
+      const data = await bounded(readResponse(result))
+      if (!logout && stale()) throw cancelled()
+      return data
     }
     // Legacy wrappers retain their existing error/response validation, while all
     // transports share the same headers, route boundary and invalidation engine.
@@ -149,6 +162,6 @@ export async function requestJson(path, options = {}) {
     }
     if (data === null && result.status !== 204) throw new Error('服务响应异常，请稍后重试')
     return data
-  } finally { clearTimeout(deadline); controllers.delete(controller) }
+  } finally { clearTimeout(deadline); controllers.delete(controller); if (abortRead) signal.removeEventListener('abort', abortRead) }
 }
 export const requestResponse = (path, options = {}) => requestJson(path, { ...options, response: true })

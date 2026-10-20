@@ -114,7 +114,7 @@ export function createDashboard(api) {
   const state = reactive({ games: [], snapshots: {}, notify: null, accounts: {}, collection: [], readErrors: {}, refreshErrors: {}, refreshing: {},
     loading: false, loadError: '', serviceError: '', loadedAt: null,
     esportsBrowse: { league_of_legends: createEsportsBrowseState() } })
-  const requests = new Map(), epochs = new Map(), refreshResults = new Map()
+  const requests = new Map(), epochs = new Map(), refreshResults = new Map(), reads = new Map()
   let catalogRequest = 0, statusRequest = 0, disposed = false
 
   function renderRefreshErrors(id) {
@@ -158,21 +158,27 @@ export function createDashboard(api) {
     await Promise.all(selected.map(async game => {
       const id = game.game_id, request = (requests.get(id) || 0) + 1
       requests.set(id, request)
-      const results = await Promise.allSettled(game.capabilities.map(cap => api.getSnapshot(id, cap)))
-      if (disposed || request !== requests.get(id)) return
-      const next = { ...(state.snapshots[id] || {}) }, failed = []
-      results.forEach((r, index) => {
-        const cap = game.capabilities[index]
-        if (r.status === 'fulfilled' && r.value && 'payload' in r.value) {
-          next[cap] = r.value
-          if (r.value.poll_status) {
-            mergeCollection([r.value.poll_status])
+      reads.get(id)?.abort()
+      const controller = new AbortController()
+      reads.set(id, controller)
+      const current = () => !disposed && request === requests.get(id)
+      const failed = []
+      await Promise.all(game.capabilities.map(async cap => {
+        try {
+          const value = await api.getSnapshot(id, cap, { signal: controller.signal })
+          if (!current()) return
+          if (!value || !('payload' in value)) throw new Error('invalid snapshot')
+          state.snapshots[id] = { ...(state.snapshots[id] || {}), [cap]: value }
+          if (value.poll_status) {
+            mergeCollection([value.poll_status])
             reconcileRefreshErrors(id, state.collection.find(row => row.game_id === id && row.capability === cap))
           }
+        } catch (error) {
+          if (current() && error?.name !== 'AbortError') failed.push(cap)
         }
-        else failed.push(cap)
-      })
-      state.snapshots[id] = next
+      }))
+      if (!current()) return
+      reads.delete(id)
       state.readErrors[id] = failed.length ? `快照读取失败（${failed.join('、')}），保留已有数据。` : ''
     }))
     if (!disposed) state.loadedAt = Date.now()
@@ -198,6 +204,7 @@ export function createDashboard(api) {
   }
 
   function invalidateGame(id) {
+    reads.get(id)?.abort(); reads.delete(id)
     statusRequest += 1
     epochs.set(id, (epochs.get(id) || 0) + 1)
     requests.set(id, (requests.get(id) || 0) + 1)
@@ -230,5 +237,5 @@ export function createDashboard(api) {
     }
   }
 
-  return { state, load, loadSnapshots, loadStatus, refresh, invalidateGame, dispose() { disposed = true } }
+  return { state, load, loadSnapshots, loadStatus, refresh, invalidateGame, dispose() { disposed = true; for (const controller of reads.values()) controller.abort(); reads.clear() } }
 }

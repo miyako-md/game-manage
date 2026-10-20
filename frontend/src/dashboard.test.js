@@ -278,3 +278,43 @@ test('overview deadlines retain date-only final days and expand phases like the 
   assert.equal(upcomingEvents([game], precise, now).length, 1)
   assert.equal(upcomingEvents([game], precise, now + 60000).length, 0)
 })
+
+
+test('a pending capability does not hide successful reads and a failure preserves its previous value', async () => {
+  const pending = deferred()
+  let delay = false, fail = false
+  const d = createDashboard(api({ getSnapshot: async (_id, cap) => {
+    if (cap === 'events' && delay) return pending.promise
+    if (cap === 'events' && fail) throw Error('unavailable')
+    return snapshot(cap === 'events' ? ['retained'] : { current: delay ? 20 : 10 })
+  } }))
+  await d.load()
+  delay = true
+  const reading = d.loadSnapshots()
+  await new Promise(setImmediate)
+  assert.equal(d.state.snapshots.nte.stamina.payload.current, 20)
+  assert.deepEqual(d.state.snapshots.nte.events.payload, ['retained'])
+  pending.resolve(snapshot(['new'])); await reading
+  delay = false; fail = true
+  await d.loadSnapshots()
+  assert.deepEqual(d.state.snapshots.nte.events.payload, ['new'])
+  assert.match(d.state.readErrors.nte, /events/)
+  d.dispose()
+})
+
+test('initial successful capabilities appear before a pending peer and disposal cancels that read', async () => {
+  const pending = deferred(), signals = []
+  const d = createDashboard(api({ getSnapshot: async (_id, cap, options) => {
+    signals.push(options.signal)
+    return cap === 'events' ? pending.promise : snapshot({ current: 10 })
+  } }))
+  const loading = d.load()
+  await new Promise(setImmediate)
+  assert.equal(d.state.loading, true)
+  assert.equal(d.state.snapshots.nte.stamina.payload.current, 10)
+  d.dispose()
+  assert.ok(signals.every(signal => signal.aborted))
+  pending.resolve(snapshot(['late'])); await loading
+  assert.equal(d.state.snapshots.nte.events, undefined)
+  assert.equal(d.state.snapshots.nte.stamina.payload.current, 10)
+})
