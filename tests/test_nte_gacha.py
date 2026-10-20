@@ -177,7 +177,8 @@ def test_commit_conflict_after_preview_rolls_back_earlier_inserts(tmp_path):
     assert store.records('77')['total'] == 1
 
 
-def test_fifty_thousand_rows_and_source_time_order(tmp_path):
+def test_fifty_thousand_rows_and_source_time_order(tmp_path, monkeypatch):
+    import game_assistant.nte_gacha as module
     store = GachaStore(tmp_path/'large.db')
     base = document()['records'][0]
     rows = [dict(base, uid=f'row-{i}', timestamp_group_ordinal=i) for i in range(50_000)]
@@ -185,7 +186,38 @@ def test_fifty_thousand_rows_and_source_time_order(tmp_path):
     result = commit(store, doc)
     assert result['imported'] == 50_000
     assert result['summary']['pools'][0]['pity']['count'] == 50_000
-    assert store.records('77', limit=2)['records'][0]['uid'] == 'row-0'
+    decode = module.json.loads
+    decoded = []
+    def track(raw):
+        decoded.append(raw)
+        return decode(raw)
+    monkeypatch.setattr(module.json, 'loads', track)
+    page = store.records('77', limit=2)
+    assert page['total'] == 50_000
+    assert [row['uid'] for row in page['records']] == ['row-0', 'row-1']
+    assert len(decoded) == 2
+
+
+def test_existing_ledger_pagination_keeps_order_pool_and_role_boundaries(tmp_path):
+    import json
+    import sqlite3
+    path = tmp_path/'existing.db'
+    rows = document()['records']
+    extra = dict(rows[0], uid='other-pool', pool_group_id='Arc_MiracleBox')
+    rows += [extra, dict(rows[0], uid='older', timestamp='2026-09-15 12:00:00')]
+    with sqlite3.connect(path) as db:
+        db.execute('CREATE TABLE records (role TEXT, pool TEXT, uid TEXT, payload TEXT, PRIMARY KEY(role,pool,uid))')
+        for role in ('77', '88'):
+            db.executemany('INSERT INTO records VALUES(?,?,?,?)', [
+                (role, row['pool_group_id'], row['uid'], json.dumps(row)) for row in reversed(rows)])
+    store = GachaStore(path)
+    assert [row['uid'] for row in store.records('77', limit=3, offset=1)['records']] == [
+        'new', 'fashion', 'gift']
+    page = store.records('77', 'Lottery_LimitedCharacter', limit=2, offset=3)
+    assert page['total'] == 5
+    assert [row['uid'] for row in page['records']] == ['old-s', 'older']
+    assert store.records('missing')['total'] == 0
+    assert GachaStore(path).records('77') == store.records('77')
 
 
 def test_mystery_box_counts_single_pulls_not_reward_quantity(tmp_path):
