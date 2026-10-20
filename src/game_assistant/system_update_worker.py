@@ -8,7 +8,7 @@ source of truth; the API-writable request/status directory is not trusted for it
 from __future__ import annotations
 
 import argparse
-from contextlib import closing, contextmanager, nullcontext
+from contextlib import closing, nullcontext
 from dataclasses import dataclass, field
 import hashlib
 import json
