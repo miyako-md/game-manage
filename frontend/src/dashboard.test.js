@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createDashboard, percentOf, summaryFor, upcomingEvents, recentNews, readRoute } from './dashboard.js'
 import { collectCalendarEvents, eventStatus } from './calendar.js'
+import { dailyTasks } from './overview-data.js'
 
 const game = { game_id: 'nte', display_name: '异环', capabilities: ['account', 'stamina', 'events'] }
 test('mobile duplicate notices prefer Bilibili but LOL keeps both different links', () => {
@@ -317,4 +318,40 @@ test('initial successful capabilities appear before a pending peer and disposal 
   pending.resolve(snapshot(['late'])); await loading
   assert.equal(d.state.snapshots.nte.events, undefined)
   assert.equal(d.state.snapshots.nte.stamina.payload.current, 10)
+})
+
+
+test('retained completion follows the failed capability and recovers after a successful reread', async () => {
+  const games = [
+    { game_id: 'wuthering_waves', display_name: '鸣潮', capabilities: ['progress', 'stamina', 'events'] },
+    { game_id: 'nte', display_name: '异环', capabilities: ['stamina', 'events'] },
+  ]
+  const now = Date.parse('2026-10-20T12:00:00+08:00')
+  let fail = false
+  const d = createDashboard(api({
+    getGames: async () => games,
+    getSnapshot: async (id, cap) => {
+      if (fail && (id === 'wuthering_waves' && cap === 'progress' || id === 'nte' && cap === 'events')) throw Error('unavailable')
+      const payload = cap === 'progress' ? [{ name: '活跃度', cur: 100, total: 100 }]
+        : cap === 'stamina' ? { schema_version: 1, daily_activity: 100, current: 20, maximum: 100 } : []
+      return { payload, stale: false, state: 'ok', fetched_at: '2026-10-19T23:00:00+08:00' }
+    },
+  }))
+  await d.load()
+  assert.ok(dailyTasks(games, d.state.snapshots, now).every(task => task.done))
+  fail = true; await d.loadSnapshots()
+  const tasks = dailyTasks(games, d.state.snapshots, now)
+  const retained = tasks.find(task => task.gameId === 'wuthering_waves')
+  const fresh = tasks.find(task => task.gameId === 'nte')
+  assert.deepEqual([retained.current, retained.done, retained.pending], [100, false, true])
+  assert.deepEqual([fresh.current, fresh.done, fresh.pending], [100, true, false])
+  assert.match(d.state.snapshots.wuthering_waves.progress.readError, /读取失败/)
+  assert.equal(d.state.snapshots.wuthering_waves.stamina.readError, undefined)
+  assert.equal(d.state.snapshots.nte.stamina.readError, undefined)
+  assert.match(d.state.snapshots.nte.events.readError, /读取失败/)
+  fail = false; await d.loadSnapshots()
+  assert.equal(d.state.snapshots.wuthering_waves.progress.readError, undefined)
+  assert.equal(d.state.snapshots.nte.events.readError, undefined)
+  assert.ok(dailyTasks(games, d.state.snapshots, now).every(task => task.done && !task.pending))
+  d.dispose()
 })
