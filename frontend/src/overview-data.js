@@ -12,6 +12,15 @@ const weekday = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', we
 const clock = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
 const monthDay = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'numeric', day: 'numeric' })
 
+// NTE's 日常活跃 and Endfield's 每日活跃 carry no reset time. Both reset daily at
+// 04:00 Beijing time, so a value belongs to the cycle ending at the first 04:00
+// after it was read. Weekly items keep no boundary: their reset is unconfirmed.
+const DAILY_RESET_MS = 4 * 3600000 - 8 * 3600000
+const dailyReset = snapshot => {
+  const fetchedAt = parseBeijingTime(snapshot?.fetched_at)
+  return fetchedAt == null ? null : (Math.floor((fetchedAt - DAILY_RESET_MS) / DAY_MS) + 1) * DAY_MS + DAILY_RESET_MS
+}
+
 /** When a progress item next resets, in words: 今天/明天/周X and the time, or N 天后. */
 export function resetLabel(at, now) {
   if (at == null || at <= now) return ''
@@ -56,14 +65,14 @@ export function dailyTasks(games, snapshots = {}, now = Date.now()) {
       const stamina = versioned(snaps, 'stamina')
       const activity = count(stamina?.daily_activity), weekly = count(stamina?.weekly_remaining)
       return [
-        ...(activity == null ? [] : [task(snaps.stamina, 'daily', '日常活跃', activity, 100, true)]),
+        ...(activity == null ? [] : [task(snaps.stamina, 'daily', '日常活跃', activity, 100, true, dailyReset(snaps.stamina))]),
         ...(weekly == null ? [] : [task(snaps.stamina, 'weekly', '周本剩余', weekly, null, false, null, '次')]),
       ]
     }
     if (id === 'endfield') {
       return rows(versioned(snaps, 'progress')?.items).flatMap(item => {
         const current = count(item.cur), total = count(item.total)
-        return ['daily', 'weekly'].includes(item.id) && current != null && total ? [task(snaps.progress, item.id, item.name || (item.id === 'daily' ? '每日活跃' : '每周任务'), current, total, item.id === 'daily')] : []
+        return ['daily', 'weekly'].includes(item.id) && current != null && total ? [task(snaps.progress, item.id, item.name || (item.id === 'daily' ? '每日活跃' : '每周任务'), current, total, item.id === 'daily', item.id === 'daily' ? dailyReset(snaps.progress) : null)] : []
       })
     }
     return []

@@ -334,7 +334,8 @@ test('retained completion follows the failed capability and recovers after a suc
       if (fail && (id === 'wuthering_waves' && cap === 'progress' || id === 'nte' && cap === 'events')) throw Error('unavailable')
       const payload = cap === 'progress' ? [{ name: '活跃度', cur: 100, total: 100 }]
         : cap === 'stamina' ? { schema_version: 1, daily_activity: 100, current: 20, maximum: 100 } : []
-      return { payload, stale: false, state: 'ok', fetched_at: '2026-10-19T23:00:00+08:00' }
+      // Read after today's 04:00 reset: NTE's daily value is for the current cycle.
+      return { payload, stale: false, state: 'ok', fetched_at: '2026-10-20T10:00:00+08:00' }
     },
   }))
   await d.load()

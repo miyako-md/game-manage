@@ -92,6 +92,28 @@ test('the Endfield pull card counts operator headhunting only once the ledger al
 })
 
 
+test('NTE and Endfield daily values read before today\'s 04:00 Beijing reset wait for an update', () => {
+  const now = Date.parse('2026-10-20T12:00:00+08:00')
+  const snaps = fetched_at => ({
+    nte: { stamina: { fetched_at, stale: false, state: 'ok', payload: { schema_version: 1, daily_activity: 100, weekly_remaining: 0 } } },
+    endfield: { progress: { fetched_at, stale: false, state: 'ok', payload: { schema_version: 1, items: [
+      { id: 'daily', name: '每日活跃', cur: 100, total: 100 }, { id: 'weekly', name: '每周任务', cur: 10, total: 10 }] } } },
+  })
+  const view = fetched_at => dailyTasks([nte, endfield], snaps(fetched_at), now).map(task => [task.name, task.done, task.pending, task.reset])
+  // Last evening's values belong to the cycle that ended at 04:00 today; weekly items keep no boundary.
+  assert.deepEqual(view('2026-10-19T23:00:00+08:00'), [
+    ['日常活跃', false, true, ''], ['每日活跃', false, true, ''], ['周本剩余', true, false, ''], ['每周任务', true, false, '']])
+  // Read at or after 04:00: complete, and the next reset is named.
+  for (const at of ['2026-10-20T04:00:00+08:00', '2026-10-20T03:59:59+08:00']) {
+    const [first, second] = view(at)
+    assert.deepEqual([first.slice(0, 3), second.slice(0, 3)], at.includes('T04') ? [['日常活跃', true, false], ['每日活跃', true, false]] : [['日常活跃', false, true], ['每日活跃', false, true]])
+  }
+  assert.deepEqual(view('2026-10-20T04:00:00+08:00')[0][3], '明天 04:00 重置')
+  // UTC timestamps resolve to the same Beijing boundary.
+  assert.deepEqual(view('2026-10-19T20:00:00Z')[0].slice(1, 3), [true, false])
+  assert.deepEqual(view('2026-10-19T19:59:00Z')[0].slice(1, 3), [false, true])
+})
+
 test('daily completion retains historical values but requires evidence of the current cycle', () => {
   const now = Date.parse('2026-10-20T12:00:00+08:00')
   const progress = (extra, refresh_at) => ({ wuthering_waves: { progress: {
