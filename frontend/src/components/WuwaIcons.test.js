@@ -16,16 +16,15 @@ test('a missing role picture retries the same character catalog before showing i
   assert.match(content(root), /散华/)
 })
 
-test('image role preserves nested source attributes while raw supplemental keys stay absent', async t => {
+test('image role preserves nested source attributes while raw keys and effect text stay absent', async t => {
   const Detail=await loadVue(new URL('./WuwaRoleDetail.vue',import.meta.url))
   const root=mount(t,Detail,{imageMode:true,data:{role:{role_id:'synthetic-character',role_name:'合成角色',level:0,
     role_attribute_list:[{attribute_name:'攻击',attribute_value:'1234'},{attribute_name:'防御',attribute_value:null}]},
     skill_list:[{level:0,skill:{name:'战技',description:'完整技能条件'}}],
     weapon_data:{level:0,weapon:{weapon_name:'合成武器',effect_description:'完整武器效果'}}}})
   assert.match(content(root),/完整属性.*攻击.*1234.*防御.*未知/)
-  assert.match(content(root),/完整技能条件/)
-  assert.match(content(root),/完整武器效果/)
-  assert.doesNotMatch(content(root),/来源补充字段|role_id|role_attribute_list|attribute_name|synthetic-character/)
+  assert.match(content(root),/合成武器.*战技.*Lv.0/)
+  assert.doesNotMatch(content(root),/完整技能条件|完整武器效果|来源补充字段|role_id|role_attribute_list|attribute_name|synthetic-character/)
 })
 
 test('real panel displays provided skill and chain icons and tolerates empty echo slots', async t => {
@@ -39,8 +38,8 @@ test('real panel displays provided skill and chain icons and tolerates empty ech
   const urls = nodes(root, 'img').map(n=>n.props.src)
   assert.ok(urls.includes('https://web-static.kurobbs.com/skill.png'))
   assert.ok(urls.includes('https://web-static.kurobbs.com/chain.png'))
-  assert.match(content(root), /Lv.0/)
-  assert.match(content(root), /完整技能条件/)
+  assert.match(content(root), /技能甲.*共鸣回路.*Lv.0/)
+  assert.doesNotMatch(content(root), /完整技能条件/)
   assert.match(content(root), /暂无装备声骸数据/)
 })
 

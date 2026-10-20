@@ -1,7 +1,7 @@
 <script setup>
 import { computed, provide } from 'vue'
 import { safeUrl } from '../calendar.js'
-import { fieldLabels, list, starCount, value } from '../wuwa-display.js'
+import { list, starCount, value } from '../wuwa-display.js'
 import WuwaFields from './WuwaFields.vue'
 import WuwaIcon from './WuwaIcon.vue'
 import RoleAssessment from './RoleAssessment.vue'
@@ -14,22 +14,6 @@ const unlockedChains = computed(
   () => chains.value.filter((c) => c.unlocked === true).length,
 )
 const echoes = computed(() => list(props.data.phantom_data?.equip_phantom_list))
-const SET_EFFECTS = ['first_description', 'second_description', 'triple_description']
-// Five echoes usually share one or two sets: each set's effects show once.
-const sets = computed(() => {
-  const seen = new Map()
-  for (const echo of echoes.value) {
-    const set = echo.fetter_detail
-    const effects = SET_EFFECTS.filter((k) => set?.[k]).map((k) => [
-      fieldLabels[k],
-      set[k],
-    ])
-    if (!set?.name || !effects.length) continue
-    const key = `${set.name}\u0000${effects.flat().join('\u0000')}`
-    if (!seen.has(key)) seen.set(key, { key, name: set.name, effects })
-  }
-  return [...seen.values()]
-})
 // Attribute rows made only of { attribute_name, attribute_value } read as a
 // key-value grid; anything with extra fields keeps the generic renderer so no
 // field is dropped.
@@ -112,16 +96,6 @@ const isAttributeList = (v) =>
               }}</b></span
             >
           </p>
-          <p
-            v-if="
-              data.weapon_data.weapon?.weapon_effect_name ||
-              data.weapon_data.weapon?.effect_description
-            "
-            class="wuwa-effect"
-          >
-            <strong>{{ data.weapon_data.weapon?.weapon_effect_name }}</strong>
-            {{ data.weapon_data.weapon?.effect_description }}
-          </p>
           <details v-if="!imageMode" class="wuwa-supplement">
             <summary>武器补充资料</summary>
             <WuwaFields
@@ -168,33 +142,6 @@ const isAttributeList = (v) =>
             }}</span>
             <span class="wuwa-tile-end wuwa-gold">Lv.{{ value(entry.level) }}</span>
           </header>
-          <ul v-if="!imageMode" class="chip-list wuwa-skill-meta">
-            <li class="wuwa-meta">
-              分支激活 {{ value(entry.active_branch) }}
-            </li>
-            <li
-              v-for="(b, j) in list(entry.skill?.skill_branches)"
-              :key="j"
-              class="chip"
-              :title="b?.description || undefined"
-            >
-              {{ b?.name || `分支 ${j + 1}` }}
-            </li>
-          </ul>
-          <p v-if="entry.skill?.description" class="wuwa-description">
-            {{ entry.skill.description }}
-          </p>
-          <details v-if="!imageMode" class="wuwa-supplement">
-            <summary>分支说明</summary>
-            <WuwaFields
-              :data="entry.skill"
-              :exclude="['name', 'type', 'description']"
-            />
-            <WuwaFields
-              :data="entry"
-              :exclude="['skill', 'level', 'active_branch']"
-            />
-          </details>
         </article>
       </div>
     </section>
@@ -206,14 +153,13 @@ const isAttributeList = (v) =>
         >
       </h3>
       <div v-if="chains.length" class="wuwa-chains">
-        <details
+        <div
           v-for="(chain, i) in chains"
           :key="i"
           class="wuwa-chain"
           :class="{ 'wuwa-locked': chain.unlocked === false }"
-          open
         >
-          <summary>
+          <div class="wuwa-chain-head">
             <WuwaIcon :src="chain.icon_url" :name="chain.name || '共鸣链'" size="small" />
             <span class="wuwa-chain-order">{{ value(chain.order) }}</span
             ><span class="wuwa-chain-name">{{ chain.name }}</span
@@ -228,15 +174,8 @@ const isAttributeList = (v) =>
                     : '解锁状态未知'
               }}</span
             >
-          </summary>
-          <p v-if="chain.description" class="wuwa-description">
-            {{ chain.description }}
-          </p>
-          <WuwaFields v-if="!imageMode"
-            :data="chain"
-            :exclude="['order', 'name', 'unlocked', 'description']"
-          />
-        </details>
+          </div>
+        </div>
       </div>
       <p v-else class="wuwa-muted">未提供</p>
     </section>
@@ -285,57 +224,9 @@ const isAttributeList = (v) =>
               >套装已装备 {{ value(echo.fetter_detail?.num) }} 件</span
             >
           </p>
-          <details v-if="!imageMode" class="wuwa-supplement">
-            <summary>声骸技能与补充资料</summary>
-            <template v-if="echo.phantom_prop?.skill_description">
-              <p class="wuwa-field-label">声骸技能</p>
-              <p class="wuwa-description">
-                {{ echo.phantom_prop.skill_description }}
-              </p>
-            </template>
-            <div class="wuwa-subfields">
-              <p class="wuwa-field-label">声骸资料</p>
-              <WuwaFields
-                :data="echo.phantom_prop"
-                :exclude="['name', 'skill_description']"
-              />
-            </div>
-            <div class="wuwa-subfields">
-              <p class="wuwa-field-label">套装资料</p>
-              <WuwaFields
-                :data="echo.fetter_detail"
-                :exclude="['name', 'num', ...SET_EFFECTS]"
-              />
-            </div>
-            <div class="wuwa-subfields">
-              <p class="wuwa-field-label">装备资料</p>
-              <WuwaFields
-                :data="echo"
-                :exclude="[
-                  'phantom_prop',
-                  'fetter_detail',
-                  'level',
-                  'cost',
-                  'quality',
-                  'main_props',
-                  'sub_props',
-                ]"
-              />
-            </div>
-          </details>
         </article>
       </div>
       <p v-else class="wuwa-muted">暂无装备声骸数据</p>
-      <dl v-if="sets.length" class="wuwa-sets">
-        <div v-for="set in sets" :key="set.key">
-          <dt>{{ set.name }}</dt>
-          <dd>
-            <p v-for="[label, text] in set.effects" :key="label">
-              <span class="k">{{ label }}</span> {{ text }}
-            </p>
-          </dd>
-        </div>
-      </dl>
       <WuwaFields
         :data="data.phantom_data"
         :exclude="['cost', 'equip_phantom_list']"

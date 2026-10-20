@@ -717,7 +717,7 @@
   gap: 14px !important;
 }
 
-.reuse #render-content .wuwa-chains summary {
+.reuse #render-content .wuwa-chains .wuwa-chain-head {
   display: flex !important;
   flex-wrap: nowrap !important;
   gap: 12px;

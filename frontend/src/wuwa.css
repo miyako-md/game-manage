@@ -1195,16 +1195,6 @@ button.wuwa-role:not(:disabled):active {
   border-radius: var(--radius-chip);
   background: var(--card-bg);
 }
-.wuwa-effect {
-  color: var(--text-body);
-  font-size: 13px;
-  line-height: 1.7;
-}
-.wuwa-effect strong {
-  margin-right: 6px;
-  color: var(--text);
-  font-weight: 500;
-}
 
 /* Skills: a tile each, the level as a tone tag. */
 .wuwa-skills {
@@ -1243,12 +1233,6 @@ button.wuwa-role:not(:disabled):active {
   font-weight: 600;
   line-height: 22px;
 }
-.wuwa-skill-meta {
-  align-items: center;
-}
-.wuwa-skill-meta > .wuwa-meta {
-  margin-right: 4px;
-}
 
 /* Chains: a tile per node, the order as a tone tag, the locked ones in grey. */
 .wuwa-chains {
@@ -1262,9 +1246,14 @@ button.wuwa-role:not(:disabled):active {
   border-radius: var(--radius-well);
   background: var(--card-bg);
 }
-.wuwa-chain > summary {
-  width: 100%;
+.wuwa-chain-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
   color: var(--text-body);
+  font-size: 13px;
+  font-weight: 500;
 }
 .wuwa-chain-order {
   display: inline-grid;
@@ -1287,10 +1276,7 @@ button.wuwa-role:not(:disabled):active {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.wuwa-chain > :not(summary) {
-  margin: 4px 0 2px 28px;
-}
-.wuwa-locked :where(.wuwa-chain-name, .wuwa-description) {
+.wuwa-locked .wuwa-chain-name {
   color: var(--text-muted);
 }
 .wuwa-locked .wuwa-chain-order {
@@ -1341,29 +1327,6 @@ button.wuwa-role:not(:disabled):active {
 .wuwa-set strong {
   color: var(--text);
   font-weight: 600;
-}
-.wuwa-sets {
-  display: grid;
-  margin-top: 10px;
-  font-size: 13px;
-}
-.wuwa-sets > div {
-  display: grid;
-  grid-template-columns: minmax(72px, max-content) minmax(0, 1fr);
-  gap: 12px;
-  padding: 8px 0;
-  border-top: 1px solid var(--border);
-}
-.wuwa-sets dt {
-  color: var(--text);
-  font-weight: 600;
-}
-.wuwa-sets dd p {
-  color: var(--text-body);
-}
-.wuwa-sets .k {
-  margin-right: 6px;
-  color: var(--text-muted);
 }
 
 /* ── 挑战: three cards on the tab, the records inside their dialogs ───── */

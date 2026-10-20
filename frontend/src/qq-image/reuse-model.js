@@ -1,15 +1,7 @@
 import {roleIdentity} from './models.js'
 export function prepareReuse(c){
  const s=structuredClone(c.snapshot),d=s.display_data
- if(s.kind==='wuwa_role'){
-  for(const e of d.detail.skill_list||[]){delete e.skill?.description;delete e.skill?.skill_branches;delete e.active_branch}
-  for(const e of d.detail.chain_list||[])delete e.description
-  for(const e of d.detail.phantom_data?.equip_phantom_list||[])delete e.phantom_prop?.skill_description
-  delete d.detail.equip_phantom_attribute_list;delete d.detail.equip_phantom_add_prop_list
- }
- if(s.kind==='nte_role')for(const role of d.snapshot?.payload?.entries||[]){
-  for(const field of ['skills','city_skills'])role[field]=(role[field]||[]).map(skill=>({name:skill.name,level:skill.level}))
- }
+ if(s.kind==='wuwa_role'){delete d.detail.equip_phantom_attribute_list;delete d.detail.equip_phantom_add_prop_list}
  for(const p of d.panels||[]){
   if(p.game==='wuthering_waves'&&p.capability==='combat'){
    const v=p.snapshot.payload
