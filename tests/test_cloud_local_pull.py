@@ -57,6 +57,7 @@ class FakeTransport:
         destination.write_bytes(archive(self.source))
 
 
+@pytest.mark.skipif(sys.platform != 'win32', reason='Windows NTFS atomic publication')
 @pytest.mark.parametrize('version',[3,4])
 def test_verified_set_is_published_and_repeat_skips_download(tmp_path,version):
     source = sample(tmp_path / 'server' / NAME)
@@ -196,6 +197,7 @@ def test_default_cli_is_metadata_only_and_failure_output_is_safe(tmp_path, monke
     assert output.err.strip() == 'local_pull_failed'
 
 
+@pytest.mark.skipif(sys.platform != 'win32', reason='Windows NTFS directory permissions')
 def test_ntfs_root_permissions_and_unsafe_existing_acl(tmp_path):
     root = tmp_path / 'owner-only'
     assert pull.prepare_root(root) == root
@@ -207,6 +209,7 @@ def test_ntfs_root_permissions_and_unsafe_existing_acl(tmp_path):
         pull.prepare_root(tmp_path)
 
 
+@pytest.mark.skipif(sys.platform != 'win32', reason='Windows NTFS directory permissions')
 def test_windows_private_mkdir_acl_is_accepted_without_widening(tmp_path):
     root = pull.prepare_root(tmp_path / 'secured')
     pending = root / '.pending-private'
@@ -234,6 +237,7 @@ def test_parent_link_is_rejected_before_manifest_read(tmp_path, monkeypatch):
         remote.inspect_set(source)
 
 
+@pytest.mark.skipif(sys.platform != 'win32', reason='Windows NTFS directory permissions')
 def test_existing_child_acl_cannot_bypass_owner_only_root(tmp_path):
     root = pull.prepare_root(tmp_path / 'secured')
     pending = root / '.pending-synthetic'
@@ -278,6 +282,7 @@ def test_concurrent_lock_is_not_deleted_by_rejected_process(tmp_path):
     assert (root / '.pull.lock').read_bytes() == b'existing lock'
 
 
+@pytest.mark.skipif(sys.platform != 'win32', reason='Windows SSH process creation flags')
 @pytest.mark.parametrize('mode', ['limit', 'timeout', 'exit'])
 def test_transport_bounds_real_local_subprocess(tmp_path, monkeypatch, mode):
     key = tmp_path / 'synthetic.pem'
