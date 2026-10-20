@@ -1619,18 +1619,6 @@ button.wuwa-role:not(:disabled):active {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
-.wuwa-buff {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-.wuwa-buff strong {
-  margin-right: 4px;
-  color: var(--text-body);
-  font-weight: 500;
-}
-.wuwa-halves > li > .wuwa-fields {
-  flex-basis: 100%;
-}
 
 /* ── 玩法: a card per activity, a ring per "x / max_x" pair ────────────── */
 .activity-tags {

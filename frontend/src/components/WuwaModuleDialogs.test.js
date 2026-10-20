@@ -119,7 +119,7 @@ test('activity summaries retain upstream numeric pairs while nested fields stay 
   assert.match(content(nodes(root, 'dialog')[0]), /详细来源条目/)
 })
 
-test('slash dialog retains upstream buffs and supplemental fields without mounting other records', async t => {
+test('slash dialog keeps scores and teams but not the token text or extra half fields, without mounting other records', async t => {
   const root = mount(t, await component('WuwaCombat'), { roleNames: { 1501: '今汐' }, snap: { payload: {
     slash: { data: { difficulty_list: [{ difficulty_name: '深海', all_score: 0, max_score: 100,
       challenge_list: [{ challenge_name: '试炼', score: 0, rank: null, half_list: [
@@ -130,6 +130,7 @@ test('slash dialog retains upstream buffs and supplemental fields without mounti
   } } })
   await click(root, '查看冥歌海墟')
   const dialog = content(nodes(root, 'dialog')[0])
-  for (const value of ['今汐', '本期增益', '增益条件', '来源保留值', '0']) assert.ok(dialog.includes(value), value)
+  for (const value of ['今汐', '上半场', '0']) assert.ok(dialog.includes(value), value)
+  for (const value of ['本期增益', '增益条件', '来源保留值']) assert.ok(!dialog.includes(value), value)
   assert.doesNotMatch(dialog, /其他模式首领/)
 })
