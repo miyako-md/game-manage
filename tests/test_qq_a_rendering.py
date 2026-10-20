@@ -42,6 +42,16 @@ def test_team_diagrams_keep_artwork_resolution_and_skip_other_guide_pages():
     assert Image.open(BytesIO(sanitize_image(image.getvalue(),artwork=True))).size==(1080,720)
 
 
+def test_team_prefetch_skips_duplicate_names_like_the_rendered_image():
+    raw={'entries':[{'name':'主角·零','image_urls':['https://webstatic.tajiduo.com/peidui-male.png']},
+         {'name':'主角·零','image_urls':['https://webstatic.tajiduo.com/peidui-female.png']},
+         {'name':'合成配队','image_urls':['https://webstatic.tajiduo.com/peidui-other.png']}]}
+    panel=game_panel('nte','public','teams',QueryResult(raw,NOW.isoformat(),'ok',True))
+    urls={url for url,_ in asset_requests(game_snapshot([panel],NOW))}
+    assert {'https://webstatic.tajiduo.com/peidui-male.png','https://webstatic.tajiduo.com/peidui-other.png'}<=urls
+    assert 'https://webstatic.tajiduo.com/peidui-female.png' not in urls
+
+
 async def test_cancelled_encoder_owns_its_cpu_worker_until_finished(monkeypatch):
     from game_assistant.qq import a_rendering
     started=threading.Event();finish=threading.Event()

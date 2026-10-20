@@ -481,8 +481,14 @@ def asset_requests(node):
                         for entry in entries:
                             if isinstance(entry,dict):yield from visit({key:entry[key] for key in ('id','name','icon_url') if key in entry},current)
                     elif cap=='teams' and current=='nte' and isinstance(payload,dict):
+                        # Same name de-duplication as imageTeams in nte-display.js. The
+                        # public command has no owned roster, so nothing else is filtered.
+                        names=set()
                         for entry in payload.get('entries',[]):
                             if not isinstance(entry,dict):continue
+                            if isinstance(entry.get('name'),str) and entry['name']:
+                                if entry['name'] in names:continue
+                                names.add(entry['name'])
                             yield from visit({key:child for key,child in entry.items() if key!='image_urls'},current)
                             for url in entry.get('image_urls',[]):
                                 if isinstance(url,str) and re.search(r'peidui|2team_rec',url,re.I):

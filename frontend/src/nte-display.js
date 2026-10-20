@@ -35,3 +35,18 @@ const VEHICLE_DECORATION_TYPES = { evmt_tyre: '轮胎' }
 export function vehicleDecorationType(type) {
   return VEHICLE_DECORATION_TYPES[String(type ?? '').trim()] || '装饰'
 }
+
+// The bot image lists each official team once (主角·零 has a male and a female
+// entry under one name). Teams carry no role IDs, so ownership is matched by
+// role names in the team name: a team naming only unowned roles is dropped,
+// while a name with no known role at all (a composite title) is kept. Without
+// an owned roster nothing is filtered.
+export function imageTeams(entries, ownedNames = [], knownNames = []) {
+  const seen = new Set(), owned = ownedNames.filter(Boolean), known = [...new Set([...knownNames, ...owned].filter(Boolean))]
+  return entries.filter(entry => {
+    const name = String(entry?.name ?? '')
+    if (name) { if (seen.has(name)) return false; seen.add(name) }
+    if (!owned.length || !known.some(role => name.includes(role))) return true
+    return owned.some(role => name.includes(role))
+  })
+}

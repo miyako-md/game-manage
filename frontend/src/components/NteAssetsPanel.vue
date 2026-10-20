@@ -1,6 +1,6 @@
 <script setup>
 import { nteAssetImage } from '../nte-artwork.js'
-import { displayVehicleStat, vehicleDecorationType } from '../nte-display.js'
+import { displayVehicleStat, imageTeams, vehicleDecorationType } from '../nte-display.js'
 import { computed, reactive, ref, watch,inject } from 'vue'
 import { fetchedLabel } from '../time.js'
 import { percentOf } from '../dashboard.js'
@@ -33,7 +33,7 @@ const titles = { realestate: '房产详情', vehicles: '载具详情', teams: '�
 const searchLabels = { realestate: '搜索房产', vehicles: '搜索载具', teams: '搜索配队推荐' }
 const placeholders = { realestate: '搜索名称、入住角色、家具', vehicles: '搜索载具名称', teams: '搜索名称、描述' }
 // Official team cards carry other guide images too. The QQ team command keeps
-// every entry and its complete team diagram; skill/weapon guide images remain
+// one entry per team name and its complete team diagram; skill/weapon guide images remain
 // in the original cached payload rather than repeating unrelated guide pages.
 const recommendationImages=entry=>props.imageMode
   ? list(entry.image_urls).filter(url=>/peidui|2team_rec/i.test(url))
@@ -47,8 +47,11 @@ const stateClass = value => value === true ? 'owned' : value === false ? 'unowne
 const payload = computed(() => props.snap?.payload ?? null)
 const legacy = computed(() => payload.value !== null && payload.value.schema_version !== 1)
 const data = computed(() => legacy.value ? {} : payload.value ?? {})
-const entries = computed(() => list(data.value.entries))
 const renderRoleCatalog=inject('renderRoleCatalog',{})
+// The image keeps one entry per team name and, when an owned roster is supplied, only teams naming an owned role.
+const entries = computed(() => props.imageMode && props.capability === 'teams'
+  ? imageTeams(list(data.value.entries), props.roles.map(role => role.name), list(renderRoleCatalog.nte).map(role => role.name))
+  : list(data.value.entries))
 const roleMap = computed(() => new Map([...(renderRoleCatalog.nte||[]),...props.roles].map(role => [String(role.id), role])))
 const roleName = id => roleMap.value.get(String(id))?.name || (props.imageMode?'名称未提供':`角色 ${id}`)
 const fetchedAt = computed(() => fetchedLabel(props.snap?.fetched_at))

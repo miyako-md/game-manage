@@ -114,3 +114,10 @@ test('official asset pictures fail back without losing ownership or fields',asyn
   if(kind==='vehicles')assert.match(content(root),/来源未说明/)
  }
 })
+
+test('the team image lists each name once while the website keeps every official entry', (t) => {
+  const entries = [{ id: '1', name: '主角·零', description: '男' }, { id: '2', name: '主角·零', description: '女' }, { id: '3', name: '合成配队' }]
+  assert.equal(nodes(card(t, 'teams', { entries }), 'details').length, 3)
+  const image = mount(t, NteAssetsPanel, { capability: 'teams', imageMode: true, snap: snap({ entries }) })
+  assert.deepEqual(nodes(image, 'details').map(n => content(nodes(n, 'strong')[0])), ['主角·零', '合成配队'])
+})

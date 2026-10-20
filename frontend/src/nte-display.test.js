@@ -24,3 +24,8 @@ test('vehicle decorations show a Chinese slot type and fall back to a generic de
   assert.equal(display.vehicleDecorationType?.('evmt_tyre'),'轮胎')
   for(const unknown of ['evmt_paint','',null,undefined]) assert.equal(display.vehicleDecorationType?.(unknown),'装饰')
 })
+test('image teams keep one entry per name and, given an owned roster, only teams naming an owned role',()=>{
+  const teams=[{name:'主角·零',id:'m'},{name:'主角·零',id:'f'},{name:'娜娜莉·速攻',id:'a'},{name:'白藏·护盾',id:'b'},{name:'新手推荐队',id:'c'},{name:'',id:'d'},{name:'',id:'e'}]
+  assert.deepEqual(display.imageTeams?.(teams).map(t=>t.id),['m','a','b','c','d','e'])
+  assert.deepEqual(display.imageTeams?.(teams,['娜娜莉'],['娜娜莉','白藏','主角·零']).map(t=>t.id),['a','c','d','e'])
+})
