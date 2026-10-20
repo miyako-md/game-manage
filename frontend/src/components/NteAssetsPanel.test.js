@@ -41,10 +41,12 @@ test('asset search combines with owned state without counting unknown as unowned
 test('vehicle details display source values, missing maxima and coating type without invented units', (t) => {
   const root = card(t, 'vehicles', { show_name: '街道之星', entries: [{ id: 'v1', name: '街道之星', owned: true,
     base: [{ name: '最高时速', value: '146' }], advanced: [{ name: '加速', value: '0', maximum: null }],
-    models: [{ id: 'model1', type: 'paint-red' }] }] })
+    models: [{ id: 'model1', type: 'paint-red' }, { id: 'v008_tyre_03', type: 'evmt_tyre' }] }] })
   assert.match(content(root), /展示载具：街道之星/)
   assert.match(content(root), /最高时速.*146.*加速.*0 \/ 未知/)
-  assert.match(content(root), /涂装.*paint-red.*model1/)
+  // Internal slot keys and model IDs mean nothing to players: a Chinese type only.
+  assert.match(content(root), /装饰 \/ 涂装 装饰 轮胎/)
+  assert.doesNotMatch(content(root), /paint-red|model1|evmt_tyre|v008_tyre_03|ID /)
   assert.doesNotMatch(content(root), /146%|146 km|undefined|null/)
 })
 

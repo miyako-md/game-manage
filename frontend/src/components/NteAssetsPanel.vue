@@ -1,6 +1,6 @@
 <script setup>
 import { nteAssetImage } from '../nte-artwork.js'
-import { displayVehicleStat } from '../nte-display.js'
+import { displayVehicleStat, vehicleDecorationType } from '../nte-display.js'
 import { computed, reactive, ref, watch,inject } from 'vue'
 import { fetchedLabel } from '../time.js'
 import { percentOf } from '../dashboard.js'
@@ -156,7 +156,7 @@ watch(() => props.capability, () => { search.value = ''; ownership.value = 'all'
               <section class="detail-group">
                 <h4>装饰 / 涂装</h4>
                 <ul v-if="list(entry.models).length" class="chip-list">
-                  <li v-for="(model, i) in entry.models" :key="i" class="chip">{{ display(model.type) }} <span class="mono">ID {{ display(model.id) }}</span></li>
+                  <li v-for="(model, i) in entry.models" :key="i" class="chip">{{ vehicleDecorationType(model.type) }}</li>
                 </ul>
                 <p v-else class="muted">暂无装饰 / 涂装明细</p>
               </section>
@@ -184,7 +184,6 @@ watch(() => props.capability, () => { search.value = ''; ownership.value = 'all'
 .cap-title { position: relative; }
 .cap-title h3 { margin: 0; color: var(--text); font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: -.01em; }
 .muted { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
-.mono { font-family: var(--font-mono); font-size: 12px; }
 
 /* Header count: 拥有 3 / 8 with a small ring in the game's line colour. */
 .owned-count { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; font-variant-numeric: tabular-nums; }

@@ -28,3 +28,10 @@ export function displayVehicleStat(stat) {
   if (stat?.value == null || stat.value === '') return '未知'
   return Number(stat.value) < 0 ? '来源未说明' : String(stat.value)
 }
+
+// Vehicle decorations arrive as internal slot keys plus an internal model ID.
+// Only the tyre slot has been observed; other keys read as a generic decoration.
+const VEHICLE_DECORATION_TYPES = { evmt_tyre: '轮胎' }
+export function vehicleDecorationType(type) {
+  return VEHICLE_DECORATION_TYPES[String(type ?? '').trim()] || '装饰'
+}

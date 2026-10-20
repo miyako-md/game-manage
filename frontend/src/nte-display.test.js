@@ -20,3 +20,7 @@ test('negative durability stays unexplained rather than becoming zero or unlimit
   assert.equal(display.displayVehicleStat?.({name:'车辆耐久',value:'0'}),'0')
   assert.equal(display.displayVehicleStat?.({name:'加速度',value:'5'}),'5')
 })
+test('vehicle decorations show a Chinese slot type and fall back to a generic decoration',()=>{
+  assert.equal(display.vehicleDecorationType?.('evmt_tyre'),'轮胎')
+  for(const unknown of ['evmt_paint','',null,undefined]) assert.equal(display.vehicleDecorationType?.(unknown),'装饰')
+})
