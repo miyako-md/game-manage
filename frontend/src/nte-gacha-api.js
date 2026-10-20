@@ -1,7 +1,11 @@
 import { requestResponse, safeDetail } from './http-client.js'
 async function request(path, body) {
+  const serialized = body === undefined ? undefined : JSON.stringify(body)
+  if (['preview', 'import'].includes(path) && new TextEncoder().encode(serialized).byteLength > 8 * 1024 * 1024) {
+    throw new Error('导入内容连同确认信息超过 8 MB，请分批导入，当前账本未更改')
+  }
   const response = await requestResponse(`/api/nte/gacha/${path}`, body === undefined ? {} : {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Game-Assistant': '1' }, body: JSON.stringify(body),
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Game-Assistant': '1' }, body: serialized,
   })
   let result
   try { result = await response.json() } catch { throw new Error('抽卡账本服务返回异常，请稍后重试') }
