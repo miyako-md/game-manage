@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseBeijingTime, formatBeijingDateTime, beijingDayStart, calendarRange, shiftCalendarAnchor, eventStatus, eventGeometry, collectCalendarEvents, groupCalendarEvents, safeUrl, calendarBoundary } from './calendar.js'
+import { parseBeijingTime, formatBeijingDateTime, beijingDayStart, eventStatus, eventGeometry, collectCalendarEvents, groupCalendarEvents, safeUrl, calendarBoundary } from './calendar.js'
+
+import { beijingRange } from './test-utils/calendar.js'
 
 const at = parseBeijingTime
 test('compact calendar boundaries retain estimated and unknown dates while full details retain source wording', () => {
@@ -13,23 +15,12 @@ test('compact calendar boundaries retain estimated and unknown dates while full 
 })
 test('relative starts use date geometry without claiming midnight is the opening time', () => {
   const e = { start_at: null, start_date: '2026-08-20', start_text: '3.6版本更新后', end_at: '2026-09-29T03:59:00+08:00' }
-  const geometry = eventGeometry(e, calendarRange(at('2026-09-16'), 'rolling'))
+  const geometry = eventGeometry(e, beijingRange('2026-09-13', '2026-10-13'))
   assert.equal(geometry.kind, 'range')
   assert.equal(geometry.approximateStart, true)
   assert.equal(e.start_at, null)
   assert.equal(eventStatus(e, at('2026-08-20T08:00:00+08:00')), '更新后开放')
   assert.equal(eventStatus(e, at('2026-09-16')), '进行中')
-})
-test('rolling view starts three days before today and shifts thirty days without drifting', () => {
-  const anchor = at('2026-12-31T23:00:00+08:00')
-  const range = calendarRange(anchor, 'rolling')
-  assert.equal(range.start, at('2026-12-28'))
-  assert.equal(range.end, at('2027-01-27'))
-  assert.equal(range.days.length, 30)
-  assert.equal(range.days[3].timestamp, beijingDayStart(anchor))
-  const next = shiftCalendarAnchor(anchor, 'rolling', 1)
-  assert.equal(calendarRange(next, 'rolling').start, at('2027-01-27'))
-  assert.equal(calendarRange(shiftCalendarAnchor(next, 'rolling', -1), 'rolling').start, range.start)
 })
 test('different activity types share one game group while preserving their row metadata', () => {
   const events = [
@@ -57,17 +48,6 @@ test('an event ended one hour ago is ended, not zero days remaining', () => {
   assert.equal(eventStatus({ start_at: '2026-09-15', end_at: '2026-09-20' }, now), '未开始')
   assert.equal(eventStatus({ start_at: '2026-09-10' }, now), '截止未知')
 })
-test('month and fourteen-day ranges use exclusive Beijing midnight endpoints and navigate across years', () => {
-  const range = calendarRange(at('2026-12-31T12:00:00+08:00'), 'month')
-  assert.equal(range.start, at('2026-12-01'))
-  assert.equal(range.end, at('2027-01-01'))
-  assert.equal(range.days.length, 31)
-  assert.equal(formatBeijingDateTime(shiftCalendarAnchor(range.start, 'month', 1)), '2027-01-01 00:00')
-  assert.equal(calendarRange(at('2026-02-17'), 'month').days.length, 28)
-  const fortnight = calendarRange(at('2026-09-14'), 'fortnight')
-  assert.equal(fortnight.end - fortnight.start, 14 * 86400000)
-  assert.equal(shiftCalendarAnchor(fortnight.start, 'fortnight', -1), at('2026-08-31'))
-})
 test('event geometry uses exact hours and clips both edges without changing source dates', () => {
   const range = { start: at('2026-09-14'), end: at('2026-09-16') }
   const partial = eventGeometry({ start_at: '2026-09-14T12:00:00+08:00', end_at: '2026-09-15' }, range)
@@ -82,7 +62,7 @@ test('event geometry uses exact hours and clips both edges without changing sour
   assert.equal(eventGeometry({ start_at: '2026-09-17', end_at: '2026-09-18' }, range).visible, false)
 })
 test('single known endpoint is only a marker, missing and invalid dates remain distinct', () => {
-  const range = calendarRange(at('2026-09-14'), 'fortnight')
+  const range = beijingRange('2026-09-14', '2026-09-28')
   const endOnly = eventGeometry({ end_at: '2026-09-15' }, range)
   assert.equal(endOnly.kind, 'point')
   assert.equal(endOnly.endpoint, 'end')

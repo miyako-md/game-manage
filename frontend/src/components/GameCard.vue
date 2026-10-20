@@ -14,7 +14,6 @@ const NteRolesPanel = lazyPage(() => import('./NteRolesPanel.vue'))
 const NteGachaPanel = lazyPage(() => import('./NteGachaPanel.vue'))
 const EndfieldDashboard = lazyPage(() => import('./EndfieldDashboard.vue'))
 const WuwaDashboard = lazyPage(() => import('./WuwaDashboard.vue'))
-const NteGuides = lazyPage(() => import('./NteGuides.vue'))
 const NteModuleCard = lazyPage(() => import('./NteModuleCard.vue'))
 
 // Only the local workbench shows League of Legends; the cloud never loads this dashboard or its esports tables.
@@ -40,9 +39,6 @@ const emit = defineEmits(['refresh', 'calendar', 'esports-snapshot', 'esports-br
 const reauthorizationRequired = computed(() => props.cloudAccount?.state === 'expired' || props.collectionStatus.some(row => row.game_id === props.game.game_id && row.state === 'auth_expired'))
 const errorNotice = computed(() => reauthorizationRequired.value ? '社区授权已失效，请到社区账号重新登录。' : props.externalError ? '暂时无法更新数据，请稍后重试。' : '')
 const activeSection = ref(props.game.game_id==='nte' && props.initialSection==='guides'?'characters':props.initialSection)
-const nteGuideId=ref(''), nteFocusId=ref('')
-function openNteGuide(id){nteGuideId.value=id;activeSection.value='guides'}
-function openNteRole(id){nteFocusId.value=id;nteGuideId.value='';activeSection.value='characters'}
 const style = computed(() => gameStyle(props.game.game_id))
 const banner = computed(() => gameBanner(props.game.game_id, props.externalSnapshots))
 // The hero names whose data this is: the game role's nickname and level. Endfield's account
@@ -62,7 +58,7 @@ const groups = computed(() => [
 
   { id: 'gacha', label: '抽卡统计', caps: ['gacha'] },
   { id: 'news', label: '公告与资讯', caps: ['announcement', 'news'] },
-].filter(group => group.id === 'guides' ? props.game.game_id === 'nte' : group.caps.some(cap => cap !== 'events' && props.game.capabilities.includes(cap))))
+].filter(group => group.caps.some(cap => cap !== 'events' && props.game.capabilities.includes(cap))))
 // 「全部」按页签顺序排（概览类在前、对局和公告在后），不按后端能力列表的顺序。
 const TAB_ORDER = groups => groups.filter(group => group.id !== 'all').flatMap(group => group.caps)
 const visibleCaps = computed(() => {
@@ -78,7 +74,6 @@ const visibleCaps = computed(() => {
 function capComponent(cap) {
   if (props.game.game_id !== 'nte') return null
   if (['realestate', 'vehicles', 'teams'].includes(cap)) return NteAssetsPanel
-  if (cap === 'roles') return NteRolesPanel
   if (cap === 'gacha') return NteGachaPanel
   if (['account', 'stamina', 'progress', 'exploration', 'record'].includes(cap)) return NteDataCard
   return null
@@ -92,12 +87,11 @@ function capProps(cap) {
     snap: snaps[cap],
     gameId: props.game.game_id,
     capability: cap,
-    accountId: cap === 'roles' && props.cloudScope ? props.cloudScope : props.cloudScope ? `${props.cloudScope.account_id}:${props.cloudScope.role_id}` : ['nte', 'endfield'].includes(props.game.game_id) ? snaps.account?.payload?.role_id || '' : '',
+    accountId: props.cloudScope ? `${props.cloudScope.account_id}:${props.cloudScope.role_id}` : ['nte', 'endfield'].includes(props.game.game_id) ? snaps.account?.payload?.role_id || '' : '',
     roles: snaps.roles?.payload?.entries || [],
   }
   // Async wrappers do not expose the loaded component's prop declarations.
-  const declared = cap === 'roles' ? ['snap','accountId']
-    : cap === 'gacha' ? ['snap','accountId','roles']
+  const declared = cap === 'gacha' ? ['snap','accountId','roles']
       : ['realestate','vehicles','teams'].includes(cap) ? ['snap','capability','roles']
         : ['snap','capability']
   return Object.fromEntries(Object.entries(offered).filter(([key]) => declared.includes(key)))
@@ -136,9 +130,9 @@ function capProps(cap) {
 
     <div v-else class="cap-list">
       <template v-for="cap in visibleCaps" :key="cap">
-        <NteRolesPanel v-if="cap==='roles'" :snap="externalSnapshots.roles" :account-id="cloudScope || externalSnapshots.account?.payload?.role_id || ''" :focus-character-id="nteFocusId" :initial-guide-browser="initialSection==='guides'" :can-maintain="!cloudAccount || isAdmin" />
+        <NteRolesPanel v-if="cap==='roles'" :snap="externalSnapshots.roles" :account-id="cloudScope || externalSnapshots.account?.payload?.role_id || ''" :initial-guide-browser="initialSection==='guides'" :can-maintain="!cloudAccount || isAdmin" />
         <NteModuleCard v-else-if="capComponent(cap)" :capability="cap" :snap="externalSnapshots[cap]" :artwork="cap === 'account' ? banner : []" :account-id="externalSnapshots.account?.payload?.role_id || ''" :class="['detail-cap', `detail-cap-${cap}`]">
-          <component :is="capComponent(cap)" v-bind="{...capProps(cap),...(cap==='roles' ? {focusCharacterId:nteFocusId,detailMode:!!nteFocusId,onGuide:openNteGuide} : {})}" />
+          <component :is="capComponent(cap)" v-bind="capProps(cap)" />
         </NteModuleCard>
       </template>
       <AnnouncementList v-if="['all', 'news'].includes(activeSection) && game.capabilities.some(cap => ['announcement', 'news'].includes(cap))" class="detail-articles" :game-id="game.game_id" :snap="externalSnapshots.news?.payload ? externalSnapshots.news : externalSnapshots.announcement" />
