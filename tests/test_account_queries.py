@@ -70,6 +70,56 @@ async def test_version_mismatch_cannot_read_old_cache(tmp_path):
     assert query.read(scope, 'account').payload is None
 
 
+@pytest.mark.parametrize('generation', ['kept', 'reset'])
+async def test_a_renewal_landing_mid_read_is_not_a_missing_account(tmp_path, monkeypatch, generation):
+    from datetime import datetime, timezone
+    from game_assistant.reminder_policy import ReminderRule
+    from game_assistant.scheduler import AccountPollingScheduler
+    from game_assistant.config import Settings
+    from game_assistant.scoped_reminders import ReminderStore, ScopedReminderService
+    accounts, scope, store, query = await query_fixture(tmp_path)
+    store.save_scoped(scope, 'account', '{"level":40}', 1)
+    store.record_poll_scoped(scope, 'account', FetchResult(ok=True), 1)
+    now = datetime(2026, 10, 14, 8, tzinfo=timezone.utc)
+    reminders = ScopedReminderService(ReminderStore(tmp_path / 'inbox.db'), accounts, clock=lambda: now)
+    reminders.set_rule(scope, ReminderRule(enabled=True, notify_full=True))
+    reminders.handle_poll(scope, 'stamina', FetchResult(ok=True,
+        payload={'current':100, 'maximum':100, 'updated_at':now.isoformat()}), 1)
+    original = accounts.snapshot_generation
+    def land_renewal():
+        # The same grant update a token rotation commits; 'reset' is an identity change.
+        info = accounts.describe(scope)
+        saved = accounts.credentials.load_grant(scope.user_id, info['grant_id'])
+        saved['_snapshot_generation'] = 1 if generation == 'kept' else info['version'] + 1
+        sealed = accounts.credentials.seal_grant(scope.user_id, info['grant_id'], saved, info['version'] + 1)
+        accounts.connection.execute('UPDATE grants SET version=version+1,encrypted_payload=?', (sealed,))
+        accounts.connection.commit()
+    def renewal_between(read):
+        armed = [True]
+        def racing(scope_, version):
+            if armed.pop() if armed else False:
+                land_renewal()
+            return original(scope_, version)
+        monkeypatch.setattr(accounts, 'snapshot_generation', racing)
+        try:
+            return read()
+        finally:
+            monkeypatch.setattr(accounts, 'snapshot_generation', original)
+    kept = generation == 'kept'
+    assert renewal_between(lambda: query.read(scope, 'account')).payload == ({'level':40} if kept else None)
+    assert renewal_between(lambda: query.status(scope, 'account'))['state'] == ('ok' if kept else 'never')
+    assert len(renewal_between(lambda: reminders.inbox(scope))) == (1 if kept else 0)
+    polling = AccountPollingScheduler(accounts, query, Settings(), tmp_path)
+    polling.clock = lambda: 1000
+    assert renewal_between(lambda: polling._persisted_due(scope, 'account')) >= 1000
+    assert accounts.describe(scope)['version'] == 5
+    # A revocation landing in the same place is still reported.
+    accounts.revoke(Principal('a', False), scope.account_id)
+    with pytest.raises(AccountNotFoundError):
+        query.read(scope, 'account')
+    reminders.close()
+
+
 async def corrupt_fixture(tmp_path):
     from game_assistant.accounts.runtime import AccountRuntime
     from game_assistant.config import Settings

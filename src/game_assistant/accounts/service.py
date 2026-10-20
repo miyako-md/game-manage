@@ -114,6 +114,21 @@ class AccountService:
         credentials = self.credentials.load_grant(scope.user_id, info['grant_id'])
         return snapshot_generation(credentials, version)
 
+    def snapshot_bounds(self, scope):
+        """The current grant revision and its snapshot generation, read together.
+
+        A renewal committing between the two reads is retried once instead of
+        surfacing as a missing account; revocation still raises."""
+        for retry in (False, True):
+            version = self.describe(scope)['version']
+            try:
+                return version, self.snapshot_generation(scope, version)
+            except (AccountNotFoundError, ValueError):
+                # ValueError: the grant loaded after describe() already carried
+                # the renewal's newer generation.
+                if retry:
+                    raise
+
     def save_verified(self, principal, provider, credentials, *, expected_versions=None):
         """Internal-only: credentials are returned by a verified provider, never body UIDs."""
         self._user(principal)

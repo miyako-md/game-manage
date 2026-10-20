@@ -267,7 +267,7 @@ async def test_successful_rotation_unpauses_old_token_failure(tmp_path, manual):
     assert store.get_poll_status_scoped(scope,'account',grant_version=1)['state'] == 'auth_expired'
     clock = [1000]
     polling.clock = lambda:clock[0]
-    assert polling._persisted_due(scope,'account',2) == clock[0]
+    assert polling._persisted_due(scope,'account') == clock[0]
     polling.start(periodic=False)
     try:
         if manual:
