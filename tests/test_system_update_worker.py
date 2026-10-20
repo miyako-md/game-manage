@@ -592,6 +592,113 @@ def test_backup_validation_closes_sqlite_before_temporary_directory_cleanup(inst
     assert not list(destination.glob('.verify-*'))
 
 
+class CachePlatform(FakePlatform):
+    """Sandbox-shaped options plus shared caches, as LinuxPlatform provides them."""
+    def __init__(self, config, run, caches):
+        super().__init__(config, run)
+        self.caches = caches
+
+    def prepare_options(self, release):
+        home = release.parent / ('.build-home-' + release.name)
+        home.mkdir()
+        return {'home': str(home), 'write_paths': (release, home)}
+
+    def dependency_caches(self, release):
+        for path in self.caches.values(): path.mkdir(exist_ok=True)
+        return dict(self.caches)
+
+
+def test_dependency_steps_alone_use_and_write_their_shared_cache(installation, tmp_path):
+    f = installation
+    caches = {'uv': tmp_path / 'uv-cache-shared', 'npm': tmp_path / 'npm-cache-shared'}
+    f.worker.platform = platform = CachePlatform(f.worker.config, f.runner, caches)
+    assert perform(f)['phase'] == 'completed'
+    steps = {tuple(argv[:2]): kwargs for argv, kwargs in f.runner.calls if argv[0] != 'git'}
+    uv, npm_ci = steps[('uv', 'sync')], steps[('npm.cmd', 'ci')]
+    assert [argv for argv, _ in f.runner.calls if argv[:2] == ['npm.cmd', 'ci']] == [
+        ['npm.cmd', 'ci', '--prefer-offline', '--no-audit', '--no-fund']]
+    assert uv['env']['UV_CACHE_DIR'] == str(caches['uv']) and caches['uv'] in uv['write_paths']
+    assert uv['env']['UV_LINK_MODE'] == 'copy'
+    assert npm_ci['env']['npm_config_cache'] == str(caches['npm']) and caches['npm'] in npm_ci['write_paths']
+    assert caches['npm'] not in uv['write_paths'] and caches['uv'] not in npm_ci['write_paths']
+    assert uv['timeout'] == npm_ci['timeout'] == 3600
+    # Later steps execute dependency code: no shared cache in their env or write scope.
+    later = [kwargs for argv, kwargs in f.runner.calls
+             if argv[0] != 'git' and tuple(argv[:2]) not in {('uv', 'sync'), ('npm.cmd', 'ci')}]
+    assert later
+    for kwargs in later:
+        assert not set(caches.values()) & set(kwargs.get('write_paths', ()))
+        assert str(caches['uv']) != kwargs['env']['UV_CACHE_DIR']
+        assert str(caches['npm']) != kwargs['env']['npm_config_cache']
+    assert platform.events
+
+
+class FlakyFetch(BuildRunner):
+    def __init__(self, remote, failures):
+        super().__init__(remote)
+        self.failures = failures
+
+    def __call__(self, argv, **kwargs):
+        if 'fetch' in [str(x) for x in argv] and self.failures:
+            self.failures -= 1
+            self.calls.append(([str(x) for x in argv], kwargs.copy()))
+            raise UpdateError('command_unavailable_or_timed_out')
+        return super().__call__(argv, **kwargs)
+
+
+@pytest.mark.parametrize('failures,phase', [(2, 'completed'), (3, 'failed')])
+def test_official_fetch_is_retried_before_failing(installation, monkeypatch, failures, phase):
+    import game_assistant.system_update_worker as worker_module
+    monkeypatch.setattr(worker_module, 'FETCH_RETRY_SECONDS', 0)
+    f = installation
+    f.runner = FlakyFetch(f.remote, failures)
+    f.worker.run = f.worker.platform.run = f.runner
+    status = perform(f)
+    assert status['phase'] == phase
+    assert sum('fetch' in argv for argv, _ in f.runner.calls) == min(failures + 1, 3)
+    if phase == 'failed':
+        assert status['error_code'] == 'command_unavailable_or_timed_out'
+
+
+@pytest.mark.skipif(os.name == 'nt', reason='POSIX ownership and modes')
+def test_linux_dependency_caches_follow_the_exact_lockfile_and_stay_bounded(tmp_path):
+    from game_assistant.system_update_worker import LinuxPlatform
+    releases = tmp_path / 'releases'; releases.mkdir()
+    platform = SimpleNamespace(config=SimpleNamespace(releases=releases),
+                               builder=SimpleNamespace(pw_uid=os.getuid(), pw_gid=os.getgid()))
+    def release(name, uv_lock, npm_lock='{}'):
+        root = releases / name; (root / 'frontend').mkdir(parents=True)
+        (root / 'uv.lock').write_text(uv_lock); (root / 'frontend/package-lock.json').write_text(npm_lock)
+        return root
+    first = LinuxPlatform.dependency_caches(platform, release('a', 'lock-1'))
+    again = LinuxPlatform.dependency_caches(platform, release('b', 'lock-1'))
+    assert first == again and first['uv'] != first['npm']
+    assert all((path.stat().st_mode & 0o777) == 0o700 for path in first.values())
+    (first['uv'] / 'wheel').write_text('kept while the lockfile is unchanged')
+    second = LinuxPlatform.dependency_caches(platform, release('c', 'lock-2'))
+    assert second['uv'] != first['uv'] and second['npm'] == first['npm']
+    assert (first['uv'] / 'wheel').is_file()
+    third = LinuxPlatform.dependency_caches(platform, release('d', 'lock-3'))
+    uv_caches = sorted(p.name for p in (releases / '.build-cache').iterdir() if p.name.startswith('uv-'))
+    assert uv_caches == sorted([second['uv'].name, third['uv'].name])
+    assert not first['uv'].exists()
+
+
+@pytest.mark.skipif(os.name == 'nt', reason='POSIX symlinks')
+def test_linux_dependency_cache_root_must_not_be_a_link(tmp_path):
+    from game_assistant.system_update_worker import LinuxPlatform
+    releases = tmp_path / 'releases'; releases.mkdir()
+    elsewhere = tmp_path / 'elsewhere'; elsewhere.mkdir()
+    (releases / '.build-cache').symlink_to(elsewhere, target_is_directory=True)
+    root = releases / 'a'; (root / 'frontend').mkdir(parents=True)
+    (root / 'uv.lock').write_text('x'); (root / 'frontend/package-lock.json').write_text('{}')
+    platform = SimpleNamespace(config=SimpleNamespace(releases=releases),
+                               builder=SimpleNamespace(pw_uid=os.getuid(), pw_gid=os.getgid()))
+    with pytest.raises(Exception):
+        LinuxPlatform.dependency_caches(platform, root)
+    assert not list(elsewhere.iterdir())
+
+
 def test_build_environment_keeps_npm_user_and_global_config_distinct(tmp_path):
     first = build_environment(tmp_path, tmp_path / 'release', 'a' * 40, 'linux')
     second = build_environment(tmp_path, tmp_path / 'release', 'a' * 40, 'linux')

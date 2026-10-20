@@ -57,6 +57,13 @@ def digest(path):
 
 FAILURE_OUTPUT_LIMIT = 4096
 FAILURE_LOG_NAME = 'last-command-failure.log'
+# On the supported host a cold uv sync took ~18 minutes and npm ci timed out;
+# warm per-lockfile caches make both steps short. Cold caches get the longer limit.
+DEPENDENCY_TIMEOUT = 3600
+BUILD_CACHES_KEPT = 2
+FETCH_ATTEMPTS = 3
+FETCH_RETRY_SECONDS = 15
+NPM_CI = ('ci', '--prefer-offline', '--no-audit', '--no-fund')
 
 
 def clean_environment():
@@ -81,6 +88,7 @@ def build_environment(home, release, target, platform):
     # ambient .npmrc can apply and the global layer stays os.devnull.
     result.update(HOME=str(home), USERPROFILE=str(home), UV_CACHE_DIR=str(home / 'uv-cache'),
                   npm_config_cache=str(home / 'npm-cache'),
+                  npm_config_fetch_retries='5', npm_config_fetch_retry_maxtimeout='120000',
                   NPM_CONFIG_USERCONFIG=str(home / ('.npmrc-' + uuid.uuid4().hex)),
                   GA_BUILD_COMMIT=target,
                   VITE_SERVICE_MODE='cloud' if platform == 'linux' else 'local',
@@ -351,6 +359,10 @@ class Platform:
     def prepare_options(self, release):
         return {}
 
+    def dependency_caches(self, release):
+        """Shared download caches keyed by lockfile; none where the build home already persists."""
+        return {}
+
     def dependency_extras(self):
         return self.config.extras
 
@@ -579,6 +591,34 @@ class LinuxPlatform(Platform):
         os.chown(home, self.builder.pw_uid, self.builder.pw_gid)
         return {'user': self.builder.pw_uid, 'group': self.builder.pw_gid, 'home': str(home),
                 'write_paths': (release, home)}
+
+    def dependency_caches(self, release):
+        # One cache per exact lockfile, so reuse never changes what gets installed;
+        # uv and npm verify the locked hashes/integrity of what they read from it.
+        root = safe_path(self.config.releases / '.build-cache')
+        root.mkdir(mode=0o755, exist_ok=True)
+        info = root.lstat()
+        # Owned by the (root) helper itself; the builder only owns the leaf caches.
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid():
+            fail('unsafe_build_cache')
+        os.chmod(root, 0o755)
+        caches = {}
+        for kind, lockfile in (('uv', 'uv.lock'), ('npm', 'frontend/package-lock.json')):
+            path = safe_path(root / (kind + '-' + digest(safe_path(release / lockfile))[:16]))
+            path.mkdir(mode=0o700, exist_ok=True)
+            if not stat.S_ISDIR(path.lstat().st_mode):
+                fail('unsafe_build_cache')
+            os.chown(path, self.builder.pw_uid, self.builder.pw_gid)
+            os.chmod(path, 0o700)
+            os.utime(path)
+            caches[kind] = path
+            # Bounded disk: keep the most recently used lockfiles' caches only.
+            older = sorted((p for p in root.iterdir() if p.name.startswith(kind + '-') and p != path),
+                           key=lambda p: p.lstat().st_mtime, reverse=True)
+            for stale in older[BUILD_CACHES_KEPT - 1:]:
+                if stat.S_ISDIR(stale.lstat().st_mode): shutil.rmtree(stale)
+                else: stale.unlink()
+        return caches
 
     def dependency_extras(self):
         return tuple(sorted(set(self.config.extras) | {'qq', 'qq-render'}))
@@ -900,8 +940,15 @@ class Updater:
         cache = self.private / 'repository.git'
         if not cache.exists(): self.run(['git', 'init', '--bare', cache], timeout=30)
         # Never use the checkout's origin, refspec, hooks or credential helpers.
-        self.run(['git', '-C', cache, '-c', 'credential.helper=', 'fetch', '--no-tags', '--force',
-                  OFFICIAL_REPO, 'refs/heads/' + c.branch + ':refs/remotes/official/main'], timeout=180)
+        # The host's link to GitHub drops intermittently; retry before failing.
+        for attempt in range(FETCH_ATTEMPTS):
+            try:
+                self.run(['git', '-C', cache, '-c', 'credential.helper=', 'fetch', '--no-tags', '--force',
+                          OFFICIAL_REPO, 'refs/heads/' + c.branch + ':refs/remotes/official/main'], timeout=180)
+                break
+            except UpdateError:
+                if attempt == FETCH_ATTEMPTS - 1: raise
+                time.sleep(FETCH_RETRY_SECONDS)
         official = self.run(['git', '-C', cache, 'rev-parse', 'refs/remotes/official/main'], timeout=30).stdout.strip()
         if official != target: fail('official_main_changed')
         if current == target: fail('already_current')
@@ -942,11 +989,22 @@ class Updater:
         home = options.pop('home', str(self.private / 'build-home'))
         Path(home).mkdir(parents=True, exist_ok=True)
         environment = build_environment(home, release, target, c.platform)
+        caches = self.platform.dependency_caches(release)
+        def dependency_step(kind, variable):
+            # Only the download step sees its shared cache, and only it may write
+            # there: later steps run dependency code and keep the per-build home.
+            if kind not in caches:
+                return {'env': environment, 'timeout': DEPENDENCY_TIMEOUT, **options}
+            step = {**options, 'timeout': DEPENDENCY_TIMEOUT}
+            step['write_paths'] = (*options.get('write_paths', ()), caches[kind])
+            # Copy rather than hardlink: the release is later chowned to root, and a
+            # shared inode would tie the active venv to the reusable cache.
+            return {'env': {**environment, variable: str(caches[kind]), 'UV_LINK_MODE': 'copy'}, **step}
         argv = ['uv', 'sync', '--locked', '--no-dev']
         for extra in self.platform.dependency_extras(): argv += ['--extra', extra]
-        self.run(argv, cwd=release, env=environment, **options)
+        self.run(argv, cwd=release, **dependency_step('uv', 'UV_CACHE_DIR'))
         npm = 'npm.cmd' if c.platform == 'windows' else 'npm'
-        self.run([npm, 'ci'], cwd=release / 'frontend', env=environment, **options)
+        self.run([npm, *NPM_CI], cwd=release / 'frontend', **dependency_step('npm', 'npm_config_cache'))
         python = release / ('.venv/Scripts/python.exe' if c.platform == 'windows' else '.venv/bin/python')
         if c.platform == 'linux':
             self.run([python, 'scripts/cloud/build_frontend.py', '--frontend', 'frontend'], cwd=release, env=environment, **options)
