@@ -39,9 +39,3 @@ def install_endfield_gacha_routes(app, settings):
                             headers={'Content-Disposition': 'attachment; filename="endfield-gacha.json"'})
 
     app.include_router(router)
-
-
-def install_cloud_endfield_gacha_routes(app, boundary):
-    """Install scoped cloud routes; the legacy local router stays separate."""
-    from game_assistant.private_routes import _install_endfield_gacha
-    _install_endfield_gacha(boundary, app)

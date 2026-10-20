@@ -131,9 +131,3 @@ def install_endfield_skland_routes(app, settings):
             raise _http_error(exc) from None
 
     app.include_router(router)
-
-
-def install_cloud_endfield_skland_routes(app, boundary):
-    """Install scoped cloud routes; the legacy local router stays separate."""
-    from game_assistant.private_routes import _install_skland
-    _install_skland(boundary, app)

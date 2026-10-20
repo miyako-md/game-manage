@@ -46,9 +46,3 @@ def install_wuwa_routes(app):
     async def resource_detail(kind: Literal['week', 'month', 'version'],
                               period: Annotated[str, Path(pattern=r'^[A-Za-z0-9_.-]{1,64}$')]):
         return await read(Capability.RESOURCES, 'fetch_resource_detail', kind, period)
-
-
-def install_cloud_wuwa_routes(app, boundary):
-    """Install scoped cloud routes; the legacy local router stays separate."""
-    from game_assistant.private_routes import _install_wuwa_details
-    _install_wuwa_details(boundary, app)

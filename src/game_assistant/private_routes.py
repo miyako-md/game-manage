@@ -473,16 +473,9 @@ def install_cloud_private_routes(app,accounts,runtime,private_root,*,snapshots=N
     async def ledger_error(request,error):
         return JSONResponse({'error_code':'invalid_gacha_input','detail':str(error)},status_code=error.status)
 
-    from .nte_gacha_routes import install_cloud_nte_gacha_routes
-    from .endfield_gacha_routes import install_cloud_endfield_gacha_routes
-    from .endfield_blueprint_routes import install_cloud_endfield_blueprint_routes
-    from .wuwa_archive_routes import install_cloud_wuwa_archive_routes
-    from .adapters.wuthering_waves.routes import install_cloud_wuwa_routes
-    from .endfield_skland_routes import install_cloud_endfield_skland_routes
-    for install in (install_cloud_nte_gacha_routes,install_cloud_endfield_gacha_routes,
-                    install_cloud_endfield_blueprint_routes,install_cloud_wuwa_archive_routes,
-                    install_cloud_wuwa_routes,install_cloud_endfield_skland_routes):
-        install(app,bundle)
+    for install in (_install_nte, _install_endfield_gacha, _install_blueprints,
+                    _install_wuwa_archive, _install_wuwa_details, _install_skland):
+        install(bundle, app)
     return bundle
 
 

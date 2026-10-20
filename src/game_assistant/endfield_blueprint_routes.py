@@ -40,9 +40,3 @@ def install_endfield_blueprint_routes(app, settings):
         return {'deleted': True}
 
     app.include_router(router)
-
-
-def install_cloud_endfield_blueprint_routes(app, boundary):
-    """Install scoped cloud routes; the legacy local router stays separate."""
-    from game_assistant.private_routes import _install_blueprints
-    _install_blueprints(boundary, app)

@@ -106,9 +106,3 @@ def install_nte_gacha_routes(app, settings):
         return store.set_rule(identity, value)
 
     app.include_router(router)
-
-
-def install_cloud_nte_gacha_routes(app, boundary):
-    """Install scoped cloud routes; the legacy local router stays separate."""
-    from game_assistant.private_routes import _install_nte
-    _install_nte(boundary, app)
