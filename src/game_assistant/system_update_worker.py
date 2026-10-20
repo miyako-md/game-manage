@@ -29,13 +29,12 @@ import urllib.request
 from urllib.parse import urlsplit
 import uuid
 
-from .system_update_protocol import (ACTIVE_PHASES, LockBusyError, ProtocolError,
+from .system_update_protocol import (ACTIVE_PHASES, TERMINAL_PHASES, LockBusyError, ProtocolError,
     lock, read_json, safe_path, valid_sha, write_json_atomic, SOURCE_BRANCHES)
 
 OFFICIAL_REPO = 'https://github.com/miyako-md/game-manage.git'
 OFFICIAL_REF = 'refs/heads/main'
 SOURCE = 'miyako-md/game-manage'
-TERMINAL = {'completed', 'failed', 'rolled_back', 'recovery_required'}
 SERVICE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.@-]*\.service\Z')
 
 
@@ -842,7 +841,7 @@ class Updater:
     def phase(self, phase, error=None):
         job = self.current_job
         job['phase'] = phase; job['updated_at'] = time.time()
-        if phase in TERMINAL: job['finished_at'] = time.time()
+        if phase in TERMINAL_PHASES: job['finished_at'] = time.time()
         if error: job['error_code'] = error
         write_json_atomic(self.journal_path, job)
         public = {key: job[key] for key in ('schema', 'job_id', 'target_sha', 'previous_sha',
@@ -860,7 +859,7 @@ class Updater:
             # after stop may have migrated data: require operator-led recovery.
             phase = 'failed' if job['phase'] in {'queued', 'preparing'} else 'recovery_required'
             self.phase(phase, 'worker_interrupted')
-        elif job.get('phase') in TERMINAL:
+        elif job.get('phase') in TERMINAL_PHASES:
             self.phase(job['phase'], job.get('error_code'))
         else:
             fail('private_journal_invalid')
