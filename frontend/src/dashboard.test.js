@@ -74,6 +74,30 @@ test('failed snapshot reads retain last data and expose affected capability', as
   assert.match(d.state.readErrors.nte, /account/)
 })
 
+test('a session cancellation of a current read is a read error; a superseded read stays silent', async () => {
+  let cancel = false, pending = null
+  const d = createDashboard(api({ getSnapshot: async (_id, cap, { signal }) => {
+    // The HTTP client's cancellation when the session is invalidated.
+    if (cancel && cap === 'account') throw new DOMException('会话或角色已变化', 'AbortError')
+    if (pending && cap === 'account') return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))))
+    return snapshot({ nickname: '旧快照' })
+  } }))
+  await d.load(); cancel = true; await d.loadSnapshots()
+  assert.equal(d.state.snapshots.nte.account.payload.nickname, '旧快照')
+  assert.match(d.state.snapshots.nte.account.readError, /读取失败/)
+  assert.match(d.state.readErrors.nte, /account/)
+  cancel = false; await d.loadSnapshots()
+  assert.equal(d.state.readErrors.nte, '')
+  pending = true
+  const superseded = d.loadSnapshots()
+  await new Promise(setImmediate)
+  pending = null
+  await Promise.all([d.loadSnapshots(), superseded])
+  assert.equal(d.state.readErrors.nte, '')
+  assert.equal(d.state.snapshots.nte.account.readError, undefined)
+  d.dispose()
+})
+
 test('account invalidation prevents previous in-flight private snapshots reappearing', async () => {
   const pending = deferred()
   let delayed = false

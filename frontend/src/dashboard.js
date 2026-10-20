@@ -174,7 +174,10 @@ export function createDashboard(api) {
             reconcileRefreshErrors(id, state.collection.find(row => row.game_id === id && row.capability === cap))
           }
         } catch (error) {
-          if (current() && error?.name !== 'AbortError') {
+          // Only this read's own abort (superseded or disposed) is silent. The HTTP
+          // client cancels a still-current read with an AbortError too when the
+          // session is invalidated, and that read did fail.
+          if (current() && !(error?.name === 'AbortError' && controller.signal.aborted)) {
             failed.push(cap)
             const retained = state.snapshots[id]?.[cap]
             if (retained) state.snapshots[id] = { ...state.snapshots[id], [cap]: { ...retained, readError: '快照读取失败，保留已有数据。' } }
