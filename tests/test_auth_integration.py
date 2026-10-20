@@ -76,7 +76,8 @@ async def test_wuwa_expired_ticket_rotates_then_retries_existing_rolebox(tmp_pat
 @pytest.mark.parametrize('capability,path,data', [
     (Capability.ACCOUNT, '/gamer/role/list', [{'roleId': 'r1', 'serverId': 's1', 'roleName': 'test'}]),
     (Capability.STAMINA, '/aki/roleBox/akiBox/baseData', {'energy': 100, 'maxEnergy': 240}),
-    (Capability.PROGRESS, '/gamer/widget/game3/getData', {}),
+    (Capability.PROGRESS, '/gamer/widget/game3/getData',
+     {'slashTowerData': {'name': '海墟', 'cur': 0, 'total': 3}}),
 ])
 @respx.mock
 async def test_sdk_login_credentials_keep_app_source_during_polling(tmp_path, capability, path, data):
