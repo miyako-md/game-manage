@@ -120,3 +120,35 @@ def test_cooldown_crosses_shanghai_midnight_and_quiet_consumes_nothing(tmp_path)
     assert not store.claim(SCOPE,'full','inbox',rule,before_midnight + timedelta(minutes=2))
     assert store.claim(SCOPE,'full','inbox',rule,before_midnight + timedelta(hours=1))
     assert stamina_candidates(dict(current=100,maximum=100,updated_at=before_midnight),rule,before_midnight) == []
+
+
+async def test_inbox_preserves_rotation_history_but_not_new_authorization(tmp_path):
+    from game_assistant.identity.models import Principal
+    from game_assistant.accounts.store import AccountNotFoundError
+    from tests.test_account_auth import setup, authorize
+    db, credentials, accounts, login = setup(tmp_path)
+    row = await authorize(login)
+    principal = Principal('a',False)
+    scope = accounts.require_scope(principal,row['account_id'],row['role_id'])
+    store = ReminderStore(tmp_path/'inbox.db')
+    service = ScopedReminderService(store,accounts,clock=lambda:NOW)
+    service.set_rule(scope,ReminderRule(enabled=True,notify_full=True))
+    service.handle_poll(scope,'stamina',FetchResult(ok=True,
+        payload={'current':100,'maximum':100,'updated_at':NOW.isoformat()}),1)
+    original = service.inbox(scope)
+    assert len(original) == 1
+    await login.renew(principal,row['grant_id'])
+    assert service.inbox(scope) == original
+    # A future revision must remain unreadable even inside the same generation.
+    store.db.execute('UPDATE reminder_inbox SET grant_version=99')
+    store.db.commit()
+    assert service.inbox(scope) == []
+    store.db.execute('UPDATE reminder_inbox SET grant_version=1')
+    store.db.commit()
+    saved = credentials.load_grant('a',row['grant_id'])
+    accounts.save_verified(principal,'tajiduo',saved)
+    assert service.inbox(scope) == []
+    accounts.revoke(principal,scope.account_id)
+    with pytest.raises(AccountNotFoundError):
+        service.inbox(scope)
+    store.close()
