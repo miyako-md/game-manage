@@ -10,7 +10,7 @@ import RingGauge from './RingGauge.vue'
 import BarChart from './BarChart.vue'
 import MenuSelect from './MenuSelect.vue'
 import { gameStyle, gameVars, summaryFor, upcomingEvents, recentNews, formatTime } from '../dashboard.js'
-import { parseBeijingTime } from '../calendar.js'
+import { calendarBoundary, parseBeijingTime } from '../calendar.js'
 import { sourceForGame } from '../source-status.js'
 import { friendlyDataError, capabilityLabel } from '../cloud-display.js'
 import { share } from '../chart-math.js'
@@ -94,7 +94,7 @@ const next = computed(() => events.value[0] || null)
 // How far through its window an event is (0–1); unknown without a start time.
 function elapsed(event) {
   const start = parseBeijingTime(event.start_at || event.start_date)
-  return start == null || event.upcoming ? null : share(props.now - start, event.endTime - start)
+  return start == null || event.upcoming ? null : share(props.now - start, (event.endBoundary ?? event.endTime) - start)
 }
 
 // Pull records, one game at a time.
@@ -205,7 +205,7 @@ function quickLinks(card) {
         <p v-else class="ov-empty chart-empty">{{ loading ? '加载中…' : `未来 ${range} 天没有活动截止。` }}</p>
         <button v-if="next" class="ov-next" :style="gameVars(next.gameId)" @click="emit('navigate', 'calendar', next.gameId)">
           <RingGauge v-if="elapsed(next) != null" class="ov-next-ring" :value="Math.round(elapsed(next) * 100)" :max="100" label="活动已进行" :size="44" :stroke="5" :color="gameStyle(next.gameId).vivid"><small>{{ Math.round(elapsed(next) * 100) }}%</small></RingGauge>
-          <span class="ov-next-copy"><span class="ov-kicker">最近截止</span><strong>{{ next.name }}</strong><small>{{ next.gameName }} · {{ next.category || '限时活动' }} · {{ formatTime(next.end_at) }} 截止<template v-if="next.stale"> · 待更新</template></small></span>
+          <span class="ov-next-copy"><span class="ov-kicker">最近截止</span><strong>{{ next.name }}</strong><small>{{ next.gameName }} · {{ next.category || '限时活动' }} · {{ next.end_at ? formatTime(next.end_at) : calendarBoundary(next, 'end', true) }} 截止<template v-if="next.stale"> · 待更新</template></small></span>
           <span class="ov-next-days"><b>{{ next.remainingDays }}</b><small>{{ next.upcoming ? '天 · 未开始' : '天后结束' }}</small></span>
         </button>
       </section>

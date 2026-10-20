@@ -261,3 +261,20 @@ test('percentOf takes numbers or numeric text and refuses unknown or non-positiv
     assert.equal(percentOf(current, total), null, `${current} / ${total}`)
   }
 })
+
+
+test('overview deadlines retain date-only final days and expand phases like the calendar', () => {
+  const now = Date.parse('2026-10-20T12:00:00+08:00')
+  const day = { name: '日期截止', start_date: '2026-10-19', end_date: '2026-10-21', end_precision: 'day' }
+  const phase = { name: '分阶段', phases: [{ start_date: '2026-10-19', end_date: '2026-10-21', end_precision: 'day' }] }
+  const snapshots = { nte: { events: snapshot([day, day, phase, { name: '常驻', start_date: '2026-10-01', permanent: true, end_precision: 'permanent' }]) } }
+  const items = upcomingEvents([game], snapshots, now)
+  assert.deepEqual(items.map(item => item.name), ['日期截止', '分阶段 · 阶段 1'])
+  assert.equal(items[0].endTime, Date.parse('2026-10-21T00:00:00+08:00'))
+  assert.equal(items[0].endBoundary, Date.parse('2026-10-22T00:00:00+08:00'))
+  assert.equal(upcomingEvents([game], snapshots, Date.parse('2026-10-21T23:59:00+08:00')).length, 2)
+  assert.equal(upcomingEvents([game], snapshots, Date.parse('2026-10-22T00:00:00+08:00')).length, 0)
+  const precise = { nte: { events: snapshot([{ name: '准确截止', end_at: '2026-10-20T12:01:00+08:00' }, { name: '未知截止' }]) } }
+  assert.equal(upcomingEvents([game], precise, now).length, 1)
+  assert.equal(upcomingEvents([game], precise, now + 60000).length, 0)
+})

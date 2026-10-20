@@ -85,3 +85,14 @@ test('daily rows share the rounded gauge and keep empty and done states distinct
   assert.equal(byClass(marks[2], 'ring-gauge').length, 0, 'completed task keeps its check')
   assert.deepEqual(byClass(root, 'task-value').map(content), ['50/100 ，未完成', '0/3 ，未完成', '3/3 ，已完成'])
 })
+
+
+test('a date-only deadline counts on its stated day and shows no invented clock time', t => {
+  const fixed = Date.parse('2026-10-20T12:00:00+08:00')
+  const root = mount(t, Overview, { games: [wuwa], now: fixed, snapshots: { wuthering_waves: { events: { payload: [
+    { name: '整日活动', start_date: '2026-10-19', end_date: '2026-10-21', end_precision: 'day' },
+  ] } } } })
+  assert.match(content(byClass(root, 'ov-deadlines')[0]), /1 项 7 天内结束/)
+  assert.match(content(byClass(root, 'ov-next')[0]), /2026-10-21 截止/)
+  assert.doesNotMatch(content(byClass(root, 'ov-next')[0]), /2026-10-22|00:00/)
+})

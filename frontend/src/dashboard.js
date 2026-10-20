@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { DAY_MS, parseBeijingTime, safeUrl } from './calendar.js'
+import { DAY_MS, collectCalendarEvents, eventGeometry, parseBeijingTime, safeUrl } from './calendar.js'
 import { createEsportsBrowseState } from './esports.js'
 import { capabilityLabel } from './cloud-display.js'
 
@@ -65,18 +65,14 @@ export function summaryFor(game, snapshots = {}) {
 }
 
 export function upcomingEvents(games, snapshots, now = Date.now()) {
-  return games.flatMap(game => {
-    const snap = snapshots[game.game_id]?.events
-    if (!Array.isArray(snap?.payload)) return []
-    return snap.payload.flatMap((ev, index) => {
-      if (!ev || typeof ev !== 'object') return []
-      // Same start and staleness rules as the calendar (eventGeometry, collectCalendarEvents).
-      const end = parseBeijingTime(ev.end_at), start = parseBeijingTime(ev.start_at || ev.start_date)
-      if (end == null || end <= now || (ev.start_at && start == null) || (start != null && start > end)) return []
-      return [{ ...ev, id: `${game.game_id}:${index}`, gameId: game.game_id, gameName: game.display_name,
-        endTime: end, remainingDays: Math.ceil((end - now) / DAY_MS), upcoming: start != null && start > now,
-        stale: Boolean(snap.stale || ev.source_stale) }]
-    })
+  return collectCalendarEvents(games, snapshots).flatMap(event => {
+    const geometry = eventGeometry(event, { start: now, end: now + DAY_MS })
+    if (geometry.kind === 'invalid' || geometry.end == null || geometry.end <= now) return []
+    // Date-only deadlines belong to the stated day; geometry.end includes that
+    // whole day and is used only to decide whether the event has ended.
+    const endTime = parseBeijingTime(event.end_at || event.end_date)
+    return [{ ...event, endTime, endBoundary: geometry.end,
+      remainingDays: Math.ceil((geometry.end - now) / DAY_MS), upcoming: geometry.start != null && geometry.start > now }]
   }).sort((a, b) => a.endTime - b.endTime)
 }
 
