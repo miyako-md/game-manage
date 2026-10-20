@@ -243,6 +243,7 @@ class AccountPollingScheduler:
 
     def request_refresh(self, scope, capability):
         from fastapi import HTTPException
+        from game_assistant.accounts.store import AccountNotFoundError
         if not self._running:
             raise HTTPException(503, 'scheduler_unavailable')
         info = self.query.validate(scope, capability)
@@ -258,8 +259,11 @@ class AccountPollingScheduler:
                 if self.accounts.describe(scope)['version'] != info['version']:
                     return
                 await self.poll_once(scope, capability)
+            except AccountNotFoundError:
+                return
             except Exception:
-                # Scope revocation/cleanup must not fail background queue management.
+                # Exception messages can contain credentials or private snapshot data.
+                logger.error('scoped_refresh_failed')
                 self._due[key] = self.clock() + self.settings.cloud_private_poll_seconds
         return self._queue(key, refresh)
 

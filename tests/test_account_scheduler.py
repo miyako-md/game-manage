@@ -184,3 +184,49 @@ async def test_bad_grant_does_not_abort_public_tick(tmp_path):
     assert calls == ['nte']
     await polling.shutdown()
     await query.runtime.aclose()
+
+
+@pytest.mark.parametrize('method', ['save_scoped', 'record_poll_scoped'])
+async def test_storage_failure_logs_safe_code_and_keeps_queue_usable(tmp_path, monkeypatch, caplog, method):
+    import sqlite3
+    accounts, scope, store, query = await query_fixture(tmp_path)
+    polling = scheduler(tmp_path, accounts, query)
+    await polling.poll_once(scope, 'account')
+    original = getattr(store, method)
+    def fail(*args, **kwargs):
+        raise sqlite3.OperationalError('private credential and snapshot details')
+    monkeypatch.setattr(store, method, fail)
+    polling.start(periodic=False)
+    try:
+        query.request_refresh(scope, 'account')
+        await polling.drain()
+        assert polling.refresh_state(scope, 'account') == 'idle'
+        assert polling._due[(scope, 'account')] > polling.clock()
+        messages = [record.getMessage() for record in caplog.records
+                    if record.name == 'game_assistant.scheduler']
+        assert messages == ['scoped_refresh_failed']
+        assert 'private credential' not in caplog.text
+        monkeypatch.setattr(store, method, original)
+        query.request_refresh(scope, 'account')
+        await polling.drain()
+        assert query.read(scope, 'account').state == 'ok'
+    finally:
+        await polling.shutdown()
+
+
+async def test_queued_scope_removal_is_not_logged_as_storage_failure(tmp_path, monkeypatch, caplog):
+    from game_assistant.accounts.store import AccountNotFoundError
+    accounts, scope, store, query = await query_fixture(tmp_path)
+    polling = scheduler(tmp_path, accounts, query)
+    polling.start(periodic=False)
+    try:
+        query.request_refresh(scope, 'account')
+        def removed(*args, **kwargs):
+            raise AccountNotFoundError()
+        monkeypatch.setattr(accounts, 'describe', removed)
+        await polling.drain()
+        assert not [record for record in caplog.records
+                    if record.name == 'game_assistant.scheduler']
+        assert polling.refresh_state(scope, 'account') == 'idle'
+    finally:
+        await polling.shutdown()

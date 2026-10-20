@@ -104,6 +104,24 @@ async def test_bad_decode_falls_back_and_retries_are_bounded(monkeypatch):
     assert len(calls) == 1
 
 
+async def test_unexpected_prefetch_failures_log_once_without_private_details(monkeypatch, caplog):
+    assets = module()
+    async def fetch(url, **kwargs):
+        raise RuntimeError('private upstream credential')
+    monkeypatch.setattr(assets, '_download', fetch)
+    cache = assets.PublicAssetCache()
+    refs = [cache.register_url(f'https://webstatic.tajiduo.com/{index}.png') for index in range(2)]
+    await cache.prefetch(refs, budget_seconds=.5)
+    assert all(cache.get_image(ref) is None for ref in refs)
+    assert not cache._inflight
+    messages = [record.getMessage() for record in caplog.records
+                if record.name == 'game_assistant.qq.assets']
+    assert messages == ['qq_asset_prefetch_failed']
+    assert 'private upstream' not in caplog.text
+    assert 'https://' not in caplog.text
+    await cache.aclose()
+
+
 def test_sanitizer_rejects_pixel_bomb_and_animated_webp():
     assets = module()
     with pytest.raises(ValueError):
