@@ -37,7 +37,7 @@ test('ship shows static zero percentages and stage with accessible scales and or
   const root=mount(t,Reports,{payload,view:'ship'})
   assert.match(content(root),/培育室/);assert.match(content(root),/心情观测值 0/);assert.match(content(root),/信赖观测值 0/)
   assert.match(content(root),/心情 0%/);assert.match(content(root),/信赖 友好 0%/)
-  assert.deepEqual(nodes(root,'progress').map(node=>[node.props.value,node.props.max]),[[0,'100'],[0,'200']])
+  assert.deepEqual(nodes(root,'progress').map(node=>[node.props.value,node.props.max]),[[0,'100'],[0,'100']])
   assert.match(content(root),/不外推当前状态/);assert.match(content(root),/查看原始观测值/)
 })
 
@@ -243,7 +243,9 @@ test('ship rings are decorative: the native progress stays the accessible value 
   assert.equal(rings.length, 4)
   for (const ring of rings) assert.equal(ring.props['aria-hidden'], 'true')
   const bars = nodes(root, 'progress')
-  assert.deepEqual(bars.map(node => [node.props.value, node.props.max]), [[50, '100'], [100, '200']])
+  // Trust 100% opens the 亲近 stage, so its ring and accessible value start that stage at 0.
+  assert.deepEqual(bars.map(node => [node.props.value, node.props.max]), [[50, '100'], [0, '100']])
+  assert.equal(bars[1].props['aria-label'], '甲信赖亲近阶段进度')
   for (const bar of bars) assert.ok(cls(bar, 'sr-only'))
   assert.match(content(root), /心情 50%/); assert.match(content(root), /信赖 亲近 100%/)
   assert.match(content(root), /超出模型范围/); assert.match(content(root), /观测值未知/)
@@ -306,4 +308,36 @@ test('empty todos distinguish unknown, partially known and fully completed task 
     assert.ok(content(todo).includes(expected), `${JSON.stringify(progress)}: ${content(todo)}`)
     assert.doesNotMatch(content(todo), /今日日常已完成|当前每日与每周任务没有待办项/)
   }
+})
+
+test('the trust ring fills within its stage and the image lists residents as compact rows', t => {
+  const operators = [['友好', 99], ['亲近', 100], ['亲近', 163], ['信任', 200]].map(([trust_level_name, trust_percent], i) => ({ id: String(i), name: `干员${i}`, mood_percent: 50, trust_percent, trust_level_name }))
+  const payload = { report: { schema_version: 1, ship: { rooms: [{ id: 'r', name: '舱', operators }] } } }
+  const ringValues = root => nodes(root, 'div').filter(node => cls(node, 'ring-gauge')).map(node => node.props['aria-valuenow'])
+  const web = mount(t, Reports, { view: 'ship', payload })
+  assert.deepEqual(ringValues(web), [50, 99, 50, 0, 50, 63, 50, 100])
+  assert.match(content(web), /信赖 亲近 163%/); assert.match(content(web), /信赖 信任 200%/)
+  assert.equal(nodes(web, 'article').filter(node => cls(node, 'compact')).length, 0)
+  const image = mount(t, Reports, { view: 'ship', imageMode: true, payload })
+  assert.equal(nodes(image, 'article').filter(node => cls(node, 'ef-resident') && cls(node, 'compact')).length, 4)
+  assert.deepEqual(ringValues(image), ringValues(web))
+  assert.doesNotMatch(content(image), /查看原始观测值/)
+})
+
+test('honor image is an icon wall of names without per-medal category, level or time text', t => {
+  const items = [
+    { id: '1', name: '甲章', category: '探索', level: 3, is_plated: true, obtained_at: '2026-10-03T00:00:00Z', icon_url: 'https://web.hycdn.cn/a.png' },
+    { id: '2', name: '乙章', category: '战斗', level: 1, is_plated: false, obtained_at: '2026-10-02T00:00:00Z' },
+  ]
+  const payload = { report: { schema_version: 1, honor: { available: true, items, summary: { declared_count: 9, listed_count: 2 } } } }
+  const image = mount(t, Reports, { view: 'honor', imageMode: true, payload })
+  const icons = nodes(image, 'figure').filter(node => cls(node, 'ef-medal-icon'))
+  assert.deepEqual(icons.map(node => content(nodes(node, 'figcaption')[0])), ['甲章', '乙章'])
+  assert.ok(cls(icons[0], 'plated')); assert.ok(!cls(icons[1], 'plated'))
+  assert.equal(nodes(image, 'article').filter(node => cls(node, 'ef-medal')).length, 0)
+  assert.doesNotMatch(content(image), /获得于|等级 3|未镀层/)
+  assert.ok(nodes(image, 'figure').some(node => node.props['aria-label'] === '已记录奖章的分类占比'))
+  const web = mount(t, Reports, { view: 'honor', payload })
+  assert.equal(nodes(web, 'article').filter(node => cls(node, 'ef-medal')).length, 2)
+  assert.match(content(web), /获得于/)
 })

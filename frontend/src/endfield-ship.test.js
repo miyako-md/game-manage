@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { shipResident, shipPercent, SHIP_CONVERSION_MODEL } from './endfield-ship.js'
+import { shipResident, shipPercent, trustStage, SHIP_CONVERSION_MODEL } from './endfield-ship.js'
 import { profileReport } from './endfield-reports.js'
 
 test('ship uses the reviewed static ranges and exact trust boundaries shared with QQ', () => {
@@ -79,4 +79,12 @@ test('ship ID lookup keeps direct matches first and hashes only unchanged standa
   assert.equal(residents[1].name,'直接匹配')
   assert.ok(residents.slice(2).every(item=>item.name==null))
   assert.deepEqual(residents.slice(2).map(item=>item.id),invalid)
+})
+
+test('trust stage progress restarts at each stage and is full once trusted', () => {
+  for (const [percent, level, value] of [[0,'友好',0],[99,'友好',99],[100,'亲近',0],[163,'亲近',63],[199,'亲近',99],[200,'信任',100]]) {
+    assert.deepEqual(trustStage(percent, level), { level, value, max: 100 }, `${percent}`)
+    assert.deepEqual(trustStage(percent, null), { level, value, max: 100 }, `${percent} derived`)
+  }
+  for (const missing of [null, undefined, -1, 201, '']) assert.equal(trustStage(missing, '亲近'), null)
 })

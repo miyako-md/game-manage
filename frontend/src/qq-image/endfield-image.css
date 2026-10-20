@@ -94,60 +94,10 @@
   white-space: nowrap;
 }
 
-.reuse.lab-sheet #render-content .ef-medals {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 14px;
-}
-
-.reuse.lab-sheet #render-content .ef-medals .ef-medal {
-  padding: 12px 14px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 52px;
-  gap: 4px 8px;
-  min-width: 0;
-  align-content: start;
-}
-
-.reuse.lab-sheet #render-content .ef-medals .ef-medal > div:not(.endfield-artwork) {
-  display: contents;
-}
-
-.reuse.lab-sheet #render-content .ef-medals .endfield-artwork {
-  width: 52px;
-  height: 52px;
-  grid-column: 2;
-  grid-row: 2 / 4;
-  align-self: center;
-}
-
-.reuse.lab-sheet #render-content .ef-medals .ef-medal h3 {
-  grid-column: 1 / -1;
-  grid-row: 1;
-  text-wrap: balance;
-  font-size: 20px !important;
-  line-height: 1.35 !important;
-}
-
-.reuse.lab-sheet #render-content .ef-medals .ef-medal-category {
-  grid-column: 1;
-  grid-row: 2;
-  justify-self: start;
-}
-
-.reuse.lab-sheet #render-content .ef-medals .ef-medal p:not(.ef-note) {
-  grid-column: 1;
-  grid-row: 3;
-}
-
-.reuse.lab-sheet #render-content .ef-medals .ef-medal .ef-note {
-  grid-column: 1 / -1;
-  grid-row: 4;
-}
-
-.reuse.lab-sheet #render-content .ef-medals .ef-medal :is(p, span) {
-  font-size: 17px !important;
-  line-height: 1.45 !important;
+.reuse.lab-sheet #render-content .ef-resident.compact .ring-gauge {
+  width: 44px !important;
+  height: 44px !important;
+  flex: 0 0 44px !important;
 }
 
 .reuse.lab-sheet #render-content .ef-loadout > * {

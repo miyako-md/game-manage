@@ -219,6 +219,8 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
       </section>
       <p v-if="!medals.length" class="ef-card ef-empty">{{ honor.available === true ? '当前档案没有奖章记录。' : '尚未采集奖章详情，请刷新档案。' }}</p>
       <section v-else-if="!filteredMedals.length" class="ef-card ef-empty"><p>没有匹配的奖章；可调整名称或分类筛选。</p><button type="button" class="ui-button" @click="clearMedalFilters">清除奖章筛选</button></section>
+      <!-- The bot image is a dense icon wall; category, level and time stay on the website. -->
+      <div v-else-if="imageMode" class="ef-medal-icons"><figure v-for="(medal,index) in filteredMedals" :key="medal.id ?? index" class="ef-medal-icon" :class="{ plated: medal.is_plated === true }"><EndfieldArtwork :src="medal.icon_url" :name="medal.name || '奖章'" /><figcaption>{{ medal.name || '未命名奖章' }}</figcaption></figure></div>
       <div v-else class="ef-medals"><article v-for="(medal,index) in filteredMedals" :key="medal.id ?? index" v-reveal class="ef-medal" :class="{ plated: medal.is_plated === true }"><EndfieldArtwork :src="medal.icon_url" :name="medal.name || '奖章'" /><div><h3>{{ medal.name || '未命名奖章' }}</h3><span class="ef-medal-category">{{ medal.category || '未提供分类' }}</span><p>等级 {{ display(medal.level) }} <span class="ef-medal-plated">{{ medal.is_plated === true ? '已镀层' : medal.is_plated === false ? '未镀层' : '镀层未知' }}</span></p><p class="ef-note">获得于 {{ time(medal.obtained_at) }}</p></div></article></div>
     </template>
     <footer v-if="!imageMode" class="ef-source"><details><summary>{{ stale ? '档案来源 · 待更新' : '档案来源' }}</summary><p>森空岛档案 · {{ stale ? '正在显示已有资料，等待更新' : '已采集资料' }} · 观测于 {{ time(report.observed_at) }} · 同步于 {{ time(fetchedAt || report.fetched_at) }}（北京时间）</p></details></footer>
@@ -445,6 +447,15 @@ button.ef-count:active { transform:translateY(1px); }
 .is-image .ef-card, .is-image .ef-count, .is-image .ef-medal { box-shadow:none; border-color:var(--border); }
 .is-image .ef-count { min-height:0; gap:14px; }
 .is-image .ef-medal.plated { border-color:transparent; }
+/* Image-only compaction: one row per resident, two per line; medals as an icon wall. */
+.is-image .ef-ship-rooms { grid-template-columns:1fr; }
+.is-image .ef-ship-room { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 10px; }
+.is-image .ef-ship-room > :not(.ef-resident) { grid-column:1 / -1; }
+.ef-medal-icons { display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:10px; }
+.ef-medal-icon { display:grid; justify-items:center; align-content:start; gap:6px; margin:0; padding:10px 6px; min-width:0; border:1px solid var(--border); border-radius:var(--radius-well); background:var(--card-bg); text-align:center; }
+.ef-medal-icon.plated { background:var(--ef-tone); border-color:transparent; }
+.ef-medal-icon > .endfield-artwork { width:64px; height:64px; }
+.ef-medal-icon figcaption { font-size:13px; line-height:1.4; color:var(--text); overflow-wrap:anywhere; }
 
 @media (max-width:900px) {
   .ef-hero, .ef-progress, .ef-stats, .ef-rarity, .ef-phases, .ef-honor-head, .ef-categories { grid-column:1 / -1; }

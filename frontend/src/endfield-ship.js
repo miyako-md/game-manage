@@ -74,6 +74,15 @@ export function shipReport(value, operators = []) {
       ...value.summary } }
 }
 
+// The trust ring fills within the current stage: 友好 0–100%, 亲近 100–200%; 信任 is full.
+// The text keeps the overall percentage; only the ring and its accessible value use the stage.
+export function trustStage(percent, level) {
+  const value = bounded(percent, 200)
+  if (value == null) return null
+  const stage = ['友好', '亲近', '信任'].includes(level) ? level : value < 100 ? '友好' : value < 200 ? '亲近' : '信任'
+  return { level: stage, value: stage === '信任' ? 100 : Math.min(100, Math.max(0, stage === '亲近' ? value - 100 : value)), max: 100 }
+}
+
 // Match the report/QQ display rule, including half-up decimal boundaries.
 export function shipPercent(value) {
   const percent = number(value)
