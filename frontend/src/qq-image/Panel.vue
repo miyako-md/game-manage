@@ -1,5 +1,4 @@
 <script setup>
-import {computed} from 'vue'
 import {gameVars} from '../dashboard.js'
 import CloudCalendar from './CloudCalendar.vue'
 import NteCommunityGacha from '../components/NteCommunityGacha.vue'
@@ -13,7 +12,6 @@ import {guideLines} from './guide-presentation.js'
 defineProps({panel:Object,index:Number,scheme:String})
 const percent=v=>v==null?'—':Math.round(v)+'%'
 const ringStyle=p=>({'--pct':(p??0)+'%'})
-const noMax=m=>m.max===null
 </script>
 <template>
  <section class="block" :class="['kind-'+panel.type,{'long-title':panel.title.length>4}]" :data-kind="panel.type" :style="(panel.gameId||panel.game)?gameVars(panel.gameId||panel.game):undefined">

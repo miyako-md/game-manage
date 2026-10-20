@@ -93,9 +93,6 @@ const failedReads = computed(() => filteredGames.value.filter(game => props.read
 })))
 const failedReadNames = computed(() => failedReads.value.map(failure => failure.name).join('、'))
 const readRetainedMessage = computed(() => failedReads.value.every(failure => failure.retained) ? '正在显示已有活动。' : failedReads.value.some(failure => failure.retained) ? '部分游戏正在显示已有活动，其余暂无可显示活动。' : '暂无可显示活动。')
-function gameAccent(id) {
-  return gameStyle(id === 'lol' ? 'league_of_legends' : id).color
-}
 const gameVars = id => themeVars(id === 'lol' ? 'league_of_legends' : id)
 // Counts for the tiles above the board, over every event the current view collects.
 const statusCounts = computed(() => ({

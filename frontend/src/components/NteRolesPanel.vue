@@ -14,7 +14,7 @@ import { levelBands } from '../wuwa-charts.js'
 import BarChart from './BarChart.vue'
 import DonutChart from './DonutChart.vue'
 
-import { nteRoleIcon, nteNamedIcon, nteSkillIcon } from '../nte-icons.js'
+import { nteRoleIcon } from '../nte-icons.js'
 
 const props = defineProps({ snap: { type: Object, default: null }, accountId: { type: [String,Object], default: '' }, focusCharacterId:{type:String,default:''}, imageMode:{type:Boolean,default:false}, detailMode:{type:Boolean,default:false}, guideCharacterId:{type:String,default:''}, initialGuideBrowser:Boolean, canMaintain:{type:Boolean,default:true} })
 const emit=defineEmits(['guide'])

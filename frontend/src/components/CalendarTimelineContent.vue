@@ -7,7 +7,7 @@ import { beijingDayStart, eventGeometry, eventStatus, browserDayStart, browserEv
 import { presentationGroups, activityBoundaryDays } from '../calendar-presentation.js'
 import { useCalendarPan } from '../calendar-pan.js'
 import { createCalendarDefaultPosition } from '../calendar-position.js'
-import { gameStyle, gameVars } from '../dashboard.js'
+import { gameVars } from '../dashboard.js'
 const props = defineProps({ events:{type:Array,default:()=>[]}, snapshots:{type:Object,default:()=>({})}, range:{type:Object,default:null}, asOf:{type:Number,required:true}, rangeMode:{type:String,default:'rolling'}, mode:{type:String,default:'screen'}, selectedId:{type:String,default:null}, emptyTitle:{type:String,default:'暂无活动数据'}, showUnplaced:{type:Boolean,default:true} })
 const emit = defineEmits(['select'])
 const viewport = ref(null)
@@ -44,7 +44,6 @@ const groups = computed(() => presentationGroups(events.value.filter(event => ev
 const boundaryDays = computed(() => props.mode === 'image' ? new Set() : activityBoundaryDays(events.value,dayStart))
 const undated = computed(() => props.showUnplaced ? events.value.filter(event => event.geometry.kind==='undated') : [])
 const invalid = computed(() => props.showUnplaced ? events.value.filter(event => event.geometry.kind==='invalid') : [])
-const gameAccent = id => gameStyle(id==='lol' ? 'league_of_legends' : id).color
 const groupVars = id => gameVars(id==='lol' ? 'league_of_legends' : id)
 const barStyle = event => ({left:event.geometry.left+'%',width:event.geometry.kind==='range' ? event.geometry.width+'%' : undefined})
 function stateLabel(event) {
