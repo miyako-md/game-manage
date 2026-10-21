@@ -335,14 +335,26 @@ async def test_endfield_challenges_use_their_own_interval_and_failure_backoff(tm
     assert polling._due[(scope,'account')] == 1600 and polling._due[(scope,'combat')] == 2800
     assert 1000 + 1790 < polling._persisted_due(scope,'combat') <= 2800
     saved = store.get_scoped(scope,'combat')
-    for delay in (60, 120):
+    # 429 waits at least the challenge interval instead of the 60 s / 120 s backoff.
+    for _ in range(2):
         await polling.poll_once(scope,'combat')
-        assert polling._due[(scope,'combat')] == 1000 + delay
+        assert polling._due[(scope,'combat')] == 1000 + 1800
+        assert 1000 + 1790 < polling._persisted_due(scope,'combat') <= 2800
     status = query.status(scope,'combat')
     assert (status['state'], status['error_code'], status['consecutive_failures']) == ('error', 429, 2)
     assert 'raw upstream' not in str(status)
     assert store.get_scoped(scope,'combat') == saved and query.read(scope,'combat').state == 'error'
     assert query.status(scope,'account')['error_code'] is None
+
+
+async def test_non_rate_limited_failures_keep_the_short_backoff(tmp_path):
+    accounts, scope, store, query, adapter, polling, _ = await skland_fixture(tmp_path,
+        cloud_endfield_challenge_poll_seconds=1800)
+    adapter.results = [FetchResult(ok=False,error_kind='source_error',error_code=503),
+                       FetchResult(ok=False,error_kind='source_error')]
+    for delay in (60, 120):
+        await polling.poll_once(scope,'combat')
+        assert polling._due[(scope,'combat')] == 1000 + delay
 
 
 async def test_partial_challenge_failure_keeps_last_success_of_that_kind(tmp_path, caplog):

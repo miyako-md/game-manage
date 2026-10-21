@@ -274,6 +274,14 @@ class AccountPollingScheduler:
             minimum_version=self.accounts.snapshot_generation(scope, version))
         return status and status['state'] == 'error'
 
+    def _next_delay(self, game, capability, status):
+        interval = self.settings.private_poll_seconds(game, capability)
+        if status['state'] == 'ok':
+            return interval
+        backoff = min(3600, 60 * 2 ** min(max(0, status['consecutive_failures'] - 1), 6))
+        # A rate-limited source is not retried sooner than its normal interval.
+        return max(backoff, interval) if status.get('error_code') == 429 else backoff
+
     def _persisted_due(self, scope, capability):
         from datetime import datetime, timezone
         version, generation = self.accounts.snapshot_bounds(scope)
@@ -283,8 +291,7 @@ class AccountPollingScheduler:
                 status['state'] == 'auth_expired' and not self.query.snapshots.get_poll_status_scoped(
                     scope, capability, grant_version=version)):
             return self.clock()
-        delay = self.settings.private_poll_seconds(self.accounts.describe(scope)['game'], capability) if (
-            status['state'] == 'ok') else min(3600, 60 * 2 ** min(max(0, status['consecutive_failures'] - 1), 6))
+        delay = self._next_delay(self.accounts.describe(scope)['game'], capability, status)
         try:
             elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(status['last_attempt_at'])).total_seconds()
         except (ValueError, TypeError):
@@ -342,8 +349,7 @@ class AccountPollingScheduler:
                         self.reminders.handle_poll(scope, capability, result, version)
                     except Exception:
                         logger.warning('Scoped reminder evaluation failed')
-                delay = self.settings.private_poll_seconds(current['game'], capability) if result.ok else min(
-                    3600, 60 * 2 ** min(status['consecutive_failures'] - 1, 6))
+                delay = self._next_delay(current['game'], capability, status)
                 self._due[key] = self.clock() + max(30, delay)
                 if result.ok and current['game'] == 'wuthering_waves' and capability in ('roles', 'combat') and self.query.private:
                     try:
