@@ -272,3 +272,15 @@ test('QQ panels and multi-game upcoming rows carry their game skin',t=>{
  assert.match(panel,/:data-skin="skinOf\(panel\.gameId\|\|panel\.game\)\|\|undefined"/)
  assert.match(panel,/class="upcoming-row"[^>]*:data-skin="r\.game&&skinOf\(r\.gameId\)\|\|undefined"/)
 })
+
+test('the Wuwa overview reads the profile counters Kuro nests under extra.profile',async t=>{
+ const Sheet=await loadVue(new URL('./qq-image/AccountOverviewSheet.vue',import.meta.url))
+ const profile={world_level:8,active_days:553,achievement_count:640,achievement_star:831,small_count:243,big_count:53,
+  box_list:[{box_name:'朴素奇藏箱',num:598},{box_name:'基准奇藏箱',num:271},{box_name:'精密奇藏箱',num:88},{box_name:'辉光奇藏箱',num:41}]}
+ const input={snapshot:{kind:'game_snapshot',game:'wuthering_waves',title:'鸣潮',display_data:{panels:[{game:'wuthering_waves',provider:'kuro',capability:'account',
+  snapshot:{payload:{nickname:'甲',level:80,extra:{active_day:534,profile}},fetched_at:'2026-10-21T00:00:00Z'}}]}},command:'总览',origin:''}
+ configure([input],{})
+ const text=content(mount(t,Sheet,{input}))
+ for(const value of ['553','640','831','243','53','598','271','88','41','Lv.8','Lv.80'])assert.ok(text.includes(value),value)
+ assert.doesNotMatch(text,/534/)
+})

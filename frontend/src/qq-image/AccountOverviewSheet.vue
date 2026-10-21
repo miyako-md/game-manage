@@ -175,7 +175,10 @@ const gameBlocks = computed(() => {
       gPanels.find(p => p.capability === cap && (!provider || p.provider === provider))?.snapshot
 
     if (game === 'wuthering_waves') {
-      const acc = findCap('account') || {}
+      const accountPayload = findCap('account') || {}
+      // Kuro keeps active days, achievements, beacons, chests and world level under extra.profile;
+      // top-level account fields (nickname, level) still win.
+      const acc = { ...(accountPayload.extra?.profile || {}), ...accountPayload }
       const stam = findCap('stamina')
       const cal = findCap('calabash')
       const gacha = findCap('gacha')
