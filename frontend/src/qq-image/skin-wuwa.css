@@ -180,3 +180,16 @@
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 12px !important;
 }
+
+/* ---- 鸣潮 sub-images: legibility on the dark base (C1.1) ------------------ */
+/* A roster line breaks between its parts, never inside "技能 36". */
+.reuse.lab-sheet[data-skin="wuwa"] #render-content .wuwa-role-sub > span { white-space: nowrap; }
+
+/* Unearned tower stars were the website's dark border, almost invisible here. */
+.reuse.lab-sheet[data-skin="wuwa"] #render-content .stars .off { color: rgba(var(--skin-tint-rgb), .3); }
+
+/* D7 floor for the few labels the shared image rules still set below 17px. */
+.reuse.lab-sheet[data-skin="wuwa"] #render-content .ring-cap { font-size: var(--qq-small) !important; }
+.reuse.lab-sheet[data-skin="wuwa"] .source-line { font-size: var(--qq-min-text, 17px); }
+.reuse.lab-sheet[data-skin="wuwa"] #render-content .wuwa-item-icon:not(.icon-large) .icon-fallback,
+.reuse.lab-sheet[data-skin="wuwa"] .guide-visual .icon-fallback { font-size: var(--qq-min-text, 17px) !important; }

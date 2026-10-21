@@ -221,9 +221,9 @@ function close() {
               >{{ '★'.repeat(starCount(r.star_level)) }}</span
             ><span v-else class="wuwa-meta">{{ value(r.star_level) }} 星</span></template
           ><span class="wuwa-role-sub" title="属性 · 武器类型 · 共鸣链 · 技能总等级"
-            ><template v-if="r.attribute">{{ r.attribute }} · </template
-            >{{ value(r.weapon) }} · {{ value(r.chain) }} 链 · 技能
-            {{ value(r.extra?.total_skill_level) }}</span
+            ><template v-if="r.attribute"><span>{{ r.attribute }} ·</span>{{ ' ' }}</template
+            ><span>{{ value(r.weapon) }} ·</span> <span>{{ value(r.chain) }} 链 ·</span> <span>技能
+            {{ value(r.extra?.total_skill_level) }}</span></span
           ></span
         >
       </component>

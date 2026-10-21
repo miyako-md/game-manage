@@ -31,6 +31,12 @@ test('wuwa website roster shows rarity as one tag on the picture while the image
  assert.equal(nodes(image,'section')[0].props['data-skin'],undefined)
 })
 
+test('wuwa roster line keeps each part whole so an image line never splits "技能 36"',t=>{
+ const root=mount(t,Roles,{imageMode:true,snap:snap([{role_id:'a',name:'合成角色',attribute:'衍射',weapon:'长刃',chain:3,extra:{total_skill_level:36}},{role_id:'b',name:'合成无属性',chain:null}])})
+ const lines=nodes(root,'span').filter(n=>n.props.class==='wuwa-role-sub')
+ assert.deepEqual(lines.map(line=>line.children.filter(n=>n.type==='span').map(content)),[['衍射 ·','长刃 ·','3 链 ·','技能 36'],['未知 ·','未知 链 ·','技能 未知']])
+})
+
 test('dashboard uses actual web capability cards without replacing zero or omitting first and last rows',t=>{
  const root=mount(t,Render,{snapshot:input([
   panel('nte','stamina',{schema_version:1,current:0,maximum:null,city_current:null,city_maximum:100,daily_activity:0,weekly_remaining:null}),
