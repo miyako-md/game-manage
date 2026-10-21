@@ -660,6 +660,144 @@ def test_official_fetch_is_retried_before_failing(installation, monkeypatch, fai
         assert status['error_code'] == 'command_unavailable_or_timed_out'
 
 
+class GitHubDown(BuildRunner):
+    """github.com never answers; local bundle Git commands run for real."""
+    def __call__(self, argv, **kwargs):
+        argv = [str(x) for x in argv]
+        if 'fetch' in argv and OFFICIAL_REPO in argv:
+            self.calls.append((argv, kwargs.copy()))
+            raise UpdateError('command_unavailable_or_timed_out')
+        if argv[0] == 'git' and 'fetch' in argv:
+            self.calls.append((argv, kwargs.copy()))
+            return self.real(argv, **kwargs)
+        return super().__call__(argv, **kwargs)
+
+
+@pytest.fixture
+def github_down(installation, monkeypatch):
+    import game_assistant.system_update_worker as worker_module
+    monkeypatch.setattr(worker_module, 'FETCH_RETRY_SECONDS', 0)
+    f = installation
+    f.runner = GitHubDown(f.remote)
+    f.worker.run = f.worker.platform.run = f.runner
+    f.api_calls = []
+    f.api_head = f.target
+    def head(branch):
+        f.api_calls.append(branch)
+        return f.api_head
+    monkeypatch.setattr(worker_module, 'official_branch_head', head)
+    f.inbound = f.worker.private / 'inbound'
+    f.bundle = f.inbound / (f.target + '.bundle')
+    return f
+
+
+def make_bundle(f, commit=None):
+    f.inbound.mkdir(exist_ok=True)
+    source = f.remote
+    if commit is not None:
+        source = f.remote.parent / 'bundle-source.git'
+        subprocess.run(['git', 'clone', '--bare', str(f.remote), str(source)], check=True, capture_output=True)
+        git(source, 'update-ref', 'refs/heads/main', commit)
+    git(source, 'bundle', 'create', str(f.bundle), 'refs/heads/main')
+    if os.name != 'nt':
+        # The documented operator modes, independent of the test runner's umask.
+        f.inbound.chmod(0o700); f.bundle.chmod(0o400)
+    return f.bundle
+
+
+def test_unreachable_github_falls_back_to_an_api_confirmed_operator_bundle(github_down):
+    f = github_down; make_bundle(f)
+    status = perform(f)
+    assert status['phase'] == 'completed' and status['fetch_source'] == 'bundle'
+    assert read_json(f.worker.journal_path)['fetch_source'] == 'bundle'
+    assert not any(isinstance(value, str) and ('/' in value or '\\' in value) for value in status.values())
+    assert f.api_calls == ['main']
+    assert sum('fetch' in argv and OFFICIAL_REPO in argv for argv, _ in f.runner.calls) == 3
+    assert not f.bundle.exists()
+    assert read_json(f.worker.config.releases / f.target / 'release.json')['commit'] == f.target
+
+
+def test_successful_github_fetch_records_its_source(installation):
+    f = installation
+    assert perform(f)['fetch_source'] == 'github'
+
+
+@pytest.mark.parametrize('inbound', [False, True])
+def test_missing_bundle_keeps_the_original_fetch_failure(github_down, inbound):
+    f = github_down
+    if inbound: f.inbound.mkdir()
+    status = perform(f)
+    assert status['phase'] == 'failed' and status['error_code'] == 'command_unavailable_or_timed_out'
+    assert f.api_calls == [] and 'stop' not in f.platform.events
+
+
+@pytest.mark.parametrize('head, code', [('e' * 40, 'official_main_changed'), (None, 'official_head_unavailable')])
+def test_bundle_is_refused_unless_the_api_confirms_the_target(github_down, head, code):
+    f = github_down; make_bundle(f); f.api_head = head
+    status = perform(f)
+    assert status['phase'] == 'failed' and status['error_code'] == code
+    assert f.bundle.exists() and 'stop' not in f.platform.events
+    assert not any('bundle' in argv for argv, _ in f.runner.calls if argv[0] == 'git')
+
+
+def test_bundle_whose_branch_is_not_the_target_is_refused(github_down):
+    f = github_down; make_bundle(f, commit=f.old)
+    status = perform(f)
+    assert status['phase'] == 'failed' and status['error_code'] == 'update_bundle_commit_mismatch'
+    assert f.bundle.exists() and 'stop' not in f.platform.events
+
+
+def test_corrupt_bundle_is_refused(github_down):
+    f = github_down; f.inbound.mkdir(); f.bundle.write_bytes(b'# v2 git bundle\nnot a bundle\n')
+    status = perform(f)
+    assert status['phase'] == 'failed' and status['error_code'] == 'invalid_update_bundle'
+
+
+@pytest.mark.parametrize('unsafe', ['hardlink', 'directory',
+    pytest.param('symlink', marks=pytest.mark.skipif(os.name == 'nt', reason='symlinks need privileges on Windows')),
+    pytest.param('writable', marks=pytest.mark.skipif(os.name == 'nt', reason='POSIX modes'))])
+def test_unsafe_bundle_paths_are_refused(github_down, tmp_path, unsafe):
+    f = github_down
+    elsewhere = tmp_path / 'elsewhere.bundle'
+    if unsafe == 'hardlink':
+        make_bundle(f); os.link(f.bundle, elsewhere)
+    elif unsafe == 'directory':
+        f.bundle.mkdir(parents=True)
+    elif unsafe == 'symlink':
+        make_bundle(f); f.bundle.rename(elsewhere); f.bundle.symlink_to(elsewhere)
+    else:
+        make_bundle(f); f.inbound.chmod(0o777)
+    status = perform(f)
+    assert status['phase'] == 'failed' and status['error_code'] == 'unsafe_update_bundle'
+    assert f.api_calls == [] and 'stop' not in f.platform.events
+
+
+def test_official_branch_head_accepts_only_the_exact_branch_ref(monkeypatch):
+    import io
+    import game_assistant.system_update_worker as worker_module
+    responses, requests = [], []
+    class Opener:
+        def open(self, request, timeout):
+            requests.append(request)
+            item = responses.pop(0)
+            if isinstance(item, Exception): raise item
+            return io.BytesIO(json.dumps(item).encode())
+    monkeypatch.setattr(worker_module.urllib.request, 'build_opener', lambda *handlers: Opener())
+    monkeypatch.setattr(worker_module.time, 'sleep', lambda seconds: None)
+    sha = 'A' * 40
+    good = {'ref': 'refs/heads/codex/cloud-qq-public', 'object': {'type': 'commit', 'sha': sha}}
+    responses[:] = [OSError('reset'), good]
+    assert worker_module.official_branch_head('codex/cloud-qq-public') == 'a' * 40
+    assert requests[-1].full_url == 'https://api.github.com/repos/miyako-md/game-manage/git/ref/heads/codex/cloud-qq-public'
+    assert requests[-1].get_header('Authorization') is None
+    for bad in ({**good, 'ref': 'refs/heads/main'}, {**good, 'object': {'type': 'tag', 'sha': sha}},
+                {**good, 'object': {'type': 'commit', 'sha': 'not-a-sha'}}, [good]):
+        responses[:] = [bad]
+        assert worker_module.official_branch_head('codex/cloud-qq-public') is None
+    responses[:] = [OSError('down')] * 3
+    assert worker_module.official_branch_head('main') is None
+
+
 @pytest.mark.skipif(os.name == 'nt', reason='POSIX ownership and modes')
 def test_linux_dependency_caches_follow_the_exact_lockfile_and_stay_bounded(tmp_path):
     from game_assistant.system_update_worker import LinuxPlatform
@@ -678,7 +816,13 @@ def test_linux_dependency_caches_follow_the_exact_lockfile_and_stay_bounded(tmp_
     second = LinuxPlatform.dependency_caches(platform, release('c', 'lock-2'))
     assert second['uv'] != first['uv'] and second['npm'] == first['npm']
     assert (first['uv'] / 'wheel').is_file()
+    # The new lockfile's cache starts from the previous one instead of empty.
+    assert (second['uv'] / 'wheel').read_text() == 'kept while the lockfile is unchanged'
+    assert (second['uv'].stat().st_mode & 0o777) == 0o700
+    (second['uv'] / 'newer').write_text('only in the most recently used cache')
     third = LinuxPlatform.dependency_caches(platform, release('d', 'lock-3'))
+    assert (third['uv'] / 'newer').is_file()
+    assert not list((releases / '.build-cache').glob('.seed-*'))
     uv_caches = sorted(p.name for p in (releases / '.build-cache').iterdir() if p.name.startswith('uv-'))
     assert uv_caches == sorted([second['uv'].name, third['uv'].name])
     assert not first['uv'].exists()
@@ -697,6 +841,57 @@ def test_linux_dependency_cache_root_must_not_be_a_link(tmp_path):
     with pytest.raises(Exception):
         LinuxPlatform.dependency_caches(platform, root)
     assert not list(elsewhere.iterdir())
+
+
+def _caches(root, entries):
+    for name, age in entries.items():
+        path = root / name; path.mkdir(parents=True)
+        (path / 'pkg').mkdir(); (path / 'pkg' / 'data').write_text(name)
+        os.utime(path, (1_000_000 + age, 1_000_000 + age))
+    return root
+
+
+def test_new_dependency_cache_is_seeded_from_the_most_recent_one_of_its_kind(tmp_path):
+    from game_assistant.system_update_worker import seed_dependency_cache
+    root = _caches(tmp_path / 'cache', {'uv-old': 1, 'uv-recent': 2, 'npm-newest': 3})
+    target = root / 'uv-new'
+    assert seed_dependency_cache(root, 'uv', target)
+    assert (target / 'pkg' / 'data').read_text() == 'uv-recent'
+    assert (root / 'uv-recent' / 'pkg' / 'data').is_file()
+    assert sorted(p.name for p in root.iterdir()) == ['npm-newest', 'uv-new', 'uv-old', 'uv-recent']
+    assert not seed_dependency_cache(root, 'pip', root / 'pip-new')
+    assert not (root / 'pip-new').exists()
+
+
+def test_failed_cache_seeding_leaves_an_empty_start_not_a_partial_copy(tmp_path, monkeypatch):
+    import game_assistant.system_update_worker as worker
+    root = _caches(tmp_path / 'cache', {'npm-old': 1})
+    copytree = shutil.copytree
+    def interrupted(source, destination, *args, **kwargs):
+        copytree(source, destination, *args, **kwargs)
+        if Path(destination).name.startswith('.seed-'): raise OSError('disk full')
+    monkeypatch.setattr(worker.shutil, 'copytree', interrupted)
+    assert not worker.seed_dependency_cache(root, 'npm', root / 'npm-new')
+    assert sorted(p.name for p in root.iterdir()) == ['npm-old']
+
+
+@pytest.mark.skipif(os.name == 'nt', reason='POSIX symlinks, FIFOs and ownership')
+def test_cache_seeding_keeps_links_unfollowed_and_skips_foreign_or_special_entries(tmp_path):
+    from game_assistant.system_update_worker import seed_dependency_cache
+    outside = tmp_path / 'outside'; outside.mkdir(); (outside / 'secret').write_text('not copied')
+    root = _caches(tmp_path / 'cache', {'uv-old': 1})
+    (root / 'uv-old' / 'link').symlink_to(outside, target_is_directory=True)
+    owner = (os.getuid(), os.getgid())
+    assert seed_dependency_cache(root, 'uv', root / 'uv-new', owner)
+    copied = root / 'uv-new' / 'link'
+    assert copied.is_symlink() and os.readlink(copied) == str(outside)
+    assert list(outside.iterdir()) == [outside / 'secret']
+    # Content the builder does not own (e.g. a hard link to a root file) is never copied.
+    assert not seed_dependency_cache(root, 'uv', root / 'uv-foreign', (os.getuid() + 1, os.getgid()))
+    os.mkfifo(root / 'uv-new' / 'pipe')
+    os.utime(root / 'uv-new', (2_000_000, 2_000_000))
+    assert not seed_dependency_cache(root, 'uv', root / 'uv-fifo', owner)
+    assert sorted(p.name for p in root.iterdir()) == ['uv-new', 'uv-old']
 
 
 def test_build_environment_keeps_npm_user_and_global_config_distinct(tmp_path):
