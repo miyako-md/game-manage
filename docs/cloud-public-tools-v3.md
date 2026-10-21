@@ -7,6 +7,7 @@
 | `/api/nte/guides` 目录与 `/sources/{post_id}` 原帖 | GET `/api/public/nte/guides`、`/sources/{post_id}` | 复用固定来源目录、`GuideService`、源指纹及持久缓存；普通用户可读 | 合成目录/原帖/登录测试 |
 | 异环原帖刷新 | POST `/api/admin/nte/guides/sources/{post_id}/refresh` | 固定帖子白名单；新增管理员与30秒维护冷却 | 普通用户403、缺CSRF403、旧数据保留 |
 | 鸣潮攻略更新读取、搜索、提炼 | GET `/api/public/wuwa/guides/updates`；POST `/api/admin/wuwa/guides/updates` 与 `/extract` | 复用 `GuideUpdates` 和原社区来源。GET只读缓存；查询参数 `character_id/name/attribute`，提炼另有 `post_id`。审核结果仍来自版本化目录与匹配源指纹，不新增运行时审核写路由 | 缓存读取、权限、搜索失败保留候选 |
+| 鸣潮逆境深塔攻略 | GET `/api/public/wuwa/guides/tower`；POST `/api/admin/wuwa/guides/tower/check` | `TowerGuides` 匿名检索库街区每期阵容帖，每期一帖，白名单作者优先，其余标“待校对”；读取到期（当期缺失 6 小时、否则 24 小时）时后台检查一次；失败保留上次结果。前端以人工校对的静态条目为准，自动条目只补缺期 | 缓存读取、权限、30 秒冷却、搜索失败保留结果 |
 | 终末地公开资讯/地图/点位详情 | GET `/api/public/endfield/public`、`/map`、`/map/marks/{mark_id}`；POST `/api/admin/endfield/public/refresh` | 复用官网、官方地图及 `EndfieldPublicService`，保留 `map_id/level_id/type_id/q/offset/limit` 与详情 `map_id` 参数；资料库暂不可读取状态原样保留 | 合成公告、地图、详情、参数验证 |
 | 鸣潮从现存快照回补成长历史 | POST `/api/accounts/{account_id}/roles/{role_id}/wuwa/history/backfill`，JSON `{}` | 原本云端只有政策声明，现挂载。仅本人鸣潮库街区作用域与当前授权版本的 `combat/roles` 快照；不接收路径或身份参数，保留 `complete:false` | 两网站用户相同上游UID隔离、CSRF、当前版本、重复回补 |
 
