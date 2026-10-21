@@ -10,6 +10,13 @@ test('operator filters combine name rarity and profession; stable numeric sortin
   assert.equal(items[0].id,'missing')
 })
 
+test('newest first reads the chr_NNNN template id, not the roster instance hash, and puts unplaced operators last', () => {
+  const items = [{ id:'0f3a', char_id:'chr_0003_a', name:'甲', level:90 },{ id:'chr_0026_b', name:'乙', level:1 },
+    { id:'9c1d', name:'无模板', level:99 },{ id:'77aa', char_id:'chr_0010_d', name:'丁' },{ id:'11bb', char_id:'legacy', name:'旧编号', level:50 }]
+  assert.deepEqual(selectOperators(items,{sort:'newest'}).map(item=>item.name),['乙','丁','甲','旧编号','无模板'])
+  assert.deepEqual(selectOperators(items).map(item=>item.name),['无模板','甲','旧编号','乙','丁'])
+})
+
 test('source reports remain authoritative and old profiles do not invent todos or aggregate values', () => {
   const report={schema_version:1,overview:{todos:[]}}
   assert.equal(profileReport({report}).overview,report.overview)

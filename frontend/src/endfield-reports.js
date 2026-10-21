@@ -1,6 +1,7 @@
 import iconCatalog from './endfield-icon-catalog.js'
 import { shipReport } from './endfield-ship.js'
 import { parseBeijingTime } from './calendar.js'
+import { newestFirst } from './role-order.js'
 
 // Display helpers. Report calculations belong to the shared backend projection.
 export const rows = value => Array.isArray(value) ? value : []
@@ -83,6 +84,11 @@ export function selectMedals(items, {search='',category=undefined,sort='recent'}
     }).map(({item})=>item)
 }
 
+// Card rosters key operators by an instance hash in `id`; the chr_NNNN_* template ID, when present, is in `char_id`.
+const byNewest = newestFirst('endfield')
+const templateId = item => [item.char_id, item.id].find(value => /^chr_\d+_/.test(String(value ?? '')))
+const recencyKey = item => ({ id: templateId(item), name: item.name })
+
 export function selectOperators(items, { search = '', rarity = '', profession = '', sort = 'level' } = {}) {
   const term = search.trim().toLocaleLowerCase('zh-CN')
   const numeric = (item, key) => typeof item[key] === 'number' && Number.isFinite(item[key]) ? item[key] : null
@@ -90,6 +96,7 @@ export function selectOperators(items, { search = '', rarity = '', profession = 
     && (!rarity || String(item.rarity) === String(rarity))
     && (!profession || sourceName(item.profession) === profession))
     .map((item, index) => ({ item, index })).sort((a, b) => {
+      if (sort === 'newest') return byNewest(recencyKey(a.item), recencyKey(b.item)) || a.index - b.index
       if (sort === 'name') return sourceName(a.item.name).localeCompare(sourceName(b.item.name), 'zh-CN') || a.index - b.index
       const left = numeric(a.item, sort), right = numeric(b.item, sort)
       if (left === null || right === null) return left === right ? a.index - b.index : left === null ? 1 : -1

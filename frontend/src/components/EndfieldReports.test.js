@@ -41,6 +41,18 @@ test('website operators are portrait role cards with the shared rarity tag while
   assert.equal(nodes(image,'div')[0].props['data-skin'],undefined)
 })
 
+test('operators default to newest first on the website and in images, and the other sorts stay available',async t=>{
+  const order=[{id:'h1',char_id:'chr_0002_old',name:'旧干员',level:90,rarity:6},{id:'h2',name:'无模板',level:99,rarity:6},{id:'h3',char_id:'chr_0024_new',name:'新干员',level:1,rarity:5}]
+  const list={report:{...payload.report,training:{...payload.report.training,items:order}}}
+  const names=root=>nodes(root,'h3').map(content).filter(name=>order.some(item=>item.name===name))
+  for(const imageMode of [false,true]) assert.deepEqual(names(mount(t,Reports,{payload:list,view:'operators',imageMode})),['新干员','旧干员','无模板'])
+  const web=mount(t,Reports,{payload:list,view:'operators'})
+  const menu=nodes(web,'ul').find(node=>node.props.role==='listbox'&&node.props['aria-label']==='排序')
+  assert.deepEqual(nodes(menu,'li').map(node=>node.props['data-value']),['newest','level','rarity','potential','name'])
+  assert.equal(content(nodes(menu,'li')[0]),'从新到旧');assert.doesNotMatch(content(menu),/上线/)
+  choose(web,'排序','level');await nextTick();assert.deepEqual(names(web),['无模板','旧干员','新干员'])
+})
+
 test('regions distinguish unknown limits and show settlements, assignment and remaining collections',t=>{
   const root=mount(t,Reports,{payload,view:'regions'})
   assert.match(content(root),/地区调度券 0 \/ 未知/);assert.match(content(root),/矿区据点/);assert.match(content(root),/派驻干员：干员甲/)
@@ -187,7 +199,7 @@ const rich = { report: { schema_version: 1, observed_at: '2026-10-15T00:00:00Z',
   overview: { base: { name: '甲', level: 46, world_level: 5, role_id: '9' }, stamina: { current: 187, maximum: 240 },
     progress: [{ id: 'daily', name: '每日活跃', cur: 60, total: 100, remaining: 40 }, { id: 'weekly', name: '每周任务', cur: null, total: 2000, remaining: null }], todos: [] },
   training: { summary: { listed_count: 3, declared_count: 3, rarity_counts: { 6: 2, 5: 1 }, phase_counts: { 0: 1, 3: 2 } },
-    items: [{ id: 'a', name: '甲六', level: 80, rarity: 6, evolve_phase: 3 }, { id: 'b', name: '乙六', level: 70, rarity: 6, evolve_phase: 3 }, { id: 'c', name: '丙五', level: 60, rarity: 5, evolve_phase: 0 }] },
+    items: [{ id: 'a', char_id: 'chr_0030_a', name: '甲六', level: 80, rarity: 6, evolve_phase: 3 }, { id: 'b', char_id: 'chr_0020_b', name: '乙六', level: 70, rarity: 6, evolve_phase: 3 }, { id: 'c', char_id: 'chr_0010_c', name: '丙五', level: 60, rarity: 5, evolve_phase: 0 }] },
   regions: { items: [], summary: { region_count: 3 } }, ship: { rooms: [], summary: { room_count: 4 } } } }
 
 test('overview draws stamina and progress as rings and the counts as shortcut tiles that navigate', t => {
