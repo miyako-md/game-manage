@@ -248,7 +248,7 @@ function close() {
         {{ error }} <button type="button" class="ui-button small-button" @click="open(selected)">重试</button>
       </p>
       <template v-if="detail"
-        ><WuwaRoleDetail :data="detail.payload.data" /><WuwaStatus
+        ><WuwaRoleDetail :data="detail.payload.data" live-assessment /><WuwaStatus
           :snap="detail"
       /></template>
       </template>

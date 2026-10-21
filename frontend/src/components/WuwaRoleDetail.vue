@@ -1,11 +1,13 @@
 <script setup>
-import { computed, provide } from 'vue'
+import { computed, provide, ref } from 'vue'
 import { safeUrl } from '../calendar.js'
 import { list, starCount, value } from '../wuwa-display.js'
 import WuwaFields from './WuwaFields.vue'
 import WuwaIcon from './WuwaIcon.vue'
 import RoleAssessment from './RoleAssessment.vue'
-const props = defineProps({ data: { type: Object, default: () => ({}) }, imageMode:{type:Boolean,default:false} })
+import { attributionLabel, echoBadges } from '../assessment-display.js'
+// liveAssessment: the detail on screen is the account's current one, so the website reads its equipped score.
+const props = defineProps({ data: { type: Object, default: () => ({}) }, imageMode:{type:Boolean,default:false}, liveAssessment:{type:Boolean,default:false} })
 provide('wuwaImageMode', computed(() => props.imageMode))
 const attributes = computed(() => Array.isArray(props.data.role_attribute_list)
   ? list(props.data.role_attribute_list) : list(props.data.role?.role_attribute_list))
@@ -14,6 +16,10 @@ const unlockedChains = computed(
   () => chains.value.filter((c) => c.unlocked === true).length,
 )
 const echoes = computed(() => list(props.data.phantom_data?.equip_phantom_list))
+// Per-echo badges (R1 slot): images carry the projected assessment, the website the one RoleAssessment read.
+const liveScore = ref(null)
+const score = computed(() => props.imageMode ? props.data.assessment : props.liveAssessment ? liveScore.value : null)
+const badges = computed(() => echoBadges(score.value, props.data.phantom_data?.equip_phantom_list))
 // Image layout (R1): the cached detail has no full-length art, so the portrait is the
 // outfit picture, else the role icon; skills and chains each fill one row.
 const portrait = computed(() => safeUrl(props.data.role_skin?.skin_icon) || safeUrl(props.data.role?.role_icon_url))
@@ -33,7 +39,7 @@ const isAttributeList = (v) =>
 </script>
 <template>
   <div class="wuwa-role-detail">
-    <RoleAssessment game="wuthering_waves" :character-id="String(data.role?.role_id || '')" :image-mode="imageMode" :initial-assessment="data.assessment" />
+    <RoleAssessment game="wuthering_waves" :character-id="String(data.role?.role_id || '')" :image-mode="imageMode" :initial-assessment="data.assessment" :auto-load="liveAssessment" @assessment="liveScore = $event" />
     <section class="wuwa-detail-section wuwa-detail-basics">
       <figure v-if="imageMode" class="wuwa-portrait">
         <img v-if="portrait" :src="portrait" :alt="data.role?.role_name || '角色'" />
@@ -194,6 +200,8 @@ const isAttributeList = (v) =>
       <h3 class="wuwa-subhead">
         装备声骸<span class="wuwa-meta"
           >总 COST {{ value(data.phantom_data?.cost) }}</span
+        ><span v-if="badges.size" class="wuwa-meta wuwa-echo-source"
+          >非官方 · {{ attributionLabel(score) || '默认评分' }}</span
         >
       </h3>
       <div v-if="echoes.length" class="wuwa-tiles wuwa-echoes">
@@ -208,6 +216,9 @@ const isAttributeList = (v) =>
                 ><span><span class="k">品质</span> <b>{{ value(echo.quality) }}</b></span>
               </p>
             </div>
+            <p v-if="badges.get(echo)" class="wuwa-echo-score" :aria-label="`单件评分 ${badges.get(echo).value} / 50${badges.get(echo).grade ? ' 等级 ' + badges.get(echo).grade : ''}`">
+              <b>{{ badges.get(echo).value }}</b><span v-if="badges.get(echo).grade">{{ badges.get(echo).grade }}</span>
+            </p>
           </header>
           <div class="wuwa-props">
             <h5>主词条</h5>
@@ -295,4 +306,9 @@ const isAttributeList = (v) =>
 
 <style scoped>
 .role-profile-heading{display:flex;align-items:center;gap:8px}
+/* The echo's score sits at the end of its head: the value, then the grade as a tone tag. */
+.wuwa-echo-score{display:inline-flex;flex:none;align-items:baseline;gap:6px;margin:0 0 0 auto;font-variant-numeric:tabular-nums}
+.wuwa-echo-score b{color:var(--text);font-size:15px;font-weight:600}
+.wuwa-echo-score span{padding:0 8px;border-radius:var(--radius-chip);background:var(--wuwa-tone);color:var(--wuwa-ink);font-size:12px;font-weight:600;line-height:20px}
+.wuwa-echo-source{margin-left:8px}
 </style>

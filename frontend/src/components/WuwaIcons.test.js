@@ -87,3 +87,45 @@ test('broken icons fall back to a name marker and retry when the source changes'
   await nextTick()
   assert.equal(nodes(root, 'img').length, 1)
 })
+
+// M8 (R1 slot): each scored echo shows its default score and grade; an unscorable echo shows none.
+const scoredDetail = () => ({
+  role: { role_id: 1205, role_name: '角色甲' },
+  phantom_data: { cost: 11, equip_phantom_list: [
+    { cost: 4, phantom_prop: { name: '声骸甲' } }, null, { cost: 3, phantom_prop: { name: '声骸乙' } }, { phantom_prop: { name: '声骸丙' } },
+  ] },
+})
+const defaultAssessment = attribution => ({ status: 'unscorable', partial: true, partial_known_total: '70.10', origin: 'builtin_default', unofficial: true, attribution, max_value: 250, item_results: [
+  { item_id: 'echo:0:unknown', status: 'scored', value: '38.52', grade: 'ss', max_value: 50, cost: 4 },
+  { item_id: 'echo:2:unknown', status: 'scored', value: '31.58', grade: 'a', max_value: 50, cost: 3 },
+  { item_id: 'echo:3:unknown', status: 'unscorable', value: null, grade: null, max_value: null, cost: null },
+] })
+const badgeTexts = root => nodes(root, 'p').filter(n => n.props.class === 'wuwa-echo-score').map(content)
+
+test('image echoes carry their score and grade with the unofficial attribution; an unscorable echo has no badge', async t => {
+  const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
+  const root = mount(t, Detail, { imageMode: true, data: { ...scoredDetail(), assessment: defaultAssessment('gpl_snapshot') } })
+  assert.deepEqual(badgeTexts(root), ['38.52 SS', '31.58 A'])
+  const tiles = nodes(root, 'article').filter(n => /声骸/.test(content(n)))
+  assert.deepEqual(tiles.map(n => badgeTexts(n).length), [1, 1, 0])
+  assert.match(content(root), /装备声骸 总 COST 11 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）/)
+  assert.doesNotMatch(content(root), /默认评分/, 'the block itself stays hidden until the total is scored')
+  assert.match(content(mount(t, Detail, { imageMode: true, data: { ...scoredDetail(), assessment: defaultAssessment('self_made') } })), /非官方 · 自制权重/)
+  for (const assessment of [undefined, { ...defaultAssessment('gpl_snapshot'), origin: 'user_configured', attribution: null }]) {
+    const plain = mount(t, Detail, { imageMode: true, data: { ...scoredDetail(), assessment } })
+    assert.deepEqual(badgeTexts(plain), []); assert.doesNotMatch(content(plain), /非官方/)
+  }
+})
+
+test('the live website detail badges its echoes from the equipped score it reads; a history entry reads nothing', async t => {
+  const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
+  const fetch = t.mock.method(globalThis, 'fetch', async () => ({ ok: true, status: 200, json: async () => ({ configuration: { items: [] }, assessment: defaultAssessment('gpl_snapshot') }) }))
+  const history = mount(t, Detail, { data: scoredDetail() })
+  for (let i = 0; i < 4; i++) await nextTick()
+  assert.equal(fetch.mock.callCount(), 0); assert.deepEqual(badgeTexts(history), [])
+  const live = mount(t, Detail, { liveAssessment: true, data: scoredDetail() })
+  for (let i = 0; i < 6; i++) await nextTick()
+  assert.equal(fetch.mock.callCount(), 1)
+  assert.match(fetch.mock.calls[0].arguments[0], /\/api\/assessment\/wuthering_waves\/1205\/equipped$/)
+  assert.deepEqual(badgeTexts(live), ['38.52 SS', '31.58 A'])
+})

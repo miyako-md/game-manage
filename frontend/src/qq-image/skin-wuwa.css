@@ -180,6 +180,36 @@
   gap: 12px !important;
 }
 
+/* Echo score (the R1 slot): value over grade at the end of the echo head; unscored echoes keep none. */
+.reuse.lab-sheet[data-skin="wuwa"] #render-content .wuwa-echoes .wuwa-echo-head > div { flex: 1; min-width: 0; }
+
+.reuse.lab-sheet[data-skin="wuwa"] #render-content .wuwa-echoes .wuwa-echo-score {
+  flex-direction: column;
+  align-items: flex-end;
+  align-self: flex-start;
+  gap: 4px;
+}
+
+.reuse.lab-sheet[data-skin="wuwa"] #render-content .wuwa-echoes .wuwa-echo-score b { color: var(--skin-hot); font-size: 24px; line-height: 1.15; }
+
+.reuse.lab-sheet[data-skin="wuwa"] #render-content .wuwa-echoes .wuwa-echo-score span {
+  padding: 0 8px;
+  border: 1px solid var(--skin-line-strong);
+  background: rgba(var(--skin-tint-rgb), .08);
+  color: var(--skin-accent);
+  font-size: var(--qq-min-text, 17px);
+  line-height: 1.4;
+}
+
+/* The score block: the total leads, the weight source stays muted beneath it. */
+.reuse.lab-sheet[data-skin="wuwa"] #render-content .personal-assessment .assessment-result > p:first-child {
+  color: var(--skin-hot);
+  font-size: 26px !important;
+  font-weight: 600;
+}
+
+.reuse.lab-sheet[data-skin="wuwa"] #render-content .personal-assessment .assessment-source { color: var(--skin-muted); }
+
 /* ---- 鸣潮 sub-images: legibility on the dark base (C1.1) ------------------ */
 /* A roster line breaks between its parts, never inside "技能 36". */
 .reuse.lab-sheet[data-skin="wuwa"] #render-content .wuwa-role-sub > span { white-space: nowrap; }
