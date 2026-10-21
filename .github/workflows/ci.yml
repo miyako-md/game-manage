@@ -2,6 +2,7 @@ name: Application checks
 
 on:
   push:
+    branches: [main, codex/cloud-qq-public]
   pull_request:
 
 permissions:
