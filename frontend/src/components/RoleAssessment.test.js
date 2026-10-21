@@ -6,12 +6,12 @@ import { invalidateSession } from '../http-client.js'
 const Assessment=await loadVue(new URL('./RoleAssessment.vue',import.meta.url))
 const Details=await loadVue(new URL('./NteEquippedDetails.vue',import.meta.url))
 
-test('rich equipped descriptions are escaped and source grouping plus unknowns visible',t=>{
+test('rich equipped text is escaped, unknowns stay visible and no raw source dump is shown',t=>{
  const root=mount(t,Details,{role:{group_type:'unknown',awaken_effects:['<img src=x onerror=alert(1)>'],suit:{id:'set',core:[{id:'i1',main_properties:[{id:'m'}]}],pie:[]}}})
  assert.match(content(root),/未提供/)
- assert.match(content(nodes(root,'details')[0]),/core.*i1/)
  assert.equal(nodes(root,'img').length,0)
- assert.match(content(root),/装备品质、面积、完整副词条完成标记未得到来源验证/)
+ assert.equal(nodes(root,'details').length,0)
+ assert.doesNotMatch(content(root),/core|i1|命途来源值|未得到来源验证/)
 })
 
 test('image mode shows shared assessment content without input actions or requests',t=>{

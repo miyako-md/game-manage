@@ -362,7 +362,8 @@ def _pool_summary(key, kind, label, last_sync_at, rows, breaks) -> EndfieldGacha
                 name=row.get("name"), pool_id=row.get("pool_id"), pool_name=row.get("pool_name"), obtained_at=row.get("gacha_ts"),
                 pulls=count, status="exact" if exact and not free_in_count else "lower_bound"))
             count, exact, free_in_count = 0, True, False
-    times = [row["gacha_ts"] for row in rows if row.get("gacha_ts")]
+    # Gifts and unverified records are no pulls: a gift-only pool has no draw time range.
+    times = [row["gacha_ts"] for row in draws if row.get("gacha_ts")]
     return EndfieldGachaPool(
         key=key, label=label, kind=kind, total=len(draws),
         six_star=sum(row.get("rarity") == 6 for row in draws), five_star=sum(row.get("rarity") == 5 for row in draws),

@@ -88,14 +88,11 @@ async def test_real_production_sized_nte_roster_and_selected_detail(selected, tm
         pytest.skip('Explicit isolated Chromium/font required')
     class InspectableRenderer(BrowserRenderer):
         page_texts = None
-        skill_texts = None
         async def _bounded_close(self, operation):
             if self._browser is not None and self._browser.contexts:
                 page = self._browser.contexts[0].pages[0]
                 if not page.is_closed() and self.last_state and self.last_state.get('state') == 'ready':
                     self.page_texts = await page.locator('.render-page').all_inner_texts()
-                    self.skill_texts = await page.locator('.render-page .nte-equipped-details > section').evaluate_all(
-                        "sections => sections.filter(section => section.querySelector('h4')?.textContent === '战技说明').flatMap(section => [...section.querySelectorAll('p')].map(p => p.textContent))")
             return await super()._bounded_close(operation)
     renderer = InspectableRenderer(executable_path=executable, font_path=font,
         dist_path=os.environ.get('QQ_RENDER_TEST_DIST', ''), template='pages')
@@ -112,19 +109,15 @@ async def test_real_production_sized_nte_roster_and_selected_detail(selected, tm
         assert Image.open(BytesIO(png)).width == 720
         if selected:
             assert '合成角色7' in '\n'.join(renderer.page_texts)
-            for text in ('Lv0', '觉醒', '未提供', '合成弧盘', '属性0', '技能0', '城区技能'):
+            for text in ('Lv0', '觉醒', '未提供', '合成弧盘', '属性0', '技能0', '城区技能', '合成套装', '合成装备'):
                 assert text in '\n'.join(renderer.page_texts)
-            # Long paragraphs may cross page boundaries. Rejoin only their
-            # original text, excluding repeated headings and navigation.
-            skill_text = ''.join(renderer.skill_texts)
-            expected = ''.join(f'技能{i}说明：' + '连续伤害与技能描述。' * 59 for i in range(6))
-            assert skill_text == expected
-            assert '合成套装' in '\n'.join(renderer.page_texts)
         else:
             assert any(f'合成角色{i}' in '\n'.join(renderer.page_texts) for i in range(21))
             assert '合成角色0' in '\n'.join(renderer.page_texts)
             assert '合成角色20' in '\n'.join(renderer.page_texts)
-            assert '连续伤害与技能描述。' not in '\n'.join(renderer.page_texts)
+        # Skill, city skill, 弧盘 and suit effect texts are never part of the image.
+        for text in ('连续伤害与技能描述。', '城区描述', '资料资料', '效果效果', '二件二件', '四件四件', '战技说明'):
+            assert text not in '\n'.join(renderer.page_texts)
         assert not renderer._browser.contexts
         (tmp_path / ('selected.png' if selected else 'roster.png')).write_bytes(png)
     finally:

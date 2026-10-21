@@ -125,6 +125,80 @@ async def test_token_rotation_preserves_other_capabilities_and_original_time(tmp
     await runtime.aclose()
 
 
+async def test_switching_between_verified_roles_keeps_the_snapshot_generation(tmp_path):
+    from datetime import datetime, timezone
+    from game_assistant.accounts.query import AccountQuery
+    from game_assistant.auth.service import LoginError
+    from game_assistant.models import FetchResult
+    from game_assistant.reminder_policy import ReminderRule
+    from game_assistant.scoped_reminders import ReminderStore, ScopedReminderService
+    from game_assistant.snapshots import SnapshotStore
+    from tests.test_account_auth import Provider
+    roles = [{'role_id':'77','server_id':'official'}, {'role_id':'88','server_id':'second'}]
+    class TwoServers(Provider):
+        returned_role = None
+        async def login(self, *args):
+            return {**await super().login(*args), 'server_id':'official', '_verified_roles':roles}
+        async def renew(self, credentials):
+            updated = await super().renew(credentials)
+            return {**updated, 'role_id':self.returned_role} if self.returned_role else updated
+    provider, clock = TwoServers(), [1000]
+    db, credentials, accounts, login = setup(tmp_path, provider=provider, clock=lambda: clock[0])
+    row = await authorize(login)
+    principal = Principal('a', False)
+    scopes = {}
+    for account in accounts.list_accounts(principal):
+        role = account['roles'][0]
+        scope = accounts.require_scope(principal, account['account_id'], role['role_id'])
+        scopes[accounts.describe(scope)['game_uid']] = scope
+    assert sorted(scopes) == ['77', '88']
+    snapshots = SnapshotStore(str(tmp_path / 'snapshots.db'))
+    for uid, scope in scopes.items():
+        snapshots.save_scoped(scope, 'account', f'{{"uid":"{uid}"}}', 1)
+    query = AccountQuery(accounts, AccountRuntime(accounts, Settings(), tmp_path / 'runtime', login=login), snapshots)
+    now = datetime(2026, 10, 14, 8, tzinfo=timezone.utc)
+    reminders = ScopedReminderService(ReminderStore(tmp_path / 'inbox.db'), accounts, clock=lambda: now)
+    reminders.set_rule(scopes['77'], ReminderRule(enabled=True, notify_full=True))
+    reminders.handle_poll(scopes['77'], 'stamina', FetchResult(ok=True,
+        payload={'current':100, 'maximum':100, 'updated_at':now.isoformat()}), 1)
+    inbox = reminders.inbox(scopes['77'])
+    assert len(inbox) == 1
+    def visible():
+        version = accounts.describe(scopes['77'])['version']
+        # The equipped route reads the roles snapshot through the same generation bound.
+        equipped = snapshots.get_scoped(scopes['88'], 'account', grant_version=version,
+            minimum_version=accounts.snapshot_generation(scopes['88'], version))
+        return ({uid: query.read(scope, 'account').payload for uid, scope in scopes.items()},
+                reminders.inbox(scopes['77']), equipped and equipped['payload'])
+    expected = ({'77':{'uid':'77'}, '88':{'uid':'88'}}, inbox, '{"uid":"88"}')
+    # Fetches alternate between the two verified roles; every switch renews the grant.
+    for uid, server in [('88','second'), ('77','official'), ('88','second'), ('77','official')]:
+        await login.renew(principal, row['grant_id'], role_id=uid, server_id=server)
+        assert visible() == expected
+    assert accounts.describe(scopes['77'])['version'] == 5
+    # A role outside the verified set is refused without touching the grant.
+    with pytest.raises(LoginError):
+        await login.renew(principal, row['grant_id'], role_id='99', server_id='official')
+    assert accounts.describe(scopes['77'])['version'] == 5 and visible() == expected
+    # A renewal that comes back with an unverified role is an identity change: older
+    # snapshots, inbox entries and late results from the old revisions stay hidden.
+    provider.returned_role = '99'
+    await login.renew(principal, row['grant_id'], role_id='88', server_id='second')
+    assert visible() == ({'77':None, '88':None}, [], None)
+    snapshots.save_scoped(scopes['77'], 'account', '{"late":true}', 5)
+    assert query.read(scopes['77'], 'account').payload is None
+    # Re-authorization starts a new generation too.
+    provider.returned_role = None
+    for scope in scopes.values():
+        snapshots.save_scoped(scope, 'account', '{"current":true}', 6)
+    assert query.read(scopes['77'], 'account').payload == {'current':True}
+    clock[0] += 61
+    await authorize(login)
+    assert query.read(scopes['77'], 'account').payload is None
+    reminders.close()
+    await query.runtime.aclose()
+
+
 async def test_rotation_generation_cannot_cross_changed_identity_or_future_revision(tmp_path):
     from game_assistant.accounts.identities import renewed_snapshot_generation
     from game_assistant.snapshots import SnapshotStore

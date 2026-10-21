@@ -358,10 +358,13 @@ def _install_wuwa_archive(bundle,app):
         if bundle.snapshots is None:
             raise HTTPException(503,'scoped_snapshots_unavailable')
         ledger=bundle.ledger(scope,'wuwa_history')
+        current,generation=bundle.accounts.snapshot_bounds(scope)
+        if current!=version:
+            raise HTTPException(409,'authorization_changed')
         inserted=0
         for capability in ('combat','roles'):
             snapshot=bundle.snapshots.get_scoped(scope,capability,grant_version=version,
-                minimum_version=bundle.accounts.snapshot_generation(scope,version))
+                minimum_version=generation)
             if snapshot:
                 try:
                     inserted+=ledger.capture(scope,capability,json.loads(snapshot['payload']),

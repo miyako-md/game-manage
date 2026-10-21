@@ -21,10 +21,10 @@ test('guide presentation keeps every original character and punctuation attached
  assert.equal(out[1].trailing,'。')
  assert.equal(guideLines({sectionKey:'teams',text:'甲／乙；丙／丁。'}).join(''),'甲／乙；丙／丁。')
 })
-test('image-only NTE skills keep names and levels; original details remain intact',()=>{
+test('role details need no image-only description stripping; the input stays intact',()=>{
  const source={snapshot:{kind:'nte_role',display_data:{snapshot:{payload:{entries:[{skills:[{name:'战技',level:0,items:[{desc:'长段说明'}]}],city_skills:[{name:'城区技',level:1,items:[{desc:'说明'}]}]}]}}}}}
- const before=JSON.stringify(source),role=prepareReuse(source).display_data.snapshot.payload.entries[0]
- assert.deepEqual(role.skills,[{name:'战技',level:0}]);assert.deepEqual(role.city_skills,[{name:'城区技',level:1}]);assert.equal(JSON.stringify(source),before)
+ const before=JSON.stringify(source)
+ assert.deepEqual(prepareReuse(source),source.snapshot);assert.equal(JSON.stringify(source),before)
 })
 
 test('partial challenge modules and missing activities remain renderable',()=>{

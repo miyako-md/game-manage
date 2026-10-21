@@ -306,6 +306,8 @@ async def test_weapon_draws_without_is_free_count_but_gifts_do_not_reset_pity(tm
     assert summary.since_last_six.model_dump() == {'count':2, 'status':'exact'}
     assert [(item.pulls,item.status) for item in summary.history] == [(5,'exact'),(3,'lower_bound')]
     assert summary.banners[0].total == 10
+    # The newer gift rows do not move the pool's draw time range.
+    assert (summary.newest_at, summary.oldest_at) == (1_780_000_010_000, 1_780_000_001_000)
     ledger = store.records('r1',kind='weapon')
     assert ledger['total'] == 12
     assert ledger['records'][0]['name'] == '额外武器'
@@ -320,6 +322,7 @@ async def test_gift_only_weapon_pool_has_no_pull_or_pity_statistics(tmp_path):
     summary = pool(store, 'weapon:weapon_1')
     assert (summary.total,summary.six_star,summary.gifts,summary.history) == (0,0,1,[])
     assert summary.since_last_six.model_dump() == {'count':None,'status':'unknown'}
+    assert (summary.newest_at, summary.oldest_at) == (None, None)
 
 
 @pytest.mark.parametrize('record_kind',[None,'unrecognised',''])

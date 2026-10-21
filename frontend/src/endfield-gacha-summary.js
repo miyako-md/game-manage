@@ -83,7 +83,9 @@ export function poolCategories(pools) {
   const list = rows(pools), weapons = list.filter(isWeapon)
   const categories = list.filter(pool => !isWeapon(pool)).map(pool => ({ key: pool.key, label: pool.label, kind: 'character', pools: [pool], ...pool }))
   if (weapons.length) {
-    const latest = weapons.reduce((best, pool) => (number(pool.newest_at) ?? -1) > (number(best.newest_at) ?? -1) ? pool : best)
+    // 当期已垫 follows the banner drawn most recently; a pool holding only gifts has no draws to lead with.
+    const drawn = weapons.filter(pool => number(pool.total) !== 0)
+    const latest = (drawn.length ? drawn : weapons).reduce((best, pool) => (number(pool.newest_at) ?? -1) > (number(best.newest_at) ?? -1) ? pool : best)
     const times = field => weapons.map(pool => number(pool[field])).filter(value => value != null)
     categories.push({ key: 'weapon', label: '武器申领', kind: 'weapon', pools: weapons, latest,
       ...Object.fromEntries(['total', 'six_star', 'five_star', 'four_star', 'unknown_rarity', 'free', 'gaps'].map(field => [field, poolTotal(weapons, field)])),

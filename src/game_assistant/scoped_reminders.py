@@ -143,9 +143,8 @@ class ScopedReminderService:
         return rule
 
     def inbox(self, scope):
-        info = self.accounts.describe(scope)
-        return self.store.inbox(scope, info['version'],
-            minimum_version=self.accounts.snapshot_generation(scope, info['version']))
+        version, generation = self.accounts.snapshot_bounds(scope)
+        return self.store.inbox(scope, version, minimum_version=generation)
 
     def handle_poll(self, scope, capability, result, version):
         info = self.accounts.describe(scope)

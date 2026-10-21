@@ -5,7 +5,6 @@ import { share } from '../chart-math.js'
 import RingGauge from './RingGauge.vue'
 import WuwaTower from './WuwaTower.vue'
 import WuwaStatus from './WuwaStatus.vue'
-import WuwaFields from './WuwaFields.vue'
 import WuwaCombatRole from './WuwaCombatRole.vue'
 const props = defineProps({
   mode: { type: String, default: 'tower' },
@@ -178,23 +177,6 @@ const halfShare = (half) => (typeof half.score === 'number' && half.score > 0 ? 
                     </li>
                   </ul>
                   <span v-else class="wuwa-muted">队伍未提供</span>
-                  <p
-                    v-if="half.buff_name || half.buff_description"
-                    class="wuwa-buff"
-                  >
-                    <strong>{{ half.buff_name || '增益' }}</strong>
-                    {{ half.buff_description }}
-                  </p>
-                  <WuwaFields
-                    :data="half"
-                    :exclude="[
-                      'role_list',
-                      'score',
-                      'half_name',
-                      'buff_name',
-                      'buff_description',
-                    ]"
-                  />
                 </li>
               </ul>
             </section>

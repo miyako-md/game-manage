@@ -22,10 +22,17 @@ test('wuwa card forwards calendar and shows public news inside its existing tab'
 test('nte uses original module summaries and restored guide entry', async t => {
   const root = mount(t, Card, { account: { ...account('tajiduo'), capabilities: ['account','stamina','roles','realestate','gacha'] }, role: 'tajiduo-default', snapshots: { stamina: { payload: { schema_version:1,current:0,maximum:120 } } } })
   await flushAsyncComponents()
-  assert.ok(button(root, '角色与探索')); assert.ok(button(root, '房产与载具'))
+  assert.ok(button(root, '角色')); assert.ok(button(root, '房产、载具与探索'))
   assert.ok(nodes(root, 'section').some(n => n.props.class?.includes('nte-module-card')))
-  button(root,'角色与探索').props.onClick();await tick();assert.ok(button(root,'浏览全部攻略'));assert.doesNotMatch(content(root), /暂未开放/)
+  button(root,'角色').props.onClick();await tick();assert.ok(button(root,'浏览全部攻略'));assert.doesNotMatch(content(root), /暂未开放/)
   assert.doesNotMatch(content(root), /审核攻略|管理员来源配置/)
+})
+test('nte exploration sits with real estate and vehicles, not with roles', async t => {
+  const root = mount(t, Card, { account: { ...account('tajiduo'), capabilities: ['account','roles','exploration','realestate'] }, role: 'tajiduo-default' })
+  await flushAsyncComponents()
+  const modules = () => content(nodes(root, 'div').find(n => n.props.class === 'cap-list'))
+  button(root,'角色').props.onClick();await tick();assert.match(modules(), /角色练度/);assert.doesNotMatch(modules(), /探索/)
+  button(root,'房产、载具与探索').props.onClick();await tick();assert.match(modules(), /探索进度/);assert.match(modules(), /房产/);assert.doesNotMatch(modules(), /角色练度/)
 })
 test('overview reads every owner default role and discards delayed results after user changes', async t => {
   const finishes=[]

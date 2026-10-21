@@ -144,7 +144,7 @@ test('profile uses confirmed crystal material terminology for stored resource fi
   assert.doesNotMatch(content(root), /储存波片/)
 })
 
-test('full detail preserves role, skin and set metadata without hiding supplemental fields', async (t) => {
+test('full detail keeps role, skin and set names but drops skill, chain, weapon and set effect text', async (t) => {
   const root = mount(t, await component('WuwaRoleDetail'), {
     data: {
       active_branch_id: 0,
@@ -168,16 +168,38 @@ test('full detail preserves role, skin and set metadata without hiding supplemen
         skin_id: 42,
         future_skin_field: '外观补充值',
       },
+      weapon_data: {
+        level: 90,
+        weapon: { weapon_name: '合成武器', weapon_effect_name: '武器效果名', effect_description: '武器效果描述' },
+        main_prop_list: [{ attribute_name: '攻击', attribute_value: '500' }],
+      },
+      skill_list: [
+        {
+          level: 10,
+          active_branch: 1,
+          skill: {
+            name: '常态攻击',
+            type: '常态攻击',
+            description: '技能描述',
+            skill_branches: [{ name: '分支甲', description: '分支描述' }],
+          },
+        },
+      ],
+      chain_list: [{ order: 1, name: '共鸣链甲', unlocked: true, description: '共鸣链描述', future_chain_field: '共鸣链补充值' }],
       phantom_data: {
         cost: 12,
         equip_phantom_list: [
           {
-            phantom_prop: { name: '角', future_phantom_field: '声骸补充值' },
+            main_props: [{ attribute_name: '暴击', attribute_value: '22%' }],
+            sub_props: [{ attribute_name: '攻击', attribute_value: '30' }],
+            phantom_prop: { name: '角', skill_description: '声骸技能描述', future_phantom_field: '声骸补充值' },
             fetter_detail: {
               name: '浮星祛暗',
               num: 0,
               group_id: 9,
               type: 1,
+              first_description: '两件套效果',
+              second_description: '五件套效果',
               future_set_field: '套装补充值',
             },
           },
@@ -194,10 +216,30 @@ test('full detail preserves role, skin and set metadata without hiding supplemen
     '套装已装备 0 件',
     '角色补充值',
     '外观补充值',
-    '声骸补充值',
-    '套装补充值',
+    '合成武器',
+    '攻击 500',
+    '常态攻击',
+    'Lv.10',
+    '共鸣链甲',
+    '已解锁',
+    '暴击 22%',
+    '攻击 30',
+    '浮星祛暗',
   ])
     assert.ok(content(root).includes(expected), expected)
+  for (const removed of [
+    '武器效果',
+    '技能描述',
+    '分支',
+    '共鸣链描述',
+    '共鸣链补充值',
+    '声骸技能',
+    '声骸补充值',
+    '套装补充值',
+    '两件套效果',
+    '五件套效果',
+  ])
+    assert.ok(!content(root).includes(removed), removed)
 })
 
 test('whole snapshot staleness remains visible when nested source states were once ok', async (t) => {

@@ -251,7 +251,7 @@ class AccountPollingScheduler:
             raise HTTPException(409, 'authorization_expired')
         key = (scope, capability)
         if key not in self._due:
-            self._due[key] = self._persisted_due(scope, capability, info['version'])
+            self._due[key] = self._persisted_due(scope, capability)
         async def refresh():
             try:
                 await asyncio.sleep(max(0, self._due.get(key, 0) - self.clock()) if
@@ -272,10 +272,11 @@ class AccountPollingScheduler:
             minimum_version=self.accounts.snapshot_generation(scope, version))
         return status and status['state'] == 'error'
 
-    def _persisted_due(self, scope, capability, version):
+    def _persisted_due(self, scope, capability):
         from datetime import datetime, timezone
+        version, generation = self.accounts.snapshot_bounds(scope)
         status = self.query.snapshots.get_poll_status_scoped(scope, capability, grant_version=version,
-            minimum_version=self.accounts.snapshot_generation(scope, version))
+            minimum_version=generation)
         if (not status or not status.get('last_attempt_at') or
                 status['state'] == 'auth_expired' and not self.query.snapshots.get_poll_status_scoped(
                     scope, capability, grant_version=version)):
@@ -393,9 +394,7 @@ class AccountPollingScheduler:
                     key = (scope, cap)
                     if key not in self._due:
                         jitter = int(hashlib.sha256(repr(key).encode()).hexdigest()[:8], 16) % 30
-                        info = self.accounts.describe(scope)
-                        self._due[key] = max(self.clock() + jitter,
-                            self._persisted_due(scope, cap, info['version']))
+                        self._due[key] = max(self.clock() + jitter, self._persisted_due(scope, cap))
                     if self.clock() >= self._due[key]:
                         self.request_refresh(scope, cap)
             except (AccountNotFoundError, CredentialStoreError):
