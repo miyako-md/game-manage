@@ -50,6 +50,97 @@ async def test_skland_runtime_reads_verified_role_with_distinct_cred(tmp_path, m
     await runtime.aclose()
 
 
+class ChallengeClient:
+    """Synthetic Skland responses; ``failures`` maps a kind to the error it raises."""
+    calls = []
+    failures = {}
+    data = {
+        'war': {'seasons': [{'id': 's1', 'name': '合成赛季', 'stars': 0, 'weeks': []}],
+                'achieves': [{'name': '合成荣誉', 'star': 0, 'token': 'RAW-TOKEN'}]},
+        'monument': {'indieHardGroups': [{'id': 'm1', 'name': '合成丰碑', 'dungeonGroups': [],
+                                          'achieve': {'cred': 'RAW-CRED'}}]},
+        'crisis': {'status': {'highest': 0, 'weeklyMission': {'secret': 'RAW-MISSION'}},
+                   'history': {'records': [{'id': 'r1', 'score': 0, 'isPass': False,
+                                            'chars': [{'name': 'RAW-CHARS'}]}],
+                               'bestRecord': {'chars': [{'name': 'RAW-BEST'}]}}},
+    }
+
+    async def refresh(self, cred):
+        type(self).calls.append(('refresh', cred))
+        return 'short-token'
+
+    async def challenge(self, kind, cred, token, role, server, user, device='', **kwargs):
+        type(self).calls.append((kind, cred, token, role, server, user, kwargs))
+        if kind in self.failures:
+            raise self.failures[kind]
+        return self.data[kind]
+
+
+async def combat_runtime(tmp_path, monkeypatch, **failures):
+    from game_assistant.adapters.endfield import skland_client
+    db, store, accounts, login = setup(tmp_path)
+    p = Principal('a', False)
+    result = accounts.save_verified(p, 'skland', {'user_id': 'sk-user', 'role_id': 'sk-role', 'server_id': '1', 'cred': 'sk-secret'})
+    scope = accounts.require_scope(p, result['account_id'], result['role_id'])
+    ChallengeClient.calls, ChallengeClient.failures = [], failures
+    monkeypatch.setattr(skland_client, 'SklandClient', ChallengeClient)
+    runtime = AccountRuntime(accounts, Settings(), tmp_path / 'runtime', login=login)
+    return runtime, runtime.for_scope(scope).get('endfield')
+
+
+async def test_skland_combat_reads_three_kinds_and_returns_only_the_projection(tmp_path, monkeypatch):
+    import json
+    from game_assistant.models import Capability
+    runtime, adapter = await combat_runtime(tmp_path, monkeypatch)
+    assert adapter.capabilities == [Capability.ACCOUNT, Capability.COMBAT]
+    fetched = await adapter.fetch(Capability.COMBAT)
+    assert fetched.ok and fetched.error_code is None
+    # One signing refresh, then one default (unfiltered) request per kind.
+    assert ChallengeClient.calls == [('refresh', 'sk-secret')] + [
+        (kind, 'sk-secret', 'short-token', 'sk-role', '1', 'sk-user', {}) for kind in ('war', 'monument', 'crisis')]
+    payload = fetched.payload
+    assert set(payload) == {'schema_version', 'reports'} and payload['schema_version'] == 1
+    assert [r['kind'] for r in payload['reports']] == ['war', 'monument', 'crisis']
+    assert all(r['available'] and not r['stale'] and r['fetched_at'] for r in payload['reports'])
+    crisis = payload['reports'][2]
+    assert crisis['summary']['highest'] == 0 and crisis['summary']['challenge_count'] is None
+    assert crisis['records'][0]['result'] == 0 and crisis['records'][0]['passed'] is False
+    text = json.dumps(payload, ensure_ascii=False)
+    for secret in ('sk-secret', 'short-token', 'RAW-', 'chars', 'bestRecord', 'cred', 'token'):
+        assert secret not in text
+    await runtime.aclose()
+
+
+async def test_skland_combat_partial_and_total_failure(tmp_path, monkeypatch):
+    from game_assistant.adapters.endfield.skland_client import SklandError
+    from game_assistant.models import Capability
+    runtime, adapter = await combat_runtime(tmp_path, monkeypatch,
+        monument=SklandError('RAW-ERROR', status=429), crisis=SklandError('RAW-ERROR', status=503))
+    fetched = await adapter.fetch(Capability.COMBAT)
+    assert fetched.ok and fetched.error_code == 429 and 'RAW-ERROR' not in str(fetched.payload)
+    war, monument, crisis = fetched.payload['reports']
+    assert war['available'] and not war['stale']
+    for report in (monument, crisis):
+        assert (report['available'], report['stale'], report['fetched_at']) == (False, True, None)
+        assert report['records'] == [] and report['summary']['listed_count'] is None
+    ChallengeClient.failures['war'] = SklandError('RAW-ERROR', status=503)
+    fetched = await adapter.fetch(Capability.COMBAT)
+    assert not fetched.ok and fetched.payload is None
+    assert (fetched.error_kind, fetched.error_code) == ('source_error', 429)
+    assert 'RAW-ERROR' not in str(fetched.error)
+    await runtime.aclose()
+
+
+async def test_skland_combat_expired_login_is_an_authorization_failure(tmp_path, monkeypatch):
+    from game_assistant.adapters.endfield.skland_client import SklandError
+    from game_assistant.models import Capability
+    runtime, adapter = await combat_runtime(tmp_path, monkeypatch, monument=SklandError('expired', expired=True, status=401))
+    fetched = await adapter.fetch(Capability.COMBAT)
+    assert not fetched.ok and fetched.error_kind == 'auth_expired' and fetched.payload is None
+    assert [call[0] for call in ChallengeClient.calls] == ['refresh', 'war', 'monument']
+    await runtime.aclose()
+
+
 async def test_revoked_runtime_cannot_fetch_with_old_token(tmp_path):
     db, store, accounts, login = setup(tmp_path)
     await authorize(login)

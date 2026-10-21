@@ -134,6 +134,16 @@ async def test_http_client_only_official_host_and_no_error_echo():
     assert "SECRET" not in str(error.value)
     assert all(req.url.host == "zonai.skland.com" for req in observed)
     assert observed[1].headers["cred"] == "SECRET-CRED"
+    assert error.value.status is None  # business codes are not HTTP statuses
+
+
+@pytest.mark.parametrize("status,expired", [(429, False), (503, False), (401, True), (403, True)])
+async def test_http_rejection_keeps_only_the_status(status, expired):
+    client = SklandClient(httpx.MockTransport(lambda request: httpx.Response(status, text="SECRET-BODY")))
+    with pytest.raises(SklandError) as error:
+        await client.challenge("war", "SECRET-CRED", "SECRET-TOKEN", "role", "1", "user")
+    assert (error.value.status, error.value.expired) == (status, expired)
+    assert "SECRET" not in str(error.value)
 
 
 async def test_official_attendance_methods_and_role_header():

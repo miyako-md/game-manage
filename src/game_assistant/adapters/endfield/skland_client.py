@@ -37,9 +37,11 @@ TOOLS = {
 class SklandError(Exception):
     """Public error message deliberately contains no response data or secrets."""
 
-    def __init__(self, message: str, *, expired: bool = False):
+    def __init__(self, message: str, *, expired: bool = False, status: int | None = None):
         super().__init__(message)
         self.expired = expired
+        # HTTP status of a rejected response (e.g. 429); never response content.
+        self.status = status
 
 
 def sign_request(token: str, path: str, query_or_body: str = "", *, timestamp: int | None = None,
@@ -93,10 +95,10 @@ class SklandClient:
                 response = await client.request(method, url, headers=headers, content=content)
             if response.status_code in (401, 403):
                 if rejected:
-                    raise SklandError(rejected)
-                raise SklandError("森空岛登录已失效，请重新连接", expired=True)
+                    raise SklandError(rejected, status=response.status_code)
+                raise SklandError("森空岛登录已失效，请重新连接", expired=True, status=response.status_code)
             if response.status_code != 200:
-                raise SklandError("森空岛暂时无法提供数据")
+                raise SklandError("森空岛暂时无法提供数据", status=response.status_code)
             result = response.json()
             if not isinstance(result, dict):
                 raise ValueError("bad envelope")

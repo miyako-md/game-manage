@@ -13,7 +13,7 @@ from .identities import has_verified_role
 
 class SklandAccountAdapter(BaseGameAdapter):
     game_id = 'endfield'
-    capabilities = [Capability.ACCOUNT]
+    capabilities = [Capability.ACCOUNT, Capability.COMBAT]
     credentials_configured = True
 
     def __init__(self, settings):
@@ -35,6 +35,42 @@ class SklandAccountAdapter(BaseGameAdapter):
             return FetchResult(ok=False,error='森空岛查询失败',error_kind='auth_expired' if error.expired else 'source_error')
         except (ValueError,TypeError,KeyError):
             return FetchResult(ok=False,error='森空岛角色数据不匹配',error_kind='invalid_data')
+
+    async def fetch_combat(self):
+        """One signing refresh, then the three default challenge reads in order.
+
+        Only the allowlisted projection is returned. A failed kind is reported as
+        a failed observation; the scheduler keeps its last successful report.
+        """
+        from game_assistant.adapters.endfield.skland_client import SklandClient, SklandError
+        from game_assistant.adapters.endfield.skland_parse import parse_challenge
+        from game_assistant.endfield_challenges import CHALLENGE_KINDS, build_challenge_report
+        s = self._credentials
+        client = SklandClient()
+        try:
+            token = await client.refresh(s['cred'])
+        except SklandError as error:
+            return FetchResult(ok=False,error='森空岛查询失败',error_code=error.status,
+                               error_kind='auth_expired' if error.expired else 'source_error')
+        reports,codes = [],[]
+        for kind in CHALLENGE_KINDS:
+            try:
+                data = await client.challenge(kind,s['cred'],token,s['role_id'],s['server_id'],s['user_id'],s.get('device_id',''))
+                value = {**parse_challenge(kind,data),'fetched_at':datetime.now(timezone.utc).isoformat(),'stale':False}
+            except SklandError as error:
+                if error.expired:
+                    return FetchResult(ok=False,error='森空岛查询失败',error_code=error.status,error_kind='auth_expired')
+                codes.append(error.status)
+                value = {'supported':True,'kind':kind,'fetched_at':None,'stale':True}
+            except (ValueError,TypeError,KeyError,AttributeError):
+                codes.append(None)
+                value = {'supported':True,'kind':kind,'fetched_at':None,'stale':True}
+            reports.append(build_challenge_report(value,kind=kind))
+        # 429 wins so rate limiting stays visible even when another kind failed differently.
+        code = 429 if 429 in codes else next((c for c in codes if c is not None),None)
+        if len(codes) == len(CHALLENGE_KINDS):
+            return FetchResult(ok=False,error='森空岛挑战查询失败',error_code=code,error_kind='source_error')
+        return FetchResult(ok=True,payload={'schema_version':1,'reports':reports},error_code=code)
 
 
 class AccountRuntime:

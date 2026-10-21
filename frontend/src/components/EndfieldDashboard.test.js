@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { nextTick } from 'vue'
+import { nextTick, reactive } from 'vue'
 import { loadVue, mount, nodes, content, choose } from '../test-utils/vue.js'
 
 const Dashboard = await loadVue(new URL('./EndfieldDashboard.vue', import.meta.url))
@@ -433,4 +433,31 @@ test('the section tabs are one pill track with a pressed state and the 更多 pi
   nodes(more, 'button').find(n => content(n) === '蓝图收藏').props.onClick(); await flush()
   const toggle = nodes(main, 'button').at(-1)
   assert.equal(content(toggle), '蓝图收藏'); assert.ok(String(toggle.props.class).includes('active'))
+})
+
+test('cloud challenges read the combat snapshot, switch kinds without requests and refresh through the scheduler', async t => {
+  const calls = [], events = []
+  t.mock.method(globalThis, 'fetch', async url => { calls.push(url); return response({}) })
+  const account = { account_id: 's', provider: 'skland', game: 'endfield', server: '1', version: 1, roles: [{ role_id: 'role-s', display_name: '本人', is_default: true }] }
+  const report = (kind, extra = {}) => ({ schema_version: 1, kind, supported: true, available: true, stale: false, fetched_at: '2026-10-21T01:00:00Z', records: [], honors: [], summary: { listed_count: 0, highest: null, challenge_count: null }, ...extra })
+  const combat = { account_id: 's', role_id: 'role-s', state: 'ok', stale: false, fetched_at: '2026-10-21T01:05:00Z', payload: { schema_version: 1, reports: [
+    report('war', { records: [{ id: 's1', name: '快照赛季', stars: 0, weeks: [] }], summary: { listed_count: 1, highest: null, challenge_count: null } }),
+    report('monument', { available: false, stale: true, fetched_at: null, summary: { listed_count: null, highest: null, challenge_count: null } }),
+    report('crisis', { stale: true, records: [{ id: 'r1', name: '快照合约', passed: false, result: 0 }], summary: { listed_count: 1, highest: 0, challenge_count: null } }),
+  ] } }
+  const props = reactive({ cloudAccount: account, cloudRole: 'role-s', cloudSources: { skland: { account, role: 'role-s' } }, sourceSnapshots: { skland: { account: { account_id: 's', role_id: 'role-s', payload: null }, combat } }, snaps: {}, initialSection: 'challenges', onRefresh: () => events.push('refresh') })
+  const root = mount(t, Dashboard, props)
+  await flush(); await flush()
+  assert.match(content(root), /快照赛季/)
+  const kind = name => nodes(root, 'button').find(n => content(n) === name).props.onClick()
+  kind('丰碑'); await flush()
+  assert.match(content(root), /最近一次采集失败，尚无成功资料/)
+  assert.doesNotMatch(content(root), /快照赛季/)
+  kind('危机'); await flush()
+  assert.match(content(root), /快照合约/); assert.match(content(root), /已有资料待更新/)
+  nodes(root, 'button').find(n => content(n) === '重新读取危机').props.onClick(); await flush()
+  assert.deepEqual(events, ['refresh'])
+  props.sourceSnapshots.skland.combat = { ...combat, role_id: 'another-role' }; await flush()
+  assert.doesNotMatch(content(root), /快照合约/)
+  assert.ok(!calls.some(url => String(url).includes('/skland/challenges')), 'cloud mode must not call the live challenge route')
 })

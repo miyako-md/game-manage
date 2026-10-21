@@ -66,8 +66,9 @@ def install_account_routes(app, service, login=None, *, query=None):
         async def snapshot(account_id:str,role_id:str,capability:str,principal=Depends(require_user)):
             scope=service.require_scope(principal,account_id,role_id)
             result=query.read(scope,capability)
+            interval=app.state.settings.private_poll_seconds(service.describe(scope)['game'],capability)
             old=bool(result.fetched_at and (datetime.now(timezone.utc)-datetime.fromisoformat(
-                result.fetched_at)).total_seconds()>app.state.settings.cloud_private_poll_seconds*2)
+                result.fetched_at)).total_seconds()>interval*2)
             return {**asdict(result),'account_id':account_id,'role_id':role_id,
                     'game_id':service.describe(scope)['game'],'capability':capability,
                     'stale':bool(result.payload is not None and (old or result.state in ('error','auth_expired','never'))),

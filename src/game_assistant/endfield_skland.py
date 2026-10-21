@@ -491,16 +491,6 @@ class ScopedSkland:
         value=self._service._operator_cache.get(char_id)
         return deepcopy(value) if isinstance(value,dict) else None
 
-    def cached_challenge(self,scope,kind):
-        """Only the default category observation; never adopt filtered history."""
-        from copy import deepcopy
-        from .endfield_challenges import CHALLENGE_KINDS
-        self._check(scope)
-        if kind not in CHALLENGE_KINDS or not self._service._session.get('cred'):
-            return None
-        value=self._service._challenge_cache.get((kind,None,None,None))
-        return deepcopy(value) if isinstance(value,dict) and value.get('kind')==kind else None
-
     def clear(self,scope):
         self._check(scope,active=False)
         service=self._service

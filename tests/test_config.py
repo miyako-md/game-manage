@@ -67,3 +67,21 @@ def test_load_accepts_pre_release_template_keys(tmp_path):
     )
     s = Settings.load(str(cfg))
     assert s.lol_enabled is False
+
+
+def test_endfield_challenge_interval_is_separate_and_bounded(tmp_path):
+    import pytest
+    from pydantic import ValidationError
+    s = Settings.load(str(tmp_path / "missing.toml"))
+    assert s.cloud_endfield_challenge_poll_seconds == 900
+    s = Settings(cloud_private_poll_seconds=600, cloud_endfield_challenge_poll_seconds=1800)
+    assert s.private_poll_seconds('endfield', 'combat') == 1800
+    # Wuthering Waves has its own "combat" capability on the general interval.
+    assert s.private_poll_seconds('wuthering_waves', 'combat') == 600
+    assert s.private_poll_seconds('endfield', 'account') == 600
+    for value in (299, 86401):
+        with pytest.raises(ValidationError):
+            Settings(cloud_endfield_challenge_poll_seconds=value)
+    cfg = tmp_path / "config.toml"
+    cfg.write_text("cloud_endfield_challenge_poll_seconds = 1800\n", encoding="utf-8")
+    assert Settings.load(str(cfg)).cloud_endfield_challenge_poll_seconds == 1800

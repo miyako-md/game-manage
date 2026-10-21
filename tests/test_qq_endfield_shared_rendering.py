@@ -11,7 +11,7 @@ from game_assistant.qq.browser_rendering import validate_snapshot
 from game_assistant.qq.rendering import RenderingUnavailable
 from tests.test_qq_unified_queries import CachedQuery, IDENTITY, service, no_external_network
 from tests.test_qq_endfield_reports import synthetic_account, synthetic_gacha
-from tests.test_qq_endfield_challenges import setup, synthetic_challenges
+from tests.test_qq_endfield_challenges import setup, stored, synthetic_challenges
 
 NOW = datetime.fromisoformat('2026-10-15T12:00:00+08:00')
 
@@ -60,10 +60,9 @@ def test_named_operator_detail_forwards_existing_cache_and_independent_time(tmp_
 
 
 def test_all_challenge_categories_forward_every_returned_week_and_independent_times(tmp_path):
-    query,scope,grant,bundle,scoped=setup(tmp_path)
     values=synthetic_challenges();week=values['war']['records'][0]['weeks'][0]
     values['war']['records'][0]['weeks']=[{**deepcopy(week),'name':f'周次{i}'} for i in range(40)]
-    scoped._service._challenge_cache.update({(kind,None,None,None):value for kind,value in values.items()})
+    query,scope,grant=setup(values=values)
     context={};service(query).query(IDENTITY,'combat','endfield',image_context=context)
     panel=context['render_snapshot']['display_data']['panels'][0]
     assert panel['capability']=='combat'
@@ -131,7 +130,7 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
     gacha['pools']=[{**deepcopy(sample),'key':f'pool-{i}','label':f'合成池{i}'} for i in range(17)]
     query.add('endfield','hypergryph','hg',{'gacha':gacha})
     query.accounts.describe=lambda checked:{**query.describe(checked),'game':'endfield','provider':'skland' if checked.account_id=='sk' else 'hypergryph','grant_id':grant['id'] if checked.account_id=='sk' else 'grant-hg'}
-    scoped._service._challenge_cache.update({(kind,None,None,None):value for kind,value in synthetic_challenges().items()})
+    query.data[('sk','combat')]=QueryResult(stored(),NOW.isoformat(),'ok',None)
     app=create_cloud_app(Settings(cloud_db_path=str(tmp_path/'cloud.db'),cloud_allowed_origins=['https://cloud.example'],qq_app_id='app',qq_service_token='fixture-service',qq_images_enabled=True,qq_image_font_path=font,qq_browser_render_executable_path=executable,qq_browser_render_dist_path=os.environ.get('QQ_RENDER_TEST_DIST', '')),start_scheduler=False)
     svc=app.state.qq_query;svc.query_service=query;query.accounts._listeners.append(svc.invalidate)
     if command=='roles_icon':

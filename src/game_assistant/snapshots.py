@@ -225,7 +225,10 @@ class SnapshotStore:
             status=dict(capability=capability,state=state,last_attempt_at=attempted,
                 last_success_at=attempted if result.ok else previous.get('last_success_at'),
                 consecutive_failures=0 if state in ('ok','offline','unconfigured') else previous.get('consecutive_failures',0)+1,
-                error=None if result.ok else result.error,error_kind=kind)
+                error=None if result.ok else result.error,error_kind=kind,
+                # Upstream HTTP status (e.g. 429). An ok poll may carry one when
+                # part of a multi-request capability failed.
+                error_code=result.error_code)
             self._conn.execute('INSERT INTO scoped_poll_status VALUES(?,?,?,?,?,?) '
                 'ON CONFLICT(user_id,account_id,role_id,capability) DO UPDATE SET '
                 'status=excluded.status,grant_version=excluded.grant_version',

@@ -19,7 +19,7 @@ from game_assistant.qq.client import InternalQqClient, OfficialQqClient, QqReply
 from game_assistant.qq.models import InboundMessage, QqIdentity
 from game_assistant.qq.transport import BotDispatcher, BotState
 from tests.test_qq_endfield_cached_details import fixture as scoped_query_fixture
-from tests.test_qq_endfield_challenges import synthetic_challenges
+from tests.test_qq_endfield_challenges import stored as stored_challenges, synthetic_challenges
 from tests.test_qq_endfield_reports import NOW, synthetic_account, synthetic_gacha
 from tests.test_qq_endfield_visual_honor import synthetic_honor
 from tests.test_qq_unified_queries import no_external_network
@@ -62,9 +62,7 @@ async def test_endfield_commands_render_upload_and_passively_send_once(
         'active_effect': '合成效果 {value} 保留原始参数。', 'passive_effect': None,
         'icon_url': None,
     }
-    scoped._service._challenge_cache.update({
-        (kind, None, None, None): value for kind, value in synthetic_challenges().items()
-    })
+    query.data[('sk', 'combat')] = QueryResult(stored_challenges(), NOW, 'ok', None)
 
     app = create_cloud_app(Settings(
         cloud_db_path=str(tmp_path / 'cloud.db'), cloud_allowed_origins=['https://cloud.example'],

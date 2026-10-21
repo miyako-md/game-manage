@@ -2,6 +2,8 @@
 
 The input is a normalized, default-query cache envelope, never credentials or
 an arbitrary upstream response. Missing records do not establish game progress.
+The cloud ``combat`` snapshot stores only these projections:
+``{'schema_version': 1, 'reports': [war, monument, crisis]}``.
 """
 from math import isfinite
 
@@ -63,3 +65,37 @@ def build_challenge_report(value, *, kind=None):
             'summary': {'listed_count': len(records) if available and supported is not False else None,
                         'highest': _number(summary.get('highest')) if available and kind == 'crisis' else None,
                         'challenge_count': _number(summary.get('challenge_count')) if available and kind == 'crisis' else None}}
+
+
+_REPORT_KEYS = frozenset(('schema_version', 'kind', 'supported', 'available', 'stale', 'fetched_at',
+                          'records', 'honors', 'summary'))
+
+
+def challenge_reports(payload, *, stale=False):
+    """The three per-kind projections of a stored snapshot; unknown when absent.
+
+    ``stale`` marks every report as a failed latest read (the whole poll failed).
+    """
+    data = _object(payload)
+    stored = {item.get('kind'): item for item in _items(data.get('reports'))} if data.get('schema_version') == 1 else {}
+    result = []
+    for kind in CHALLENGE_KINDS:
+        report = stored.get(kind)
+        if not (_REPORT_KEYS <= set(report or ()) and report['schema_version'] == 1
+                and type(report['available']) is bool and isinstance(report['records'], list)
+                and isinstance(report['summary'], dict) and isinstance(report['honors'], list)):
+            report = build_challenge_report(None, kind=kind)
+        result.append({**report, 'stale': True} if stale else report)
+    return result
+
+
+def merge_challenge_snapshot(previous, current):
+    """A kind whose latest read failed keeps its last successful report, marked stale."""
+    kept = {report['kind']: report for report in challenge_reports(previous)}
+    reports = []
+    for report in challenge_reports(current):
+        old = kept[report['kind']]
+        if not report['available'] and report['stale'] and old['available']:
+            report = {**old, 'stale': True}
+        reports.append(report)
+    return {'schema_version': 1, 'reports': reports}
