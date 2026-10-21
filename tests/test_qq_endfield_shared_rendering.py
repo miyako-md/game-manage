@@ -196,7 +196,8 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
         assert not captured[-1]['forbidden_requests']
         text=captured[-1]['text']
         if command=='training':assert '合成干员34' in text and '35' in text
-        elif command=='honor':assert '奖章33' in text and '类别16' in text
+        # The image is an icon wall: every medal name, no per-medal category text.
+        elif command=='honor':assert '奖章0' in text and '奖章33' in text and '类别16' not in text
         elif command=='gacha':
             assert '合成池16' in text and all(f'合成池{i}' in text for i in range(17))
             assert '本图卡池' not in text and '内容已省略' not in text
