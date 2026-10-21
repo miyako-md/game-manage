@@ -10,11 +10,14 @@ from .article_content import article_images
 from game_assistant.event_calendar import BEIJING_TZ as BJ, nearest_year
 
 logger = logging.getLogger(__name__)
-RULE_VERSION = 7
+RULE_VERSION = 8
 REASONS = {'accepted': '有明确日期的游戏内通知', 'video': '视频或转发视频',
            'lottery': '抽奖或开奖', 'promotion': '宣传展示或社区内容',
            'no_date': '正文没有可确认的日期', 'not_ingame': '非游戏内通知',
-           'incomplete': '正文不完整，待核对', 'unsupported': '不支持的动态类型'}
+           'incomplete': '正文不完整，待核对', 'unsupported': '不支持的动态类型',
+           'intel': '角色或干员情报'}
+# 官方角色/干员情报：进资讯，不进日历（决定仍为 excluded）。只看标题，先于宣传词判断。
+INTEL = re.compile(r'后勤备忘|危境情报|干员(?:情报|档案)|角色档案')
 PROMOTION = re.compile(r'(?<![A-Za-z])(?:PV|EP|MV|OST)(?![A-Za-z])|实机(?:演示|展示|战斗)|战斗演示|时装展示|海特洛衣橱|角色档案|档案回顾|寰宇人类注疏|巡游巴士|周边通贩|网页活动|海特洛档案|闲趣时光|外观展示|角色(?:演示|展示)|宣传片|先导片|概念动画|主题曲|原声(?:音乐|专辑)|直播(?:预告|预约|活动|间)|开播预告|前瞻(?:特别)?节目|同人|创作(?:征集|激励)|线下活动|漫展|ChinaJoy|参展|壁纸|周边(?:展示|售卖|上新) ', re.I | re.X)
 INGAME = re.compile(r'版本|更新|维护|停服|活动|卡池|盲盒|招募|寻访|召唤|调频|签到|限时(?:开放|开启)|补偿')
 NOTICE_TITLE = re.compile(r'(?:停服|更新|维护).*(?:公告|通知)|(?:棋盘|研募|卡池).*(?:开启|返场|公告)|(?:活动|路线).*(?:开启|开放)|限定.+返场'
@@ -114,6 +117,7 @@ def classify_dynamic(item, uid, now):
             continue
     if _video(item): reason = 'video'
     elif re.search(r'抽奖|开奖|中奖|转评赞|一键三连', text): reason = 'lottery'
+    elif INTEL.search(headline): reason = 'intel'
     elif PROMOTION.search(headline) or (PROMOTION.search(policy_text) and not NOTICE_TITLE.search(headline)): reason = 'promotion'
     elif item.get('type') not in ('DYNAMIC_TYPE_DRAW', 'DYNAMIC_TYPE_WORD', 'DYNAMIC_TYPE_ARTICLE', 'DYNAMIC_TYPE_FORWARD'): reason = 'unsupported'
     elif incomplete: reason = 'incomplete'
