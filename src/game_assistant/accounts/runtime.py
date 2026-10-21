@@ -50,27 +50,30 @@ class SklandAccountAdapter(BaseGameAdapter):
         try:
             token = await client.refresh(s['cred'])
         except SklandError as error:
-            return FetchResult(ok=False,error='森空岛查询失败',error_code=error.status,
+            return FetchResult(ok=False,error='森空岛查询失败',error_code=error.status,failure_codes=f'refresh:{error.code or "unknown"}',
                                error_kind='auth_expired' if error.expired else 'source_error')
-        reports,codes = [],[]
+        # failed: '<kind>:<short code>' per failed kind, for the scheduler's log line only.
+        reports,codes,failed = [],[],[]
         for kind in CHALLENGE_KINDS:
             try:
                 data = await client.challenge(kind,s['cred'],token,s['role_id'],s['server_id'],s['user_id'],s.get('device_id',''))
                 value = {**parse_challenge(kind,data),'fetched_at':datetime.now(timezone.utc).isoformat(),'stale':False}
             except SklandError as error:
+                failed.append(f'{kind}:{error.code or "unknown"}')
                 if error.expired:
-                    return FetchResult(ok=False,error='森空岛查询失败',error_code=error.status,error_kind='auth_expired')
+                    return FetchResult(ok=False,error='森空岛查询失败',error_code=error.status,error_kind='auth_expired',failure_codes=','.join(failed))
                 codes.append(error.status)
                 value = {'supported':True,'kind':kind,'fetched_at':None,'stale':True}
-            except (ValueError,TypeError,KeyError,AttributeError):
+            except (ValueError,TypeError,KeyError,AttributeError) as error:
+                failed.append(f'{kind}:parse:{type(error).__name__}')
                 codes.append(None)
                 value = {'supported':True,'kind':kind,'fetched_at':None,'stale':True}
             reports.append(build_challenge_report(value,kind=kind))
         # 429 wins so rate limiting stays visible even when another kind failed differently.
         code = 429 if 429 in codes else next((c for c in codes if c is not None),None)
         if len(codes) == len(CHALLENGE_KINDS):
-            return FetchResult(ok=False,error='森空岛挑战查询失败',error_code=code,error_kind='source_error')
-        return FetchResult(ok=True,payload={'schema_version':1,'reports':reports},error_code=code)
+            return FetchResult(ok=False,error='森空岛挑战查询失败',error_code=code,error_kind='source_error',failure_codes=','.join(failed))
+        return FetchResult(ok=True,payload={'schema_version':1,'reports':reports},error_code=code,failure_codes=','.join(failed) or None)
 
 
 class AccountRuntime:

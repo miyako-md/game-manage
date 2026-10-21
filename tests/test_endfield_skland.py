@@ -752,3 +752,34 @@ def test_local_route_passport_reader_includes_channel_and_server(tmp_path):
     install_endfield_skland_routes(app, settings)
     assert app.state.endfield_skland._passport() == {
         "token": "hg", "uid": "bili-uid", "role_id": "r", "channel": "bilibili", "server_id": "1"}
+
+
+@pytest.mark.parametrize("response,code", [
+    (httpx.Response(200, json={"code": 10001, "message": "SECRET-TEXT"}), "10001"),
+    (httpx.Response(200, json={"status": "E_LIMIT", "message": "SECRET-TEXT"}), "E_LIMIT"),
+    (httpx.Response(200, json={"code": "SECRET TEXT THAT IS LONG", "message": "x"}), "other"),
+    (httpx.Response(200, json={"message": "SECRET-TEXT"}), "none"),
+    (httpx.Response(200, text="SECRET-<html>"), "parse:JSONDecodeError"),
+    (httpx.Response(200, json=["SECRET"]), "parse:envelope"),
+    (httpx.Response(200, json={"code": 0, "data": "SECRET"}), "parse:data"),
+    (httpx.Response(200, json={"code": 0, "data": {"other": 1}}), "parse:shape"),
+    (httpx.Response(503, text="SECRET-BODY"), "http:503"),
+])
+async def test_failures_carry_a_short_code_without_response_text(response, code):
+    client = SklandClient(httpx.MockTransport(lambda request: response))
+    with pytest.raises(SklandError) as error:
+        await client.challenge("crisis", "SECRET-CRED", "SECRET-TOKEN", "role", "1", "user")
+    assert error.value.code == code and "SECRET" not in str(error.value)
+    assert error.value.status == (503 if code == "http:503" else None)
+
+
+async def test_transport_failure_and_missing_token_codes():
+    def fail(request):
+        raise httpx.ConnectError("SECRET host")
+    with pytest.raises(SklandError) as error:
+        await SklandClient(httpx.MockTransport(fail)).refresh("SECRET-CRED")
+    assert error.value.code == "transport:ConnectError" and "SECRET" not in str(error.value)
+    client = SklandClient(httpx.MockTransport(lambda request: httpx.Response(200, json={"code": 0, "data": {}})))
+    with pytest.raises(SklandError) as error:
+        await client.refresh("SECRET-CRED")
+    assert error.value.code == "parse:token"

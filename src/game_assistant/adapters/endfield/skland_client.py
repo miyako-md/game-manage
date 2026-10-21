@@ -2,6 +2,7 @@
 import hashlib
 import hmac
 import json
+import re
 import time
 from urllib.parse import urlencode
 
@@ -37,11 +38,23 @@ TOOLS = {
 class SklandError(Exception):
     """Public error message deliberately contains no response data or secrets."""
 
-    def __init__(self, message: str, *, expired: bool = False, status: int | None = None):
+    def __init__(self, message: str, *, expired: bool = False, status: int | None = None, code: str | None = None):
         super().__init__(message)
         self.expired = expired
         # HTTP status of a rejected response (e.g. 429); never response content.
         self.status = status
+        # Short fixed failure code for logs: Skland business code, http:<status>, parse:<what>
+        # or transport:<exception>. Never message text, identifiers or data.
+        self.code = code
+
+
+def business_code(value) -> str:
+    """Skland's own code as a short token; anything else is reduced to its kind."""
+    if type(value) is int:
+        return str(value)[:12]
+    if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_.-]{1,16}", value):
+        return value
+    return "none" if value is None else "other"
 
 
 def sign_request(token: str, path: str, query_or_body: str = "", *, timestamp: int | None = None,
@@ -66,7 +79,7 @@ class SklandClient:
         if path not in {CRED_BY_CODE, REFRESH, BINDING, USER, CARD, OPERATOR, ATTENDANCE, ATTENDANCE_RECORD,
                         CRISIS_RECORD, *TOOLS.values(),
                         *(item[0] for item in CHALLENGES.values())}:
-            raise SklandError("接口不受支持")
+            raise SklandError("接口不受支持", code="unsupported")
         query = urlencode(params or {})
         url = HOST + path + ("?" + query if query else "")
         content = None if body is None else json.dumps(body, separators=(",", ":"), ensure_ascii=False)
@@ -94,30 +107,34 @@ class SklandClient:
             async with httpx.AsyncClient(transport=self._transport, timeout=12, follow_redirects=False) as client:
                 response = await client.request(method, url, headers=headers, content=content)
             if response.status_code in (401, 403):
+                failure = f"http:{response.status_code}"
                 if rejected:
-                    raise SklandError(rejected, status=response.status_code)
-                raise SklandError("森空岛登录已失效，请重新连接", expired=True, status=response.status_code)
+                    raise SklandError(rejected, status=response.status_code, code=failure)
+                raise SklandError("森空岛登录已失效，请重新连接", expired=True, status=response.status_code, code=failure)
             if response.status_code != 200:
-                raise SklandError("森空岛暂时无法提供数据", status=response.status_code)
+                raise SklandError("森空岛暂时无法提供数据", status=response.status_code, code=f"http:{response.status_code}")
             result = response.json()
             if not isinstance(result, dict):
-                raise ValueError("bad envelope")
+                raise SklandError("森空岛响应异常，请稍后重试", code="parse:envelope")
             code = result.get("code", result.get("status"))
             if code != 0:
+                failure = business_code(code)
                 if rejected:
-                    raise SklandError(rejected)
+                    raise SklandError(rejected, code=failure)
                 if code in (220, 10002):
-                    raise SklandError("森空岛登录已失效，请重新连接", expired=True)
+                    raise SklandError("森空岛登录已失效，请重新连接", expired=True, code=failure)
                 # 10001 is ambiguous (device info, invalid cred or signed already).
                 if code == 10001:
-                    raise SklandError("森空岛拒绝请求；请检查登录状态或原生设备标识")
-                raise SklandError("森空岛暂时无法提供数据")
+                    raise SklandError("森空岛拒绝请求；请检查登录状态或原生设备标识", code=failure)
+                raise SklandError("森空岛暂时无法提供数据", code=failure)
             data = result.get("data")
             if not isinstance(data, dict):
-                raise ValueError("bad data")
+                raise SklandError("森空岛响应异常，请稍后重试", code="parse:data")
             return data
-        except (httpx.HTTPError, ValueError, TypeError):
-            raise SklandError("森空岛响应异常，请稍后重试") from None
+        except httpx.HTTPError as error:
+            raise SklandError("森空岛响应异常，请稍后重试", code=f"transport:{type(error).__name__}") from None
+        except (ValueError, TypeError) as error:
+            raise SklandError("森空岛响应异常，请稍后重试", code=f"parse:{type(error).__name__}") from None
 
     async def cred_by_code(self, code: str) -> str:
         """鹰角授权码 → 森空岛会话 cred。不签名，不带 cred 与设备标识。"""
@@ -132,7 +149,7 @@ class SklandClient:
         data = await self._request("GET", REFRESH, cred)
         token = data.get("token")
         if not isinstance(token, str) or not token:
-            raise SklandError("森空岛未返回有效签名令牌")
+            raise SklandError("森空岛未返回有效签名令牌", code="parse:token")
         return token
 
     async def binding(self, cred: str, token: str, device_id: str = "") -> dict:
@@ -194,7 +211,7 @@ class SklandClient:
         data = await self._request("GET", path, cred, token, params=params, device_id=device_id)
         payload = data.get(key)
         if not isinstance(payload, dict):
-            raise SklandError("森空岛挑战记录格式已变化")
+            raise SklandError("森空岛挑战记录格式已变化", code="parse:shape")
         return payload
 
     async def tool(self, kind: str, cred: str, token: str, device_id: str = "") -> dict:
