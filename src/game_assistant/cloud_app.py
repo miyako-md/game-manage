@@ -270,6 +270,9 @@ def create_cloud_app(settings: Settings, start_scheduler: bool = True) -> FastAP
             def start_background():
                 if start_scheduler:
                     scheduler.start()
+                    # QQ image browser warm-up (no-op unless QQ images are enabled).
+                    if getattr(app.state, 'qq_query', None) is not None:
+                        app.state.qq_query.start_prewarm()
             async with background_start_after_maintenance(app.state.system_update, start_background):
                 yield
         finally:

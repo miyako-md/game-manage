@@ -35,9 +35,20 @@ for (const [game, catalog] of [['nte',nte],['wuthering_waves',wuwa]]) {
   characters.push(...byId.values())
 }
 const sourceFiles = ['frontend/src/nte-icon-catalog.js','frontend/src/wuwa-icon-catalog.js','frontend/src/wuwa-guides-catalog.js','src/game_assistant/nte_guides_catalog.py','src/game_assistant/wuwa_guide_updates.py']
-const data = {schema_version:1, provenance:{sources:sourceFiles.map(path=>({path,sha256:createHash('sha256').update(readFileSync(new URL('../'+path,import.meta.url))).digest('hex')})),alias_policy:'Existing icon aliases; NTE guide zero aliases; Wuwa guide-title confirmed wind protagonist aliases only.',pronunciation_overrides:pronunciationOverrides,unknown_ids:'Excluded; observed roles retain their own ID/name, without borrowed aliases.'},characters}
-const target = new URL('../src/game_assistant/character-search-catalog.json',import.meta.url)
-const output = JSON.stringify(data,null,2)+'\n'
-if (process.argv.includes('--check')) { if (readFileSync(target,'utf8')!==output) throw Error('Search catalog is stale; regenerate and review.') }
-else writeFileSync(target,output)
-console.log(`${characters.length} public character forms; ${process.argv.includes('--check')?'checked':'generated'}`)
+// Hash LF content: a CRLF checkout (core.autocrlf) must not change the recorded provenance.
+const lf = text => text.replaceAll('\r\n','\n')
+const sha = path => createHash('sha256').update(lf(readFileSync(new URL('../'+path,import.meta.url),'utf8'))).digest('hex')
+// Official wiki catalogue order (newest first): the overview role order for frontend and backend,
+// so role-order.js need not import the whole icon catalogue.
+const wuwaOrder = Object.keys(wuwa.roles)
+const data = {schema_version:1, provenance:{sources:sourceFiles.map(path=>({path,sha256:sha(path)})),alias_policy:'Existing icon aliases; NTE guide zero aliases; Wuwa guide-title confirmed wind protagonist aliases only.',pronunciation_overrides:pronunciationOverrides,unknown_ids:'Excluded; observed roles retain their own ID/name, without borrowed aliases.'},characters,wuwa_order:wuwaOrder}
+const outputs = [
+  [new URL('../src/game_assistant/character-search-catalog.json',import.meta.url), JSON.stringify(data,null,2)+'\n'],
+  [new URL('../frontend/src/wuwa-role-order.json',import.meta.url), JSON.stringify({schema_version:1,source:'frontend/src/wuwa-icon-catalog.js',generated_by:'scripts/generate-character-search.mjs',names:wuwaOrder},null,2)+'\n'],
+]
+const check = process.argv.includes('--check')
+for (const [target, output] of outputs) {
+  if (!check) writeFileSync(target,output)
+  else if (lf(readFileSync(target,'utf8'))!==output) throw Error(`${target.pathname.split('/').at(-1)} is stale; regenerate and review.`)
+}
+console.log(`${characters.length} public character forms, ${wuwaOrder.length} Wuwa catalogue names; ${check?'checked':'generated'}`)

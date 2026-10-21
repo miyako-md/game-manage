@@ -19,6 +19,7 @@ import { gameHref, sectionsFor } from '../search-index.js'
 import { vGlide, vParallax, vPop, vReveal } from '../motion.js'
 import { vRefreshFeedback } from '../refresh-feedback.js'
 import { COLLECT_LABELS, createCollectController } from '../cloud-collect.js'
+import { newestFirst } from '../role-order.js'
 
 const props = defineProps({ games: { type: Array, default: () => [] }, snapshots: { type: Object, default: () => ({}) },
   accounts: { type: Object, default: () => ({}) }, readErrors: { type: Object, default: () => ({}) }, publicErrors: { type:Object, default:()=>({}) }, refreshErrors: { type: Object, default: () => ({}) },
@@ -68,13 +69,16 @@ function resourceNote(card) {
   if (s.expectedFullAt) return `预计 ${formatTime(s.expectedFullAt)} 回满`
   return '回满时间未知'
 }
-// The highest-level roles that come with a picture: the avatar row on each game card and the hero's art.
+// The newest roles that come with a picture (Wuwa catalogue / NTE id, the order QQ overviews use;
+// other games by level): the avatar row on each game card and the hero's art.
 const failedAvatars = ref(new Set())
+const byLevel = (a, b) => (Number(b.level) || 0) - (Number(a.level) || 0)
 function roster(card) {
   const list = gameRoster(props.snapshots[card.game_id])
   const picture = role => roleArtwork(role).find(url => !failedAvatars.value.has(url))
   const pictured = list.filter(role => picture(role))
-  return { total: list.length, shown: pictured.sort((a, b) => (Number(b.level) || 0) - (Number(a.level) || 0)).slice(0, 5).map(role => ({ key: role.role_id ?? role.id ?? role.name, src: picture(role), name: typeof role.name === 'string' ? role.name : '' })) }
+  const order = ['wuthering_waves', 'nte'].includes(card.game_id) ? newestFirst(card.game_id) : byLevel
+  return { total: list.length, shown: pictured.sort(order).slice(0, 5).map(role => ({ key: role.role_id ?? role.id ?? role.name, src: picture(role), name: typeof role.name === 'string' ? role.name : '' })) }
 }
 function avatarFailed(src) { failedAvatars.value = new Set([...failedAvatars.value, src]) }
 

@@ -1,0 +1,78 @@
+{
+ "note": "Shared Python/JS overview order sample: frontend/src/role-order.test.js and tests/test_role_order.py. One unplaced role per case: ties among unplaced roles use the name (JS zh-CN collation, Python code points).",
+ "cases": [
+  {
+   "game": "wuthering_waves",
+   "roles": [
+    {
+     "name": "今汐",
+     "id": 1304
+    },
+    {
+     "name": "未收录角色",
+     "id": 9999
+    },
+    {
+     "name": "心",
+     "id": 1210
+    },
+    {
+     "name": "卡提希娅",
+     "id": 1409
+    },
+    {
+     "name": "椿",
+     "id": 1603
+    },
+    {
+     "name": "莉莉"
+    },
+    {
+     "name": "守岸人",
+     "id": 1505
+    }
+   ],
+   "expected": [
+    "莉莉",
+    "心",
+    "卡提希娅",
+    "椿",
+    "守岸人",
+    "今汐",
+    "未收录角色"
+   ]
+  },
+  {
+   "game": "nte",
+   "roles": [
+    {
+     "name": "早雾",
+     "id": "1003"
+    },
+    {
+     "name": "真红",
+     "id": "1076"
+    },
+    {
+     "name": "无编号",
+     "id": "x"
+    },
+    {
+     "name": "数字编号",
+     "id": 1050
+    },
+    {
+     "name": "薄荷",
+     "id": "1012"
+    }
+   ],
+   "expected": [
+    "真红",
+    "数字编号",
+    "薄荷",
+    "早雾",
+    "无编号"
+   ]
+  }
+ ]
+}

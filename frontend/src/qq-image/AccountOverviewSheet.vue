@@ -1,13 +1,19 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { asset, display, roleIdentity, viewModel } from './models.js'
 import wuwaIcons from '../wuwa-icon-catalog.js'
 import nteIcons from '../nte-icon-catalog.js'
 import endfieldIcons from '../endfield-icon-catalog.js'
 import { skinOf } from '../game-themes.js'
+import { newestFirst } from '../role-order.js'
 
 const props = defineProps({ input: Object })
 const model = computed(() => viewModel(props.input))
+// A picture that did not arrive shows the drawn fallback, not its alt text (a long
+// nickname in the 64px avatar ring broke the layout audit and the whole image).
+const failedImages = ref(new Set())
+const shown = url => !!url && !failedImages.value.has(url)
+const imageFailed = url => { failedImages.value = new Set([...failedImages.value, url]) }
 
 const GAME_LABELS = {
   wuthering_waves: '鸣潮',
@@ -191,7 +197,8 @@ const gameBlocks = computed(() => {
             ? rolesPayload.roles
             : []
 
-      const roles = rawRoles.map(r => {
+      // The service already sends the six newest; the same order and cut keep any other input bounded.
+      const roles = [...rawRoles].sort(newestFirst('wuthering_waves')).slice(0, 6).map(r => {
         const ident = roleIdentity('wuthering_waves', r)
         const name = ident.name || r.role_name || r.name || '共鸣者'
         const cleanName = name.replace(/（.*?）$/, '')
@@ -245,9 +252,9 @@ const gameBlocks = computed(() => {
 
       const stats = [
         { label: '活跃天数', value: display(acc.active_days) },
-        { label: '解锁角色', value: display(acc.character_count ?? acc.role_total ?? (roles.length || null)) },
+        { label: '解锁角色', value: display(acc.character_count ?? acc.role_total ?? (rawRoles.length || null)) },
         // The roles panel holds at most six entries; full totals ride on the account panel.
-        { label: '五星角色', value: display(acc.gold_role_total ?? (acc.role_total > roles.length ? null : roles.length ? goldCount : gacha?.gold_total)) },
+        { label: '五星角色', value: display(acc.gold_role_total ?? ((acc.role_total ?? rawRoles.length) > roles.length ? null : roles.length ? goldCount : gacha?.gold_total)) },
         {
           label: cal?.level != null ? '数据坞等级' : '结晶单质',
           value: cal?.level != null ? display(cal.level) : display(stam?.store_energy),
@@ -301,7 +308,7 @@ const gameBlocks = computed(() => {
           ? rolesPayload.entries
           : []
 
-      const roles = rawRoles.map(r => {
+      const roles = [...rawRoles].sort(newestFirst('nte')).slice(0, 6).map(r => {
         const ident = roleIdentity('nte', r)
         const name = r.name || ident.name || '异能者'
         const id = r.id ?? r.role_id
@@ -333,8 +340,8 @@ const gameBlocks = computed(() => {
       const sCount = roles.filter(r => r.isGold).length
       const stats = [
         { label: '活跃天数', value: display(acc.active_days) },
-        { label: '解锁角色', value: display(acc.character_count ?? acc.role_total ?? (roles.length || null)) },
-        { label: 'S级角色', value: display(acc.gold_role_total ?? (acc.role_total > roles.length ? null : roles.length ? sCount : null)) },
+        { label: '解锁角色', value: display(acc.character_count ?? acc.role_total ?? (rawRoles.length || null)) },
+        { label: 'S级角色', value: display(acc.gold_role_total ?? ((acc.role_total ?? rawRoles.length) > roles.length ? null : roles.length ? sCount : null)) },
         { label: '大亨等级', value: acc.tycoon_level != null ? `Lv.${acc.tycoon_level}` : '未提供' },
         { label: '已达成成就', value: display(acc.achievement_count) },
         { label: '成就总数', value: display(acc.achievement_total) },
@@ -422,7 +429,9 @@ const gameBlocks = computed(() => {
           ? skAcc.operators
           : []
 
-    const roles = rawOps.map(r => {
+    // Endfield keeps the service's level order; six are shown, counts use the whole roster.
+    const roster = Array.isArray(skAcc.operators) && skAcc.operators.length > rawOps.length ? skAcc.operators : rawOps
+    const roles = rawOps.slice(0, 6).map(r => {
       const name = r.name || '干员'
       const rarity = Number(r.rarity ?? 6)
       const isGold = rarity >= 6
@@ -450,11 +459,11 @@ const gameBlocks = computed(() => {
     })
 
     const rCounts = training.summary?.rarity_counts || {}
-    const sixCount = rCounts['6'] ?? roles.filter(r => r.isGold).length
-    const fiveCount = rCounts['5'] ?? roles.filter(r => !r.isGold).length
+    const sixCount = rCounts['6'] ?? roster.filter(r => Number(r.rarity ?? 6) >= 6).length
+    const fiveCount = rCounts['5'] ?? roster.filter(r => Number(r.rarity ?? 6) < 6).length
 
     const stats = [
-      { label: '已记录干员', value: display(training.summary?.listed_count ?? base.char_count ?? (roles.length || null)) },
+      { label: '已记录干员', value: display(training.summary?.listed_count ?? base.char_count ?? (roster.length || null)) },
       { label: '六星干员', value: display(sixCount) },
       { label: '五星干员', value: display(fiveCount) },
       { label: '最高等级', value: display(training.summary?.max_level) },
@@ -528,7 +537,7 @@ const notices = computed(() => props.input?.snapshot?.display_data?.notices || [
       <header class="ao-capsule-banner">
         <div class="ao-identity-pill">
           <div class="ao-avatar-ring">
-            <img v-if="block.avatarUrl" :src="block.avatarUrl" :alt="block.nickname" class="ao-avatar-img" />
+            <img v-if="shown(block.avatarUrl)" :src="block.avatarUrl" :alt="block.nickname" class="ao-avatar-img" @error="imageFailed(block.avatarUrl)" />
             <svg v-else class="ao-avatar-svg" viewBox="0 0 64 64" aria-hidden="true">
               <defs>
                 <linearGradient id="ao-crest-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -604,7 +613,7 @@ const notices = computed(() => props.input?.snapshot?.display_data?.notices || [
             :class="role.isGold ? 'is-rarity-gold' : 'is-rarity-purple'"
           >
             <div class="ao-role-portrait">
-              <img v-if="role.image" :src="role.image" :alt="role.name" class="ao-role-img" />
+              <img v-if="shown(role.image)" :src="role.image" :alt="role.name" class="ao-role-img" @error="imageFailed(role.image)" />
               <svg v-else class="ao-role-fallback" viewBox="0 0 120 120" aria-hidden="true">
                 <circle cx="60" cy="52" r="32" fill="rgba(255,255,255,0.04)" stroke="rgba(214,188,138,0.22)" stroke-width="1.2" />
                 <text x="60" y="64" text-anchor="middle" fill="rgba(240,218,172,0.34)" font-size="34" font-weight="800">{{ role.name.slice(0, 1) }}</text>

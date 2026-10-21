@@ -1,4 +1,7 @@
-"""Bounded sanitized public PNGs across service restarts; no URLs or account data."""
+"""Bounded sanitized public PNGs across service restarts; no URLs or account data.
+
+Entries expire 7 days after their last use; the least recently used go first.
+"""
 from io import BytesIO
 import os
 from pathlib import Path
@@ -14,13 +17,13 @@ MAX_BYTES=1080*1080*4+4096
 
 
 class PublicPngCache:
-    def __init__(self,directory,*,entries=512,bytes_limit=128*1024*1024,ttl=7*86400):
+    def __init__(self,directory,*,entries=1024,bytes_limit=128*1024*1024,ttl=7*86400):
         self.directory=Path(directory).absolute()
         for path in [self.directory,*self.directory.parents]:
             if path.is_symlink():raise ValueError('qq_public_cache_link_rejected')
         self.directory.mkdir(mode=0o700,parents=True,exist_ok=True)
         info=self.directory.stat();self.identity=(info.st_dev,info.st_ino)
-        self.entries=max(1,min(entries,512));self.bytes_limit=max(1,min(bytes_limit,128*1024*1024));self.ttl=min(ttl,7*86400)
+        self.entries=max(1,min(entries,1024));self.bytes_limit=max(1,min(bytes_limit,128*1024*1024));self.ttl=min(ttl,7*86400)
 
     def available(self):
         try:
@@ -41,6 +44,9 @@ class PublicPngCache:
             with Image.open(BytesIO(data),formats=('PNG',)) as image:
                 if image.n_frames!=1 or not 0<image.width<=1080 or not 0<image.height<=1080:return None
                 image.verify()
+            # A use renews the entry: expiry and eviction count from the last read, not the download.
+            try:os.utime(path)
+            except OSError:pass
             return data
         except (OSError,ValueError,SyntaxError):return None
 

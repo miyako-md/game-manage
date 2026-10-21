@@ -150,7 +150,14 @@ async def test_lru_and_ttl(monkeypatch):
     assert cache.get_image(second) is None
 
 
-async def test_bounded_concurrency_and_cancellation(monkeypatch):
+async def drain(cache, limit=5):
+    for _ in range(int(limit / .01)):
+        if not cache._inflight:return
+        await asyncio.sleep(.01)
+    pytest.fail('background downloads did not finish')
+
+
+async def test_timed_out_prefetch_finishes_in_background_within_concurrency(monkeypatch):
     assets = module()
     active = 0
     maximum = 0
@@ -159,16 +166,106 @@ async def test_bounded_concurrency_and_cancellation(monkeypatch):
         active += 1
         maximum = max(maximum, active)
         try:
-            await asyncio.sleep(.2)
+            await asyncio.sleep(.05)
             return png()
         finally:
             active -= 1
     monkeypatch.setattr(assets, '_download', fetch)
     cache = assets.PublicAssetCache(concurrency=2)
-    refs = [cache.register_url(f'https://webstatic.tajiduo.com/{i}.png') for i in range(40)]
-    await cache.prefetch(refs, budget_seconds=.03)
+    refs = [cache.register_url(f'https://webstatic.tajiduo.com/{i}.png') for i in range(12)]
+    stats = await cache.prefetch(refs, budget_seconds=.03)
+    # The reply stops waiting; the downloads are not cancelled and serve the next reply.
+    assert stats['miss'] == 12 and stats['timeout'] >= 10 and stats['hit'] == 0
+    assert cache._inflight and active
+    await drain(cache)
     assert maximum <= 2 and active == 0
+    assert all(cache.get_png(ref) for ref in refs)
+    assert (await cache.prefetch(refs, budget_seconds=.03)) == {'hit': 12, 'miss': 0, 'failed': 0, 'timeout': 0}
+    await cache.aclose()
+
+
+async def test_background_downloads_end_within_their_window_and_on_close(monkeypatch):
+    assets = module()
+    calls = []
+    async def fetch(url, **kwargs):
+        calls.append(url)
+        await asyncio.sleep(.05)
+        return png()
+    monkeypatch.setattr(assets, '_download', fetch)
+    cache = assets.PublicAssetCache(concurrency=1, background_seconds=.08)
+    refs = [cache.register_url(f'https://webstatic.tajiduo.com/{i}.png') for i in range(5)]
+    await cache.prefetch(refs, budget_seconds=.01)
+    await drain(cache)
+    # Queued downloads past the window never start and are not remembered as failures.
+    started = len(calls)
+    assert started <= 2 and not cache._failures
+    stats = await cache.prefetch(refs, budget_seconds=.01)
+    assert stats['hit'] == started and stats['miss'] == 5 - started
+    await cache.aclose()
     assert not cache._inflight
+
+
+async def test_missing_or_invalid_images_are_remembered_longer_than_network_failures(monkeypatch):
+    assets = module()
+    clock = [100.0]
+    monkeypatch.setattr(assets.time, 'monotonic', lambda: clock[0])
+    calls = []
+    async def fetch(url, **kwargs):
+        calls.append(url.rsplit('/', 1)[1])
+        if 'missing' in url:raise ValueError('qq_asset_http_not_found')
+        if 'broken' in url:return b'not an image'
+        raise TimeoutError()
+    monkeypatch.setattr(assets, '_download', fetch)
+    cache = assets.PublicAssetCache()
+    refs = [cache.register_url(f'https://webstatic.tajiduo.com/{name}.png') for name in ('missing', 'broken', 'slow')]
+    assert (await cache.prefetch(refs, budget_seconds=1))['failed'] == 3
+    clock[0] += 31
+    assert (await cache.prefetch(refs, budget_seconds=1))['failed'] == 3
+    assert calls == ['missing.png', 'broken.png', 'slow.png', 'slow.png']
+    clock[0] += 600
+    await cache.prefetch(refs, budget_seconds=1)
+    assert calls[4:] == ['missing.png', 'broken.png', 'slow.png']
+    await cache.aclose()
+
+
+async def test_sanitizing_runs_off_the_event_loop_thread(monkeypatch):
+    import threading
+    assets = module()
+    threads = []
+    original = assets.sanitize_image
+    def sanitize(raw, **kwargs):
+        threads.append(threading.current_thread())
+        return original(raw, **kwargs)
+    async def fetch(url, **kwargs):
+        return png()
+    monkeypatch.setattr(assets, '_download', fetch)
+    monkeypatch.setattr(assets, 'sanitize_image', sanitize)
+    cache = assets.PublicAssetCache()
+    ref = cache.register_url('https://webstatic.tajiduo.com/a.png')
+    await cache.prefetch([ref], budget_seconds=1)
+    assert cache.get_png(ref) and threads and threads[0] is not threading.main_thread()
+    await cache.aclose()
+
+
+async def test_not_found_status_is_its_own_code(monkeypatch):
+    assets = module()
+    loop = asyncio.get_running_loop()
+    async def dns(*args, **kwargs):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('1.1.1.1', 443))]
+    monkeypatch.setattr(loop, 'getaddrinfo', dns)
+    class Writer:
+        def write(self, data): pass
+        async def drain(self): pass
+        def close(self): pass
+    for status, code in ((b'404 Not Found', 'qq_asset_http_not_found'), (b'410 Gone', 'qq_asset_http_not_found'),
+                         (b'503 Service Unavailable', 'qq_asset_http_status')):
+        reader = asyncio.StreamReader()
+        reader.feed_data(b'HTTP/1.1 ' + status + b'\r\nContent-Length: 0\r\n\r\n')
+        reader.feed_eof()
+        async def connect(*args, **kwargs): return reader, Writer()
+        monkeypatch.setattr(assets.asyncio, 'open_connection', connect)
+        with pytest.raises(ValueError, match=code):
+            await assets._download('https://webstatic.tajiduo.com/a.png', timeout_seconds=.5)
 
 
 async def test_private_dns_rejected_before_connection(monkeypatch):

@@ -5,6 +5,7 @@ Ubuntu operators can install fonts-noto-cjk. Windows fonts are never bundled.
 """
 import asyncio
 from collections import OrderedDict
+from contextvars import ContextVar
 import hashlib
 import json
 import logging
@@ -31,6 +32,13 @@ qq_browser_shared_content_incomplete qq_browser_shared_content_unavailable qq_br
 qq_image_cjk_font_unavailable qq_image_pixel_limit qq_image_safe_summary_required
 qq_image_size_limit qq_image_text_card_mismatch qq_image_time_limit
 '''.split())
+# One reply's phase timings: whole milliseconds, counts and the fixed codes above only.
+# The render task copies the caller's context, so the renderer fills the caller's dict.
+RENDER_TIMING = ContextVar('qq_render_timing', default=None)
+
+
+def elapsed_ms(started):
+    return round((time.monotonic() - started) * 1000)
 
 
 class RenderingUnavailable(Exception):
@@ -153,21 +161,28 @@ the HTTP request never starts a second render concurrently.
         self.pending = 0
         self.lock = asyncio.Semaphore(1)
         self.tasks = set()
+        self._prewarm = None
 
     async def render(self, scope, result, *, budget_seconds):
+        timing = RENDER_TIMING.get()
+        def fallback(code):
+            logger.warning('QQ render fallback: %s', code)
+            if timing is not None:timing['result'] = code
         if budget_seconds <= 0:
-            logger.warning('QQ render fallback: qq_render_budget_exhausted')
+            fallback('qq_render_budget_exhausted')
             return None
         if self.pending >= self.queue_limit:
-            logger.warning('QQ render fallback: qq_render_queue_full')
+            fallback('qq_render_queue_full')
             return None
-        expires = time.monotonic() + min(budget_seconds, 10)
+        queued = time.monotonic()
+        expires = queued + min(budget_seconds, 10)
         self.pending += 1
         async def work():
             try:
                 async with self.lock:
+                    if timing is not None:timing['queue_ms'] = elapsed_ms(queued)
                     if time.monotonic() >= expires:
-                        logger.warning('QQ render fallback: qq_render_queue_expired')
+                        fallback('qq_render_queue_expired')
                         return None
                     try:
                         return await self.renderer.render_summary_async(scope, result, budget_seconds=max(0, expires-time.monotonic()))
@@ -175,13 +190,13 @@ the HTTP request never starts a second render concurrently.
                         return error
                     except RenderingUnavailable as error:
                         code = error.args[0] if len(error.args) == 1 and type(error.args[0]) is str else None
-                        logger.warning('QQ render fallback: %s', code if code in RENDER_DIAGNOSTIC_CODES else 'qq_render_unavailable')
+                        fallback(code if code in RENDER_DIAGNOSTIC_CODES else 'qq_render_unavailable')
                         return error if str(error) in ('qq_image_size_limit','qq_image_pixel_limit') else None
                     except asyncio.TimeoutError:
-                        logger.warning('QQ render fallback: qq_render_timeout')
+                        fallback('qq_render_timeout')
                         return None
                     except Exception:
-                        logger.warning('QQ render fallback: qq_render_exception')
+                        fallback('qq_render_exception')
                         return None
             finally:
                 self.pending -= 1
@@ -191,10 +206,40 @@ the HTTP request never starts a second render concurrently.
         try:
             return await asyncio.wait_for(asyncio.shield(task), timeout=max(0, expires - time.monotonic()))
         except asyncio.TimeoutError:
-            logger.warning('QQ render fallback: qq_render_deadline')
+            fallback('qq_render_deadline')
             return None
 
+    def prewarm(self, *, timeout=20):
+        """Start the browser in the background so the first reply skips the cold start.
+
+        Runs through the queue lock (never beside a render) and only logs a fixed code;
+        a renderer without prewarm(), or one that is disabled, does nothing.
+        """
+        if not hasattr(self.renderer, 'prewarm'):
+            return None
+        async def work():
+            started = time.monotonic()
+            try:
+                async with self.lock:
+                    ready = await asyncio.wait_for(self.renderer.prewarm(), timeout)
+                if ready:
+                    logger.info('QQ render prewarm: ready ms=%d', elapsed_ms(started))
+            except RenderingUnavailable as error:
+                code = error.args[0] if len(error.args) == 1 and type(error.args[0]) is str else None
+                logger.warning('QQ render prewarm failed: %s', code if code in RENDER_DIAGNOSTIC_CODES else 'qq_render_unavailable')
+            except asyncio.TimeoutError:
+                logger.warning('QQ render prewarm failed: qq_render_timeout')
+            except Exception:
+                logger.warning('QQ render prewarm failed: qq_render_exception')
+        task = self._prewarm = asyncio.create_task(work())
+        self.tasks.add(task)
+        task.add_done_callback(self.tasks.discard)
+        return task
+
     async def aclose(self):
+        # A start-up warm-up must not hold shutdown for its whole timeout.
+        if self._prewarm is not None:
+            self._prewarm.cancel()
         if self.tasks:
             await asyncio.gather(*tuple(self.tasks), return_exceptions=True)
         if hasattr(self.renderer, 'aclose'):

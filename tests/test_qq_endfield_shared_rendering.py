@@ -24,7 +24,9 @@ def test_profile_commands_forward_shared_report_and_zero_without_scope_identifie
     snapshot=context['render_snapshot'];assert snapshot['kind']=='game_snapshot'
     panel=next(panel for panel in snapshot['display_data']['panels'] if panel['capability']==cap)
     data=panel['snapshot']['payload'];assert data['report']['overview']['stamina']['current']==0
-    assert len(data['report']['training']['items'])==35
+    # The overview sheet shows six operators (level order); every count stays the full roster's.
+    assert len(data['report']['training']['items'])==(6 if command=='summary' else 35)
+    assert data['report']['training']['summary']['listed_count']==35
     assert data['report']['training']['summary']['rarity_counts']=={'6':12,'5':23}
     assert 'PRIVATE_' not in json.dumps(snapshot) and '123456789' not in json.dumps(snapshot)
     assert context['grants'][0][0].role_id=='internal-role-uuid'
