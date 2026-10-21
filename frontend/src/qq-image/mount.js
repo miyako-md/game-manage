@@ -2,7 +2,7 @@ import {createApp,nextTick} from 'vue'
 import LabRoot from './LabRoot.vue'
 import {configure} from './models.js'
 import {auditLayout} from './layout-audit.js'
-import {skinOf} from '../game-themes.js'
+import {sheetSkin} from './sheet-skin.js'
 import '../style.css'
 import '../wuwa.css'
 import '../render.css'
@@ -31,8 +31,8 @@ window.mountLongRender=async request=>{
  try{
   await window.disposeLongRender()
   const snapshot=request.snapshot
-  // A skinned game image starts from the website's validated dark tokens; the skin then overrides the surfaces.
-  document.documentElement.dataset.theme=skinOf(snapshot.game)?'dark':'light'
+  // A skinned image starts from the website's validated dark tokens; the skin then overrides the surfaces.
+  document.documentElement.dataset.theme=sheetSkin(snapshot.game)?'dark':'light'
   let command=snapshot.next_command
   if(snapshot.kind==='wuwa_role')command='鸣潮 角色 '+(snapshot.display_data.detail.role?.role_name||'详情')
   if(snapshot.kind==='nte_role')command='异环 角色'+(snapshot.display_data.snapshot.display_mode==='detail'?' '+(snapshot.display_data.snapshot.payload.entries?.[0]?.name||'详情'):'')

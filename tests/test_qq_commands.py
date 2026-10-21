@@ -473,3 +473,15 @@ def test_every_kept_command_still_parses():
             assert parsed.game==GAMES[name] and accepts(parsed.command,parsed.game),(name,word)
     for raw in ('帮助','我的账号','我的总览','活动','近期活动','日历','看板','绑定 CODE1234','攻略'):
         assert parse_command(raw).command not in ('retired','help') or raw=='帮助',raw
+
+
+def test_help_groups_name_their_game_only_when_every_line_belongs_to_it():
+    from game_assistant.qq.cards import card_to_text, validate_card_document
+    from game_assistant.qq.presentation import help_document
+    card=help_document()
+    assert {s['title']:s.get('game') for s in card['sections']}=={'绑定与账号':None,'总览与角色':None,'资源与进度':None,'抽卡':None,'活动与日历':None,
+        '鸣潮专项':'wuthering_waves','异环专项':'nte','终末地专项':'endfield'}
+    assert [s.get('game') for s in help_document('nte')['sections'] if s.get('game')]==['nte']
+    # Presentation only: the text reply is the same with or without the field.
+    plain={**card,'sections':[{k:v for k,v in s.items() if k!='game'} for s in card['sections']]}
+    assert card_to_text(card)==card_to_text(plain) and validate_card_document(card)['sections'][5]['game']=='wuthering_waves'

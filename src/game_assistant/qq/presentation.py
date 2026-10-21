@@ -129,14 +129,17 @@ def help_document(game=None):
     """Every line comes from the command registry, so help matches the parser."""
     from .commands import ALL_GAMES, REGISTRY
     prefix=GAME_NAMES.get(game,'游戏')
-    grouped={}
+    grouped={};owners={}
     for entry in REGISTRY:
         if game is not None and entry.games and game not in entry.games:continue
         name=prefix if game is not None or len(entry.games)!=1 else GAME_NAMES[entry.games[0]]
         description=entry.description
         if game is None and 1<len(entry.games)<len(ALL_GAMES):description+='（'+'、'.join(GAME_NAMES[g] for g in entry.games)+'）'
         grouped.setdefault(entry.section,[]).append(field(description,entry.syntax.replace('游戏',name)))
-    sections=[{'title':title,'layout':'help','fields':fields} for title,fields in grouped.items()]
+        owners.setdefault(entry.section,set()).add(entry.games[0] if len(entry.games)==1 else None)
+    # A group whose every line belongs to one game names it, so the image can tint that group.
+    sections=[{'title':title,'layout':'help','fields':fields,**({'game':next(iter(owners[title]))} if owners[title]!={None} and len(owners[title])==1 else {})}
+              for title,fields in grouped.items()]
     card=document('help',game or 'all',prefix+' · 帮助' if game else '帮助 · 游戏管家',subtitle='游戏前缀：鸣潮、异环、终末地；公共单游戏活动无需绑定',sections=sections,
         notices=['先登录网站生成绑定码，再发送绑定指令；收到成功回复即完成。','不写游戏名时，活动按已授权的游戏分别显示；近期活动列出即将开始或结束的活动。'])
     card['version']=3

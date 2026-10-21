@@ -483,3 +483,15 @@ def test_font_sidecar_replaced_by_a_link_is_refused_after_a_cached_check(tmp_pat
     except OSError:
         pytest.skip('Host does not permit creating file symlinks')
     assert renderer._font_resource() == (font, 'font/ttf')
+
+
+def test_notice_snapshot_carries_the_help_group_game_and_rejects_anything_else():
+    from game_assistant.qq.presentation import help_document, message
+    from game_assistant.qq.render_snapshot import notice_snapshot
+    snap=notice_snapshot(help_document(),NOW)
+    assert [s.get('game') for s in snap['display_data']['sections']][-3:]==['wuthering_waves','nte','endfield']
+    assert all('game' not in s for s in snap['display_data']['sections'][:5])
+    assert 'game' not in str(notice_snapshot(message('nte','授权状态','请在网站重新授权。'),NOW)['display_data'])
+    for bad in ({'game':'all'},{'game':'lol'},{'tone':'red'}):
+        broken=dict(snap,display_data=dict(snap['display_data'],sections=[dict(snap['display_data']['sections'][0],**bad)]))
+        with pytest.raises(RenderingUnavailable):validate_snapshot(broken)

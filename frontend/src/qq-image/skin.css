@@ -153,3 +153,116 @@
 .lab-sheet.is-account-overview[data-skin="endfield"] .ao-game-block > .ao-section:nth-child(3) .ao-section-title::after {
   content: 'OPERATORS';
 }
+
+/* ---- Nested game skins on a reused sheet (D3) ------------------------------ */
+/* The sheet's own skin, captured once, so a nested [data-skin] (a help group, an
+   account card, one game's calendar block or upcoming row, a guide block) keeps
+   the shell's surfaces, text and shapes and only takes its game's accent and
+   line colours: one obsidian sheet instead of alternating backgrounds. */
+.reuse.lab-sheet[data-skin]:not(.is-account-overview) {
+  --shell-bg: var(--skin-bg);
+  --shell-surface: var(--skin-surface);
+  --shell-ink: var(--skin-ink);
+  --shell-muted: var(--skin-muted);
+  --shell-radius-card: var(--skin-radius-card);
+  --shell-radius-tile: var(--skin-radius-tile);
+  --shell-radius-chip: var(--skin-radius-chip);
+  --shell-glow: var(--skin-glow);
+}
+
+.reuse.lab-sheet[data-skin]:not(.is-account-overview) [data-skin] {
+  --skin-bg: var(--shell-bg);
+  --skin-bg-grad: var(--shell-bg);
+  --skin-surface: var(--shell-surface);
+  --skin-ink: var(--shell-ink);
+  --skin-muted: var(--shell-muted);
+  --skin-radius-card: var(--shell-radius-card);
+  --skin-radius-tile: var(--shell-radius-tile);
+  --skin-radius-chip: var(--shell-radius-chip);
+  --skin-glow: var(--shell-glow);
+  /* The reuse.css locals were resolved on the sheet; re-derive the accented ones. */
+  --line: rgba(var(--skin-tint-rgb), .2);
+  --soft: rgba(var(--skin-tint-rgb), .09);
+  --accent: var(--skin-accent);
+  --accent-soft: rgba(var(--skin-tint-rgb), .14);
+  --game-accent: var(--skin-accent) !important;
+  --game-vivid: var(--skin-accent) !important;
+  --game-vivid-2: var(--skin-accent-2) !important;
+  --game-tone: rgba(var(--skin-tint-rgb), .14) !important;
+}
+
+/* ---- Panel blocks (activities, calendars, guides) on a dark skin ----------- */
+/* Solid header tint: the light-paper gradient turned into a pale band, and a
+   long gradient is dithered into extra PNG bytes (D9). */
+.reuse.lab-sheet[data-skin] .block {
+  border-radius: var(--skin-radius-card);
+  box-shadow: none;
+}
+
+.reuse.lab-sheet[data-skin] .block-cap {
+  background: rgba(var(--skin-tint-rgb), .07);
+  border-radius: var(--skin-radius-card) var(--skin-radius-card) 0 0;
+}
+
+/* The shared timeline re-applies the website palette on each game row. */
+.reuse.lab-sheet[data-skin] .cloud-calendar .timeline-group {
+  --game-accent: var(--skin-accent) !important;
+  --game-vivid: var(--skin-accent) !important;
+  --game-vivid-2: var(--skin-accent-2) !important;
+  --game-tone: rgba(var(--skin-tint-rgb), .14) !important;
+}
+
+/* Bars started from white (#fff) and their light text vanished on it. The tint
+   sits on an opaque base so the grid and today's line stay behind the text. */
+.reuse.lab-sheet[data-skin] .cloud-calendar .timeline-event:not(.is-point) {
+  background: linear-gradient(rgba(var(--skin-tint-rgb), .12), rgba(var(--skin-tint-rgb), .12)), var(--shell-bg) !important;
+  border-color: rgba(var(--skin-tint-rgb), .28) !important;
+  border-left-color: var(--skin-accent) !important;
+}
+
+/* Elapsed part in the neutral line tint (a translucent accent turned olive on
+   yellow), without its edge line, which ran through the bar text at today. */
+.reuse.lab-sheet[data-skin] .cloud-calendar .event-elapsed {
+  background: rgba(var(--skin-tint-rgb), .12);
+  border-right-color: transparent;
+}
+
+.reuse.lab-sheet[data-skin] .cloud-calendar .timeline-event.is-short .event-summary,
+.reuse.lab-sheet[data-skin] .cloud-calendar .point-label {
+  background: var(--shell-bg) !important;
+  border-color: rgba(var(--skin-tint-rgb), .28);
+}
+
+.reuse.lab-sheet[data-skin] .cloud-calendar :is(.event-status, .day-today) {
+  background: var(--skin-accent) !important;
+  color: var(--skin-on-accent) !important;
+}
+
+.reuse.lab-sheet[data-skin] .cloud-calendar .event-remaining {
+  background: transparent !important;
+  color: var(--skin-ink) !important;
+  border-color: rgba(var(--skin-tint-rgb), .4) !important;
+}
+
+.reuse.lab-sheet[data-skin] .cloud-calendar .event-remaining.urgent {
+  color: var(--skin-hot) !important;
+  border-color: var(--skin-hot) !important;
+}
+
+.reuse.lab-sheet[data-skin] .cloud-calendar .date-cell.is-today strong {
+  background: var(--skin-accent);
+  color: var(--skin-on-accent);
+}
+
+.reuse.lab-sheet[data-skin] .cloud-calendar .today-line {
+  background: var(--skin-accent);
+}
+
+.reuse.lab-sheet[data-skin] .upcoming-game {
+  border-color: rgba(var(--skin-tint-rgb), .4);
+}
+
+/* Today's line runs under the bars, so it never crosses their text. */
+.reuse.lab-sheet[data-skin] .cloud-calendar .event-lane {
+  z-index: 3;
+}

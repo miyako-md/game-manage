@@ -55,7 +55,9 @@ def validate_snapshot(value):
         data=value['display_data']
         if not isinstance(data['title'],str) or not isinstance(data['sections'],list):raise RenderingUnavailable('qq_browser_invalid_snapshot')
         for section in data['sections']:
-            if not isinstance(section,dict) or set(section)!={'title','items'} or not isinstance(section['title'],str):raise RenderingUnavailable('qq_browser_invalid_snapshot')
+            # An optional game names the game a help group belongs to (presentation only).
+            if not isinstance(section,dict) or not {'title','items'}<=set(section)<={'title','items','game'} or not isinstance(section['title'],str):raise RenderingUnavailable('qq_browser_invalid_snapshot')
+            if 'game' in section and section['game'] not in ('wuthering_waves','nte','endfield'):raise RenderingUnavailable('qq_browser_invalid_snapshot')
             strings(section['items'])
     if value['kind']=='game_snapshot':
         panels=value['display_data']['panels']

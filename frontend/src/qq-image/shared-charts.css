@@ -253,7 +253,7 @@
 }
 
 .lab-sheet .cloud-calendar .calendar-content {
-  --timeline-label-width: 132px;
+  --timeline-label-width: 150px;
   overflow: visible !important;
   display: block;
 }
@@ -284,7 +284,7 @@
 }
 
 .lab-sheet .cloud-calendar .header-label small {
-  font-size: 15px;
+  font-size: 17px;
 }
 
 /* A version can span seven weeks or more: date labels shrink with the column
@@ -305,13 +305,13 @@
 }
 
 .lab-sheet .cloud-calendar .date-cell small {
-  font-size: min(16px, calc(100cqw / var(--day-count) * 0.78)) !important;
+  font-size: 17px !important;
   line-height: 1.35;
 }
 
 .lab-sheet .cloud-calendar .date-cell strong,
 .lab-sheet .cloud-calendar .date-cell.is-month-start strong {
-  font-size: min(18px, calc(100cqw / var(--day-count) * 0.6)) !important;
+  font-size: 18px !important;
   line-height: 1.45;
   min-width: 0;
   max-width: 100%;
@@ -321,14 +321,36 @@
   text-align: center;
 }
 
+/* QQ text stays at 17px or more, so a whole version (often six or seven weeks,
+   under 20px per day) cannot label every day: from 22 days on, only every
+   seventh day from the start, the month start and today keep their labels and
+   the other columns stay as grid lines. A tick right beside the month start or
+   today gives way to it. */
+.lab-sheet .cloud-calendar .date-track:has(> .date-cell:nth-child(22)) > .date-cell {
+  background: none !important;
+}
+
+.lab-sheet .cloud-calendar .date-track:has(> .date-cell:nth-child(22)) > .date-cell > strong {
+  max-width: none;
+  font-size: 17px !important;
+}
+
+.lab-sheet .cloud-calendar .date-track:has(> .date-cell:nth-child(22)) > .date-cell:not(:nth-child(7n+1), .is-month-start, .is-today) > :is(small, strong),
+.lab-sheet .cloud-calendar .date-track:has(> .date-cell:nth-child(22)) > :is(.is-month-start, .is-today) + .date-cell:not(.is-month-start, .is-today) > :is(small, strong),
+.lab-sheet .cloud-calendar .date-track:has(> .date-cell:nth-child(22)) > .date-cell:not(.is-month-start, .is-today):has(+ :is(.is-month-start, .is-today)) > :is(small, strong),
+.lab-sheet .cloud-calendar .date-track:has(> .date-cell:nth-child(22)) > .is-today + .is-month-start > :is(small, strong),
+.lab-sheet .cloud-calendar .date-track:has(> .date-cell:nth-child(22)) > .is-month-start:has(+ .is-today) > :is(small, strong) {
+  visibility: hidden;
+}
+
 .lab-sheet .cloud-calendar .day-today {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
   bottom: 4px;
-  width: 44px;
-  min-width: 44px;
-  font-size: 15px !important;
+  width: 48px;
+  min-width: 48px;
+  font-size: 17px !important;
   line-height: 1.35 !important;
   text-align: center;
   background: var(--game-accent, var(--accent));
@@ -356,7 +378,7 @@
 }
 
 .lab-sheet .cloud-calendar .group-label small {
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.4;
   margin-top: 6px;
 }
@@ -425,7 +447,7 @@
 
 /* Chips never grow wider than the bar (or floating label) that holds them. */
 .lab-sheet .cloud-calendar :is(.event-category, .event-status, .event-remaining) {
-  font-size: 14px !important;
+  font-size: 17px !important;
   line-height: 1.4 !important;
   padding: 1px 7px !important;
   border-radius: 999px;
@@ -539,7 +561,7 @@
 }
 
 .lab-sheet .cloud-calendar .unplaced-event small {
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.45;
 }
 
@@ -562,12 +584,12 @@
 }
 
 .upcoming-row.has-game {
-  grid-template-columns: 76px minmax(0, 1fr) 196px 168px;
+  grid-template-columns: 84px minmax(0, 1fr) 196px 168px;
 }
 
 .upcoming-game {
   justify-self: start;
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.4;
   padding: 2px 8px;
   border-radius: 6px;
@@ -593,7 +615,7 @@
 }
 
 .upcoming-name small {
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.4;
   white-space: nowrap;
 }
