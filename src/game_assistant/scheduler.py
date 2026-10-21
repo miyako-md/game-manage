@@ -183,6 +183,8 @@ class AccountPollingScheduler:
         self._loop = None
         self._running = False
         self._public_running = set()
+        # Per game: completed public jobs and the last outcome (admin collect progress).
+        self._public_results = {}
         self.clock = time.monotonic
 
     def start(self, *, periodic=True):
@@ -359,23 +361,47 @@ class AccountPollingScheduler:
             raise HTTPException(409, 'source_backoff')
         return self._queue(('public', game), lambda: self._poll_public(game, bili_only=True, backfill=backfill))
 
-    async def _poll_public(self, game, *, bili_only=False, backfill=False):
+    def public_result(self, game):
+        return self._public_results.get(game) or dict(generation=0, outcome=None)
+
+    def request_public_refresh(self, game, backfill=True):
+        """Administrator collect: one immediate full public poll for the game.
+
+        Shares the ('public', game) queue key, so a queued or running job for the
+        game is merged instead of starting another one."""
+        from fastapi import HTTPException
+        if not self.public or game not in self.public.sources:
+            raise HTTPException(404, 'source_not_configured')
+        if not self._running:
+            raise HTTPException(503, 'scheduler_unavailable')
+        return self._queue(('public', game), lambda: self._poll_public(game, force=True, backfill=backfill))
+
+    async def _poll_public(self, game, *, bili_only=False, backfill=False, force=False):
+        from datetime import datetime, timezone
         key = ('public', game)
         provider = self._providers.setdefault(self.public.provider(game), asyncio.Semaphore(
             self.settings.cloud_provider_concurrency))
+        outcome = dict(state='failed', scope='bilibili' if bili_only else 'public', bilibili=None, failed=[])
         try:
             async with provider, self._global:
                 self._public_running.add(game)
                 if bili_only:
                     await self.public.bilibili.run(game, backfill, history_days=60 if backfill else None)
+                    state = self.public.bilibili.store.state(game, self.public.bilibili.sources[game])
+                    outcome.update(bilibili='error' if state.get('status') == 'error' else 'ok')
                 else:
-                    await self.public.poll(game)
+                    outcome.update(await (self.public.poll(game, force=True, backfill=backfill) if force
+                                          else self.public.poll(game)) or {})
+                outcome['state'] = 'failed' if outcome['bilibili'] == 'error' or outcome['failed'] else 'done'
         except Exception:
             logger.warning('Cloud public source poll failed')
         finally:
             self._public_running.discard(game)
             if not bili_only:
                 self._due[key] = self.clock() + self.settings.cloud_public_poll_seconds
+            previous = self._public_results.get(game, {}).get('generation', 0)
+            self._public_results[game] = dict(generation=previous + 1,
+                outcome={**outcome, 'finished_at': datetime.now(timezone.utc).isoformat()})
 
     async def tick(self):
         from game_assistant.accounts.models import AccountScope

@@ -19,8 +19,11 @@ def expired(value, interval, now):
         return True
 
 
-def read_public_snapshot(store, game, capability, settings, bilibili=None, *, now=None):
+def read_public_snapshot(store, game, capability, settings, bilibili=None, *, now=None, poll_seconds=None):
+    """poll_seconds: the cloud public poll interval; freshness never expects
+    data more often than the sources are actually collected."""
     now = now or datetime.now(timezone.utc)
+    floor = poll_seconds or 0
     statuses, snapshots, native = {}, {}, []
     caps = (capability, 'announcement') if capability == 'news' else (capability,)
     for cap in caps:
@@ -30,7 +33,7 @@ def read_public_snapshot(store, game, capability, settings, bilibili=None, *, no
             game_id=game, capability=cap, state='never', last_attempt_at=None,
             last_success_at=snap['fetched_at'] if snap else None,
             consecutive_failures=0, error=None, error_kind=None)
-        stale = bool(snap and (expired(snap['fetched_at'], interval_for(Capability(cap), settings), now)
+        stale = bool(snap and (expired(snap['fetched_at'], max(interval_for(Capability(cap), settings), floor), now)
                      or status['state'] in ('error', 'auth_expired')))
         statuses[cap] = {**status, 'stale': stale}
         payload = json.loads(snap['payload']) if snap else []
@@ -62,7 +65,7 @@ def read_public_snapshot(store, game, capability, settings, bilibili=None, *, no
             (r.get('fetched_at') for r in primary if r.get('fetched_at')), default=None)
         failed = state.get('status') == 'error'
         partial = any(r.get('source_stale') for r in primary)
-        stale = expired(success_at, max(600, settings.bilibili_poll_seconds), now)
+        stale = expired(success_at, max(600, settings.bilibili_poll_seconds, floor), now)
         bili_status = dict(state='error' if failed or partial else 'ok' if success_at or primary else 'never',
             error=(state.get('message') or 'B站采集失败，保留成功记录') if failed else
                   '部分B站正文更新失败，保留上次成功内容' if partial else None,
@@ -106,7 +109,8 @@ def read_public_snapshot(store, game, capability, settings, bilibili=None, *, no
     if capability == 'events':
         try:
             from .article_content import article_images
-            articles = read_public_snapshot(store, game, 'news', settings, bilibili, now=now)['payload'] or []
+            articles = read_public_snapshot(store, game, 'news', settings, bilibili, now=now,
+                                            poll_seconds=poll_seconds)['payload'] or []
             index = []
             fields = ('id', 'post_id', 'article_id', 'source', 'url', 'source_url', 'source_post_id', 'version', 'version_id')
             for article in articles:

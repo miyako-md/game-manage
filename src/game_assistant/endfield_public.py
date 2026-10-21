@@ -123,7 +123,8 @@ def _checked(data, key):
 
 
 class EndfieldPublicService:
-    TTL = 4 * 3600
+    # 与云端公共采集周期一致：官网资讯每 6 小时最多读取一次（强制刷新除外）。
+    TTL = 6 * 3600
 
     def __init__(self, db_path):
         path = Path(db_path).with_suffix('.endfield-public.sqlite3')
