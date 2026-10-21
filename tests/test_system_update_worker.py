@@ -889,6 +889,8 @@ def test_cache_seeding_keeps_links_unfollowed_and_skips_foreign_or_special_entri
     # Content the builder does not own (e.g. a hard link to a root file) is never copied.
     assert not seed_dependency_cache(root, 'uv', root / 'uv-foreign', (os.getuid() + 1, os.getgid()))
     os.mkfifo(root / 'uv-new' / 'pipe')
+    # Adding the link above touched uv-old; make uv-new (with the FIFO) the most recent source again.
+    os.utime(root / 'uv-old', (1_000_001, 1_000_001))
     os.utime(root / 'uv-new', (2_000_000, 2_000_000))
     assert not seed_dependency_cache(root, 'uv', root / 'uv-fifo', owner)
     assert sorted(p.name for p in root.iterdir()) == ['uv-new', 'uv-old']
