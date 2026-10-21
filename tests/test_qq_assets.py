@@ -157,12 +157,14 @@ async def drain(cache, limit=5):
     pytest.fail('background downloads did not finish')
 
 
-async def test_timed_out_prefetch_finishes_in_background_within_concurrency(monkeypatch):
+async def test_timed_out_prefetch_defers_its_downloads_and_refetches_them_serially(monkeypatch):
     assets = module()
     active = 0
     maximum = 0
+    calls = []
     async def fetch(url, **kwargs):
         nonlocal active, maximum
+        calls.append(url)
         active += 1
         maximum = max(maximum, active)
         try:
@@ -174,35 +176,69 @@ async def test_timed_out_prefetch_finishes_in_background_within_concurrency(monk
     cache = assets.PublicAssetCache(concurrency=2)
     refs = [cache.register_url(f'https://webstatic.tajiduo.com/{i}.png') for i in range(12)]
     stats = await cache.prefetch(refs, budget_seconds=.03)
-    # The reply stops waiting; the downloads are not cancelled and serve the next reply.
-    assert stats['miss'] == 12 and stats['timeout'] >= 10 and stats['hit'] == 0
-    assert cache._inflight and active
-    await drain(cache)
-    assert maximum <= 2 and active == 0
+    # Nothing keeps downloading beside the render: unfinished downloads stop at the budget.
+    assert stats['miss'] == 12 and stats['timeout'] == 12 and stats['hit'] == 0
+    assert not cache._inflight and active == 0 and len(cache._deferred) == 12
+    maximum = 0
+    await asyncio.wait_for(cache._drainer, 5)
+    # Refetched one at a time, so the next reply finds them cached.
+    assert maximum == 1 and not cache._deferred and len(calls) <= 14 and set(calls[-12:]) == set(calls)
     assert all(cache.get_png(ref) for ref in refs)
     assert (await cache.prefetch(refs, budget_seconds=.03)) == {'hit': 12, 'miss': 0, 'failed': 0, 'timeout': 0}
     await cache.aclose()
 
 
-async def test_background_downloads_end_within_their_window_and_on_close(monkeypatch):
+async def test_deferred_downloads_wait_while_an_image_is_rendering(monkeypatch):
     assets = module()
-    calls = []
+    calls, sanitized = [], []
+    release = asyncio.Event()
     async def fetch(url, **kwargs):
         calls.append(url)
-        await asyncio.sleep(.05)
+        if len(calls) > 2:await release.wait()
+        else:await asyncio.sleep(1)
+        return png()
+    original = assets.sanitize_image
+    def sanitize(raw, **kwargs):
+        sanitized.append(1)
+        return original(raw, **kwargs)
+    monkeypatch.setattr(assets, '_download', fetch)
+    monkeypatch.setattr(assets, 'sanitize_image', sanitize)
+    cache = assets.PublicAssetCache()
+    refs = [cache.register_url(f'https://webstatic.tajiduo.com/{i}.png') for i in range(2)]
+    with cache.rendering():
+        await cache.prefetch(refs, budget_seconds=.01)
+        await asyncio.sleep(.1)
+        assert len(calls) == 2 and not sanitized, 'no deferred download starts during a render'
+    await asyncio.sleep(.05)
+    assert len(calls) == 3
+    # A deferred download that finishes while a render has started waits to be decoded.
+    with cache.rendering():
+        release.set()
+        await asyncio.sleep(.1)
+        assert not sanitized
+    await asyncio.wait_for(cache._drainer, 5)
+    assert len(sanitized) == 2 and all(cache.get_png(ref) for ref in refs)
+    await cache.aclose()
+
+
+async def test_short_budget_reply_leaves_another_replys_download_running_and_close_stops_deferral(monkeypatch):
+    assets = module()
+    async def fetch(url, **kwargs):
+        await asyncio.sleep(.1)
         return png()
     monkeypatch.setattr(assets, '_download', fetch)
-    cache = assets.PublicAssetCache(concurrency=1, background_seconds=.08)
-    refs = [cache.register_url(f'https://webstatic.tajiduo.com/{i}.png') for i in range(5)]
-    await cache.prefetch(refs, budget_seconds=.01)
-    await drain(cache)
-    # Queued downloads past the window never start and are not remembered as failures.
-    started = len(calls)
-    assert started <= 2 and not cache._failures
-    stats = await cache.prefetch(refs, budget_seconds=.01)
-    assert stats['hit'] == started and stats['miss'] == 5 - started
-    await cache.aclose()
-    assert not cache._inflight
+    cache = assets.PublicAssetCache()
+    ref = cache.register_url('https://webstatic.tajiduo.com/shared.png')
+    long_reply = asyncio.create_task(cache.prefetch([ref], budget_seconds=1))
+    await asyncio.sleep(0)
+    assert (await cache.prefetch([ref], budget_seconds=.01))['timeout'] == 1
+    assert (await long_reply)['failed'] == 0 and cache.get_png(ref) and not cache._deferred
+    other = cache.register_url('https://webstatic.tajiduo.com/deferred.png')
+    with cache.rendering():
+        await cache.prefetch([other], budget_seconds=.01)
+        assert cache._deferred and cache._drainer
+        await cache.aclose()
+    assert not cache._deferred and cache._drainer is None and not cache._inflight
 
 
 async def test_missing_or_invalid_images_are_remembered_longer_than_network_failures(monkeypatch):

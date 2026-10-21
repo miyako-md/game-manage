@@ -5,6 +5,7 @@ Ubuntu operators can install fonts-noto-cjk. Windows fonts are never bundled.
 """
 import asyncio
 from collections import OrderedDict
+from contextlib import nullcontext
 from contextvars import ContextVar
 import hashlib
 import json
@@ -184,8 +185,11 @@ the HTTP request never starts a second render concurrently.
                     if time.monotonic() >= expires:
                         fallback('qq_render_queue_expired')
                         return None
+                    # Deferred public-image downloads pause while Chromium renders.
+                    cache = getattr(self.renderer, 'asset_cache', None)
                     try:
-                        return await self.renderer.render_summary_async(scope, result, budget_seconds=max(0, expires-time.monotonic()))
+                        with cache.rendering() if hasattr(cache, 'rendering') else nullcontext():
+                            return await self.renderer.render_summary_async(scope, result, budget_seconds=max(0, expires-time.monotonic()))
                     except RenderingPageUnavailable as error:
                         return error
                     except RenderingUnavailable as error:

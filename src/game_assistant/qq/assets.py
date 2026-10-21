@@ -11,6 +11,7 @@ resolver for public-image hosts without changing machine-wide DNS settings.
 import asyncio
 import base64
 from collections import OrderedDict
+from contextlib import contextmanager
 import hashlib
 import ipaddress
 from itertools import islice
@@ -217,8 +218,7 @@ async def _download(value, *, timeout_seconds=3, dns_resolver='system', artwork=
 
 class PublicAssetCache:
     def __init__(self, *, cache_entries=128, cache_bytes=16*1024*1024, cache_ttl=3600,
-                 concurrency=6, request_timeout=3, artwork_request_timeout=5, dns_resolver='system', prefetch_tasks=80, disk_directory=None,
-                 background_seconds=30):
+                 concurrency=6, request_timeout=3, artwork_request_timeout=5, dns_resolver='system', prefetch_tasks=80, disk_directory=None):
         if dns_resolver not in ('system', 'cloudflare'):
             raise ValueError('qq_asset_dns_resolver_invalid')
         self.dns_resolver = dns_resolver
@@ -235,9 +235,13 @@ class PublicAssetCache:
         self._semaphore = asyncio.Semaphore(max(1, min(concurrency, 8)))
         self._bytes = 0
         self.prefetch_tasks=max(1,min(int(prefetch_tasks),256))
-        # Downloads a reply stopped waiting for finish within this window, then give up quietly.
-        self.background_seconds=max(.001,min(background_seconds,60))
-        self._background=set()
+        # Downloads a reply stopped waiting for are fetched again later, one at a time and
+        # only while no image is being rendered: they must not take CPU from Chromium.
+        self._deferred=OrderedDict()
+        self._drainer=None
+        self._renders=0
+        self._idle=asyncio.Event()
+        self._idle.set()
         self._catalog = CATALOG
         self._portrait_sources = frozenset(CATALOG['games'].get('endfield', {}).get('portrait', {}).values())
         self._portrait_refs = set()
@@ -352,7 +356,19 @@ class PublicAssetCache:
             item = self._cache.get(ref) if isinstance(ref, str) else None
             return item[2] if item else 'missing'
 
-    async def _fetch(self, ref, deadline):
+    @contextmanager
+    def rendering(self):
+        """Held by the render queue around each render; deferred downloads wait for it."""
+        self._renders += 1
+        self._idle.clear()
+        try:
+            yield
+        finally:
+            self._renders -= 1
+            if not self._renders:
+                self._idle.set()
+
+    async def _fetch(self, ref, deadline, *, deferred=False):
         """One bounded download; returns a status code for the caller's counts."""
         try:
             async with self._semaphore:
@@ -363,6 +379,8 @@ class PublicAssetCache:
                 if ref in self._artwork_refs:options['artwork']=True
                 request_timeout=self.artwork_request_timeout if ref in self._artwork_refs else self.request_timeout
                 raw = await _download(self._sources[ref], timeout_seconds=min(remaining, request_timeout), **options)
+                if deferred:
+                    await self._idle.wait()
                 # Decoding and resizing a large picture must not stall the event loop.
                 png = await asyncio.to_thread(sanitize_image, raw, portrait=ref in self._portrait_refs, artwork=ref in self._artwork_refs)
                 self._store(ref, png)
@@ -381,31 +399,44 @@ class PublicAssetCache:
         finally:
             self._inflight.pop(ref, None)
 
-    def _finished_in_background(self, task):
-        if task not in self._background:return
-        self._background.discard(task)
-        if not task.cancelled() and task.result() == 'error':
-            logger.warning('qq_asset_prefetch_failed')
+    async def _drain(self):
+        """Fetch deferred refs serially, each started only when no render is in progress."""
+        try:
+            while self._deferred:
+                await self._idle.wait()
+                ref, _ = self._deferred.popitem(last=False)
+                with self._lock:
+                    self._expire()
+                    if ref not in self._sources or ref in self._failures or ref in self._inflight or self.get_png(ref) is not None:
+                        continue
+                task = asyncio.create_task(self._fetch(ref, time.monotonic() + self.artwork_request_timeout, deferred=True))
+                self._inflight[ref] = task
+                if await task == 'error':
+                    logger.warning('qq_asset_prefetch_failed')
+        finally:
+            self._drainer = None
 
     async def prefetch(self, refs, *, budget_seconds=1.5):
-        """Wait up to the caller's budget; downloads still running then finish in the background.
+        """Wait up to the caller's budget; downloads still running then are deferred.
 
         Input is opaque refs already registered by the safe projection. Cached
         refs consume no sockets; misses are coalesced across concurrent replies.
         Scan at most 512 document refs; cached early rows do not prevent later
         rows being filled on the next reply. At most prefetch_tasks (default
-        80, hard bound 256) tasks and eight sockets can exist for this cache;
-        each download keeps its own request timeout and every task ends within
-        background_seconds, so a slow reply's pictures serve the next one.
+        80, hard bound 256) tasks and eight sockets can exist for this cache.
+        Downloads this call started and that are unfinished at the budget are
+        cancelled (no network or decoding beside the render) and queued for a
+        serial refetch while no render runs, so the next reply finds them.
         Returns counts only: hit (cached), miss (downloads waited for), failed
-        (failed now, or a remembered failure) and timeout (still downloading).
+        (failed now, or a remembered failure) and timeout (deferred or still
+        downloading for another reply).
         """
         stats = {'hit': 0, 'miss': 0, 'failed': 0, 'timeout': 0}
         if budget_seconds <= 0:
             return stats
         now = time.monotonic()
         deadline = now + min(budget_seconds, 5)
-        tasks = []
+        tasks, created = [], {}
         for ref in dict.fromkeys(ref for ref in islice(refs, 512) if isinstance(ref, str)):
             with self._lock:
                 self._expire()
@@ -419,16 +450,26 @@ class PublicAssetCache:
             if task is None:
                 if len(self._inflight) >= self.prefetch_tasks:
                     break
-                task = asyncio.create_task(self._fetch(ref, now + self.background_seconds))
-                task.add_done_callback(self._finished_in_background)
+                task = asyncio.create_task(self._fetch(ref, deadline))
+                created[task] = ref
                 self._inflight[ref] = task
             tasks.append(task)
         stats['miss'] = len(tasks)
         if not tasks:
             return stats
         done, pending = await asyncio.wait(tasks, timeout=max(0, deadline - time.monotonic()))
-        # Not cancelled: they complete within their own timeouts for the next reply.
-        self._background.update(pending)
+        # Another reply's downloads are left to it; this call's own are refetched later.
+        stopped = [task for task in pending if task in created]
+        for task in stopped:
+            task.cancel()
+        await asyncio.gather(*stopped, return_exceptions=True)
+        for task in stopped:
+            self._deferred[created[task]] = None
+            self._deferred.move_to_end(created[task])
+        while len(self._deferred) > 512:
+            self._deferred.popitem(last=False)
+        if self._deferred and self._drainer is None:
+            self._drainer = asyncio.create_task(self._drain())
         results = ['cancelled' if task.cancelled() else task.result() for task in done]
         stats['failed'] += sum(result != 'ok' for result in results)
         stats['timeout'] = len(pending)
@@ -437,9 +478,10 @@ class PublicAssetCache:
         return stats
 
     async def aclose(self):
-        self._background.clear()
-        tasks = list(self._inflight.values())
+        self._deferred.clear()
+        tasks = list(self._inflight.values()) + ([self._drainer] if self._drainer is not None else [])
         for task in tasks:
             task.cancel()
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
+        self._drainer = None
