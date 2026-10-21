@@ -182,8 +182,8 @@ class QqQueryService:
         if root is not None:
             from game_assistant.private_data import scope_directory
             if not (scope_directory(root,scope)/'wuwa_history'/'ledger.sqlite3').is_file():return None
-        # Fixed recent-observation window; no upstream lookup or arbitrary SQL.
-        history=private.ledger(scope,'wuwa_history').read(scope,'role_detail',100,0)
+        # This role's latest observation only (indexed by subject); no upstream lookup or arbitrary SQL.
+        history=private.ledger(scope,'wuwa_history').read(scope,'role_detail',1,0,subject=str(character_id))
         found=next((item for item in view.rows(view.obj(history).get('items'))
                     if str(item.get('subject'))==str(character_id)),None)
         if found is None:return None
@@ -540,7 +540,7 @@ class QqQueryService:
                                     view.obj(view.obj(detail.payload).get('role')).get('role_icon_url')))
                                 card['notices'].append('详情来自网站成功观测缓存；该次观测之后的变化未知。')
                             else:
-                                card['notices'].append('详情未采集或不在近期缓存；请在网站查看该角色后重试。')
+                                card['notices'].append('详情未采集；请在网站查看该角色后重试。')
                         if context is not None:
                             projected=snapshot
                             if game=='nte' and resolution is not None and resolution['status']=='resolved':

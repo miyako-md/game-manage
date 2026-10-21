@@ -280,6 +280,38 @@ def test_wuwa_detail_uses_owned_observed_archive_without_upstream(tmp_path):
     ledger.close()
 
 
+def test_wuwa_detail_reads_each_roles_latest_observation_like_the_old_window(tmp_path):
+    """Same result as the former newest-100 scan inside it; a role outside that window is no longer lost."""
+    from game_assistant.wuwa_history import WuwaHistory
+    from game_assistant.qq import presentation as view
+    query=CachedQuery()
+    scope=query.add('wuthering_waves','kuro','ww',{'roles':[{'role_id':1101,'name':'今汐'}]})
+    root=tmp_path/'private'
+    ledger=WuwaHistory.for_scope(scope,root,role_uid='123456789',server_id='server')
+    def observe(character,level):
+        ledger.capture(scope,'role_detail',{'role_id':'123456789','server_id':'server','character_id':character,
+            'data':{'weapon_data':{'level':level}}},observed_at=f'2026-10-14T00:{level:02}:00Z')
+    for level in range(3):
+        for character in ('1101','1102','1103'):observe(character,level)
+    query.private=SimpleNamespace(private_root=root,ledger=lambda s,k:ledger if s==scope and k=='wuwa_history' else None)
+    api=service(query)
+    def windowed(character):
+        history=ledger.read(scope,'role_detail',100,0)
+        found=next((item for item in history['items'] if str(item['subject'])==str(character)),None)
+        return None if found is None else (found['payload']['data'],found['observed_at'])
+    for character in ('1101','1102','1103','9999'):
+        current=api._role_detail_snapshot(scope,character)
+        assert (None if current is None else (current.payload,current.fetched_at))==windowed(character)
+    assert api._role_detail_snapshot(scope,'1102').payload=={'weapon_data':{'level':2}}
+    observe('1104',9)
+    for level in range(3,60):
+        for character in ('1101','1102'):observe(character,level)
+    assert windowed('1104') is None
+    assert api._role_detail_snapshot(scope,'1104').payload=={'weapon_data':{'level':9}}
+    assert api._role_detail_snapshot(scope,None) is None
+    ledger.close()
+
+
 def test_wuwa_basic_cache_explicitly_marks_missing_detail():
     query=CachedQuery()
     query.add('wuthering_waves','kuro','ww',{'roles':[{'name':'今汐','level':80,'weapon':'长刃'}]})
