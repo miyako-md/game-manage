@@ -627,7 +627,7 @@ class QqQueryService:
                 refs=[self.asset_cache.register_url(url,artwork=mode=='artwork',portrait=mode=='portrait') for url,mode in shared_view.asset_requests(context['render_snapshot'])] if context.get('render_snapshot') is not None else list(view.asset_refs(context['card']))
                 refs=list(dict.fromkeys(ref for ref in refs if ref))
                 counts=await self.asset_cache.prefetch(refs,budget_seconds=min(5,remaining*0.5))
-                timing.update({'prefetch_'+key:value for key,value in (counts or {}).items()})
+                if isinstance(counts,dict):timing.update({'prefetch_'+key:value for key,value in counts.items()})
             except Exception:
                 # Assets may fail independently; resolved in-memory images remain usable.
                 timing['prefetch']='qq_asset_prefetch_failed'
