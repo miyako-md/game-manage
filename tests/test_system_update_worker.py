@@ -749,3 +749,50 @@ def test_failed_build_writes_a_private_failure_log_without_publishing_output(ins
     # Only the private journal directory (nested under state on Windows) may hold the output.
     published = [p for p in f.state.rglob('*') if p.is_file() and f.worker.private not in p.parents]
     assert published and not any('double-loading' in p.read_text(encoding='utf-8', errors='ignore') for p in published)
+
+
+def _dist(root, files):
+    for name, text in files.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding='utf-8')
+    return root
+
+
+def test_reachable_assets_follow_entry_pages_and_skip_chunks_carried_from_older_releases(tmp_path):
+    from game_assistant.system_update_worker import reachable_assets
+    dist = _dist(tmp_path / 'dist', {
+        'index.html': '<script type="module" src="/assets/index-A1.js"></script>',
+        'render-a.html': '<script src="/assets/renderA-A1.js"></script>',
+        'assets/index-A1.js': 'import("./CloudApp-A1.js");const m=["assets/CloudApp-A1.css"]',
+        'assets/CloudApp-A1.js': 'import "./index-A1.js";export const icon="icon-A1.svg"',
+        'assets/CloudApp-A1.css': '@font-face{src:url(./font-A1.woff2)}',
+        'assets/font-A1.woff2': 'f', 'assets/icon-A1.svg': '<svg/>', 'assets/renderA-A1.js': '',
+        # Carried forward by an earlier upgrade; nothing in this build names it.
+        'assets/CloudApp-OLD.js': 'import("./Gone-OLD.js")', 'assets/Gone-OLD.js': '',
+    })
+    files = [path for path in (dist / 'assets').iterdir()]
+    names = {path.name for path in reachable_assets(dist, files)}
+    assert names == {'index-A1.js', 'renderA-A1.js', 'CloudApp-A1.js', 'CloudApp-A1.css', 'font-A1.woff2', 'icon-A1.svg'}
+
+
+def test_retained_render_assets_keep_one_previous_release_instead_of_every_earlier_one(tmp_path):
+    from types import SimpleNamespace
+    from game_assistant.system_update_worker import LinuxPlatform
+
+    def build(name, tag, previous=None):
+        release = tmp_path / name
+        _dist(release / 'frontend/dist', {'index.html': f'<script src="/assets/index-{tag}.js"></script>',
+                                          f'assets/index-{tag}.js': f'import("./Page-{tag}.js")', f'assets/Page-{tag}.js': '',
+                                          'game-icons/wuwa.png': 'icon'})
+        if previous is not None:
+            LinuxPlatform.retain_render_assets(SimpleNamespace(previous=previous, runtime_data={}), release)
+        return release
+
+    first = build('first', 'A')
+    second = build('second', 'B', first)
+    assert {p.name for p in (second / 'frontend/dist/assets').iterdir()} == {'index-A.js', 'Page-A.js', 'index-B.js', 'Page-B.js'}
+    third = build('third', 'C', second)
+    # The first release's chunks were only reachable from its own pages, so they are not carried again.
+    assert {p.name for p in (third / 'frontend/dist/assets').iterdir()} == {'index-B.js', 'Page-B.js', 'index-C.js', 'Page-C.js'}
+    assert (third / 'frontend/dist/game-icons/wuwa.png').is_file()

@@ -36,6 +36,8 @@ OFFICIAL_REPO = 'https://github.com/miyako-md/game-manage.git'
 OFFICIAL_REF = 'refs/heads/main'
 SOURCE = 'miyako-md/game-manage'
 SERVICE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.@-]*\.service\Z')
+RENDER_ENTRYPOINTS = ('index.html', 'render.html', 'render-a.html', 'theme-boot.js')
+ASSET_REFERENCE = re.compile(r'[A-Za-z0-9_.@-]+\.(?:js|css|woff2?|ttf|svg|png|jpe?g|webp|gif|ico)')
 
 
 class UpdateError(RuntimeError):
@@ -293,6 +295,21 @@ def git_clean(root, run):
     if not valid_sha(result):
         fail('invalid_current_commit')
     return result
+
+
+def reachable_assets(dist, files):
+    """Assets an open tab of this build can request: its entry pages and every file they name, transitively."""
+    names = {path.name: path for path in files}
+    queue = [safe_path(dist / name) for name in RENDER_ENTRYPOINTS if (dist / name).is_file()]
+    seen = set()
+    while queue:
+        text = queue.pop().read_text(encoding='utf-8', errors='ignore')
+        for name in set(ASSET_REFERENCE.findall(text)):
+            path = names.get(name)
+            if path is not None and path not in seen:
+                seen.add(path)
+                if path.suffix in ('.js', '.css'): queue.append(path)
+    return sorted(seen)
 
 
 def verify_tree(root, *, ignored=frozenset()):
@@ -632,7 +649,11 @@ class LinuxPlatform(Platform):
             directory = safe_path(source / folder)
             if directory.exists():
                 verify_tree(directory)
-                candidates.extend(path for path in directory.rglob('*') if path.is_file() and path.suffix.lower() in suffixes)
+                files = [path for path in directory.rglob('*') if path.is_file() and path.suffix.lower() in suffixes]
+                # Hashed chunks: only what the previous release's own pages can still load. Older
+                # releases' chunks it carried forward are unreachable from its entry points, so
+                # they stop accumulating across upgrades.
+                candidates.extend(reachable_assets(source, files) if folder == 'assets' else files)
         font, proof = source / 'render-font.woff2', source / 'render-font.json'
         if font.is_file() and proof.is_file():
             record = read_json(safe_path(proof))
