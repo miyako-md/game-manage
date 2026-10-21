@@ -1,6 +1,7 @@
 """Read-only assessment augmentation after account scope authorization."""
 from dataclasses import replace
-from .assessment import AssessmentModel, assess
+from .assessment import assess
+from .assessment_defaults import resolve_model
 from .assessment_equipped import equipped_configuration
 from .wuwa_role_detail import role_detail_data
 
@@ -17,9 +18,7 @@ def with_assessment(snapshot,store,scope,game):
         return dict(status='unscorable',value=None,reason='角色标识未提供或无效',contributions=[],
                     model_version='未知',weight_version='未知',source='equipped_snapshot',formula='未知')
     def score(character):
-        models=store.read(scope,game,character,'model') if store else []
-        model=AssessmentModel.model_validate(models[0]['data']) if models else AssessmentModel(game=game,character_id=character,version='unconfigured',source='user_configured')
-        return assess(equipped_configuration(game,character,payload,snapshot.fetched_at),model)
+        return assess(equipped_configuration(game,character,payload,snapshot.fetched_at),resolve_model(store,scope,game,character)[0])
     if game=='nte':
         entries=payload.get('entries',[])
         if not isinstance(entries,list):return snapshot
