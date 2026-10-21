@@ -176,3 +176,97 @@ def test_challenge_command_and_long_card_are_bounded():
     context={};service(query).query(IDENTITY,'combat','endfield',image_context=context)
     huge=deepcopy(context['card']);huge['sections']*=100
     assert any('省略' in notice for notice in long_document(huge)['notices'])
+
+
+def shaped_challenges(seasons, weeks, honors, monuments, groups, crises):
+    """Synthetic counts only: real war seasons carry two weeks; four groups per week is assumed."""
+    def group(index):
+        return {'name':f'合成关卡组{index}','star':index%4,'normalDungeon':{'name':'普通试炼','isPass':True},
+                'hardDungeon':{'name':'困难试炼','isPass':index%2==0},'cruelDungeon':{'name':'险境试炼','isPass':None}}
+    # Oldest first, so the projection has to pick the newest by time rather than position.
+    def at(index):return f'2026-{1+index//28:02d}-{1+index%28:02d}T02:00:00Z'
+    war={'supported':True,'kind':'war','fetched_at':'2026-10-21T01:30:00Z','stale':False,'error':None,
+         'records':[{'id':f's{i}','name':f'合成赛季{i}','stars':i,'start_at':at(i),'end_at':None,
+                     'weeks':[{'id':f'w{i}-{j}','name':f'第{j+1}周','stars':j,'groups':[group(k) for k in range(4)]} for j in range(weeks)]}
+                    for i in range(seasons)],
+         'summary':{'honors':[{'name':f'合成荣誉{i}','star':i%3,'first_pass_at':at(i)} for i in range(honors)]}}
+    monument={'supported':True,'kind':'monument','fetched_at':'2026-10-21T02:30:00Z','stale':False,'error':None,
+              'records':[{'id':f'm{i}','name':f'合成丰碑{i}','start_at':at(i),'end_at':None,
+                          'groups':[group(k) for k in range(groups)]} for i in range(monuments)],'summary':{}}
+    crisis={'supported':True,'kind':'crisis','fetched_at':'2026-10-21T03:30:00Z','stale':False,'error':None,
+            'records':[{'id':f'r{i}','score':i,'isPass':i%2==0} for i in range(crises)],
+            'summary':{'highest':crises,'challenge_count':crises}}
+    return {'war':war,'monument':monument,'crisis':crisis}
+
+
+# (seasons, weeks per season, honors, monument records, groups per monument, crisis records)
+REALISTIC=(5,2,20,7,4,0)
+WORST=(10,4,40,15,6,10)
+
+
+@pytest.mark.parametrize('shape',[REALISTIC,WORST],ids=['realistic','worst'])
+def test_image_keeps_latest_records_full_counts_and_says_so(shape):
+    seasons,weeks,honors,monuments,groups,crises=shape
+    query,scope,grant=setup(values=shaped_challenges(*shape))
+    context={};text=service(query).query(IDENTITY,'combat','endfield',image_context=context)['text']
+    display=context['render_snapshot']['display_data']
+    war,monument,crisis=display['panels'][0]['snapshot']['payload']['reports']
+    # Newest by start time, in upstream order; every week of the kept season stays.
+    assert [r['name'] for r in war['records']]==[f'合成赛季{seasons-1}']
+    assert len(war['records'][0]['weeks'])==weeks
+    assert [h['name'] for h in war['honors']]==[f'合成荣誉{i}' for i in range(honors-6,honors)]
+    assert [r['name'] for r in monument['records']]==[f'合成丰碑{i}' for i in range(monuments-3,monuments)]
+    assert len(monument['records'][0]['groups'])==groups
+    assert [r['id'] for r in crisis['records']]==['r0','r1'][:crises]
+    assert [r['summary']['listed_count'] for r in (war,monument,crisis)]==[seasons,monuments,crises]
+    notice=next(n for n in display['notices'] if n.startswith('挑战图片最多展示'))
+    assert f'战争最近 1 个赛季（共 {seasons}）' in notice and f'战争荣誉最近 6 条（共 {honors}）' in notice
+    assert f'丰碑最近 3 条记录（共 {monuments}）' in notice and '完整列表请到网站查看' in notice
+    assert ('危机' in notice)==(crises>2)
+    # The text card and the per-kind snapshots keep every record.
+    assert f'已采集记录：{seasons}' in text
+    assert [len(s.payload['records']) for s in context['snapshots']]==[seasons,monuments,crises]
+
+
+def test_image_cap_keeps_unknown_and_short_lists_unchanged():
+    from game_assistant.qq.endfield_presentation import challenge_image_reports
+    query,scope,grant=setup()
+    context={};service(query).query(IDENTITY,'combat','endfield',image_context=context)
+    display=context['render_snapshot']['display_data']
+    assert len(display['panels'][0]['snapshot']['payload']['reports'][2]['records'])==2
+    assert not any('最多展示' in n for n in display['notices'])
+    query,scope,grant=setup(payload=False,state='never')
+    context={};service(query).query(IDENTITY,'combat','endfield',image_context=context)
+    reports=context['render_snapshot']['display_data']['panels'][0]['snapshot']['payload']['reports']
+    assert [r['summary']['listed_count'] for r in reports]==[None]*3 and not any(r['records'] for r in reports)
+    assert challenge_image_reports(challenge_reports(None))==(challenge_reports(None),[])
+    # Without a time for every record the upstream (newest-first) order decides.
+    value={**shaped_challenges(*REALISTIC)['monument'],
+           'records':[{'id':f'm{i}','start_at':None if i==1 else 'x','groups':[]} for i in range(5)]}
+    shown,notices=challenge_image_reports([build_challenge_report(value)])
+    assert [r['id'] for r in shown[0]['records']]==['m0','m1','m2'] and shown[0]['summary']['listed_count']==5
+    assert notices==['挑战图片最多展示丰碑最近 3 条记录（共 5）；完整列表请到网站查看。']
+
+
+@pytest.mark.parametrize('shape,limit',[(REALISTIC,8000),(WORST,14000)],ids=['realistic','worst'])
+async def test_real_challenge_image_stays_under_pixel_limit(shape,limit,tmp_path):
+    import base64,os
+    from io import BytesIO
+    from PIL import Image
+    from game_assistant.qq.browser_rendering import BrowserRenderer
+    from game_assistant.qq.rendering import RenderQueue
+    executable=os.environ.get('QQ_RENDER_TEST_EXECUTABLE');font=os.environ.get('QQ_RENDER_TEST_FONT')
+    if not executable or not font:pytest.skip('Real challenge rendering requires QQ_RENDER_TEST_EXECUTABLE and QQ_RENDER_TEST_FONT')
+    renderer=BrowserRenderer(template='a',executable_path=executable,font_path=font,dist_path=os.environ.get('QQ_RENDER_TEST_DIST',''))
+    query,scope,grant=setup(values=shaped_challenges(*shape))
+    try:
+        await renderer._a_ready()  # cold Chromium start outside the 10 s reply budget
+        reply=await service(query,queue=RenderQueue(renderer)).query_reply(IDENTITY,'combat','endfield',image_requested=True,budget_seconds=10)
+        assert 'image' in reply,(renderer.last_state.get('height'),reply['text'][:120])
+        png=base64.b64decode(reply['image']);(tmp_path/'challenge.png').write_bytes(png)
+        with Image.open(BytesIO(png)) as picture:
+            assert picture.width==1080 and picture.height<=limit
+        assert len(png)<=renderer.max_bytes
+        state=renderer.last_state
+        assert state['state']=='ready' and not state['overflow'] and state['layout_issues']==0
+    finally:await renderer.aclose()

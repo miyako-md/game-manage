@@ -113,6 +113,42 @@ def _challenge_budget(sections):
     return fields<=350 and rows<=250 and characters<=21000 and height<=12200
 
 
+# Measured in the A-renderer (single column, 1080 px): a war season with two weeks of four groups
+# is ~2200 px (four weeks ~4300), a monument record ~1000 (six groups ~1450), an honor ~140.
+CHALLENGE_IMAGE_RECORDS = {'war': 1, 'monument': 3, 'crisis': 2}
+CHALLENGE_IMAGE_HONORS = 6
+
+
+def _latest(items, limit, key):
+    """The newest ``limit`` items in their original order; upstream order when any time is unknown."""
+    if len(items) <= limit: return items
+    times = [item.get(key) for item in items]
+    if not all(isinstance(value, str) and value for value in times): return items[:limit]
+    keep = set(sorted(range(len(items)), key=lambda index: times[index], reverse=True)[:limit])
+    return [item for index, item in enumerate(items) if index in keep]
+
+
+def challenge_image_reports(reports):
+    """QQ image projection: each kind's latest records and honors; ``summary`` keeps full counts.
+
+    The website keeps the full lists. Unavailable kinds have no records and stay unknown.
+    """
+    capped = []; parts = []
+    for report in reports:
+        kind = report.get('kind'); limit = CHALLENGE_IMAGE_RECORDS.get(kind)
+        if limit is None: capped.append(report); continue
+        records = _latest(report['records'], limit, 'start_at')
+        honors = _latest(report['honors'], CHALLENGE_IMAGE_HONORS, 'first_pass_at')
+        label, unit = {'war': ('战争', '个赛季'), 'monument': ('丰碑', '条记录'), 'crisis': ('危机', '条记录')}[kind]
+        if len(records) < len(report['records']):
+            parts.append(f"{label}最近 {limit} {unit}（共 {len(report['records'])}）")
+        if len(honors) < len(report['honors']):
+            parts.append(f"战争荣誉最近 {CHALLENGE_IMAGE_HONORS} 条（共 {len(report['honors'])}）")
+        capped.append({**report, 'records': records, 'honors': honors})
+    notices = ['挑战图片最多展示' + '、'.join(parts) + '；完整列表请到网站查看。'] if parts else []
+    return capped, notices
+
+
 def challenge_document(reports):
     """Three independently timed summaries, then fairly budgeted observations."""
     labels={'war':'战争','monument':'丰碑','crisis':'危机'}
