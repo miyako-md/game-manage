@@ -234,7 +234,7 @@ test('QQ cross-game pages: calendar, upcoming, guide and help text is never smal
 test('QQ dark skins: calendar bars, chips and nested game groups read on the dark base',()=>{
  const skin=readFileSync(new URL('./qq-image/skin.css',import.meta.url),'utf8')
  // No white bar start, white-on-accent chips or light remaining-days pills on a dark sheet.
- assert.match(skin,/\.cloud-calendar \.timeline-event:not\(\.is-point\) \{\s+background: rgba\(var\(--skin-tint-rgb\), \.12\) !important;/)
+ assert.match(skin,/\.cloud-calendar \.timeline-event:not\(\.is-point\) \{\s+background: linear-gradient\(rgba\(var\(--skin-tint-rgb\), \.12\), rgba\(var\(--skin-tint-rgb\), \.12\)\), var\(--shell-bg\) !important;/)
  assert.match(skin,/\.cloud-calendar :is\(\.event-status, \.day-today\) \{\s+background: var\(--skin-accent\) !important;\s+color: var\(--skin-on-accent\) !important;/)
  assert.match(skin,/\.cloud-calendar \.event-remaining \{\s+background: transparent !important;\s+color: var\(--skin-ink\) !important;/)
  // A nested game skin keeps the shell surfaces and only swaps accent and lines (D3).

@@ -212,17 +212,19 @@
   --game-tone: rgba(var(--skin-tint-rgb), .14) !important;
 }
 
-/* Bars started from white (#fff) and their light text vanished on it. */
+/* Bars started from white (#fff) and their light text vanished on it. The tint
+   sits on an opaque base so the grid and today's line stay behind the text. */
 .reuse.lab-sheet[data-skin] .cloud-calendar .timeline-event:not(.is-point) {
-  background: rgba(var(--skin-tint-rgb), .12) !important;
+  background: linear-gradient(rgba(var(--skin-tint-rgb), .12), rgba(var(--skin-tint-rgb), .12)), var(--shell-bg) !important;
   border-color: rgba(var(--skin-tint-rgb), .28) !important;
   border-left-color: var(--skin-accent) !important;
 }
 
-/* Elapsed part in the neutral line tint: a translucent accent turned olive on yellow. */
+/* Elapsed part in the neutral line tint (a translucent accent turned olive on
+   yellow), without its edge line, which ran through the bar text at today. */
 .reuse.lab-sheet[data-skin] .cloud-calendar .event-elapsed {
   background: rgba(var(--skin-tint-rgb), .12);
-  border-right-color: var(--skin-accent);
+  border-right-color: transparent;
 }
 
 .reuse.lab-sheet[data-skin] .cloud-calendar .timeline-event.is-short .event-summary,
