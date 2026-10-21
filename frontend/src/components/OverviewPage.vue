@@ -199,7 +199,7 @@ function quickLinks(card) {
           <span class="meter ov-meter" :class="{ unknown: card.summary.percent == null }" aria-hidden="true"><i :style="{ '--pct': `${card.summary.percent ?? 0}%` }"></i></span>
           <p class="ov-note">{{ resourceNote(card) }}</p>
           <div v-if="roster(card).shown.length" class="summary-roster"><span class="roster-faces"><img v-for="role in roster(card).shown" :key="role.key" :src="role.src" :alt="role.name" decoding="async" referrerpolicy="no-referrer" @error="avatarFailed(role.src)" /></span><span>{{ roster(card).total }} 名角色</span></div>
-          <p class="ov-game-foot"><span class="summary-state" :class="{ warn: warned(card) }"><i></i>{{ status(card) }}</span><span class="summary-updated">{{ card.summary.fetchedAt ? `更新于 ${formatTime(card.summary.fetchedAt)}` : '尚未更新' }}</span></p>
+          <p class="ov-game-foot"><span class="summary-state" :class="{ warn: warned(card) }"><i aria-hidden="true"></i>{{ status(card) }}</span><span class="summary-updated">{{ card.summary.fetchedAt ? `更新于 ${formatTime(card.summary.fetchedAt)}` : '尚未更新' }}</span></p>
           <nav v-if="quickLinks(card).length" class="ov-quick" :aria-label="`${card.display_name}的常用页面`"><a v-for="link in quickLinks(card)" :key="link.href" :href="link.href">{{ link.label }}</a></nav>
         </article>
         <template v-if="!games.length && loading"><div v-for="n in 3" :key="n" class="ov-game is-skeleton" aria-hidden="true"><span class="t-skel-block" style="width:52%;height:18px"></span><span class="t-skel-block" style="width:36%;height:30px;margin-top:22px"></span><span class="t-skel-block" style="width:100%;height:6px;margin-top:14px"></span><span class="t-skel-block" style="width:64%;height:12px;margin-top:16px"></span></div></template>
@@ -384,6 +384,7 @@ function quickLinks(card) {
 .summary-state { display:inline-flex; align-items:center; gap:5px; flex-shrink:0; padding:1px 8px 1px 7px; border-radius:var(--radius-chip); background:var(--success-bg); color:var(--success); font-size:12px; font-weight:500; line-height:20px; }
 .summary-state i { width:6px; height:6px; border-radius:50%; background:currentColor; }
 .summary-state.warn { background:var(--stale-bg); color:var(--stale-text); }
+.summary-state.warn i { border-radius:1.5px; transform:rotate(45deg); }
 .summary-updated { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .ov-quick { display:grid; grid-auto-columns:minmax(0, 1fr); grid-auto-flow:column; margin-top:auto; padding-top:8px; border-top:1px solid var(--border); }
 .ov-quick a { display:grid; place-items:center; min-height:44px; padding:6px 4px; border-radius:8px; color:var(--text-muted); font-size:13px; text-decoration:none; white-space:nowrap; }

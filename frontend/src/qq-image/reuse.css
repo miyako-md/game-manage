@@ -34,7 +34,6 @@
   background: linear-gradient(135deg, #ffffff 0%, var(--game-tone, #f3f5f8) 100%);
   color: var(--ink);
   border: 1px solid var(--line);
-  border-left: 6px solid var(--game-accent, var(--accent));
   border-radius: 20px;
   padding: 22px 26px;
 }

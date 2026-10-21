@@ -81,12 +81,12 @@ const accounts=computed(()=>(props.data.sections||[]).map(section=>{
 .help-sheet .hs-games { display: grid; gap: 18px; grid-template-columns: repeat(var(--hs-cols, 1), minmax(0, 1fr)); }
 .help-sheet .hs-games.count-2 { --hs-cols: 2; }
 .help-sheet .hs-games.count-3 { --hs-cols: 3; }
-.help-sheet .hs-game { box-shadow: inset 0 3px 0 var(--skin-accent); }
+.help-sheet .hs-game { border-color: rgba(var(--skin-tint-rgb), .24); }
 .help-sheet .hs-games:not(.count-1) .hs-items { grid-template-columns: minmax(0, 1fr); }
 .help-sheet .hs-games:not(.count-1) .hs-item { flex-direction: column; align-items: flex-start; }
 .help-sheet .hs-games:not(.count-1) .hs-group { padding: 16px 16px 18px; }
 .help-sheet .hs-account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.help-sheet .hs-account { padding: 16px 18px; border-radius: var(--skin-radius-tile); background: rgba(var(--skin-tint-rgb), .06); border: 1px solid rgba(var(--skin-tint-rgb), .16); border-left: 4px solid var(--skin-accent); }
+.help-sheet .hs-account { padding: 16px 18px; border-radius: var(--skin-radius-tile); background: rgba(var(--skin-tint-rgb), .06); border: 1px solid rgba(var(--skin-tint-rgb), .2); }
 .help-sheet .hs-account header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .help-sheet .hs-account h3 { font-size: 21px; line-height: 1.4; font-weight: 700; color: var(--skin-ink); margin: 0; }
 .help-sheet .hs-fields { display: grid; gap: 6px; margin: 0; }

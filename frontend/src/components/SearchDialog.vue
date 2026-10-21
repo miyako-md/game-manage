@@ -67,7 +67,7 @@ function choose(item, event) {
 </template>
 
 <style scoped>
-.search-dialog { position:fixed; inset:0; margin:min(17dvh, 150px) auto auto; width:min(600px, calc(100vw - 32px)); max-width:none; max-height:calc(100dvh - min(17dvh, 150px) - 32px); padding:0; overflow:hidden; border:1px solid var(--card-border); border-radius:20px; background:var(--card-bg); color:var(--text); box-shadow:var(--popover-shadow); }
+.search-dialog { position:fixed; inset:0; margin:min(17dvh, 150px) auto auto; width:min(600px, calc(100vw - 32px)); max-width:none; max-height:calc(100dvh - min(17dvh, 150px) - 32px); padding:0; overflow:hidden; border:1px solid var(--card-border); border-radius:20px; background:var(--card-bg); color:var(--text); box-shadow:var(--modal-shadow, var(--popover-shadow)); }
 .search-dialog[open] { display:flex; flex-direction:column; }
 .search-dialog::backdrop { background:var(--scrim); }
 .search-field { display:flex; align-items:center; gap:12px; padding:12px 14px 12px 22px; border-bottom:1px solid var(--border); color:var(--text-muted); }

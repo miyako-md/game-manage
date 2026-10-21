@@ -164,7 +164,7 @@ input {
   font-size: 18px;
   background: var(--soft);
   padding: 12px 16px;
-  border-left: 4px solid var(--accent);
+  border: 1px solid var(--line);
   border-radius: 8px;
   margin-bottom: 18px;
 }
@@ -188,14 +188,6 @@ input {
   border-radius: var(--radius) var(--radius) 0 0;
 }
 
-.chapter-mark {
-  width: 5px;
-  height: 22px;
-  border-radius: 999px;
-  background: var(--game-accent, var(--accent));
-  flex: none;
-}
-
 .block-content {
   padding: 20px 22px;
   display: grid;
@@ -212,7 +204,7 @@ input {
   padding: 10px 14px;
   background: var(--soft);
   color: var(--muted);
-  border-left: 3px solid var(--accent);
+  border: 1px solid var(--line);
   border-radius: 8px;
 }
 
@@ -764,7 +756,6 @@ input {
   margin-bottom: 22px;
   background: linear-gradient(135deg, var(--surface) 0%, var(--soft) 100%);
   border: 1px solid var(--line);
-  border-left: 6px solid var(--game-accent, var(--accent));
   border-radius: 20px;
   padding: 24px 28px;
   gap: 20px;
@@ -805,7 +796,7 @@ input {
   object-position: center;
 }
 
-/* Dossier scheme: modern editorial surface with game-accented spine */
+/* Dossier scheme: modern editorial surface */
 .dossier .dossier-edge {
   display: none;
 }
@@ -814,7 +805,6 @@ input {
   background: linear-gradient(135deg, #ffffff 0%, var(--game-tone, #f3f5f8) 100%);
   color: var(--ink);
   border: 1px solid var(--line);
-  border-left: 6px solid var(--game-accent, var(--accent));
   border-radius: 20px;
   padding: 22px 26px;
   position: relative;

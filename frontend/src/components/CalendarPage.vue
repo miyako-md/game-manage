@@ -146,7 +146,7 @@ async function closeDetail() {
             <MenuSelect v-model="filter" label="筛选游戏" align="end" :options="gameOptions" />
           </div>
         </div>
-        <div class="calendar-meta"><span><strong>{{ visibleEvents.length }}</strong> 项活动<span v-if="events.length > visibleEvents.length"> · 共 {{ events.length }} 项</span></span><div class="calendar-legend"><span><i class="legend-range" />活动区间</span><span><i class="legend-point" />日期标记</span><span><i class="legend-today" />现在</span></div></div>
+        <div class="calendar-meta"><span><strong>{{ visibleEvents.length }}</strong> 项活动<span v-if="events.length > visibleEvents.length"> · 共 {{ events.length }} 项</span></span><div class="calendar-legend"><span><i class="legend-range" aria-hidden="true" />活动区间</span><span><i class="legend-point" aria-hidden="true" />日期标记</span><span><i class="legend-today" aria-hidden="true" />现在</span></div></div>
         <p v-if="failedCollectionAlerts.length" class="calendar-read-error" role="status">{{ failedCollectionNames }} · 活动更新暂不可用。{{ collectionRetainedMessage }}</p>
         <p v-if="failedReads.length" class="calendar-read-error" role="status">{{ failedReadNames }} · 活动读取失败。{{ readRetainedMessage }}</p>
         <p v-if="missingGames.length && !loading" class="calendar-missing" role="status">{{ missingGames.join('、') }} · 尚未取得活动，请稍后刷新。</p>
@@ -214,11 +214,11 @@ async function closeDetail() {
 .calendar-page button, .calendar-page select { cursor: pointer; font-family: inherit; }
 .calendar-arrows button, .today-button, .detail-close { border: 1px solid var(--border); background: var(--card-bg); box-shadow: var(--btn-shadow); color: var(--text-body); border-radius: var(--radius-control); transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
 @media (hover: hover) and (pointer: fine) { .calendar-arrows button:hover, .today-button:hover, .detail-close:hover { background: var(--button-hover-bg); color: var(--text); } }
-.calendar-arrows button:active, .today-button:active, .detail-close:active { transform: translateY(1px); }
-.calendar-arrows button { display: grid; place-items: center; height: 36px; width: 36px; padding: 0; }
+.calendar-arrows button:active, .today-button:active, .detail-close:active { transform: translateY(1px) scale(0.98); }
+.calendar-arrows button { display: grid; place-items: center; height: var(--control-h, 40px); width: var(--control-h, 40px); padding: 0; }
 .previous-arrow { transform: rotate(90deg); }
 .next-arrow { transform: rotate(-90deg); }
-.today-button { min-height: 36px; padding: 6px 14px; font-size: 13px; font-weight: 500; }
+.today-button { min-height: var(--control-h, 40px); padding: 6px 14px; font-size: var(--fs-body, 0.8125rem); font-weight: 500; }
 .calendar-meta { display: flex; justify-content: space-between; gap: 12px; padding: 0 20px 14px; font-size: 12px; color: var(--text-muted); }
 .calendar-meta strong { color: var(--text); font-size: 13px; font-weight: 500; }
 .calendar-legend { display: flex; gap: 16px; }
@@ -251,9 +251,9 @@ async function closeDetail() {
 .calendar-detail dd { margin: 0; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .calendar-detail dl small { display: block; color: var(--text-muted); margin-top: 6px; }
 .source-id { color: var(--text-muted); margin-top: 10px; font-size: 12px; overflow-wrap: anywhere; }
-.source-link { display: inline-block; margin-top: 16px; color: var(--accent); font-size: 13px; font-weight: 500; text-decoration: none; }
+.source-link { display: inline-block; margin-top: 16px; color: var(--accent); font-size: var(--fs-body, 0.8125rem); font-weight: 500; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 42%, transparent); text-underline-offset: 3px; }
 .calendar-page button:focus-visible, .calendar-page select:focus-visible, .calendar-detail:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-@media (hover: hover) and (pointer: fine) { .source-link:hover { color: var(--accent-strong); } }
+@media (hover: hover) and (pointer: fine) { .source-link:hover { color: var(--accent-strong); text-decoration-color: currentColor; } }
 /* Side list (mockup .agenda-card): a warm panel of white rows, each opening its event's detail. */
 .calendar-agenda { padding:22px 20px 20px; border:1px solid var(--border); border-radius:var(--radius-card); background:var(--control-track); }
 .calendar-agenda h2 { font-size:17px; font-weight:600; letter-spacing:-.02em; outline:none; }

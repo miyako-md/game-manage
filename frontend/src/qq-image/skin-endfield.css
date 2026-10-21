@@ -1,13 +1,10 @@
 /* QQ endfield skin: per-game rules on top of skin.css (loaded after it). */
-/* ---- 终末地 · 工业警示: hazard stripe, yellow bar, English kicker ---------- */
+/* ---- 终末地 · 工业质感: dark base and English kicker --------------------- */
 .reuse.lab-sheet[data-skin="endfield"]:not(.is-account-overview) {
-  background:
-    repeating-linear-gradient(-45deg, #ffd100 0 10px, #141619 10px 20px) left top / 8px 100% no-repeat,
-    var(--skin-bg);
+  background: var(--skin-bg);
 }
 
 .reuse.lab-sheet[data-skin="endfield"] .head-dossier {
-  border-left: 4px solid var(--skin-accent);
   border-top: 1px solid var(--skin-line);
 }
 

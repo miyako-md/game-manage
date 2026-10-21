@@ -16,7 +16,7 @@ const ringStyle=p=>({'--pct':(p??0)+'%'})
 </script>
 <template>
  <section class="block" :class="['kind-'+panel.type,{'long-title':panel.title.length>4}]" :data-kind="panel.type" :style="(panel.gameId||panel.game)?gameVars(panel.gameId||panel.game):undefined" :data-skin="skinOf(panel.gameId||panel.game)||undefined">
-  <header class="block-cap"><span class="chapter-mark" aria-hidden="true"></span><h2>{{panel.title}}</h2></header>
+  <header class="block-cap"><h2>{{panel.title}}</h2></header>
   <div class="block-content">
    <p v-if="panel.caption" class="caption">{{panel.caption}}</p>
    <p v-for="n in panel.notices||[]" class="status-note">{{n}}</p>

@@ -41,7 +41,7 @@ async function submit() {
 <style scoped>
 /* One white card: the three games as tone tiles on a warm panel beside the form (game-manage-ui-v1). */
 .site-login{width:min(100%,900px);margin:7vh auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);overflow:hidden;border:1px solid var(--card-border);border-radius:var(--radius-shell);background:var(--card-bg);box-shadow:var(--card-shadow)}
-.site-login-art{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:460px;margin:7px;padding:26px;overflow:hidden;border-radius:22px;background:var(--control-track)}
+.site-login-art{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-height:460px;margin:7px;padding:26px;overflow:hidden;border-radius:calc(var(--radius-shell) - 7px);background:var(--control-track)}
 .site-login-tiles{position:relative;height:210px}
 .login-tile{position:absolute;display:grid;justify-items:start;align-content:space-between;width:150px;height:150px;padding:14px;border:4px solid var(--card-bg);border-radius:30px;background:var(--game-tone);box-shadow:0 18px 40px -24px rgba(38,40,46,.45);color:var(--game-accent)}
 .login-tile:nth-child(1){left:0;top:44px;transform:rotate(-8deg)}
@@ -52,8 +52,8 @@ async function submit() {
 .site-login-games{margin:0;color:var(--text);font-size:22px;font-weight:600;line-height:30px;letter-spacing:-.02em}
 .site-login-panel{display:grid;align-content:center;gap:18px;padding:44px 40px}
 .site-login form{display:grid;gap:14px}.site-login label{display:grid;gap:7px;font-size:13px;font-weight:500}
-.site-login input{width:100%;min-width:0;min-height:44px;box-sizing:border-box;padding:10px 13px;border:1px solid var(--border);border-radius:var(--radius-control);background:var(--card-bg);color:var(--text);font-weight:400}
-.site-login input:focus-visible{border-color:var(--accent);outline:none;box-shadow:var(--ring)}
+.site-login input{width:100%;min-width:0;min-height:44px;box-sizing:border-box;padding:10px 13px;border:1px solid var(--field-border,var(--border));border-radius:var(--radius-control);background:var(--field-bg,var(--card-bg));color:var(--text);font-weight:400}
+.site-login input:focus-visible{background:var(--card-bg);border-color:var(--accent);outline:none;box-shadow:var(--ring)}
 .site-login .ui-button.primary{min-height:44px;margin-top:4px}
 h1,p{margin:0}h1{font-size:28px;font-weight:600;line-height:36px;letter-spacing:-.03em}p{line-height:1.6}small{font-size:12px;color:var(--text-muted)}p[role=alert]{color:var(--danger);font-size:13px}
 .site-login .text-link{justify-self:start}

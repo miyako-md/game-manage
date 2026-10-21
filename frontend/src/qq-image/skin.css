@@ -94,17 +94,13 @@
 }
 
 .lab-sheet.is-account-overview[data-skin="endfield"] {
-  background-image:
-    repeating-linear-gradient(-45deg, #ffd100 0 10px, #141619 10px 20px),
-    var(--skin-bg-grad) !important;
-  background-size: 8px 100%, auto !important;
+  background-image: var(--skin-bg-grad) !important;
   background-repeat: no-repeat !important;
-  background-position: left top, center !important;
+  background-position: center !important;
 }
 
 .lab-sheet.is-account-overview[data-skin="endfield"] .ao-capsule-banner {
   box-shadow: 0 10px 28px rgba(0, 0, 0, .42);
-  border-left-width: 4px;
 }
 
 .lab-sheet.is-account-overview[data-skin="nte"] .ao-capsule-banner {
@@ -126,8 +122,6 @@
 }
 
 .lab-sheet.is-account-overview[data-skin="endfield"] .ao-section-title {
-  padding-left: 14px;
-  border-left: 4px solid var(--skin-accent);
   align-items: baseline;
 }
 
@@ -217,7 +211,6 @@
 .reuse.lab-sheet[data-skin] .cloud-calendar .timeline-event:not(.is-point) {
   background: linear-gradient(rgba(var(--skin-tint-rgb), .12), rgba(var(--skin-tint-rgb), .12)), var(--shell-bg) !important;
   border-color: rgba(var(--skin-tint-rgb), .28) !important;
-  border-left-color: var(--skin-accent) !important;
 }
 
 /* Elapsed part in the neutral line tint (a translucent accent turned olive on
