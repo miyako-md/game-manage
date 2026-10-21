@@ -169,6 +169,14 @@ test('QQ overview blocks take their own game skin inside the obsidian shell (D3)
  assert.deepEqual(nodes(root,'section').filter(n=>String(n.props.class).includes('ao-game-block')).map(n=>n.props['data-skin']),['wuwa','nte','endfield'])
 })
 
+test('C1.3: the obsidian sheet keeps its star trail but drops the dithered glow, gradient and blurred shadows',()=>{
+ const lab=readFileSync(new URL('./qq-image/lab.css',import.meta.url),'utf8'),obsidian=lab.slice(lab.indexOf('.lab-sheet.is-account-overview {'))
+ const sheet=obsidian.slice(0,obsidian.indexOf('}'))
+ assert.match(sheet,/data:image\/svg\+xml/)
+ assert.doesNotMatch(sheet,/gradient/)
+ assert.doesNotMatch(obsidian,/box-shadow/)
+ assert.doesNotMatch(obsidian.slice(obsidian.indexOf('.ao-capsule-banner {')),/^\.ao-(?:capsule-banner|identity-pill) \{[^}]*linear-gradient/m)
+})
 test('D7: no QQ obsidian text is smaller than 17px',()=>{
  const lab=readFileSync(new URL('./qq-image/lab.css',import.meta.url),'utf8'),obsidian=lab.slice(lab.indexOf('.lab-sheet.is-account-overview {'))
  const sizes=[...obsidian.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
