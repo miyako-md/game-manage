@@ -12,12 +12,17 @@ const byClass = (root, name) => {
   return walk(root)
 }
 
-test('game cards show the five highest-level pictured roles and the whole roster count', t => {
-  const roles = [role('甲', 60), role('乙', 90), role('丙', 70), role('丁', 80, false), role('戊', 50), role('己', 40), role('庚', 85)]
+test('game cards show the five newest pictured roles in catalogue order and the whole roster count', t => {
+  // Real catalogue names: 莉莉 is listed first (newest), 秋水 near the end; level does not decide.
+  const roles = [role('今汐', 90), role('莉莉', 10), role('心', 60), role('椿', 70, false), role('秋水', 85), role('长离', 50), role('守岸人', 40)]
   const root = mount(t, Overview, { games: [wuwa], now, snapshots: { wuthering_waves: { roles: { payload: roles } } } })
-  const faces = nodes(byClass(root, 'roster-faces')[0], 'img').map(img => img.props.src)
-  assert.deepEqual(faces, [90, 85, 70, 60, 50].map(level => `https://web-static.kurobbs.com/r${level}.png`))
+  const faces = nodes(byClass(root, 'roster-faces')[0], 'img').map(img => img.props.alt)
+  assert.deepEqual(faces, ['莉莉', '心', '守岸人', '长离', '今汐'])
   assert.match(content(byClass(root, 'summary-roster')[0]), /7 名角色/)
+  const nte = { game_id: 'nte', display_name: '异环', capabilities: ['roles'], credentials_configured: true }
+  const entries = [1003, 1076, 1012, 1050, 1001, 1060].map(id => ({ id: String(id), name: `异能者${id}`, level: 2000 - id, icon_url: `https://webstatic.tajiduo.com/r${id}.png` }))
+  const nteRoot = mount(t, Overview, { games: [nte], now, snapshots: { nte: { roles: { payload: { entries } } } } })
+  assert.deepEqual(nodes(byClass(nteRoot, 'roster-faces')[0], 'img').map(img => img.props.alt), ['异能者1076', '异能者1060', '异能者1050', '异能者1012', '异能者1003'])
   const none = mount(t, Overview, { games: [wuwa], now, snapshots: { wuthering_waves: { roles: { payload: [role('甲', 60, false)] } } } })
   assert.equal(byClass(none, 'summary-roster').length, 0, 'no row without a picture')
 })

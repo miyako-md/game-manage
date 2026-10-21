@@ -67,3 +67,30 @@ test('overview counts use full role totals instead of the six roles shown', t =>
   ]))
   assert.equal(unknown['S级角色'], '未提供')
 })
+
+const overviewNames = (t, panels) => {
+  const root = mount(t, Overview, { input: { command: '我的', snapshot: { kind: 'game_snapshot', game: 'all', as_of: '2026-10-15T04:00:00Z',
+    display_data: { notices: [], panels: panels.map(([game, provider, capability, payload]) => ({ game, provider, capability,
+      snapshot: { payload, fetched_at: '2026-10-15T04:00:00Z', state: 'ok', stale: false } })) } } } })
+  return nodes(root, 'span').filter(n => n.props.class === 'ao-role-name-tag').map(n => content(n))
+}
+
+test('overview sheet shows at most six roles in the website order (Wuwa catalogue, NTE id)', t => {
+  const wuwa = ['今汐', '秋水', '心', '长离', '未收录角色', '椿', '莉莉', '守岸人'].map((name, i) => ({ role_id: 1100 + i, name, star_level: 5, level: 90 - i }))
+  assert.deepEqual(overviewNames(t, [['wuthering_waves', 'kuro', 'account', { nickname: '鸣潮' }], ['wuthering_waves', 'kuro', 'roles', wuwa]]),
+    ['莉莉', '心', '椿', '守岸人', '长离', '今汐'])
+  const stats = Object.fromEntries(overviewStats(t, [['wuthering_waves', 'kuro', 'account', { nickname: '鸣潮' }], ['wuthering_waves', 'kuro', 'roles', wuwa]]))
+  // Eight sent, six shown: the roster count is the full one and the gold count is not taken from six.
+  assert.equal(stats['解锁角色'], '8'); assert.equal(stats['五星角色'], '未提供')
+  const nte = { entries: [1003, 1076, 1012, 1050, 1001, 1060, 1020].map(id => ({ id: String(id), name: `异能者${id}`, quality: 'S' })) }
+  assert.deepEqual(overviewNames(t, [['nte', 'tajiduo', 'account', { nickname: '异环' }], ['nte', 'tajiduo', 'roles', nte]]),
+    ['异能者1076', '异能者1060', '异能者1050', '异能者1020', '异能者1012', '异能者1003'])
+})
+
+test('Endfield overview keeps the service level order and counts the whole roster', t => {
+  const operators = Array.from({ length: 9 }, (_, i) => ({ id: `op_${i}`, name: `合成干员${i}`, level: 90 - i, rarity: i < 4 ? 6 : 5 }))
+  const panels = [['endfield', 'skland', 'account', { base: { name: '终末地' }, operators }], ['endfield', 'skland', 'roles', { operators: operators.slice(0, 6) }]]
+  assert.deepEqual(overviewNames(t, panels), operators.slice(0, 6).map(op => op.name))
+  const stats = Object.fromEntries(overviewStats(t, panels))
+  assert.equal(stats['六星干员'], '4'); assert.equal(stats['五星干员'], '5'); assert.equal(stats['已记录干员'], '9')
+})
