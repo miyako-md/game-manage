@@ -30,7 +30,6 @@
   --stale-text: #896415;
 }
 
-.news-item p,
 .reuse .article-image .item-summary {
   text-wrap: pretty;
 }

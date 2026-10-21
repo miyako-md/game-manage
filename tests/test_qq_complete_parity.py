@@ -43,9 +43,9 @@ def test_notice_is_only_sanitized_user_strings_without_technical_metadata():
 
 
 def test_rich_business_fields_survive_projection_while_dynamic_source_keys_and_paths_do_not():
-    row=QueryResult({'schema_version':1,'role_id':'PRIVATE','sections':{'raw_source_key':{'title':'玩法','item_num':0,'max_item_num':None,'token':'PRIVATE'}}},None,'ok',False)
-    panel=shared.game_panel('wuthering_waves','kuro','activities',row)
-    assert panel['snapshot']['payload']['sections']=={'bucket_0':{'title':'玩法','item_num':0,'max_item_num':None}}
+    row=QueryResult({'hologram':{'data':{'challenge_info':{'raw_source_key':[{'boss_name':'首领','difficulty':0,'boss_level':None,'token':'PRIVATE'}]}}}},None,'ok',False)
+    panel=shared.game_panel('wuthering_waves','kuro','combat',row)
+    assert panel['snapshot']['payload']['hologram']['data']['challenge_info']=={'bucket_0':[{'boss_name':'首领','difficulty':0,'boss_level':None}]}
     shared.game_snapshot([panel],NOW)
     row=QueryResult({'schema_version':1,'total':2,'pools':[{'key':'pool','label':'角色池','six_star':1,'five_star':0,'history':[{'name':'陈千语','pulls':None,'status':'lower_bound','pool_name':'角色池'}]}]},None,'ok',False)
     panel=shared.game_panel('endfield','hypergryph','gacha',row)
@@ -57,45 +57,23 @@ def test_rich_business_fields_survive_projection_while_dynamic_source_keys_and_p
     assert summary['snapshot']['payload']['pools'][0]['six_star']==1
     data=shared.panel_payload('nte','tajiduo','account',{'nickname':'C:/private/user/file','token':'secret'})
     assert 'private' not in data['nickname'] and 'secret' not in str(data)
-    long='完整来源正文。'*300
-    data=shared.panel_payload('nte','public','news',[{'title':'公告','summary':long}])
-    assert data[0]['summary']==long[:180]+'…' and len(long)>1800
-    data=shared.panel_payload('nte','public','news',[{'body':'<p>正文 &amp; 内容</p><script>PRIVATE</script>'}])
-    assert data[0]['summary']=='正文 & 内容' and 'body' not in data[0]
+    # Panels that only served retired commands are no longer projectable.
+    for game,cap in (('nte','news'),('wuthering_waves','activities'),('endfield','stamina'),('endfield','training'),('endfield','regions'),('endfield','progress')):
+        with pytest.raises(RenderingUnavailable,match='unsupported_panel'):shared.panel_payload(game,'public' if cap=='news' else 'skland',cap,{})
     with pytest.raises(RenderingUnavailable,match='data_limit'):shared.panel_payload('nte','tajiduo','account',{'nickname':'长'*8001})
 
 
-def test_news_keeps_all_article_rows_with_explicit_bounded_excerpts_instead_of_full_bodies():
-    rows=[{'title':f'第{i}篇公告','category':'公告','published_at':'2026-10-15T00:00:00Z',
-        'body':'<p>长正文。'*2500+'</p><script>PRIVATE</script>','summary':'优先摘要' if i==1 else ''} for i in range(39)]
-    panel=shared.game_panel('wuthering_waves','public','news',QueryResult(rows,None,'ok',False))
-    payload=panel['snapshot']['payload']
-    assert len(payload)==39 and payload[0]['title']=='第0篇公告' and payload[-1]['title']=='第38篇公告'
-    assert payload[1]['summary']=='优先摘要'
-    assert payload[0]['summary'].endswith('…') and len(payload[0]['summary'])==181
-    assert all('body' not in row and 'content_text' not in row for row in payload)
-    assert all(row['category']=='公告' and row['published_at']=='2026-10-15T00:00:00Z' for row in payload)
-    value=shared.game_snapshot([panel],NOW)
-    assert len(value['display_data']['panels'][0]['snapshot']['payload'])==39
-    assert not any('PRIVATE' in row['summary'] or '<p>' in row['summary'] for row in payload)
-
-
-def test_news_public_ids_and_original_links_remain_distinct_without_allowing_private_or_image_urls():
-    rows=[{'id':'1234567001','title':'同标题公告','url':'https://www.kurobbs.com/forum/post/1234567001'},
-        {'id':'1234567002','title':'同标题公告','url':'https://www.kurobbs.com/forum/post/1234567002'}]
-    payload=shared.panel_payload('wuthering_waves','public','news',rows)
-    assert [row['id'] for row in payload]==['1234567001','1234567002']
-    assert [row['url'] for row in payload]==[row['url'] for row in rows]
-    assert not list(shared.asset_urls(shared.game_snapshot([shared.game_panel('wuthering_waves','public','news',QueryResult(rows,None,'ok',False))],NOW)))
+def test_original_article_links_stay_exact_without_allowing_private_urls():
+    for url in ('https://www.kurobbs.com/forum/post/1234567001','https://www.kurobbs.com/forum/post/1234567002'):
+        assert shared.safe_article_url(url)==url
     for url in ('http://127.0.0.1/private','file:///C:/secret','https://user:secret@www.kurobbs.com/forum/post/1',
         'https://www.kurobbs.com/forum/post/1?token=secret','https://evil.invalid/news/1',
         'https://www.kurobbs.com/forum/../private','https://www.kurobbs.com/C:/Users/private'):
-        assert shared.panel_payload('wuthering_waves','public','news',[{'url':url}])[0]['url'] is None
-    assert shared.panel_payload('nte','public','news',[{'id':'PRIVATE/token/path'}])[0]['id'] is None
+        assert shared.safe_article_url(url) is None
 
 
 @pytest.mark.parametrize('game,provider,cap,payload',[
- ('nte','tajiduo','stamina',{'schema_version':1,'current':0,'maximum':100,'city_current':None}),
+ ('nte','tajiduo','progress',{'schema_version':1,'completed':0,'total':100,'gold':None}),
  ('wuthering_waves','kuro','exploration',{'country_groups':[{'name':'区域','progress':None}]}),
  ('endfield','hypergryph','gacha',{'schema_version':1,'total':0,'complete':False,'pools':[]}),
  ('wuthering_waves','kuro','roles',[{'role_id':1304,'name':'今汐','level':0}]),
@@ -231,24 +209,15 @@ async def test_shared_required_missing_snapshot_is_refused():
         await renderer.render_summary_async(AccountScope('u','a','r'),QueryResult({'shared_required':True},None,'ok',False),budget_seconds=1)
 
 
-async def test_large_public_body_becomes_an_article_excerpt_without_http_error_or_losing_rows():
-    from game_assistant.qq.query_routes import QqQueryService
-    row=QueryResult([{'title':'公告','body':'字'*8001}],NOW.isoformat(),'ok',False)
-    api=QqQueryService(None,None,SimpleNamespace(read=lambda *args:row),clock=lambda:NOW)
-    context={};api.query(IDENTITY,'news','nte',image_context=context)
-    payload=context['render_snapshot']['display_data']['panels'][0]['snapshot']['payload']
-    assert len(payload)==1 and payload[0]['summary']=='字'*180+'…' and 'body' not in payload[0]
-
-
 async def test_new_component_images_still_recheck_authorization_after_render():
-    query=CachedQuery();query.add('nte','tajiduo','private-account',{'stamina':{'current':0}})
+    query=CachedQuery();query.add('nte','tajiduo','private-account',{'exploration':{'areas':[]}})
     class Queue:
         renderer=SimpleNamespace(invalidate_account=lambda *args:None)
         async def render(self,scope,result,**kwargs):
             assert result.payload['render_snapshot']['kind']=='game_snapshot'
             query.versions['private-account']+=1
             return b'png'
-    reply=await service(query,queue=Queue()).query_reply(IDENTITY,'stamina','nte',image_requested=True,budget_seconds=5)
+    reply=await service(query,queue=Queue()).query_reply(IDENTITY,'exploration','nte',image_requested=True,budget_seconds=5)
     assert 'image' not in reply and '变更' in reply['text']
 
 

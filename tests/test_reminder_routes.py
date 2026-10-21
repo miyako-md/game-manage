@@ -34,6 +34,7 @@ def test_group_policy_consumes_scope_images_limits_quiet_and_restart(tmp_path):
         service.consume(a, None, 'overview', True)
     with pytest.raises(HTTPException):
         service.consume(a, None, 'status', True)
+    assert not service.consume(a, None, 'retired', True)  # a fixed retired-command notice names no game data
     service.save('bot', 'group-a', GroupSettings(quiet_start='15:00', quiet_end='17:00'))
     assert service.consume(a, 'nte', 'stamina', True)  # quiet applies only to automatic delivery
     assert service.consume(a, None, 'help', True)  # can discover configuration
@@ -93,7 +94,7 @@ def test_real_internal_query_route_consumes_operator_settings(tmp_path):
         async def reply(identity,command,game,**options):
             return dict(text=f"image={options['image_requested']}")
         app.state.qq_query.query_reply = reply
-        body = dict(identity=dict(app_id='bot',scene='group',group_openid='group-a',sender_openid='member'),game='nte',command='stamina',image_requested=True)
+        body = dict(identity=dict(app_id='bot',scene='group',group_openid='group-a',sender_openid='member'),game='nte',command='summary',image_requested=True)
         headers = {'Authorization':'Bearer test-service'}
         assert client.post('/internal/qq/query',json=body,headers=headers).json() == {'text':'image=False'}
         assert client.post('/internal/qq/query',json=dict(body,game='wuthering_waves'),headers=headers).status_code == 403

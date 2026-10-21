@@ -126,20 +126,19 @@ def message(game, title, explanation, *, kind='status'):
 
 
 def help_document(game=None):
+    """Every line comes from the command registry, so help matches the parser."""
+    from .commands import ALL_GAMES, REGISTRY
     prefix=GAME_NAMES.get(game,'游戏')
-    sections=[{'title':'绑定与账号','layout':'help','fields':[field('绑定','绑定 实际绑定码'),field('授权状态','我的账号'),field('网站入口','看板')]},
-        {'title':'总览与角色','layout':'help','fields':[field('本人总览','我的总览'),field('单游戏总览',prefix+' 总览'),field('角色列表',prefix+' 角色'),field('角色详情',prefix+' 角色 精确名称'),field('攻略索引',prefix+' 攻略'),field('角色攻略',prefix+' 攻略 精确名称')]},
-        {'title':'资源与进度','layout':'help','fields':[field(title,prefix+' '+title) for title in ('体力','探索','进度')]+[field('刷新缓存','刷新 '+prefix)]},
-        {'title':'抽卡','layout':'help','fields':[field('抽卡记录',prefix+' 抽卡')]},
-        {'title':'公告与活动','layout':'help','fields':[field(title,prefix+' '+title) for title in ('公告','近期活动','活动','日历')]}]
-    if game in (None,'wuthering_waves'):
-        sections.append({'title':'鸣潮专项','layout':'help','fields':[field(title,'鸣潮 '+title) for title in ('挑战','数据坞','活动进度','资源')]})
-    if game in (None,'nte'):
-        sections.append({'title':'异环专项','layout':'help','fields':[field(title,'异环 '+title) for title in ('房产','车辆','队伍','档案')]})
-    if game in (None,'endfield'):
-        sections.append({'title':'终末地专项','layout':'help','fields':[field(title,'终末地 '+title) for title in ('理智','练度','地区','帝江号','光荣之路','挑战','寻访战报')]+[field('干员配装','终末地 干员 精确名称')]})
+    grouped={}
+    for entry in REGISTRY:
+        if game is not None and entry.games and game not in entry.games:continue
+        name=prefix if game is not None or len(entry.games)!=1 else GAME_NAMES[entry.games[0]]
+        description=entry.description
+        if game is None and 1<len(entry.games)<len(ALL_GAMES):description+='（'+'、'.join(GAME_NAMES[g] for g in entry.games)+'）'
+        grouped.setdefault(entry.section,[]).append(field(description,entry.syntax.replace('游戏',name)))
+    sections=[{'title':title,'layout':'help','fields':fields} for title,fields in grouped.items()]
     card=document('help',game or 'all',prefix+' · 帮助' if game else '帮助 · 游戏管家',subtitle='游戏前缀：鸣潮、异环、终末地；公共单游戏活动无需绑定',sections=sections,
-        notices=['先登录网站生成绑定码，再发送绑定指令；收到成功回复即完成。','不写游戏名时，活动按已授权的游戏分别显示；近期活动指未来 7 天内开始或结束。'])
+        notices=['先登录网站生成绑定码，再发送绑定指令；收到成功回复即完成。','不写游戏名时，活动按已授权的游戏分别显示；近期活动列出即将开始或结束的活动。'])
     card['version']=3
     return card
 

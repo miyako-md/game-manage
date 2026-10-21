@@ -23,19 +23,19 @@ IDENTITY = QqIdentity('app', 'group', 'g', 'sender')
     ('终末地 角色 陈千语', 'roles', 'endfield', '陈千语', 1),
     ('角色 异环 娜娜莉', 'roles', 'nte', '娜娜莉', 1),
     ('鸣潮 角色 今汐 2', 'roles', 'wuthering_waves', '今汐', 2),
-    ('异环 体力', 'stamina', 'nte', None, 1),
-    ('异环 体力 2', 'stamina', 'nte', None, 2),
+    ('异环 体力', 'retired', 'nte', None, 1),
+    ('异环 进度 2', 'progress', 'nte', None, 2),
     ('探索 鸣潮 2', 'exploration', 'wuthering_waves', None, 2),
     ('挑战 终末地', 'combat', 'endfield', None, 1),
     ('抽卡 异环', 'gacha', 'nte', None, 1),
-    ('公告 鸣潮 3', 'news', 'wuthering_waves', None, 3),
+    ('日历 鸣潮 3', 'calendar', 'wuthering_waves', None, 3),
 ])
 def test_unified_explicit_grammar(raw, verb, game, name, page):
     parsed = parse_command(raw)
     assert (parsed.command, parsed.game, parsed.role_name, parsed.page) == (verb, game, name, page)
 
 
-@pytest.mark.parametrize('raw', ['鸣潮 角色 0', '异环 角色 101', '异环 体力 101',
+@pytest.mark.parametrize('raw', ['鸣潮 角色 0', '异环 角色 101', '异环 进度 101',
                                  '总览 other-user', '刷新 异环 2', '角色 异环 名字\x00',
                                  'ww 角色 a b', '异环 角色 '+ '名' * 65])
 def test_unified_grammar_rejects_invalid_selector(raw):
@@ -160,10 +160,10 @@ def test_cache_capability_projection_and_unsupported_are_explicit():
     query.add('endfield', 'skland', 'sk', {'account': {'base': {'name': 'S'}, 'stamina': {'current': 0, 'maximum': 240},
                   'regions': [{'name': '四号谷地', 'level': 2}], 'progress': [{'name': '每日活跃', 'cur': None, 'total': 100}]}})
     api = service(query)
-    assert '0/100' in api.query(IDENTITY, 'stamina', 'nte')['text']
+    assert '0/100' in api.query(IDENTITY, 'summary', 'nte')['text']
     assert '未知/20' in api.query(IDENTITY, 'exploration', 'nte')['text']
     assert '四号谷地' in api.query(IDENTITY, 'exploration', 'endfield')['text']
-    assert '当前缓存不支持' in api.query(IDENTITY, 'combat', 'nte')['text']
+    assert '当前缓存不支持' in api.query(IDENTITY, 'realestate', 'nte')['text']
     text = api.query(IDENTITY, 'gacha', 'nte')['text']
     assert '5' in text and 'DO NOT SHOW' not in text and '99' not in text
     api.query(IDENTITY, 'refresh', 'nte')
@@ -332,8 +332,6 @@ async def test_unlink_and_relink_same_user_still_invalidates_inflight_private_ca
 
 
 @pytest.mark.parametrize('game,command,payload,expected',[
-    ('wuthering_waves','calabash',{'level':20},'20'),
-    ('wuthering_waves','activities',{'sections':{}},'未知'),
     ('wuthering_waves','resources',{'current':None,'periods':{}},'未知'),
     ('nte','realestate',{'entries':[]},'缓存'),
     ('nte','vehicles',{'entries':[]},'缓存'),

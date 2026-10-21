@@ -34,14 +34,9 @@ def reply(game,name,now,page=1):
         else:text='当前项目尚未收录可核验的'+(view.GAME_NAMES.get(game,'')+'角色攻略。')
         card=view.message(game,title,text)
         return card,shared.notice_snapshot(card,now,page,command=command)
-    if not rows:
-        card=view.message(game,title,'当前项目尚未收录可核验的终末地角色攻略。')
-        # Only public artwork hints; an unbound query never reads a roster.
-        snapshot=shared.notice_snapshot(card,now,page,command=command)
-        return card,shared.validate_snapshot(snapshot)
-    entries=[]
-    for row in rows:
-        guide=_guide(row)
-        entries.append({key:guide.get(key,'') for key in ('name','game','image','status')}|{'attribute':guide.get('attribute') or guide.get('element'),'version':' / '.join('V'+s['version'] if s.get('version') else '版本未确认' for s in guide['sources']), 'asset_hints':[url for url in guide['asset_hints'] if url==guide.get('image') or row['name']=='主角·零']})
-    card=view.document('help',game,title,sections=[{'title':'查询方式','fields':[view.field('角色攻略','游戏 攻略 精确角色名')]},{'title':'已收录角色','fields':[view.field(view.GAME_NAMES.get(game,'角色'), '、'.join(g['name'] for g in rows))]}])
-    return card,shared.snapshot('guide_index',game,{'guides':entries},now,page,title,command)
+    # No index image: a bare 攻略 points to the named form and the website list.
+    text=('当前项目尚未收录可核验的终末地角色攻略。' if game=='endfield' else
+          '请发送「'+(view.GAME_NAMES[game]+' 攻略 角色名」' if game else '鸣潮 攻略 角色名」或「异环 攻略 角色名」')+'查看单个角色攻略；可用角色见网站攻略页。')
+    card=view.message(game,title,text)
+    # 终末地 keeps its guide-status notice; an unbound query never reads a roster.
+    return card,shared.notice_snapshot(card,now,page,command=command)

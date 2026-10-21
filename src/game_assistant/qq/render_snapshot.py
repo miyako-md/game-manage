@@ -34,11 +34,9 @@ EXPLORATION = COMMON | frozenset('areas country_groups detections by_level progr
 END_FIELD = (COMMON | ACCOUNT | STAMINA | PROGRESS | ROLE) - {'role_id'}
 END_FIELD |= frozenset('base stamina operators regions ship achievements main_mission char_count weapon_count avatar_url rarity potential evolve_phase profession property refine_level gem terms collections level_id puzzle_count chest_count piece_count blackbox_count levels puzzles chests equipment_chests pieces blackboxes settlements money money_max medals charId physicalStrength favorability'.split())
 CALABASH = COMMON | frozenset('base_catch catch_quality cur_exp max_count phantom_list phantom_name phantom_icon phantom_id quality catch_prob'.split())
-ACTIVITIES = COMMON | STAMINA | frozenset('sections unlock is_unlock exp next_exp max_exp max_level rank level_name badge_list badge_num max_badge_num max_card_num card_total_num card_num max_animal_num animal_num max_map_num map_num max_toy_num toy_num toy_count animal_count map_count item_num max_item_num reward_num max_reward_num reward_count reward badge card animal map toy sort'.split())
 RESOURCES = COMMON | frozenset('period kind data total_coin total_star coin_inc star_inc inc coin_list star_list item_list num start_time end_time'.split())
 COMBAT = COMMON | ROLE | frozenset('tower hologram slash data star max_star difficulty_list difficulty difficulty_name tower_area_list area_name floor_list floor floor_index floor_name role_list roles role_level challenge_info boss_name boss_level pass_time season_end_at is_unlock challenge_list challenge_name score rank all_score max_score half_list half_name buff_list buff_name buff_description'.split())
 ASSETS = COMMON | frozenset('owned_count owned resident_ids furniture base advanced models show_name show_id members role_ids role_name slot role_id rarity image_urls'.split())
-NEWS = frozenset('id title name summary content_category published_at source source_name source_title source_url source_stale url tags category cover_url image_url image_urls images banner'.split())
 # Existing public article builders: WuWa announcements, Tajiduo _post_url,
 # endfield_public.NEWS_URL and sources.bilibili dynamic links. These anchors
 # never become image prefetch URLs and do not broaden assets.ALLOWED_HOSTS.
@@ -46,15 +44,17 @@ ARTICLE_HOSTS = frozenset(('www.kurobbs.com','bbs.tajiduo.com','www.tajiduo.com'
 END_GACHA = GACHA | COMMON | frozenset('key label six_star five_star free gaps pending since_last_six recent_six history pool_name pulls is_free last_sync_at pool_key char_id char_name newest_at oldest_at'.split())
 END_REPORT = END_FIELD | frozenset('key label region_count settlement_count report overview training honor available availability observed_at todos remaining percent summary listed_count declared_count known_levels average_level max_level rarity_counts phase_counts items rooms room_count staffed_rooms operator_slots operators_available settlements_available officer_char_ids officers officers_available coupon areas equipment_chest_count mood_raw trust_raw mood_percent trust_percent trust_level_name conversion_model category is_plated obtained_at char_id doc_count slot_name slot_label tactical_item active_effect passive_effect operator_detail operator_detail_id operator_fetched_at operator_stale'.split())
 END_CHALLENGES = COMMON | frozenset('reports supported available kind stale records honors summary listed_count highest challenge_count start_at end_at stars weeks groups stages difficulty passed result first_pass_at'.split())
+# Only panels a current command produces: stamina, calabash and the NTE record
+# card remain because 我的总览 / 游戏 总览 still embed them.
 PANEL_CAPS = {
  'nte':{'account':ACCOUNT,'stamina':STAMINA,'progress':PROGRESS,'exploration':EXPLORATION,'record':ACCOUNT|frozenset(('cards',)), 'roles':ROLE,'gacha':GACHA,'realestate':ASSETS,'vehicles':ASSETS,'teams':ASSETS},
- 'wuthering_waves':{'account':ACCOUNT,'stamina':STAMINA,'progress':PROGRESS,'exploration':EXPLORATION,'roles':ROLE|frozenset(('extra',)),'gacha':GACHA,'combat':COMBAT,'calabash':CALABASH,'activities':ACTIVITIES,'resources':RESOURCES},
- 'endfield':{cap:END_REPORT for cap in ('account','stamina','progress','exploration','roles','record','training','regions','ship','honor','operator_detail')},
+ 'wuthering_waves':{'account':ACCOUNT,'stamina':STAMINA,'progress':PROGRESS,'exploration':EXPLORATION,'roles':ROLE|frozenset(('extra',)),'gacha':GACHA,'combat':COMBAT,'calabash':CALABASH,'resources':RESOURCES},
+ 'endfield':{cap:END_REPORT for cap in ('account','exploration','roles','ship','honor','operator_detail')},
 }
 PANEL_CAPS['endfield']['gacha']=END_GACHA | frozenset('report four_star unknown_rarity history_total history_available history_limit history_truncated known_exact_intervals average_exact_pulls pool_label banners errors gifts unverified_records'.split())
 PANEL_CAPS['endfield']['combat']=END_CHALLENGES
 for _game in PANEL_CAPS:
- PANEL_CAPS[_game].update(news=NEWS,events=CALENDAR,recent_events=CALENDAR)
+ PANEL_CAPS[_game].update(events=CALENDAR,recent_events=CALENDAR)
 DISPLAY_FIELDS = frozenset().union(COMMON,*[fields for caps in PANEL_CAPS.values() for fields in caps.values()])
 PROVIDERS = frozenset(('kuro','tajiduo','skland','hypergryph','public'))
 _TECHNICAL = re.compile(r'^(?:(?:缓存状态|快照状态|公共快照状态|完整性|来源诊断|来源状态|数据状态)(?:：|$)|缓存快照$|数据可能过期$|当前查询失败或待刷新，显示旧快照$|部分来源不可用，显示可用来源数据$)')
@@ -76,18 +76,6 @@ def display_text(value,limit=8000):
     text=_clean_text(value)
     if len(text)>limit:raise RenderingUnavailable('qq_browser_data_limit')
     return text
-
-
-def _article_excerpt(row):
-    """The website list's 180-character summary, never an article full text."""
-    from html import unescape
-    def readable(value):
-        if not isinstance(value,str):return ''
-        value=re.sub(r'<(script|style|iframe)\b[^>]*>[\s\S]*?</\1>','',value,flags=re.I)
-        return re.sub(r'<[^>]*>','',unescape(value)).strip()
-    text=readable(row.get('summary')) or readable(row.get('body')) or readable(row.get('content_text'))
-    text=re.sub(r'\s+',' ',_clean_text(text)).strip()
-    return text[:180]+('…' if len(text)>180 else '')
 
 
 def safe_article_url(value):
@@ -116,18 +104,13 @@ def panel_payload(game,provider,capability,payload):
     allowed=PANEL_CAPS.get(game,{}).get(capability)
     if allowed is None:raise RenderingUnavailable('qq_browser_unsupported_panel')
     if game=='endfield' and provider=='hypergryph' and capability=='account':allowed=ACCOUNT
-    if capability=='news' and isinstance(payload,list):
-        payload=[{**{key:value for key,value in row.items() if key in NEWS},'summary':_article_excerpt(row),
-                  'images':_artwork_pictures(row)} for row in payload if isinstance(row,dict)]
     def visit(value,depth=0):
         if depth>14:raise RenderingUnavailable('qq_browser_data_limit')
         if isinstance(value,dict):
             out={}
             for key,child in value.items():
                 if key not in allowed:continue
-                if capability=='news' and key=='id':out[key]=str(child) if type(child) in (str,int) and re.fullmatch(r'[A-Za-z0-9_-]{1,128}',str(child)) else None
-                elif capability=='news' and key in ('url','source_url'):out[key]=safe_article_url(child)
-                elif game=='endfield' and key in ('id','char_id','charId','operator_detail_id'):
+                if game=='endfield' and key in ('id','char_id','charId','operator_detail_id'):
                     out[key]=child if isinstance(child,str) and re.fullmatch(r'[A-Za-z0-9_-]{1,128}',child) else None
                 elif key in ('sections','challenge_info') and isinstance(child,dict):
                     out[key]={f'bucket_{i}':visit(item,depth+1) for i,item in enumerate(child.values())}

@@ -9,7 +9,6 @@ export function prepareReuse(c){
    for(const z of v?.slash?.data?.difficulty_list||[])if(!z.difficulty_name?.startsWith('再生海域'))z.challenge_list=[]
    const walk=x=>{if(Array.isArray(x))x.forEach(walk);else if(x&&typeof x==='object'){if('role_id' in x&&('icon_url' in x||'role_name' in x))x.role_name=roleIdentity('wuthering_waves',x).name;Object.values(x).forEach(walk)}};walk(v)
   }
-  if(p.game==='wuthering_waves'&&p.capability==='activities'&&p.snapshot.payload)p.snapshot.payload.sections=Object.fromEntries(Object.entries(p.snapshot.payload.sections||{}).flatMap(([key,raw])=>{const value={...raw};for(const k of ['badge_list','badge_num','max_badge_num','items'])delete value[k];return Object.keys(value).some(k=>!['title','sort'].includes(k)&&value[k]!=null)?[[key,value]]:[]}))
  }
  return s
 }

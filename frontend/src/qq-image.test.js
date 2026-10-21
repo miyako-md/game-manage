@@ -27,13 +27,11 @@ test('role details need no image-only description stripping; the input stays int
  assert.deepEqual(prepareReuse(source),source.snapshot);assert.equal(JSON.stringify(source),before)
 })
 
-test('partial challenge modules and missing activities remain renderable',()=>{
+test('partial challenge modules remain renderable',()=>{
  const input={snapshot:{kind:'game_snapshot',display_data:{panels:[
-  {game:'wuthering_waves',capability:'combat',snapshot:{payload:{hologram:{state:'unavailable'},slash:{state:'unavailable'}}}},
-  {game:'wuthering_waves',capability:'activities',snapshot:{payload:{sections:{empty:{title:'无数据',progress:null}}}}}
+  {game:'wuthering_waves',capability:'combat',snapshot:{payload:{hologram:{state:'unavailable'},slash:{state:'unavailable'}}}}
  ]}}}
  assert.doesNotThrow(()=>prepareReuse(input))
- assert.deepEqual(prepareReuse(input).display_data.panels[1].snapshot.payload.sections,{})
 })
 test('persistent browser configuration clears previous account context between renders',()=>{
  const input={command:'终末地 攻略',snapshot:{kind:'notice',game:'endfield',as_of:'2026-10-18T00:00:00+08:00',display_data:{sections:[]}}}
@@ -49,4 +47,10 @@ test('guide sources without a version say so instead of printing VNone',()=>{
  const lines=model.panels.at(-1).lines.map(l=>l.text)
  assert.match(lines[0],/V3\.2/);assert.match(lines[1],/版本未确认/)
  assert.doesNotMatch(JSON.stringify(model),/VNone|Vnull|Vundefined/)
+})
+test('a bare guide reply is a plain notice, not an index image',()=>{
+ const input={command:'鸣潮 攻略',snapshot:{kind:'notice',game:'wuthering_waves',as_of:'2026-10-18T00:00:00+08:00',display_data:{title:'鸣潮 角色攻略',sections:[],notices:['请发送「鸣潮 攻略 角色名」查看单个角色攻略；可用角色见网站攻略页。']}}}
+ const model=viewModel(input)
+ assert.deepEqual(model.panels.map(p=>p.type),['text'])
+ assert.match(model.panels[0].text,/鸣潮 攻略 角色名.*网站攻略页/)
 })

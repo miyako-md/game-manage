@@ -11,7 +11,7 @@ const kv=(label,value)=>({label,value:display(value)})
 const metric=(label,cur,max,extra='')=>({label,cur:display(cur),max:max==null?null:display(max),pct:pct(cur,max),extra})
 const bar=(label,cur,max,extra='')=>({label,cur:display(cur),max:max==null?null:display(max),pct:pct(cur,max),extra})
 const names={wuthering_waves:'鸣潮',nte:'异环',endfield:'终末地',all:'游戏管家'}
-const caps={account:'账号档案',stamina:'体力',roles:'角色',exploration:'探索进度',progress:'成长进度',combat:'挑战',calabash:'数据坞',activities:'活动进度',resources:'资源报告',news:'公告',realestate:'房产',vehicles:'车辆',teams:'队伍',record:'档案',gacha:'抽卡',training:'全员练度',regions:'地区建设',ship:'帝江号',honor:'光荣之路'}
+const caps={account:'账号档案',stamina:'体力',roles:'角色',exploration:'探索进度',progress:'成长进度',combat:'挑战',calabash:'数据坞',resources:'资源报告',realestate:'房产',vehicles:'车辆',teams:'队伍',record:'档案',gacha:'抽卡',ship:'帝江号',honor:'光荣之路'}
 let roleMaps={wuthering_waves:{},nte:{}},allAssets={},endfieldPortraits={},endfieldOperators=[]
 export function configure(cases,assets){
  roleMaps={wuthering_waves:{},nte:{}};endfieldPortraits={};endfieldOperators=[]
@@ -41,13 +41,6 @@ export function roleIdentity(game,r){
 }
 function portraits(game,rows){return list(rows).map(r=>{const id=roleIdentity(game,r);return {...id,name:r.name||id.name,image:asset(id.icon),meta:[r.attribute||r.element,r.star_level?`${r.star_level} 星`:r.quality,r.level!=null?`Lv.${r.level}`:null,r.chain!=null?`共鸣链 ${r.chain}`:r.awaken_level!=null?`觉醒 ${r.awaken_level}`:null].filter(Boolean).join('　') }})}
 function team(game,roles){return list(roles).map(r=>roleIdentity(game,r).name).join(' / ')||'队伍未提供'}
-function guideIndex(guides){return guides.map(g=>{
- const existing=g.image?.startsWith('/asset-cache/')?g.image:asset(g.image)
- const variants=g.game==='nte'&&g.name==='主角·零'?[nteRoleIcon('1046'),nteRoleIcon('1051')]:[]
- const fallback=g.game==='nte'?nteRoleIcon(g.name):Object.values(wuwaIcons.characters).find(r=>r.name===g.name||r.name===g.name+'·'+g.attribute)?.icon
- const images=variants.length?variants.map(asset).filter(Boolean):[existing||asset(fallback)].filter(Boolean)
- return {...g,images,avatarLabels:variants.length?['男','女']:[]}
-})}
 function fields(obj,keys){return keys.map(k=>kv(fieldLabels[k]||({nickname:'昵称',server_name:'区服',character_count:'角色数',tycoon_level:'大亨等级',owned_count:'已拥有',affinity_exp:'好感经验',awaken_level:'觉醒',mix_level:'混频',activation_count:'激活数量'}[k])||k,obj?.[k]))}
 function rowsProps(rows){return list(rows).map(r=>kv(r.attribute_name||r.name,r.attribute_value??r.value))}
 function note(title,text){return {title,type:'text',text}}
@@ -89,25 +82,6 @@ function combat(p){
   out.push({title:z.difficulty_name+' · 关卡记录',type:'sea',challenges:rows})
  }
  return out
-}
-
-function activities(p){
- const out=[]
- for(const s of Object.values(p?.sections||{}).sort((a,b)=>(a.sort||0)-(b.sort||0))){
-  const pairs=[]
-  for(const [k,v] of Object.entries(s)){
-   if(['badge_list','badge_num','max_badge_num','items','sort','title'].includes(k)||k.startsWith('max_'))continue
-   if(v&&typeof v==='object'&&!Array.isArray(v)&&typeof v.count==='number'&&typeof v.total==='number'&&v.total>0)pairs.push(metric(fieldLabels[k]||k,v.count,v.total))
-   else if(typeof v==='number'){
-    let max=s['max_'+k]??(k==='card_num'?s.card_total_num:k==='exp'?s.next_exp:undefined)
-    if(typeof max==='number'&&max>0)pairs.push(metric(k==='item_num'?'纪念品进度':fieldLabels[k]||k,v,max))
-   }
-  }
-  const extra=['level','level_name','rank'].filter(k=>s[k]!=null).map(k=>kv(fieldLabels[k],s[k]))
-  if(!pairs.length&&!extra.length)continue
-  out.push(metricPanel(s.title,pairs,extra))
- }
- return out.length?out:[note('活动进度','当前没有可展示的活动数据。')]
 }
 
 function wuwaRole(data){
@@ -158,16 +132,16 @@ function endfield(cap,p){
   return out
  }
  if(report?.training){
-  if(['roles','training'].includes(cap)){
+  if(cap==='roles'){
    const summary=report.training.summary||{}
    out.push(metricPanel('练度总览',[metric('已记录干员',summary.listed_count),metric('平均等级',summary.average_level),metric('最高等级',summary.max_level)]))
    out.push({title:'干员档案',type:'portraits',roles:list(report.training.items).map(r=>({name:r.name,image:asset(r.avatar_url),meta:`Lv.${display(r.level)}　${display(r.rarity)} 星　潜能 ${display(r.potential)}　${r.profession||''}`}))})
-  }else if(['account','progress','stamina'].includes(cap)){
+  }else if(cap==='account'){
    const v=report.overview||{},b=v.base||{},s=v.stamina||{}
-   if(cap!=='stamina')out.push(metricPanel('管理员档案',[metric('账号等级',b.level),metric('探索等级',b.world_level),metric('干员数',b.char_count)],[kv('名称',b.name)],b.main_mission||undefined))
+   out.push(metricPanel('管理员档案',[metric('账号等级',b.level),metric('探索等级',b.world_level),metric('干员数',b.char_count)],[kv('名称',b.name)],b.main_mission||undefined))
    out.push(metricPanel('理智',[metric('理智',s.current,s.maximum)],s.expected_full_at?[kv('预计回满',formatBeijingDateTime(s.expected_full_at))]:[]))
-   if(cap!=='stamina')out.push(bars('每日与通行证',list(v.progress).map(r=>bar(r.name||r.label,r.current??r.cur,r.total,r.note))))
-  }else if(['exploration','regions'].includes(cap))for(const r of list(report.regions.items)){
+   out.push(bars('每日与通行证',list(v.progress).map(r=>bar(r.name||r.label,r.current??r.cur,r.total,r.note))))
+  }else if(cap==='exploration')for(const r of list(report.regions.items)){
    out.push(metricPanel(r.name,[metric('地区等级',r.level),metric('地区调度券',r.money?.current,r.money?.total)]))
    out.push(bars('据点建设',list(r.settlements).map(x=>bar(x.name,x.coupon?.current,x.coupon?.total,`Lv.${display(x.level)}　派驻：${list(x.officers).map(o=>o.name).join(' / ')||'未提供'}`))))
    for(const a of list(r.areas))out.push(bars(r.name+' · '+a.name,list(a.collections).map(x=>bar(x.label,x.current,x.total))))
@@ -175,19 +149,19 @@ function endfield(cap,p){
    const summary=report.ship.summary||{}
    out.push(metricPanel('帝江号总览',[metric('房间',summary.room_count),metric('已派驻房间',summary.staffed_rooms),metric('干员槽位',summary.operator_slots)],[],'心情与信赖使用项目现有换算模型；信赖上限为 200%。未知观测值不计为零。'))
    for(const r of list(report.ship.rooms)){out.push(table(r.name+' · Lv.'+display(r.level),['干员','心情','信赖'],list(r.operators).map(x=>[x.name||'名称未提供',x.mood_percent==null?'未提供':x.mood_percent.toFixed(1)+'%',x.trust_percent==null?'未提供':x.trust_percent.toFixed(1)+'%'])))}
-  }else if(['honor','record'].includes(cap)){
+  }else if(cap==='honor'){
    out.push(metricPanel('光荣之路总览',[metric('已记录奖章',report.honor.summary.listed_count,report.honor.summary.declared_count)]))
    out.push(table('光荣之路',['奖章','分类','等级 / 镀层','获得日期'],list(report.honor.items).map(m=>[m.name,m.category||'未提供',`${display(m.level)} · ${m.is_plated?'已镀层':'未镀层'}`,m.obtained_at?formatBeijingDateTime(m.obtained_at).slice(0,10):'未提供'])))
   }
   return out.length?out:[note(caps[cap]||'终末地数据','当前来源没有此项记录。')]
  }
- if(['roles','training'].includes(cap))out.push({title:'干员档案',type:'portraits',roles:list(profile.operators).map(r=>({name:r.name,image:asset(r.avatar_url||r.icon_url||endfieldPortraits[r.name]),meta:`Lv.${display(r.level)}　${display(r.rarity)} 星　潜能 ${display(r.potential)}　${r.profession||''}`}))})
- else if(['account','progress','stamina'].includes(cap)){
+ if(cap==='roles')out.push({title:'干员档案',type:'portraits',roles:list(profile.operators).map(r=>({name:r.name,image:asset(r.avatar_url||r.icon_url||endfieldPortraits[r.name]),meta:`Lv.${display(r.level)}　${display(r.rarity)} 星　潜能 ${display(r.potential)}　${r.profession||''}`}))})
+ else if(cap==='account'){
   if(profile.base)out.push(attrib('管理员档案',[kv('名称',profile.base.name),kv('等级',profile.base.level),kv('主线',profile.base.main_mission)]))
   const s=profile.stamina||profile
   if('current' in s)out.push(metricPanel('理智',[metric('理智',s.current,s.maximum)]))
   if(profile.progress)out.push(bars('成长进度',list(profile.progress).map(r=>bar(r.name,r.cur,r.total))))
- }else if(['exploration','regions'].includes(cap))for(const r of list(profile.regions)){
+ }else if(cap==='exploration')for(const r of list(profile.regions)){
   out.push(attrib(r.name,list(r.settlements).map(x=>kv(x.name,`Lv.${display(x.level)}`))))
   for(const x of list(r.settlements))if(x.money!=null)out.push(metricPanel(x.name+' · 建设资金',[metric('资金',x.money,x.money_max)]))
   for(const [i,x] of list(r.collections).entries())out.push(bars(x.name||`探索区域 ${i+1}`,[bar('解谜',x.puzzle_count,null),bar('宝箱',x.chest_count,null),bar('物资箱',x.piece_count,null),bar('黑匣子',x.blackbox_count,null)]))
@@ -196,14 +170,13 @@ function endfield(cap,p){
   const map=new Map(list(profile.operators).map(x=>[x.id,x.name]))
   out.push(attrib(r.name,[kv('等级',r.level)]));out.push(table('进驻干员',['干员','体力','好感'],list(r.operators).map(x=>[x.name||map.get(x.charId)||'名称未提供',display(x.physicalStrength),display(x.favorability)])))
  }
- else if(['honor','record'].includes(cap)){out.push(metricPanel('勋章总览',[metric('勋章数量',profile.achievements?.count)]));out.push({title:'光荣之路',type:'textlines',lines:list(profile.achievements?.medals).map(m=>({name:m.name,text:[m.category,`等级 ${display(m.level)}`,m.is_plated?'已镀层':'未镀层',m.description,m.obtained_at?formatBeijingDateTime(m.obtained_at):null].filter(Boolean).join('\n')}))})}
+ else if(cap==='honor'){out.push(metricPanel('勋章总览',[metric('勋章数量',profile.achievements?.count)]));out.push({title:'光荣之路',type:'textlines',lines:list(profile.achievements?.medals).map(m=>({name:m.name,text:[m.category,`等级 ${display(m.level)}`,m.is_plated?'已镀层':'未镀层',m.description,m.obtained_at?formatBeijingDateTime(m.obtained_at):null].filter(Boolean).join('\n')}))})}
  return out.length?out:[note(caps[cap]||'终末地数据','当前来源没有可展示的数据，请在云端看板读取后查看。')]
 }
 
 function gamePanel(panel){
  const {game,capability:cap}=panel,s=panel.snapshot,p=s.payload,out=[],title=names[game]+' · '+(caps[cap]||cap)
  if(!p)return [note(title,cap==='teams'?'当前来源没有提供队伍数据。':'当前缓存没有可展示数据。')]
- if(cap==='news')return [{title,type:'news',articles:list(p).map(a=>({name:a.title,text:a.summary?.replace(/\[图片\]/g,'').replace(/\s+/g,' ').trim(),date:formatBeijingDateTime(a.published_at),source:a.source_name,image:(a.images||[]).map(asset).find(Boolean),stale:a.source_stale})),caption:'官方公告快照；保留标题、来源、发布时间与可用配图。'}]
  if(game==='endfield')return endfield(cap,p)
  if(game==='nte'&&cap==='teams')return [{title:'官方配队推荐',type:'cloud_teams',snapshot:s,roles:knownRoles('nte'),caption:'塔吉多官方推荐。主选、备选及推荐说明按原始来源展示。'}]
  if(cap==='roles')return [{title,type:'portraits',roles:portraits(game,Array.isArray(p)?p:p.entries)}]
@@ -226,7 +199,6 @@ function gamePanel(panel){
    for(const r of list(p.country_groups)){out.push(bars(r.name,list(r.areas).map(a=>bar(a.name,a.progress??a.current,a.total??100))))}
   }else for(const a of list(p.areas)){out.push(metricPanel(a.name,[metric('探索进度',a.current,a.total)]));out.push(bars('探索细项',list(a.details).map(r=>bar(r.name,r.current,r.total))))}
  }else if(cap==='combat')out.push(...combat(p))
- else if(cap==='activities')out.push(...activities(p))
  else if(cap==='calabash')out.push(metricPanel(title,[metric('数据坞等级',p.level),metric('捕获品质',p.catch_quality),metric('可收集上限',p.max_count)],[kv('基础捕获率',p.base_catch),kv('当前经验',p.cur_exp)]))
  else if(cap==='resources'){
   const r=p.current?.data||{};out.push(metricPanel(title,[metric('贝币',r.total_coin),metric('星声',r.total_star)],[],`${p.current?.period||''} 资源收入；环比未提供时不计算。`))
@@ -259,7 +231,6 @@ export function viewModel(c){
  else if(s.kind==='nte_gacha')result.panels=nteGacha(d)
  else if(s.kind==='wuwa_gacha')result.panels=[note('鸣潮抽卡档案',d.archive.coverage?.message||'尚未导入抽卡记录，请在云端看板导入。'),metricPanel('记录覆盖',[metric('记录数',d.archive.total)],[kv('覆盖状态',d.archive.coverage?.complete===true?'完整':'尚未确认完整')])]
  else if(s.kind==='game_snapshot')result.panels=d.panels.flatMap(gamePanel).concat((d.notices||[]).map(n=>note('说明',n)))
- else if(s.kind==='guide_index')result.panels=[{title:'角色攻略',type:'guide_index',guides:guideIndex(d.guides),caption:'使用“游戏 攻略 精确角色名”。社区推荐保留原始版本与出处；未收录角色不推测。'}]
  else if(s.kind==='guide'){
   const g=d.guide,version=v=>v?'V'+v:'版本未确认';result.hero={name:g.name+' · 攻略',image:asset(g.image|| (s.game==='nte'?nteRoleIcon(g.id||g.name):wuwaIcons.characters[String(g.id)]?.icon)),meta:[g.attribute||g.element,g.role,g.sources?.map(s=>version(s.version)).join(' / '),g.status==='original_only'?'仅原图索引':'已整理的社区建议'].filter(Boolean)}
   result.panels=g.sections.map(sec=>({title:sec.title,type:'guide_visual',game:s.game,characterId:g.id,roleName:g.name,sectionKey:sec.key,text:sec.text||sec.items?.join('\n')||'暂无已核验文字摘要，请查看来源原图。',caption:sec.note,source:g.sources?.find(s=>String(s.id)===String(sec.sourceId))?.title||g.sources?.[0]?.title}))

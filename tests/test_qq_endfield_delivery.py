@@ -28,8 +28,8 @@ from tests.test_qq_unified_queries import no_external_network
 @pytest.mark.parametrize('raw,command,title,snapshots', [
     ('终末地 总览', 'summary', '今日总览', 2),
     ('终末地 干员 佩丽卡', 'roles', '佩丽卡', 2),
-    ('终末地 练度', 'training', '全员练度', 1),
-    ('终末地 地区', 'regions', '地区建设', 1),
+    ('终末地 角色', 'roles', '全员练度', 1),
+    ('终末地 探索', 'exploration', '地区建设', 1),
     ('终末地 帝江号', 'ship', '帝江号', 1),
     ('终末地 寻访战报', 'gacha', '寻访战报', 1),
     ('终末地 光荣之路', 'honor', '光荣之路', 1),
@@ -100,7 +100,9 @@ async def test_endfield_commands_render_upload_and_passively_send_once(
         return await original_render(checked, result, budget_seconds=budget_seconds)
     monkeypatch.setattr(queue, 'render', render)
     assert queue.renderer.budget_seconds == 8
-    assert queue.renderer.max_bytes == 1048576
+    # Production passes the configured limit to both clients (qq.runner); 1 MiB is the deployed value.
+    limit = queue.renderer.max_bytes
+    assert limit == 1048576
 
     requests, replies, uploads, sends, operations = [], [], [], [], []
     http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app, client=('127.0.0.1', 1234)))
@@ -109,7 +111,7 @@ async def test_endfield_commands_render_upload_and_passively_send_once(
             requests.append((path, deepcopy(body)))
             return await super().post(path, body)
     internal = Internal('http://127.0.0.1:8020', 'fixture-service', internal_host='cloud.example',
-                        http=http, images_enabled=True)
+                        http=http, images_enabled=True, max_image_bytes=limit)
     class Business:
         async def execute(self, message):
             reply = await internal.execute(message)
@@ -125,7 +127,7 @@ async def test_endfield_commands_render_upload_and_passively_send_once(
                 assert set(body) == {'file_type', 'file_name', 'file_data', 'srv_send_msg'}
                 assert body['file_type'] == 1 and body['srv_send_msg'] is False
                 image = base64.b64decode(body['file_data'], validate=True)
-                assert valid_reply_image(image, max_bytes=1048576)
+                assert valid_reply_image(image, max_bytes=limit)
                 with Image.open(BytesIO(image)) as picture:
                     picture.load()
                     assert body['file_name'] == ('reply.png' if picture.format=='PNG' else 'reply.jpg')
@@ -137,6 +139,7 @@ async def test_endfield_commands_render_upload_and_passively_send_once(
             sends.append(deepcopy(body))
             return {'id': 'fixture-message-' + str(len(sends))}
     sender = OfficialQqClient('app', 'fixture-secret', None, None, sdk=SimpleNamespace(QQApiClient=API))
+    sender.max_image_bytes = limit
     state = BotState(tmp_path / 'bot.db')
     dispatcher = BotDispatcher(Business(), sender, state)
     now = datetime.now(timezone.utc)
@@ -151,12 +154,12 @@ async def test_endfield_commands_render_upload_and_passively_send_once(
         path, body = requests[0]
         assert path == '/internal/qq/query'
         assert (body['command'], body['game'], body['image_requested']) == (command, 'endfield', True)
-        assert body.get('role_name') == ('佩丽卡' if command == 'roles' else None)
+        assert body.get('role_name') == ('佩丽卡' if raw.endswith('佩丽卡') else None)
         payload = render_calls[0][1]
         assert payload['card']['title'] == '终末地 · ' + title
         assert len(payload['snapshot_fingerprints']) == snapshots
         assert NOW in payload['snapshot_times'] or command in ('gacha', 'combat')
-        if command == 'roles':
+        if raw.endswith('佩丽卡'):
             assert render_calls[0][1]['render_snapshot']['display_data']['panels'][0]['snapshot']['payload']['operator_detail']['tactical_item']['name']=='已观测战术道具'
             assert '2026-10-14T00:00:00Z' in payload['snapshot_times']
         if command == 'combat':

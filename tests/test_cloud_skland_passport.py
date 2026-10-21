@@ -432,13 +432,13 @@ async def test_scheduler_and_qq_use_same_verified_snapshot_and_revoke_blocks_it(
     web = query.read(scope,'account')
     qq = QqQueryService(SimpleNamespace(resolve_qq_identity=lambda identity:P),query,None)
     identity = QqIdentity('app','group','group','sender')
-    response = qq.query(identity,'stamina','endfield')
+    response = qq.query(identity,'roles','endfield')
     assert '终末地' in response['text'] and 'secret' not in response['text']
     assert web.fetched_at and Client.calls == 1  # QQ read starts no upstream exchange.
     accounts.revoke(P,hg['account_id'])
     with pytest.raises(LookupError):
         query.read(scope,'account')
-    response = qq.query(identity,'stamina','endfield')
+    response = qq.query(identity,'roles','endfield')
     assert 'Player' not in response['text'] and Client.calls == 1
     await runtime.aclose()
 

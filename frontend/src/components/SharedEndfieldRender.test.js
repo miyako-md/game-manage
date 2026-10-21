@@ -10,17 +10,17 @@ const snap=payload=>({payload,fetched_at:'2026-10-15T04:00:00Z',state:'ok',compl
 const input=(capability,payload)=>({kind:'game_snapshot',game:'endfield',as_of:'2026-10-15T04:00:00Z',display_data:{panels:[{game:'endfield',provider:'skland',capability,snapshot:snap(payload)}],notices:[]}})
 const profile={report:{schema_version:1,overview:{base:{name:'共享管理员',role_id:'100123456',level:0},stamina:{current:0,maximum:null},progress:[{id:'daily',name:'每日业务进度',cur:0,total:100,remaining:100}],todos:[{name:'每日业务进度',remaining:100}]},training:{items:[{id:'first',name:'共享首干员',level:0},{id:'last',name:'共享末干员',level:null}],summary:{listed_count:2}},regions:{items:[{name:'共享首地区'},{name:'共享末地区'}]},ship:{rooms:[{name:'共享首房间',operators:[]},{name:'共享末房间',operators:[]}],summary:{room_count:2}},honor:{available:true,items:[{name:'共享首奖章',level:0},{name:'共享末奖章',level:null}],summary:{listed_count:2}}}}
 
-test('training image shares the complete web roster overview and directs loadouts to a single operator card',t=>{
+test('roles image shares the complete web roster overview and directs loadouts to a single operator card',t=>{
  const items=Array.from({length:35},(_,i)=>({id:`operator-${i}`,name:`全配装干员${i}`,level:i===0?0:null,potential:i===0?0:null,evolve_phase:3,rarity:6,profession:'近卫',property:'物理',weapon:{name:'保留详情武器',level:80},equipment:[{slot:'bodyEquip',name:'保留详情护甲',level:70}],skills:[{name:'保留详情技能',level:9}]}))
  const payload={report:{schema_version:1,training:{items,summary:{listed_count:35,declared_count:35}}}}
- for(const root of [mount(t,Reports,{payload,view:'operators'}),mount(t,Render,{snapshot:input('training',payload)})]) {
+ for(const root of [mount(t,Reports,{payload,view:'operators'}),mount(t,Render,{snapshot:input('roles',payload)})]) {
   assert.deepEqual(nodes(root,'h3').map(content),items.map(item=>item.name))
   assert.match(content(root),/显示 35 \/ 35 名/)
   assert.match(content(root),/Lv\. 0 潜能 0.*精英阶段 3.*近卫 · 物理/)
   assert.match(content(root),/Lv\. 未知 潜能 未知/)
   assert.doesNotMatch(content(root),/保留详情武器|保留详情技能|保留详情护甲/)
  }
- const image=mount(t,Render,{snapshot:input('training',payload)})
+ const image=mount(t,Render,{snapshot:input('roles',payload)})
  assert.match(content(image),/武器、装备、技能与战术道具详情.*终末地 角色 干员名/)
  const detail=mount(t,Render,{snapshot:input('operator_detail',{...payload,operator_detail_id:items[0].id,operator_detail:items[0]})})
  for(const label of ['保留详情武器','保留详情护甲','保留详情技能','LV. 9'])assert.ok(content(detail).includes(label),label)
@@ -28,7 +28,7 @@ test('training image shares the complete web roster overview and directs loadout
 
 test('web, image component and frozen render root share all Endfield business report branches without image controls',async t=>{
  let requests=0;t.mock.method(globalThis,'fetch',async()=>{requests++;throw Error('must stay offline')})
- for(const [cap,view,tokens] of [['account','overview',['共享管理员','每日业务进度','0','未知']],['stamina','overview',['共享管理员','理智 0 / 未知']],['progress','overview',['每日业务进度']],['roles','operators',['共享首干员','共享末干员']],['exploration','regions',['共享首地区','共享末地区']],['ship','ship',['共享首房间','共享末房间']],['honor','honor',['共享首奖章','共享末奖章']]]) {
+ for(const [cap,view,tokens] of [['account','overview',['共享管理员','每日业务进度','理智 0 / 未知']],['roles','operators',['共享首干员','共享末干员']],['exploration','regions',['共享首地区','共享末地区']],['ship','ship',['共享首房间','共享末房间']],['honor','honor',['共享首奖章','共享末奖章']]]) {
   const roots=[mount(t,Reports,{payload:profile,view}),mount(t,Reports,{payload:profile,view,imageMode:true}),mount(t,Render,{snapshot:input(cap,profile)})]
   for(const root of roots)for(const token of tokens)assert.ok(content(root).includes(token),`${cap}: ${token}`)
   for(const root of roots.slice(1)) {
