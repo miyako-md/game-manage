@@ -1,6 +1,7 @@
 import { isCloudMode } from './http-client.js'
 import { finiteValue } from './dashboard.js'
 import { normalizeSearch, searchCharacters } from './character-search.js'
+import { roleRecency } from './role-order.js'
 
 export const roleId = role => role?.id === null || role?.id === undefined ? '' : String(role.id).trim()
 export const displayRoleValue = (value, missing = '未提供') => {
@@ -13,14 +14,16 @@ export function filterRoles(entries, { search = '', quality = '', element = '', 
   const eligible = (Array.isArray(entries) ? entries : []).filter(role => role && typeof role === 'object')
     .filter(role => (!quality || role.quality === quality) && (!element || role.element === element) && (!favoritesOnly || favoriteIds.has(roleId(role))))
   const matches = new Map(searchCharacters('nte', search, eligible).map(item => [item.entry, item.score]))
-  const field = ['level', 'awaken_level', 'mix_level', 'name'].includes(sort) ? sort : 'level'
+  const field = ['newest', 'level', 'awaken_level', 'mix_level', 'name'].includes(sort) ? sort : 'level'
+  // 'newest' is the shared newest-first proxy (role id); unplaced roles stay last and ties go by name.
+  const read = role => field === 'name' ? (role.name || null) : field === 'newest' ? roleRecency('nte', role) : finiteValue(role[field])
   return eligible.filter(role => !query || matches.has(role))
     .sort((a, b) => {
       if (query && matches.get(a) !== matches.get(b)) return matches.get(a) - matches.get(b)
-      const x = field === 'name' ? (a.name || null) : finiteValue(a[field])
-      const y = field === 'name' ? (b.name || null) : finiteValue(b[field])
-      if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1
+      const x = read(a), y = read(b)
+      if (x === null || y === null) return x === y ? (field === 'newest' ? String(a.name ?? '').localeCompare(String(b.name ?? ''), 'zh-CN') : 0) : x === null ? 1 : -1
       const order = field === 'name' ? String(x).localeCompare(String(y), 'zh-CN') : x - y
+      if (!order && field === 'newest') return String(a.name ?? '').localeCompare(String(b.name ?? ''), 'zh-CN')
       return direction === 'asc' ? order : -order
     })
 }

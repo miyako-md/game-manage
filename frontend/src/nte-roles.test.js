@@ -19,6 +19,14 @@ test('all numeric sorting puts missing values last in both directions and preser
   const names = filterRoles([{ name: null }, { name: 'Beta' }, { name: 'Alpha' }], { sort: 'name', direction: 'asc' })
   assert.deepEqual(names.map(r => r.name), ['Alpha', 'Beta', null])
 })
+test('newest first follows the numeric role id, keeps unplaced roles last and lets search ranking win', () => {
+  const list = [{ id: '1003', name: '早雾', level: 90 }, { id: 'x', name: '无编号' }, { id: '1076', name: '真红', level: 10 }, { id: '1057', name: '明音' }, { name: '甲' }]
+  assert.deepEqual(filterRoles(list, { sort: 'newest' }).map(r => r.name), ['真红', '明音', '早雾', '甲', '无编号'])
+  assert.deepEqual(filterRoles(list, { sort: 'newest', direction: 'asc' }).map(r => r.name), ['早雾', '明音', '真红', '甲', '无编号'])
+  assert.deepEqual(filterRoles(list, { sort: 'level' }).map(r => r.name).slice(0, 2), ['早雾', '真红'])
+  // A contained match outranks a one-edit suggestion even when the suggestion is newer.
+  assert.deepEqual(filterRoles([{ id: '1076', name: '合成丁' }, { id: '1003', name: '合成甲乙' }], { sort: 'newest', search: '合成甲' }).map(r => r.name), ['合成甲乙', '合成丁'])
+})
 test('comparison aligns source field names, preserves zero and raw units, and labels missing', () => {
   const groups = comparisonGroups([
     { name: '甲', level: 0, weapon: { name: '弧光', mix_level: 0 }, properties: [{ name: '攻击', value: '320' }, { name: '暴击', value: '0.05' }], skills: [{ name: '战技', level: 0 }] },

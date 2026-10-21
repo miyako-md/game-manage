@@ -30,7 +30,7 @@ const roles = computed(() => legacy.value ? [] : list(payload.value?.entries))
 const breakdown=computed(()=>roleBreakdown(roles.value))
 const qualitySegments=computed(()=>breakdown.value.quality.map((row,i)=>({...row,color:['var(--chart-1)','var(--chart-2)','var(--chart-3)'][i%3]})))
 
-const search = ref(''), quality = ref(''), element = ref(''), favoritesOnly = ref(false), sort = ref('level'), direction = ref('desc')
+const search = ref(''), quality = ref(''), element = ref(''), favoritesOnly = ref(false), sort = ref('newest'), direction = ref('desc')
 const favorites = ref([]), storageError = ref(''), selected = ref([]), failedImages = reactive(new Set())
 const canPersist = computed(() => Boolean(favoritesKey(props.accountId)))
 const openedRole=computed(()=>roles.value.find(role=>keyOf(role)===openedKey.value)||null)
@@ -97,7 +97,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
         <input class="grow" type="search" aria-label="搜索角色" placeholder="名称、别名、拼音或首字母" :value="search" @input="$event.isComposing || (search = $event.target.value)" @compositionend="search = $event.target.value" />
         <MenuSelect v-model="quality" label="品质筛选" :options="[{ value: '', label: '全部品质' }, ...qualities]" />
         <MenuSelect v-model="element" label="元素筛选" :options="[{ value: '', label: '全部元素' }, ...elements]" />
-        <MenuSelect v-model="sort" label="角色排序" :options="[{ value: 'level', label: '按等级' }, { value: 'awaken_level', label: '按觉醒' }, { value: 'mix_level', label: '按混频' }, { value: 'name', label: '按名称' }]" />
+        <MenuSelect v-model="sort" label="角色排序" :options="[{ value: 'newest', label: '从新到旧' }, { value: 'level', label: '按等级' }, { value: 'awaken_level', label: '按觉醒' }, { value: 'mix_level', label: '按混频' }, { value: 'name', label: '按名称' }]" />
         <MenuSelect v-model="direction" label="排序方向" align="end" :options="[{ value: 'desc', label: '降序' }, { value: 'asc', label: '升序' }]" />
         <label class="favorite-filter"><input type="checkbox" aria-label="仅收藏" :checked="favoritesOnly" @change="favoritesOnly = $event.target.checked" /><span>仅收藏</span></label>
         <span class="count">显示 {{ visible.length }} / {{ roles.length }}</span>
