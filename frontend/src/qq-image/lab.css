@@ -846,14 +846,15 @@ input {
 /* ==========================================================================
    WutheringWavesUID-Inspired Dark Obsidian Account Overview (.is-account-overview)
    ========================================================================== */
+/* D9 (C1.3): decoration goes before resolution. The star trail stays; the full-height
+   radial glow and gradient behind it, and the large blurred shadows below, are gone:
+   Chromium dithers them into PNG noise (single-game overview 699 -> ~440 KiB). */
 .lab-sheet.is-account-overview {
   background-color: var(--skin-bg) !important;
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1080' height='900' viewBox='0 0 1080 900'%3E%3Ccircle cx='880' cy='220' r='310' fill='none' stroke='%23d4b475' stroke-opacity='0.14' stroke-width='1' stroke-dasharray='6 8'/%3E%3Ccircle cx='880' cy='220' r='220' fill='none' stroke='%23d4b475' stroke-opacity='0.11' stroke-width='0.9'/%3E%3Cpath d='M 40 290 L 320 170 L 760 270 L 1030 130' fill='none' stroke='%23d4b475' stroke-opacity='0.14' stroke-width='1'/%3E%3Ccircle cx='320' cy='170' r='3.5' fill='%23d4b475' fill-opacity='0.28'/%3E%3Ccircle cx='760' cy='270' r='4' fill='%23d4b475' fill-opacity='0.24'/%3E%3Cg transform='translate(1058, 180)' fill='%23d4b475' fill-opacity='0.28' font-size='10' font-family='monospace'%3E%3Cline x1='8' y1='0' x2='16' y2='0' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='-4' y='4'%3EII%3C/text%3E%3Cline x1='8' y1='70' x2='16' y2='70' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='0' y='74'%3EI%3C/text%3E%3Cline x1='8' y1='140' x2='16' y2='140' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='-2' y='144'%3EP%3C/text%3E%3Cline x1='8' y1='210' x2='16' y2='210' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='-2' y='214'%3EF%3C/text%3E%3C/g%3E%3C/svg%3E"),
-    radial-gradient(circle at 22% 8%, rgba(var(--skin-tint-rgb), 0.12) 0%, rgba(18, 20, 28, 0) 48%),
-    var(--skin-bg-grad) !important;
-  background-repeat: no-repeat, no-repeat, no-repeat !important;
-  background-position: top center, top left, center !important;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1080' height='900' viewBox='0 0 1080 900'%3E%3Ccircle cx='880' cy='220' r='310' fill='none' stroke='%23d4b475' stroke-opacity='0.14' stroke-width='1' stroke-dasharray='6 8'/%3E%3Ccircle cx='880' cy='220' r='220' fill='none' stroke='%23d4b475' stroke-opacity='0.11' stroke-width='0.9'/%3E%3Cpath d='M 40 290 L 320 170 L 760 270 L 1030 130' fill='none' stroke='%23d4b475' stroke-opacity='0.14' stroke-width='1'/%3E%3Ccircle cx='320' cy='170' r='3.5' fill='%23d4b475' fill-opacity='0.28'/%3E%3Ccircle cx='760' cy='270' r='4' fill='%23d4b475' fill-opacity='0.24'/%3E%3Cg transform='translate(1058, 180)' fill='%23d4b475' fill-opacity='0.28' font-size='10' font-family='monospace'%3E%3Cline x1='8' y1='0' x2='16' y2='0' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='-4' y='4'%3EII%3C/text%3E%3Cline x1='8' y1='70' x2='16' y2='70' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='0' y='74'%3EI%3C/text%3E%3Cline x1='8' y1='140' x2='16' y2='140' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='-2' y='144'%3EP%3C/text%3E%3Cline x1='8' y1='210' x2='16' y2='210' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='-2' y='214'%3EF%3C/text%3E%3C/g%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: top center !important;
   color: var(--skin-ink);
   padding: 28px 30px 24px !important;
   border: 1px solid var(--skin-line);
@@ -944,11 +945,8 @@ input {
   gap: 20px;
   padding: 10px 28px 10px 10px;
   border-radius: var(--skin-radius-chip);
-  background: var(--ao-banner, linear-gradient(90deg, rgba(25, 29, 41, 0.95) 0%, rgba(18, 21, 30, 0.92) 100%));
+  background: var(--ao-banner, rgba(22, 25, 36, 0.94));
   border: 1.5px solid var(--skin-line-strong);
-  box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.42),
-    var(--skin-glow);
 }
 
 .ao-identity-pill {
@@ -957,7 +955,7 @@ input {
   gap: 16px;
   padding: 8px 26px 8px 10px;
   border-radius: var(--skin-radius-chip);
-  background: var(--ao-pill, linear-gradient(90deg, rgba(32, 37, 52, 0.92) 0%, rgba(22, 26, 37, 0.78) 100%));
+  background: var(--ao-pill, rgba(27, 31, 44, 0.86));
   border: 1px solid rgba(var(--skin-tint-rgb), 0.36);
   min-width: 0;
   flex: 1 1 auto;
@@ -969,7 +967,6 @@ input {
   border-radius: 50%;
   padding: 3px;
   background: var(--ao-ring, linear-gradient(135deg, #f0d7a3 0%, #9e7b42 100%));
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
   flex: none;
   overflow: hidden;
   display: flex;
@@ -1137,7 +1134,6 @@ input {
   border: 1px solid rgba(var(--skin-tint-rgb), 0.26);
   border-radius: var(--skin-radius-card);
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
 }
 
 .ao-stat-cell {
@@ -1194,7 +1190,6 @@ input {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.38);
 }
 
 .ao-role-card.is-rarity-gold {
@@ -1268,7 +1263,6 @@ input {
   align-items: center;
   justify-content: center;
   z-index: 3;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
 .ao-elem-badge svg {
@@ -1290,7 +1284,6 @@ input {
   align-items: center;
   justify-content: center;
   z-index: 3;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
 .ao-weapon-img {

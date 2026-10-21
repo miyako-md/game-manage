@@ -161,6 +161,23 @@ test('QQ skins: the sheet and each overview game block carry data-skin, and skin
  for(const file of ['skin.css','skin-wuwa.css','skin-nte.css','skin-endfield.css'])assert.doesNotMatch(read(file),/url\(|@font-face/,file)
 })
 
+test('Wuwa skin: the R1 detail grid is image only and nothing in the skin sets text below 17px',()=>{
+ const skin=readFileSync(new URL('./qq-image/skin-wuwa.css',import.meta.url),'utf8')
+ const grid=skin.slice(skin.indexOf('.reuse.lab-sheet[data-skin="wuwa"] #render-content .wuwa-role-detail {'))
+ assert.match(grid,/grid-template-areas:\s+"basics attrs"\s+"basics weapon"\s+"basics \."\s+"skills skills"\s+"chains chains"\s+"echoes echoes"/)
+ for(const rule of skin.match(/[^{}]*wuwa-(?:role-detail|portrait|basics|attrs|skills|chains|echoes)[^{}]*\{/g))assert.match(rule,/\.reuse\.lab-sheet\[data-skin="wuwa"\]/,rule)
+ const sizes=[...skin.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
+ assert.ok(sizes.every(size=>size>=17),String(sizes))
+})
+
+test('C1.1: Wuwa sub-images keep unearned stars visible and lift the shared sub-17px labels',()=>{
+ const skin=readFileSync(new URL('./qq-image/skin-wuwa.css',import.meta.url),'utf8')
+ assert.match(skin,/\[data-skin="wuwa"\] #render-content \.stars \.off \{ color: rgba\(var\(--skin-tint-rgb\), \.3\); \}/)
+ assert.match(skin,/\[data-skin="wuwa"\] #render-content \.ring-cap \{ font-size: var\(--qq-small\) !important; \}/)
+ assert.match(skin,/\[data-skin="wuwa"\] #render-content \.wuwa-item-icon:not\(\.icon-large\) \.icon-fallback,\s*\.reuse\.lab-sheet\[data-skin="wuwa"\] \.guide-visual \.icon-fallback \{ font-size: var\(--qq-min-text, 17px\) !important; \}/)
+ assert.match(skin,/\[data-skin="wuwa"\] \.source-line \{ font-size: var\(--qq-min-text, 17px\); \}/)
+})
+
 test('QQ overview blocks take their own game skin inside the obsidian shell (D3)',async t=>{
  const Sheet=await loadVue(new URL('./qq-image/AccountOverviewSheet.vue',import.meta.url))
  const panel=(game,provider,payload)=>({game,provider,capability:'account',snapshot:{payload,fetched_at:'2026-10-21T00:00:00Z'}})
@@ -170,6 +187,14 @@ test('QQ overview blocks take their own game skin inside the obsidian shell (D3)
  assert.deepEqual(nodes(root,'section').filter(n=>String(n.props.class).includes('ao-game-block')).map(n=>n.props['data-skin']),['wuwa','nte','endfield'])
 })
 
+test('C1.3: the obsidian sheet keeps its star trail but drops the dithered glow, gradient and blurred shadows',()=>{
+ const lab=readFileSync(new URL('./qq-image/lab.css',import.meta.url),'utf8'),obsidian=lab.slice(lab.indexOf('.lab-sheet.is-account-overview {'))
+ const sheet=obsidian.slice(0,obsidian.indexOf('}'))
+ assert.match(sheet,/data:image\/svg\+xml/)
+ assert.doesNotMatch(sheet,/gradient/)
+ assert.doesNotMatch(obsidian,/box-shadow/)
+ assert.doesNotMatch(obsidian.slice(obsidian.indexOf('.ao-capsule-banner {')),/^\.ao-(?:capsule-banner|identity-pill) \{[^}]*linear-gradient/m)
+})
 test('D7: no QQ obsidian text is smaller than 17px',()=>{
  const lab=readFileSync(new URL('./qq-image/lab.css',import.meta.url),'utf8'),obsidian=lab.slice(lab.indexOf('.lab-sheet.is-account-overview {'))
  const sizes=[...obsidian.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))

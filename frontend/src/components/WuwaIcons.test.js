@@ -27,6 +27,34 @@ test('image role preserves nested source attributes while raw keys and effect te
   assert.doesNotMatch(content(root),/完整技能条件|完整武器效果|来源补充字段|role_id|role_attribute_list|attribute_name|synthetic-character/)
 })
 
+test('R1: the image detail leads with a portrait card and fits skills and chains in one row; the website keeps its basics', async t => {
+  const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
+  const data = {
+    role: { role_name: '角色甲', level: 0, role_icon_url: 'https://web-static.kurobbs.com/role.png' },
+    role_skin: { skin_name: '外观甲', skin_icon: 'https://web-static.kurobbs.com/skin.png' },
+    skill_list: Array.from({ length: 9 }, (_, i) => ({ level: i, skill: { name: `技能${i}` } })),
+    chain_list: Array.from({ length: 6 }, (_, i) => ({ order: i + 1, name: `链${i}`, unlocked: i < 2 })),
+  }
+  const byClass = (root, name) => nodes(root, 'div').concat(nodes(root, 'section')).filter(n => String(n.props.class ?? '').split(/\s+/).includes(name))
+  const image = mount(t, Detail, { imageMode: true, data })
+  const [figure] = nodes(image, 'figure')
+  assert.equal(figure.props.class, 'wuwa-portrait')
+  assert.deepEqual(nodes(figure, 'img').map(n => n.props.src), ['https://web-static.kurobbs.com/skin.png'])
+  assert.match(content(figure), /角色甲 Lv.0/)
+  assert.deepEqual(nodes(image, 'img').map(n => n.props.src).filter(src => /role|skin/.test(src)), ['https://web-static.kurobbs.com/skin.png'], 'no second copy of the picture')
+  assert.equal(byClass(image, 'wuwa-skills')[0].props.style['--row-count'], 7)
+  assert.equal(byClass(image, 'wuwa-chains')[0].props.style['--row-count'], 6)
+  for (const name of ['basics', 'attrs', 'weapon', 'skills', 'chains', 'echoes']) assert.equal(byClass(image, `wuwa-detail-${name}`).length, 1, name)
+  const noSkin = mount(t, Detail, { imageMode: true, data: { ...data, role_skin: {} } })
+  assert.equal(nodes(nodes(noSkin, 'figure')[0], 'img')[0].props.src, 'https://web-static.kurobbs.com/role.png')
+  const unknown = mount(t, Detail, { imageMode: true, data: { role: { role_name: '角色乙' } } })
+  assert.match(content(nodes(unknown, 'figure')[0]), /^角 角色乙 Lv\.未知$/, 'initial stands in for a missing picture; unknown level stays unknown')
+  const web = mount(t, Detail, { data })
+  assert.equal(nodes(web, 'figure').length, 0)
+  assert.ok(nodes(web, 'img').some(n => n.props.class === 'wuwa-skin'))
+  assert.equal(byClass(web, 'wuwa-skills')[0].props.style, undefined)
+})
+
 test('real panel displays provided skill and chain icons and tolerates empty echo slots', async t => {
   const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
   const root = mount(t, Detail, { data: {

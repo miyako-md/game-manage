@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { nextTick } from 'vue'
-import { loadVue,mount,nodes,content } from '../test-utils/vue.js'
+import { loadVue,mount,nodes,content,choose } from '../test-utils/vue.js'
 const Nte=await loadVue(new URL('./NteRolesPanel.vue',import.meta.url))
 const Wuwa=await loadVue(new URL('./WuwaRoles.vue',import.meta.url))
 const Browser=await loadVue(new URL('./WuwaGuideBrowser.vue',import.meta.url))
@@ -25,6 +25,20 @@ test('Wuwa search has no detail request until explicit role selection and uses c
   assert.match(content(role),/长离/)
   await role.props.onClick();await nextTick()
   assert.match(String(urls[0]),/roles\/1205/)
+})
+test('Wuwa roster defaults to newest first, keeps the level sort as an option, and search ranking still wins',async t=>{
+  const roles=[{role_id:'1304',name:'今汐',level:90},{role_id:'9999',name:'未收录角色',level:80},{role_id:'1210',name:'心',level:1},{role_id:'1409',name:'卡提希娅',level:70}]
+  const names=root=>nodes(root,'strong').map(content).filter(n=>roles.some(r=>r.name===n))
+  const root=mount(t,Wuwa,{snap:{payload:roles},accountKey:'a'})
+  assert.deepEqual(names(root),['心','卡提希娅','今汐','未收录角色'])
+  assert.match(content(nodes(root,'ul').find(n=>n.props['aria-label']==='排序')),/从新到旧.*等级优先/)
+  choose(root,'排序','level');await nextTick()
+  assert.deepEqual(names(root),['今汐','未收录角色','卡提希娅','心'])
+  choose(root,'排序','newest');await nextTick()
+  nodes(root,'input').find(n=>n.props['aria-label']==='搜索角色').props.onInput({target:{value:'今汐'}})
+  await nextTick();assert.equal(names(root)[0],'今汐')
+  const image=mount(t,Wuwa,{snap:{payload:roles},imageMode:true})
+  assert.deepEqual(names(image),['心','卡提希娅','今汐','未收录角色'])
 })
 test('public guide search requires click and authorized personal links pass the exact form',async t=>{
   const roles=[{role_id:'1408',name:'漂泊者',attribute:'气动'},{role_id:'unknown',name:'漂泊者',attribute:'湮灭'}], selected=[]

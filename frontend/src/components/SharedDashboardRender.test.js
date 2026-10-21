@@ -21,13 +21,20 @@ test('wuwa website roster shows rarity as one tag on the picture while the image
  const rows=[{role_id:'a',name:'合成五星',level:2,star_level:5},{role_id:'b',name:'合成四星',level:1,star_level:4},{role_id:'c',name:'合成未知',level:0,star_level:null}]
  const tags=root=>nodes(root,'span').filter(n=>n.props.class==='role-rarity'), stars=root=>nodes(root,'span').filter(n=>String(n.props.class).split(' ').includes('stars'))
  const web=mount(t,Roles,{snap:snap(rows)})
- assert.deepEqual(tags(web).map(n=>[content(n),n.props['data-tier'],n.props['aria-label']]),[['★★★★★','top','5 星'],['★★★★',undefined,'4 星'],['未知 星',undefined,'未知 星']])
+ // Uncatalogued names sort by name under the newest-first default, so compare per role.
+ assert.deepEqual(tags(web).map(n=>[content(n),n.props['data-tier'],n.props['aria-label']]).sort((a,b)=>a[2].localeCompare(b[2])),[['★★★★',undefined,'4 星'],['★★★★★','top','5 星'],['未知 星',undefined,'未知 星']])
  assert.ok(tags(web).every(n=>n.parent.props.class==='wuwa-role-art'))
  assert.equal(stars(web).length,0)
  assert.equal(nodes(web,'section')[0].props['data-skin'],'wuwa')
  const image=mount(t,Roles,{imageMode:true,snap:snap(rows)})
  assert.equal(tags(image).length,0);assert.equal(stars(image).length,2);assert.match(content(image),/未知 星/)
  assert.equal(nodes(image,'section')[0].props['data-skin'],undefined)
+})
+
+test('wuwa roster line keeps each part whole so an image line never splits "技能 36"',t=>{
+ const root=mount(t,Roles,{imageMode:true,snap:snap([{role_id:'a',name:'合成角色',attribute:'衍射',weapon:'长刃',chain:3,extra:{total_skill_level:36}},{role_id:'b',name:'合成无属性',chain:null}])})
+ const lines=nodes(root,'span').filter(n=>n.props.class==='wuwa-role-sub')
+ assert.deepEqual(lines.map(line=>line.children.filter(n=>n.type==='span').map(content)),[['衍射 ·','长刃 ·','3 链 ·','技能 36'],['未知 ·','未知 链 ·','技能 未知']])
 })
 
 test('dashboard uses actual web capability cards without replacing zero or omitting first and last rows',t=>{
