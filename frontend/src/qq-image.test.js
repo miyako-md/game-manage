@@ -160,6 +160,15 @@ test('QQ skins: the sheet and each overview game block carry data-skin, and skin
  for(const file of ['skin.css','skin-wuwa.css','skin-nte.css','skin-endfield.css'])assert.doesNotMatch(read(file),/url\(|@font-face/,file)
 })
 
+test('Wuwa skin: the R1 detail grid is image only and nothing in the skin sets text below 17px',()=>{
+ const skin=readFileSync(new URL('./qq-image/skin-wuwa.css',import.meta.url),'utf8')
+ const grid=skin.slice(skin.indexOf('.reuse.lab-sheet[data-skin="wuwa"] #render-content .wuwa-role-detail {'))
+ assert.match(grid,/grid-template-areas:\s+"basics attrs"\s+"basics weapon"\s+"basics \."\s+"skills skills"\s+"chains chains"\s+"echoes echoes"/)
+ for(const rule of skin.match(/[^{}]*wuwa-(?:role-detail|portrait|basics|attrs|skills|chains|echoes)[^{}]*\{/g))assert.match(rule,/\.reuse\.lab-sheet\[data-skin="wuwa"\]/,rule)
+ const sizes=[...skin.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
+ assert.ok(sizes.every(size=>size>=17),String(sizes))
+})
+
 test('QQ overview blocks take their own game skin inside the obsidian shell (D3)',async t=>{
  const Sheet=await loadVue(new URL('./qq-image/AccountOverviewSheet.vue',import.meta.url))
  const panel=(game,provider,payload)=>({game,provider,capability:'account',snapshot:{payload,fetched_at:'2026-10-21T00:00:00Z'}})

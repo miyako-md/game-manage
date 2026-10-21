@@ -14,6 +14,11 @@ const unlockedChains = computed(
   () => chains.value.filter((c) => c.unlocked === true).length,
 )
 const echoes = computed(() => list(props.data.phantom_data?.equip_phantom_list))
+// Image layout (R1): the cached detail has no full-length art, so the portrait is the
+// outfit picture, else the role icon; skills and chains each fill one row.
+const portrait = computed(() => safeUrl(props.data.role_skin?.skin_icon) || safeUrl(props.data.role?.role_icon_url))
+const skillCount = computed(() => Math.max(1, Math.min(list(props.data.skill_list).length, 7)))
+const chainCount = computed(() => Math.max(1, Math.min(chains.value.length, 6)))
 // Attribute rows made only of { attribute_name, attribute_value } read as a
 // key-value grid; anything with extra fields keeps the generic renderer so no
 // field is dropped.
@@ -29,11 +34,16 @@ const isAttributeList = (v) =>
 <template>
   <div class="wuwa-role-detail">
     <RoleAssessment game="wuthering_waves" :character-id="String(data.role?.role_id || '')" :image-mode="imageMode" :initial-assessment="data.assessment" />
-    <section class="wuwa-detail-section">
-      <h3 class="wuwa-subhead role-profile-heading"><WuwaIcon :src="data.role?.role_icon_url" :name="data.role?.role_name || '角色'" size="large" /><span>{{ data.role?.role_name }} · 角色基本信息</span></h3>
+    <section class="wuwa-detail-section wuwa-detail-basics">
+      <figure v-if="imageMode" class="wuwa-portrait">
+        <img v-if="portrait" :src="portrait" :alt="data.role?.role_name || '角色'" />
+        <span v-else class="wuwa-portrait-fallback" aria-hidden="true">{{ (data.role?.role_name || '?').slice(0, 1) }}</span>
+        <figcaption><strong>{{ data.role?.role_name || '角色' }}</strong> <b>Lv.{{ value(data.role?.level) }}</b></figcaption>
+      </figure>
+      <h3 class="wuwa-subhead role-profile-heading"><WuwaIcon v-if="!imageMode" :src="data.role?.role_icon_url" :name="data.role?.role_name || '角色'" size="large" /><span>{{ data.role?.role_name }} · 角色基本信息</span></h3>
       <div class="wuwa-basics">
         <img
-          v-if="safeUrl(data.role_skin?.skin_icon)"
+          v-if="!imageMode && safeUrl(data.role_skin?.skin_icon)"
           class="wuwa-skin"
           :src="safeUrl(data.role_skin.skin_icon)"
           alt="当前外观"
@@ -49,7 +59,7 @@ const isAttributeList = (v) =>
       </div>
     </section>
 
-    <section class="wuwa-detail-section">
+    <section class="wuwa-detail-section wuwa-detail-attrs">
       <h3 class="wuwa-subhead">完整属性</h3>
       <dl
         v-if="attributes.length"
@@ -63,7 +73,7 @@ const isAttributeList = (v) =>
       <p v-else class="wuwa-muted">未提供属性</p>
     </section>
 
-    <section class="wuwa-detail-section">
+    <section class="wuwa-detail-section wuwa-detail-weapon">
       <h3 class="wuwa-subhead">装备武器</h3>
       <div v-if="data.weapon_data" class="wuwa-equip">
         <WuwaIcon :src="data.weapon_data.weapon?.weapon_icon" :name="data.weapon_data.weapon?.weapon_name || '武器'" />
@@ -125,10 +135,10 @@ const isAttributeList = (v) =>
       </p>
     </section>
 
-    <section class="wuwa-detail-section">
+    <section class="wuwa-detail-section wuwa-detail-skills">
       <h3 class="wuwa-subhead">技能</h3>
       <p v-if="!list(data.skill_list).length" class="wuwa-muted">未提供</p>
-      <div v-else class="wuwa-tiles wuwa-skills">
+      <div v-else class="wuwa-tiles wuwa-skills" :style="imageMode ? { '--row-count': skillCount } : undefined">
         <article
           v-for="(entry, i) in list(data.skill_list)"
           :key="i"
@@ -146,13 +156,13 @@ const isAttributeList = (v) =>
       </div>
     </section>
 
-    <section class="wuwa-detail-section">
+    <section class="wuwa-detail-section wuwa-detail-chains">
       <h3 class="wuwa-subhead">
         共鸣链<span v-if="chains.length" class="wuwa-meta"
           >已解锁 {{ unlockedChains }} / {{ chains.length }}</span
         >
       </h3>
-      <div v-if="chains.length" class="wuwa-chains">
+      <div v-if="chains.length" class="wuwa-chains" :style="imageMode ? { '--row-count': chainCount } : undefined">
         <div
           v-for="(chain, i) in chains"
           :key="i"
@@ -180,7 +190,7 @@ const isAttributeList = (v) =>
       <p v-else class="wuwa-muted">未提供</p>
     </section>
 
-    <section class="wuwa-detail-section">
+    <section class="wuwa-detail-section wuwa-detail-echoes">
       <h3 class="wuwa-subhead">
         装备声骸<span class="wuwa-meta"
           >总 COST {{ value(data.phantom_data?.cost) }}</span
