@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { nextTick, reactive } from 'vue'
-import { loadVue, mount, content, nodes } from '../test-utils/vue.js'
+import { loadVue, mount, content, nodes, flushAsyncComponents } from '../test-utils/vue.js'
 
 const tick = async () => { await new Promise(resolve => setImmediate(resolve)); await nextTick() }
 
@@ -15,7 +15,7 @@ test('guides remain accessible when the private character panel cannot be fetche
   const guideTab = nodes(root, 'button').find(n => content(n) === '培养攻略')
   assert.ok(guideTab, '角色详情提供独立的培养攻略入口')
   guideTab.props.onClick()
-  await tick()
+  await flushAsyncComponents()
   assert.match(content(root), /武器推荐/)
   assert.match(content(root), /时和岁稔/)
   assert.match(content(root), /3\.5/)

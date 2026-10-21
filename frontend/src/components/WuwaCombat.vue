@@ -7,10 +7,12 @@ import { share } from '../chart-math.js'
 import WuwaStatus from './WuwaStatus.vue'
 import WuwaRoleDialog from './WuwaRoleDialog.vue'
 import WuwaCombatRecord from './WuwaCombatRecord.vue'
-import WuwaChallengeGuides from './WuwaChallengeGuides.vue'
 import WuwaCombatRole from './WuwaCombatRole.vue'
 import RingGauge from './RingGauge.vue'
 import { vGlide, vReveal } from '../motion.js'
+import { lazyPage } from '../lazy-page.js'
+// Community guides open only from the dialog and never in imageMode.
+const WuwaChallengeGuides = lazyPage(() => import('./WuwaChallengeGuides.vue'))
 const props = defineProps({ roleNames: { type: Object, default: () => ({}) }, snap: { default: null }, imageMode:Boolean })
 const payload = computed(() => props.snap?.payload || {})
 const selected = ref(''), view = ref('records')

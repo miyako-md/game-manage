@@ -9,14 +9,16 @@ import { attributeSplit, levelBands, rosterSummary } from '../wuwa-charts.js'
 import BarChart from './BarChart.vue'
 import DonutChart from './DonutChart.vue'
 import MenuSelect from './MenuSelect.vue'
-import WuwaGuide from './WuwaGuide.vue'
 import WuwaRoleDialog from './WuwaRoleDialog.vue'
 import { normalizeSearch, searchCharacters } from '../character-search.js'
-import WuwaGuideBrowser from './WuwaGuideBrowser.vue'
 import { characterIcon } from '../wuwa-icons.js'
 import { roleArtwork } from '../game-visuals.js'
 import { skinOf } from '../game-themes.js'
 import { newestFirst } from '../role-order.js'
+import { lazyPage } from '../lazy-page.js'
+// Guides open only on request and never in imageMode, so they stay out of the roster chunk.
+const WuwaGuide = lazyPage(() => import('./WuwaGuide.vue'))
+const WuwaGuideBrowser = lazyPage(() => import('./WuwaGuideBrowser.vue'))
 const props = defineProps({
   snap: { default: null },
   accountKey: { type: String, default: '' },

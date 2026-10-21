@@ -28,6 +28,15 @@ test('game-specific dashboards and guide catalogs load only when their game pane
   for(const name of ['NteRolesPanel','NteAssetsPanel','NteGachaPanel','NteGuides','EndfieldDashboard','WuwaDashboard'])
     assert.ok(!eager.includes(`${name}.vue`),`${name} is still in every game first-load graph`)
 })
+test('Wuwa guides load on request and stay out of the roster chunk that QQ images reuse',()=>{
+  for(const [file,names] of [['WuwaRoles',['WuwaGuide','WuwaGuideBrowser']],['WuwaCombat',['WuwaChallengeGuides']]]) {
+    const source=readFileSync(new URL(`./components/${file}.vue`,import.meta.url),'utf8')
+    for(const name of names) {
+      assert.ok(!staticComponents(`./components/${file}.vue`).includes(`${name}.vue`),`${file} still imports ${name} eagerly`)
+      assert.ok(source.includes(`const ${name} = lazyPage(() => import('./${name}.vue'))`),`${name} is not a lazy page`)
+    }
+  }
+})
 test('a failed page module offers recovery without claiming a new deployment', async t => {
   const Page = lazyPage(() => Promise.reject(new Error('Failed to fetch dynamically imported module')))
   const root = mount(t, Page); await tick(); await tick()
