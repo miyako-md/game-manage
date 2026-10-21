@@ -174,8 +174,8 @@ def test_filtered_events_match_existing_timezone_phase_unknown_invalid_and_inclu
     raw=[{'name':'分期活动','phases':[
         {'start_at':'2026-10-15T03:00:00Z','end_at':'2026-10-15T05:00:00Z'},
         {'start_at':'2026-10-16T00:00:00+08:00','end_at':'2026-10-18T00:00:00+08:00'}]},
-        {'name':'窗口右边界','start_at':'2026-10-22T12:00:00+08:00'},
-        {'name':'窗口外','start_at':'2026-10-22T12:00:01+08:00'},
+        {'name':'窗口右边界','start_at':'2026-10-18T12:00:00+08:00'},
+        {'name':'窗口外','start_at':'2026-10-18T12:00:01+08:00'},
         {'name':'无精度时刻','start_at':'2026-10-15 11:00:00','end_at':'2026-10-15 13:00:00'},
         {'name':'相对时间','start_date':'2026-10-16','start_precision':'relative','start_estimated':True},
         {'name':'仅日期','start_date':'2026-10-18','start_precision':'day'},
@@ -189,7 +189,10 @@ def test_filtered_events_match_existing_timezone_phase_unknown_invalid_and_inclu
     events=value['display_data']['panels'][0]['snapshot']['payload']
     assert {item['name'] for item in events}==expected
     assert '分期活动 · 阶段 1' in expected
-    if command=='recent_events':assert '分期活动 · 阶段 2' in expected and '窗口右边界' in expected and '窗口外' not in expected
+    if command=='recent_events':
+        assert '分期活动 · 阶段 2' in expected and '窗口右边界' in expected and '窗口外' not in expected
+        # Day precision now has a place in the window; only vague times stay pending.
+        assert '仅日期' in expected and '刚结束' in expected and '异常区间' not in expected
     assert json.dumps(raw,ensure_ascii=False).count('display_title')==0
 
 

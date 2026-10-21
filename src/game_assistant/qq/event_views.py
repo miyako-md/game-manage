@@ -3,7 +3,7 @@
 Only explicit instants take part in countdown/current filtering. Day precision
 is displayed as dates; relative starts never become midnight intervals.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 import re
 
 from .commands import GAME_NAMES
@@ -34,6 +34,36 @@ def endpoint(item,side):
     # version_end is supplied only after a real next-maintenance announcement
     # resolves end_at in the existing public source parser.
     return instant if precision in (None,'minute','version_end') else None
+
+
+# 近期活动 lists what starts or ends within this many hours of the request.
+RECENT_HOURS=72
+
+
+def window_endpoint(item,side):
+    """Boundary for the recent list: a day-precision start counts from 00:00
+    and a day-precision end until 23:59:59 of that Beijing day."""
+    stamp=endpoint(item,side)
+    if stamp is not None or item.get(side+'_precision') not in (None,'day'):return stamp
+    date=day(item.get(side+'_at') or item.get(side+'_date'))
+    return None if date is None else datetime.combine(date,time(23,59,59) if side=='end' else time(),view.BEIJING)
+
+
+def recent_window(item,now,hours=RECENT_HOURS):
+    """Sides whose boundary lies in [now, now+hours], and whether the item only
+    has unconfirmed (relative/dependent/unknown) times that may still matter."""
+    limit=now+timedelta(hours=hours)
+    first,last=window_endpoint(item,'start'),window_endpoint(item,'end')
+    invalid=first is not None and last is not None and last<first
+    sides=() if invalid else tuple(side for side,stamp in (('start',first),('end',last)) if stamp is not None and now<=stamp<=limit)
+    def unconfirmed(side,stamp):
+        # A vague boundary may still fall in the window unless its source date rules that out.
+        if stamp is not None or not (item.get(side+'_text') or item.get(side+'_date') or item.get(side+'_at') or item.get(side+'_precision') in ('relative','dependent','unknown')):return False
+        date=day(item.get(side+'_at') or item.get(side+'_date'))
+        return date is None or now.astimezone(view.BEIJING).date()<=date<=limit.astimezone(view.BEIJING).date()
+    unresolved=invalid or unconfirmed('start',first) or unconfirmed('end',last)
+    pending=not sides and unresolved and not (last is not None and last<now) and not (first is not None and first>limit)
+    return sides,pending
 
 
 def boundary_text(item,side):
@@ -75,7 +105,7 @@ def normalized(payload):
 
 def event_row(game,item,now,*,side=None,stale=False,cache=None):
     fields=[view.field('类别',item.get('category') or '其他活动'),view.field('开始',boundary_text(item,'start')),view.field('截止',boundary_text(item,'end'))]
-    if side:fields.append(view.field('剩余时间',remaining(endpoint(item,side),now)))
+    if side:fields.append(view.field('剩余时间',remaining(window_endpoint(item,side),now)))
     source=' · '.join(str(item[k]) for k in ('source_name','source_title') if item.get(k))
     if not source:source={'official':'官网','community':'官方社区','bilibili':'官方 B站'}.get(item.get('source'),'来源未提供')
     fields.append(view.field('来源',source))
@@ -88,7 +118,7 @@ def event_document(command,snapshots,*,now=None,asset_cache=None):
     now=(now or datetime.now(view.BEIJING)).astimezone(view.BEIJING)
     if command == 'calendar':
         return version_document(snapshots, now=now, asset_cache=asset_cache)
-    window=now+timedelta(hours=168);sections=[];uncertain=[];states=[]
+    sections=[];uncertain=[];states=[]
     ending=[];starting=[]
     for game,snapshot in snapshots.items():
         states.append({'title':GAME_NAMES[game],'fields':view.metadata(snapshot)})
@@ -105,13 +135,12 @@ def event_document(command,snapshots,*,now=None,asset_cache=None):
             row=event_row(game,item,now,stale=stale,cache=asset_cache)
             uncertain_time=invalid or first is None or last is None
             if command=='recent_events':
-                for side,stamp,bucket in (('end',last,ending),('start',first,starting)):
-                    if not invalid and stamp is not None and now<stamp<=window:
-                        bucket.append((game,stamp,event_row(game,item,now,side=side,stale=stale,cache=asset_cache)))
+                sides,pending=recent_window(item,now)
+                for side,bucket in (('start',starting),('end',ending)):
+                    if side in sides:bucket.append((game,window_endpoint(item,side),event_row(game,item,now,side=side,stale=stale,cache=asset_cache)))
                 # An absent endpoint alone is not necessarily a pending activity;
                 # expose explicit imprecision/relative descriptions instead.
-                if invalid or any(endpoint(item,side) is None and (item.get(side+'_text') or item.get(side+'_date') or item.get(side+'_precision') in ('relative','day','dependent')) for side in ('start','end')):
-                    uncertain.append(row)
+                if pending:uncertain.append(row)
             elif command=='events':
                 if not invalid and first is not None and last is not None and first<=now<last:
                     groups.setdefault(item.get('category') or '其他活动',[]).append(row)
@@ -121,10 +150,11 @@ def event_document(command,snapshots,*,now=None,asset_cache=None):
         if command=='events' and not groups:states[-1]['fields'].append(view.field('当前活动','无已确认正在进行的活动'))
     if command=='recent_events':
         sections=[{'title':title,'layout':'rows','rows':[r for _,_,r in sorted(items,key=lambda x:(list(GAME_NAMES).index(x[0]),x[1]))],
-                   'fields':[] if items else [view.field('结果','未来168小时内无已确认'+title+'活动')]} for title,items in (('即将结束',ending),('即将开始',starting))]
+                   'fields':[] if items else [view.field('结果','未来 '+str(RECENT_HOURS)+' 小时内没有'+title[-2:]+'的活动')]}
+                  for title,items in ((str(RECENT_HOURS)+' 小时内开始',starting),(str(RECENT_HOURS)+' 小时内结束',ending))]
     if uncertain:sections.append({'title':'时间待确认','layout':'rows','rows':uncertain})
     sections.append({'title':'公共快照状态','layout':'rows','rows':states})
-    title={'recent_events':'近期活动','events':'进行中的活动'}[command]
+    title={'recent_events':'近期活动 · 未来 '+str(RECENT_HOURS)+' 小时','events':'进行中的活动'}[command]
     card=view.document('list',next(iter(snapshots)) if len(snapshots)==1 else 'all',title,sections=sections,
         subtitle='公共活动缓存 · 北京时间',notices=['时间待确认项保留来源精度，不推算精确倒计时。'],footer='计算时间：'+now.strftime('%Y-%m-%d %H:%M'))
     card['version']=3
