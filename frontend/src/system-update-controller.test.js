@@ -12,8 +12,8 @@ const job = (phase, extra) => ({ job_id: 'update-one', phase, target_sha: TARGET
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no }); return { promise, resolve, reject } }
 const settle = () => new Promise(resolve => setImmediate(resolve))
 
-test('operator public-branch status is accepted while unpublished versions remain inapplicable', async t => {
-  const c = harness(t, { get: () => snapshot({ branch: 'codex/cloud-qq-public', relation: 'behind', can_apply: false, unavailable_reason: 'current_ahead' }) })
+test('operator public-branch status is accepted while an up-to-date version remains inapplicable', async t => {
+  const c = harness(t, { get: () => snapshot({ branch: 'codex/cloud-qq-public', relation: 'up_to_date', can_apply: false, unavailable_reason: 'up_to_date' }) })
   await c.start()
   assert.equal(c.state.snapshot?.branch, 'codex/cloud-qq-public')
   assert.equal(canApplySystemUpdate(c.state), false)
@@ -52,19 +52,19 @@ test('nothing runs until opening; opening reads status without checking or apply
   assert.equal(canApplySystemUpdate(c.state), true)
 })
 
-test('explicit check refreshes the candidate; current-ahead and missing helper never enable an update', async t => {
+test('explicit check refreshes the candidate; an up-to-date version and missing helper never enable an update', async t => {
   const c = harness(t, { get: () => snapshot({ latest: null, relation: 'unknown', checked_at: null, stale: true, can_apply: false }), check: () => snapshot() })
   await c.start(); assert.equal(canApplySystemUpdate(c.state), false)
   assert.match(systemUpdateStatus(c.state), /尚未取得版本信息/)
   await c.check(); assert.equal(canApplySystemUpdate(c.state), true)
-  for (const value of [snapshot({ relation: 'behind' }), snapshot({ worker_available: false, can_apply: false, unavailable_reason: 'worker_unavailable' })]) {
+  for (const value of [snapshot({ relation: 'up_to_date' }), snapshot({ worker_available: false, can_apply: false, unavailable_reason: 'worker_unavailable' })]) {
     const other = harness(t, { get: () => value })
     await other.start(); await other.apply(TARGET)
     assert.equal(canApplySystemUpdate(other.state), false)
     assert.equal(other.calls.some(call => call.name === 'apply'), false)
   }
-  const ahead = harness(t, { get: () => snapshot({ relation: 'behind' }) })
-  await ahead.start(); assert.match(systemUpdateStatus(ahead.state), /当前版本领先主分支/)
+  const current = harness(t, { get: () => snapshot({ relation: 'up_to_date', can_apply: false, unavailable_reason: 'up_to_date' }) })
+  await current.start(); assert.match(systemUpdateStatus(current.state), /当前已是最新版本/)
   assert.match(systemUpdateReason('worker_unavailable'), /更新助手尚未运行/)
   assert.match(systemUpdateReason('preview_only'), /模拟预览中不会更新程序/)
 })

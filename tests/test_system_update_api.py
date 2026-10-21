@@ -93,10 +93,10 @@ def test_get_is_cache_only_and_rejected_apply_returns_frontend_error_code(cloud)
     fetch = app.state.system_update.fetch
     app.state.system_update.fetch = lambda url: (calls.append(url), fetch(url))[1]
     write(client, '/api/system/update/check', {})
-    assert len(calls) == 2
+    assert len(calls) == 1
     for _ in range(3):
         assert client.get('/api/system/update').json()['can_apply']
-    assert len(calls) == 2
+    assert len(calls) == 1
     response = write(client, '/api/system/update/apply', {'expected_sha':OTHER,'target_sha':OTHER})
     assert response.status_code == 409
     assert response.json() == {'detail':'running_version_mismatch','error_code':'running_version_mismatch'}
@@ -209,7 +209,7 @@ def test_unreadable_managed_status_never_opens_business_routes(cloud, monkeypatc
 
 @respx.mock
 def test_upstream_requests_are_https_fixed_bounded_and_never_follow_redirects():
-    endpoint = GITHUB_ROOT+'/commits/main'
+    endpoint = GITHUB_ROOT+'/commits/main?per_page=1'
     route = respx.get(endpoint).mock(return_value=httpx.Response(200, json={'sha':SHA}))
     assert SystemUpdateService._fetch(endpoint) == {'sha':SHA}
     assert route.called

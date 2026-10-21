@@ -34,7 +34,7 @@ GITHUB_ROOT = f'https://api.github.com/repos/{REPOSITORY}'
 CHECK_TTL_SECONDS = 120
 WORKER_TTL_SECONDS = 30
 MAX_UPSTREAM_BYTES = 1048576
-RELATIONS = frozenset({'unknown', 'up_to_date', 'ahead', 'behind', 'diverged'})
+RELATIONS = frozenset({'unknown', 'up_to_date', 'ahead'})
 
 
 class UpdateError(ValueError):
@@ -134,7 +134,7 @@ class SystemUpdateService:
                     or not isinstance(latest.get('committed_at'), str) or len(latest['committed_at']) > 40
                     or latest.get('url') != f"https://github.com/{REPOSITORY}/commit/{latest['sha']}"):
                 return None
-        if raw.get('check_error') not in (None, 'github_unavailable', 'github_rate_limited', 'github_invalid_response', 'compare_unavailable', 'state_unavailable'):
+        if raw.get('check_error') not in (None, 'github_unavailable', 'github_rate_limited', 'github_invalid_response', 'state_unavailable'):
             return None
         return raw
 
@@ -221,8 +221,7 @@ class SystemUpdateService:
         elif stale:
             reason = 'check_stale'
         elif relation != 'ahead':
-            reason = {'up_to_date': 'up_to_date', 'behind': 'current_ahead',
-                      'diverged': 'history_diverged'}.get(relation, 'relationship_unknown')
+            reason = 'up_to_date' if relation == 'up_to_date' else 'relationship_unknown'
         return {'repository': REPOSITORY, 'branch': self.branch, 'current': current,
                 'latest': cache.get('latest') if cache else None, 'relation': relation,
                 'checked_at': checked, 'check_error': cache.get('check_error') if cache else None,
@@ -241,7 +240,8 @@ class SystemUpdateService:
                       'current_sha': self.version.commit, 'latest': None, 'relation': 'unknown',
                       'checked_at': None, 'attempted_at': now, 'check_error': None, 'stale': False}
             try:
-                latest = self.fetch(GITHUB_ROOT + '/commits/' + quote(self.branch, safe=''))
+                # The commit's changed files carry full patches; one is enough to stay under MAX_UPSTREAM_BYTES.
+                latest = self.fetch(GITHUB_ROOT + '/commits/' + quote(self.branch, safe='') + '?per_page=1')
                 sha = latest.get('sha')
                 commit = latest.get('commit')
                 if not valid_sha(sha) or not isinstance(commit, dict):
@@ -254,24 +254,8 @@ class SystemUpdateService:
                 result['latest'] = {'sha': sha, 'message': message.split('\n', 1)[0][:200],
                                     'committed_at': str(committed.get('date') or '')[:40],
                                     'url': f'https://github.com/{REPOSITORY}/commit/{sha}'}
-                if self.version.commit == sha:
-                    result['relation'] = 'up_to_date'
-                elif valid_sha(self.version.commit):
-                    comparison = self.fetch(GITHUB_ROOT + f'/compare/{self.version.commit}...{sha}?per_page=1')
-                    relation = comparison.get('status')
-                    base = comparison.get('base_commit') or {}
-                    merge = comparison.get('merge_base_commit') or {}
-                    ahead, behind = comparison.get('ahead_by'), comparison.get('behind_by')
-                    valid_counts = type(ahead) is int and type(behind) is int
-                    if (relation not in ('ahead', 'behind', 'diverged')
-                            or not isinstance(base, dict) or base.get('sha') != self.version.commit
-                            or not isinstance(merge, dict) or not valid_sha(merge.get('sha'))
-                            or not valid_counts
-                            or relation == 'ahead' and not (ahead > 0 and behind == 0 and merge['sha'] == self.version.commit)
-                            or relation == 'behind' and not (behind > 0 and ahead == 0 and merge['sha'] == sha)
-                            or relation == 'diverged' and not (ahead > 0 and behind > 0)):
-                        raise UpstreamError('github_invalid_response')
-                    result['relation'] = relation
+                # The helper verifies with Git that the head descends from the running commit.
+                result['relation'] = 'up_to_date' if sha == self.version.commit else 'ahead'
                 result['checked_at'] = now
             except (UpstreamError, httpx.HTTPError, OSError, ValueError, TypeError, AttributeError) as error:
                 if previous:
@@ -318,9 +302,9 @@ class SystemUpdateService:
 
     @staticmethod
     def _fetch(url):
-        # Only fixed operator branches and exact SHA comparisons reach HTTP.
+        # Only fixed operator branches reach HTTP.
         refs = '|'.join(re.escape(quote(branch, safe='')) for branch in SOURCE_BRANCHES)
-        allowed = re.fullmatch(re.escape(GITHUB_ROOT) + r'/(?:commits/(?:' + refs + r')|compare/[0-9a-f]{40}\.\.\.[0-9a-f]{40}\?per_page=1)', url)
+        allowed = re.fullmatch(re.escape(GITHUB_ROOT) + r'/commits/(?:' + refs + r')\?per_page=1', url)
         if allowed is None:
             raise UpstreamError('github_invalid_response')
         with httpx.Client(timeout=httpx.Timeout(8, connect=3), follow_redirects=False, trust_env=False) as client:

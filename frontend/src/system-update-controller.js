@@ -9,7 +9,7 @@ const UPDATE_PHASES = {
 }
 const ACTIVE = new Set(['queued', 'preparing', 'stopping', 'backing_up', 'activating', 'restarting', 'verifying'])
 const SHA = /^[a-f0-9]{40}$/i
-const RELATIONS = new Set(['unknown', 'up_to_date', 'ahead', 'behind', 'diverged'])
+const RELATIONS = new Set(['unknown', 'up_to_date', 'ahead'])
 const MAX_WAIT = 20 * 60 * 1000
 const REASONS = {
   preview_only: '模拟预览中不会更新程序。', disabled: '此安装尚未启用网页更新。', install_root_unavailable: '当前安装目录无法更新。',
@@ -18,11 +18,10 @@ const REASONS = {
   running_version_mismatch: '运行版本与安装目录不一致，暂不能更新。', check_required: '请先检查更新。',
   check_stale: '版本信息已过期，请重新检查更新。', check_failed: '检查未成功，请重试。',
   worker_unavailable: '更新助手尚未运行。', job_active: '已有更新任务正在进行。', recovery_required: '请联系管理员检查更新状态。',
-  up_to_date: '当前已是最新版本。', current_ahead: '当前版本领先主分支。',
-  history_diverged: '当前版本与主分支存在不同修改，暂不能自动更新。', relationship_unknown: '尚未确认版本关系，请重新检查。',
+  up_to_date: '当前已是最新版本。', relationship_unknown: '尚未确认版本关系，请重新检查。',
   state_unavailable: '暂时无法读取更新状态。', target_changed: '可用版本已变化，请重新检查后确认。',
   github_unavailable: '暂时无法读取主分支，请稍后检查。', github_rate_limited: '版本检查过于频繁，请稍后重试。',
-  github_invalid_response: '版本来源响应异常，请稍后检查。', compare_unavailable: '暂时无法比较版本，请稍后检查。',
+  github_invalid_response: '版本来源响应异常，请稍后检查。',
   command_unavailable_or_timed_out: '所需工具不可用或执行超时，请联系管理员检查。',
   command_failed: '更新步骤执行失败，请联系管理员检查。',
   frontend_commit_mismatch: '新版界面构建未通过校验，原服务尚未切换。',
@@ -95,8 +94,7 @@ export function systemUpdateStatus(state) {
   if (snapshot.job && UPDATE_PHASES[snapshot.job.phase]) return UPDATE_PHASES[snapshot.job.phase]
   if (state.checkFailed || snapshot.check_error || snapshot.stale) return snapshot.checked_at
     ? '版本信息已过期，请重新检查。' : '尚未取得版本信息，请检查更新。'
-  return ({ ahead: '发现新版本。', behind: '当前版本领先主分支。', up_to_date: '当前已是最新版本。',
-    diverged: '当前版本与主分支存在不同修改。', unknown: '尚未确认版本关系。' })[snapshot.relation]?.replaceAll('主分支', snapshot.branch === 'main' ? '主分支' : '发布分支')
+  return ({ ahead: '发现新版本。', up_to_date: '当前已是最新版本。', unknown: '尚未确认版本关系。' })[snapshot.relation]
 }
 
 function validStatus(value) {

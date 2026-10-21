@@ -12,15 +12,10 @@ from tests.test_system_update_version import marker, SHA, OTHER
 THIRD = 'c' * 40
 
 
-def upstream(relation='ahead', latest=OTHER):
+def upstream(latest=OTHER):
     def fetch(url):
-        if url.endswith('/commits/main'):
-            return {'sha': latest, 'commit': {'message': '已验证的更新\n正文', 'committer': {'date': '2026-10-18T00:00:00Z'}}}
-        assert url == GITHUB_ROOT + f'/compare/{SHA}...{latest}?per_page=1'
-        return {'status': relation, 'base_commit': {'sha': SHA},
-                'merge_base_commit': {'sha': latest if relation == 'behind' else SHA},
-                'ahead_by': 0 if relation == 'behind' else 1,
-                'behind_by': 0 if relation == 'ahead' else 1}
+        assert url == GITHUB_ROOT + '/commits/main?per_page=1'
+        return {'sha': latest, 'commit': {'message': '已验证的更新\n正文', 'committer': {'date': '2026-10-18T00:00:00Z'}}}
     return fetch
 
 
@@ -36,13 +31,13 @@ def service(tmp_path):
     return result, state, now
 
 
-def test_check_compares_fixed_main_and_apply_publishes_only_the_durable_request(service):
+def test_check_reads_fixed_main_and_apply_publishes_only_the_durable_request(service):
     updater, state, _ = service
     urls = []
     fetch = updater.fetch
     updater.fetch = lambda url: (urls.append(url), fetch(url))[1]
     status = updater.check()
-    assert urls == [GITHUB_ROOT + '/commits/main', GITHUB_ROOT + f'/compare/{SHA}...{OTHER}?per_page=1']
+    assert urls == [GITHUB_ROOT + '/commits/main?per_page=1']
     assert status['can_apply'] and status['relation'] == 'ahead' and status['current']['sha'] == SHA
     queued = updater.apply(SHA, OTHER)
     request = read_json(state / 'request.json')
@@ -53,17 +48,7 @@ def test_check_compares_fixed_main_and_apply_publishes_only_the_durable_request(
     assert not (state / 'status.json').exists(), 'web process must never forge worker completion'
 
 
-@pytest.mark.parametrize('relation,reason', [('behind','current_ahead'), ('diverged','history_diverged')])
-def test_current_ahead_or_divergent_history_cannot_be_downgraded(service, relation, reason):
-    updater, state, _ = service
-    updater.fetch = upstream(relation)
-    assert updater.check()['unavailable_reason'] == reason
-    with pytest.raises(UpdateError, match=reason):
-        updater.apply(SHA, OTHER)
-    assert not (state / 'request.json').exists()
-
-
-def test_equal_head_is_up_to_date_without_a_compare_request(service):
+def test_equal_head_is_up_to_date(service):
     updater, _, _ = service
     updater.fetch = upstream(latest=SHA)
     status = updater.check()
@@ -71,11 +56,10 @@ def test_equal_head_is_up_to_date_without_a_compare_request(service):
     assert status['unavailable_reason'] == 'up_to_date'
 
 
-def test_missing_unknown_or_inconsistent_compare_data_is_never_a_fast_forward_proof(service):
+def test_malformed_head_commit_is_never_an_update_target(service):
     updater, _, _ = service
-    correct = upstream()
-    for response in [{}, {'status':'ahead'}, {'status':'identical'}, {'status':'ahead','base_commit':{'sha':THIRD}}]:
-        updater.fetch = lambda url: correct(url) if url.endswith('/commits/main') else response
+    for response in [{}, {'sha': 'x'}, {'sha': OTHER}, {'sha': OTHER, 'commit': {'message': 1}}]:
+        updater.fetch = lambda url: response
         status = updater.check()
         assert not status['can_apply'] and status['stale']
         assert status['check_error'] == 'github_invalid_response'

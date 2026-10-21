@@ -18,14 +18,16 @@ BRANCH = 'codex/cloud-qq-public'
 
 @pytest.mark.parametrize('ref', ['main', 'codex%2Fcloud-qq-public'])
 def test_real_fetch_accepts_only_fixed_operator_commit_endpoints(ref):
-    url = GITHUB_ROOT + '/commits/' + ref
+    url = GITHUB_ROOT + '/commits/' + ref + '?per_page=1'
     with respx.mock(assert_all_called=True) as network:
         network.get(url).respond(200, json={'sha': OTHER})
         assert SystemUpdateService._fetch(url) == {'sha': OTHER}
 
 
 @pytest.mark.parametrize('url', [GITHUB_ROOT + '/commits/feature%2Funreviewed',
-    'https://api.github.com/repos/other/repository/commits/main', GITHUB_ROOT + '/commits/main?redirect=elsewhere'])
+    'https://api.github.com/repos/other/repository/commits/main', GITHUB_ROOT + '/commits/main?redirect=elsewhere',
+    GITHUB_ROOT + '/commits/main', GITHUB_ROOT + f'/compare/{SHA}...{OTHER}?per_page=1',
+    GITHUB_ROOT + f'/compare/{SHA}...{OTHER}?per_page=1&page=2'])
 def test_real_fetch_rejects_unapproved_urls_before_network(url):
     with respx.mock(assert_all_called=True):
         with pytest.raises(UpstreamError, match='github_invalid_response'): SystemUpdateService._fetch(url)
@@ -41,9 +43,7 @@ def public_service(tmp_path):
     urls = []
     def fetch(url):
         urls.append(url)
-        if '/commits/' in url:
-            return {'sha': OTHER, 'commit': {'message': 'public next', 'committer': {'date': '2026-10-18T00:00:00Z'}}}
-        return {'status': 'ahead', 'base_commit': {'sha': SHA}, 'merge_base_commit': {'sha': SHA}, 'ahead_by': 1, 'behind_by': 0}
+        return {'sha': OTHER, 'commit': {'message': 'public next', 'committer': {'date': '2026-10-18T00:00:00Z'}}}
     service = SystemUpdateService(Settings(system_update_enabled=True, system_update_branch=BRANCH,
         system_update_install_root=str(root), system_update_state_dir=str(state)),
         version=capture_version(root), fetch=fetch, clock=lambda: 2000, platform_name='linux')
@@ -53,7 +53,7 @@ def public_service(tmp_path):
 def test_public_branch_check_and_queue_use_only_operator_policy(public_service):
     service, state, urls = public_service
     result = service.check()
-    assert urls[0] == GITHUB_ROOT + '/commits/codex%2Fcloud-qq-public'
+    assert urls == [GITHUB_ROOT + '/commits/codex%2Fcloud-qq-public?per_page=1']
     assert result['branch'] == BRANCH and result['can_apply']
     service.apply(SHA, OTHER)
     assert read_json(state / 'request.json')['source'] == BRANCH
@@ -63,19 +63,6 @@ def test_a_helper_for_another_branch_cannot_enable_apply(public_service):
     service, state, _ = public_service
     write_json_atomic(state / 'worker.json', {'schema': 1, 'pid': 123, 'platform': 'linux', 'branch': 'main', 'updated_at': 2000})
     assert service.check()['unavailable_reason'] == 'worker_unavailable'
-    assert not (state / 'request.json').exists()
-
-
-def test_unpublished_current_is_not_an_update_candidate(public_service):
-    service, state, _ = public_service
-    original = service.fetch
-    def fetch(url):
-        if '/compare/' in url:
-            return {'status': 'behind', 'base_commit': {'sha': SHA}, 'merge_base_commit': {'sha': OTHER}, 'ahead_by': 0, 'behind_by': 1}
-        return original(url)
-    service.fetch = fetch
-    result = service.check()
-    assert result['unavailable_reason'] == 'current_ahead' and not result['can_apply']
     assert not (state / 'request.json').exists()
 
 

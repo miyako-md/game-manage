@@ -71,13 +71,13 @@ test('checking exposes the available version; apply requires the inline target c
   assert.equal(button('刷新页面'), undefined)
 })
 
-test('a current-ahead installation and a preview never offer a downgrade', async t => {
-  for (const value of [snapshot({ relation: 'behind', can_apply: false, unavailable_reason: 'current_ahead' }),
+test('an up-to-date installation and a preview never offer an update', async t => {
+  for (const value of [snapshot({ relation: 'up_to_date', can_apply: false, unavailable_reason: 'up_to_date' }),
     snapshot({ can_apply: false, unavailable_reason: 'preview_only' })]) {
     const { root, button, app } = mountDialog(t, () => reply(value))
     await settle()
     assert.equal(button('更新到此版本'), undefined)
-    assert.match(root.textContent, value.relation === 'behind' ? /当前版本领先主分支/ : /模拟预览中不会更新程序/)
+    assert.match(root.textContent, value.relation === 'up_to_date' ? /当前已是最新版本/ : /模拟预览中不会更新程序/)
     app.unmount()
   }
 })

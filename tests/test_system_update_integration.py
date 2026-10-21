@@ -20,12 +20,9 @@ def test_checked_request_survives_api_restart_and_worker_result_uses_real_versio
                         system_update_state_dir=str(f.state))
 
     def fetch(url):
-        if url == GITHUB_ROOT + '/commits/main':
-            return {'sha': f.target, 'commit': {'message': 'Isolated next release',
-                    'committer': {'date': '2026-10-18T00:00:00Z'}}}
-        assert url == GITHUB_ROOT + f'/compare/{f.old}...{f.target}?per_page=1'
-        return {'status': 'ahead', 'base_commit': {'sha': f.old},
-                'merge_base_commit': {'sha': f.old}, 'ahead_by': 1, 'behind_by': 0}
+        assert url == GITHUB_ROOT + '/commits/main?per_page=1'
+        return {'sha': f.target, 'commit': {'message': 'Isolated next release',
+                'committer': {'date': '2026-10-18T00:00:00Z'}}}
 
     def api(root):
         return SystemUpdateService(settings, version=capture_version(root), fetch=fetch,
