@@ -1,7 +1,7 @@
 <script setup>
 import MenuSelect from './MenuSelect.vue'
 import { computed, nextTick, ref, watch } from 'vue'
-import { profileReport, rows, displayValue as display, sourceName as named, selectOperators, selectMedals, rarityParts, phaseParts, medalCategoryParts, recentMedals, platedSummary, collectionTotals } from '../endfield-reports.js'
+import { profileReport, rows, displayValue as display, sourceName as named, selectOperators, hasTemplateIds, selectMedals, rarityParts, phaseParts, medalCategoryParts, recentMedals, platedSummary, collectionTotals } from '../endfield-reports.js'
 import { displayBeijing } from '../time.js'
 import { SHIP_CONVERSION_MODEL } from '../endfield-ship.js'
 import { vReveal } from '../motion.js'
@@ -28,7 +28,9 @@ const categories=computed(()=>[...new Set(medals.value.map(item=>item.category ?
 const filteredMedals=computed(()=>selectMedals(medals.value,{search:medalSearch.value,category:medalCategory.value===''?undefined:JSON.parse(medalCategory.value),sort:medalSort.value}))
 function clearMedalFilters(){medalSearch.value='';medalCategory.value=''}
 const mainMission=computed(()=>typeof overview.value.base?.main_mission === 'string' ? overview.value.base.main_mission.trim() : '')
-const search = ref(''), rarity = ref(''), profession = ref(''), sort = ref('newest')
+const search = ref(''), rarity = ref(''), profession = ref(''), chosenSort = ref(null)
+const canSortNewest = computed(() => hasTemplateIds(operators.value))
+const sort = computed({ get: () => chosenSort.value ?? (canSortNewest.value ? 'newest' : 'level'), set: value => { chosenSort.value = value } })
 const operators = computed(() => rows(training.value.items))
 const selected = computed(() => selectOperators(operators.value, { search: search.value, rarity: rarity.value, profession: profession.value, sort: sort.value }))
 const rarities = computed(() => [...new Set(operators.value.map(item => item.rarity).filter(value => value != null))].sort((a,b) => b-a))
@@ -168,7 +170,7 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
         </section>
         <section v-reveal class="ef-card ef-roster-card">
           <p v-if="imageMode" class="ef-note">武器、装备、技能与战术道具详情：发送「终末地 角色 干员名」，按精确名称查看单干员配装。</p>
-          <div v-if="!imageMode" class="ef-filters"><label>查找干员<input :value="search" @input="search = $event.target.value" type="search" placeholder="姓名或编号" /></label><label>稀有度<MenuSelect v-model="rarity" label="稀有度" :options="[{value:'',label:'全部稀有度'},...rarities.map(value=>({value:String(value),label:value+'★'}))]" /></label><label>职业<MenuSelect v-model="profession" label="职业" :options="[{value:'',label:'全部职业'},...professions.map(value=>({value,label:value}))]" /></label><label>排序<MenuSelect v-model="sort" label="排序" :options="[{value:'newest',label:'从新到旧'},{value:'level',label:'等级从高到低'},{value:'rarity',label:'稀有度从高到低'},{value:'potential',label:'潜能从高到低'},{value:'name',label:'姓名'}]" /></label></div>
+          <div v-if="!imageMode" class="ef-filters"><label>查找干员<input :value="search" @input="search = $event.target.value" type="search" placeholder="姓名或编号" /></label><label>稀有度<MenuSelect v-model="rarity" label="稀有度" :options="[{value:'',label:'全部稀有度'},...rarities.map(value=>({value:String(value),label:value+'★'}))]" /></label><label>职业<MenuSelect v-model="profession" label="职业" :options="[{value:'',label:'全部职业'},...professions.map(value=>({value,label:value}))]" /></label><label>排序<MenuSelect v-model="sort" label="排序" :options="[...(canSortNewest?[{value:'newest',label:'从新到旧'}]:[]),{value:'level',label:'等级从高到低'},{value:'rarity',label:'稀有度从高到低'},{value:'potential',label:'潜能从高到低'},{value:'name',label:'姓名'}]" /></label></div>
           <p v-if="!selected.length" class="ef-empty">{{ operators.length ? '没有匹配的干员，可调整筛选。' : '尚无干员资料。' }}</p>
           <div v-else class="ef-roster"><article v-for="(operator,index) in selected" :key="operator.id || index" class="ef-operator" :class="rarityBadge(operator.rarity)">
             <div class="ef-operator-top">

@@ -87,6 +87,8 @@ export function selectMedals(items, {search='',category=undefined,sort='recent'}
 // Card rosters key operators by an instance hash in `id`; the chr_NNNN_* template ID, when present, is in `char_id`.
 const byNewest = newestFirst('endfield')
 const templateId = item => [item.char_id, item.id].find(value => /^chr_\d+_/.test(String(value ?? '')))
+// Observed Skland card rosters carry only the MD5 hash, so newest-first is offered only when template IDs exist.
+export const hasTemplateIds = items => rows(items).some(item => templateId(item))
 const recencyKey = item => ({ id: templateId(item), name: item.name })
 
 export function selectOperators(items, { search = '', rarity = '', profession = '', sort = 'level' } = {}) {

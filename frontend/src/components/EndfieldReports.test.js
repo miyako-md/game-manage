@@ -52,6 +52,15 @@ test('operators default to newest first on the website and in images, and the ot
   choose(web,'排序','level');await nextTick();assert.deepEqual(names(web),['无模板','旧干员','新干员'])
 })
 
+test('hash-only rosters (as Skland card rosters are observed) keep the level order and do not offer newest first',async t=>{
+  const order=[{id:'5f0b',name:'低级',level:20,rarity:6},{id:'9c1d',name:'高级',level:90,rarity:5},{id:'a2e3',name:'中级',level:60,rarity:4}]
+  const list={report:{...payload.report,training:{...payload.report.training,items:order}}}
+  const names=root=>nodes(root,'h3').map(content).filter(name=>order.some(item=>item.name===name))
+  for(const imageMode of [false,true]) assert.deepEqual(names(mount(t,Reports,{payload:list,view:'operators',imageMode})),['高级','中级','低级'])
+  const menu=nodes(mount(t,Reports,{payload:list,view:'operators'}),'ul').find(node=>node.props.role==='listbox'&&node.props['aria-label']==='排序')
+  assert.deepEqual(nodes(menu,'li').map(node=>node.props['data-value']),['level','rarity','potential','name'])
+})
+
 test('the exploration image keeps region progress and collection totals but drops settlements and per-area lists',t=>{
   const area=(name,current)=>({name,collections:[{key:'chests',label:'储藏箱',current,total:5},{key:'pieces',label:'灵感点',current:null,total:3}]})
   const regions={items:[{id:'r',name:'四号谷地',level:2,money:{current:0,total:null},settlements:[{id:'s',name:'矿区据点',coupon:{current:0,total:100},officers:[{id:'a',name:'干员甲'}]}],areas:[area('矿区',1),area('谷地',4)]}]}
