@@ -34,7 +34,8 @@ def test_actual_wrapper_shape_and_legacy_flat_have_same_five_item_contract():
     assert len(result.items)==5
     stats=[s for i in result.items for s in i.stats]
     assert len(stats)==35 and sum(s.unit=='percent_points' for s in stats)==26 and sum(s.unit=='flat' for s in stats)==9
-    assert all(i.stats_complete is None for i in result.items)
+    # D2: the source's main/sub lists are complete once every entry parses; this shape carries no COST.
+    assert all(i.stats_complete is True and i.cost is None for i in result.items)
     assert result==equipped_configuration('wuthering_waves','c1',wrapped['data'],OBSERVED)
     assert result.observed_at==OBSERVED
 

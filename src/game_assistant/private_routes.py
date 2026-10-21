@@ -481,7 +481,8 @@ _declare('private_query','GET','/api/assessment/{game}/{character}','/api/assess
 _declare('private_modify','PUT','/api/assessment/{game}/{character}/model')
 _declare('private_modify','POST','/api/assessment/{game}/{character}/configurations',
     '/api/assessment/{game}/{character}/score','/api/assessment/{game}/{character}/compare')
-_declare('private_modify','DELETE','/api/assessment/{game}/{character}/configurations/{identity}')
+_declare('private_modify','DELETE','/api/assessment/{game}/{character}/model',
+    '/api/assessment/{game}/{character}/configurations/{identity}')
 _declare('private_query','GET',
     '/api/auth/status','/api/nte/gacha/summary','/api/nte/gacha/records','/api/nte/gacha/export','/api/nte/gacha/rules',
     '/api/endfield/gacha/summary','/api/endfield/gacha/records','/api/endfield/gacha/export',

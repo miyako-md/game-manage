@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Capability(str, Enum):
@@ -213,3 +213,5 @@ class FetchResult(BaseModel):
     error_kind: Literal['offline', 'unconfigured', 'auth_expired', 'source_error',
                         'invalid_data', 'account_changed', 'not_found'] | None = None
     credential_version: int | None = None
+    # Short fixed failure codes for logs only (e.g. "crisis:10001"); excluded from every dump.
+    failure_codes: str | None = Field(default=None, exclude=True)

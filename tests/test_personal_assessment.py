@@ -116,3 +116,68 @@ def test_duplicated_item_ids_show_no_partial_total():
     raw=config().model_dump(mode='json');raw['items'].append(dict(raw['items'][0]))
     result=assess(Configuration.model_validate(raw),wuwa_model())
     assert (result['reason'],result['partial'],result['partial_known_total'])==('DUPLICATE_ITEM',None,None)
+
+
+def echo_model(source='user_configured', **profile):
+    return AssessmentModel.model_validate(dict(game='wuthering_waves',character_id='c1',version='v1',source=source,
+        attribution='self_made' if source=='builtin_default' else None,
+        wuwa_echo_profile={'main':{'1':{'attack_ratio':'1'},'3':{'attack_ratio':'2','fusion_damage':'2'},'4':{'crit_rate':'1','attack_flat':'0.1'}},
+                           'sub':{'crit_rate':'1','skill_damage':'0.5'},**profile}))
+
+
+def echo(item_id='e1',cost=4,main=(('crit_rate','22'),('attack_flat','150')),sub=(('crit_rate','10.5'),)):
+    return dict(id=item_id,kind='echo',cost=cost,stats_complete=True,stats=[dict(canonical_id=k,value=v,unit='flat' if k.endswith('_flat') else 'percent_points',
+        role=role,observation_id=f'{role}:{i}') for role,rows in (('main',main),('sub',sub)) for i,(k,v) in enumerate(rows)])
+
+
+def echoes(*items):
+    return Configuration.model_validate(dict(game='wuthering_waves',character_id='c1',name='A',source='user_configured',items=list(items)))
+
+
+def test_echo_formula_selects_main_weights_by_cost_and_expands_nothing_at_runtime():
+    # COST 4 maximum without a selection: best main 22×1 (crit) + fixed 150×0.1 + best five subs 10.5×1 + 11.6×0.5 = 53.3
+    result=assess(echoes(echo()),echo_model())
+    assert result['item_results'][0]['contributions'][0]['weight']=='1' and result['value']=='44.56'  # (22+15+10.5)÷53.3×50
+    assert result['item_results'][0]['grade']=='sss' and result['grade']=='c'  # 44.56÷250 for the set
+    # The same main stats on a COST 3 echo have no COST 3 weight; an element other than the profile's counts nothing.
+    three=assess(echoes(echo(cost=3,main=(('crit_rate','22'),('glacio_damage','30'),('attack_flat','100')))),echo_model())
+    assert three['value']=='6.88' and [c['value'] for c in three['contributions']][:3]==['0','0','0']  # 10.5÷(60+16.3)×50
+    assert three['item_results'][0]['grade']=='c' and (three['origin'],three['unofficial'],three['attribution'])==('user_configured',None,None)
+
+
+def test_echo_without_usable_cost_or_role_is_unscorable_and_partial_not_zero():
+    good=echo('good'); missing=echo('missing',cost=None); unknown=echo('two',cost=2)
+    result=assess(echoes(good,missing,unknown),echo_model())
+    assert (result['status'],result['value'],result['grade'],result['max_value'])==('unscorable',None,None,250)
+    assert result['partial'] is True and result['partial_known_total']=='44.56'
+    assert [(i['reason'],i['cost'],i['max_value']) for i in result['item_results']]==[(None,4,50),('UNKNOWN_COST',None,50),('UNKNOWN_COST',2,50)]
+    anonymous=echo(); anonymous['stats'][0]['role']=None
+    assert assess(echoes(anonymous),echo_model())['reason']=='UNKNOWN_STAT_ROLE'
+    incomplete=echo(); incomplete['stats_complete']=None
+    assert assess(echoes(incomplete),echo_model())['reason']=='UNKNOWN_STAT_COMPLETENESS'
+
+
+def test_echo_rounding_is_half_up_and_total_adds_displayed_items():
+    model=echo_model(main={'1':{'attack_ratio':'1'},'3':{'attack_ratio':'1'},'4':{'crit_rate':'1'}},sub={'crit_rate':'0.1'},
+                     max_main={'1':['attack_ratio'],'3':['attack_ratio'],'4':['crit_rate']},max_sub=[])
+    # COST 1 maximum = 18×1 (only attack% selected): 0.0378÷18×50 = 0.105 → 0.11 (upstream's floor gives 0.10).
+    one=assess(echoes(echo('a',1,(('attack_ratio','0.0378'),),())),model)
+    assert one['value']=='0.11' and one['grade']=='c'
+    pair=assess(echoes(echo('a',1,(('attack_ratio','0.0378'),),()),echo('b',1,(('attack_ratio','0.0378'),),())),model)
+    assert pair['value']=='0.22'  # 0.11 + 0.11, not round(0.21)
+    assert pair['grade']=='c' and pair['item_results'][1]['value']=='0.11'
+
+
+def test_echo_profile_validation_and_builtin_marking():
+    with pytest.raises(ValueError): echo_model(main={'1':{},'3':{}})
+    with pytest.raises(ValueError): echo_model(main={'1':{'crit_rate':'1'},'3':{},'4':{}})  # no crit main stat on COST 1
+    with pytest.raises(ValueError): echo_model(sub={'fusion_damage':'1'})  # element damage is never a sub stat
+    with pytest.raises(ValueError): echo_model(sub={'crit_rate':'101'})
+    with pytest.raises(ValueError): AssessmentModel.model_validate(dict(game='wuthering_waves',character_id='c1',version='v',source='builtin_default',wuwa_weights={'crit_rate':'1'}))
+    with pytest.raises(ValueError): AssessmentModel.model_validate(dict(game='wuthering_waves',character_id='c1',version='v',source='user_configured',attribution='gpl_snapshot'))
+    with pytest.raises(ValueError): AssessmentModel.model_validate(dict(game='wuthering_waves',character_id='c1',version='v',source='builtin_default',attribution='gpl_snapshot'))
+    builtin=assess(echoes(echo()),echo_model('builtin_default'))
+    assert (builtin['origin'],builtin['unofficial'],builtin['attribution'],builtin['item_results'][0]['grade'])==('builtin_default',True,'self_made','sss')
+    legacy=assess(config(),wuwa_model())
+    assert (legacy['origin'],legacy['unofficial'],legacy['attribution'],legacy['grade'],legacy['max_value'])==('user_configured',None,None,None,None)
+    assert legacy['item_results'][0]['cost'] is None

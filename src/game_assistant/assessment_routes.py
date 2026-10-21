@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Path as ApiPath
 from pydantic import ValidationError
 from .assessment import AssessmentModel, Configuration, assess, compare
 from .assessment_store import AssessmentStore
+from .assessment_defaults import resolve_model
 from .assessment_equipped import equipped_configuration
 from .assessment_nte_math import validate_profile
 from .accounts.models import AccountScope
@@ -52,10 +53,7 @@ def install_assessment_routes(app,accounts=None,private_root=None,snapshots=None
         elif app.state.auth.account_generation(game)!=version: raise HTTPException(409,'authorization_changed')
         return body
 
-    def selected(scope,game,character):
-        rows=store.read(scope,game,character,'model')
-        if not rows: return AssessmentModel(game=game,character_id=character,version='unconfigured',source='user_configured')
-        return AssessmentModel.model_validate(rows[0]['data'])
+    def selected(scope,game,character): return resolve_model(store,scope,game,character)[0]
 
     def configuration(scope,game,character,identity):
         row=next((r for r in store.read(scope,game,character,'configuration') if r['id']==identity),None)
@@ -65,10 +63,13 @@ def install_assessment_routes(app,accounts=None,private_root=None,snapshots=None
         except ValidationError: raise HTTPException(422,'invalid_scoring_input') from None
 
     def validate(cls,body,game,character):
+        # A saved copy of a default is the user's own model and carries no attribution.
+        if cls is AssessmentModel and body.get('source')=='user_configured': body={k:v for k,v in body.items() if k!='attribution'}
         try:
             result=cls.model_validate(body)
             if (result.game,result.character_id)!=(game,character): raise ValueError('identity mismatch')
-            if isinstance(result,Configuration) and result.source!='user_configured': raise ValueError('source must be user configured')
+            # Only users configure: a body claiming the built-in default is refused, not stored.
+            if result.source!='user_configured': raise ValueError('source must be user configured')
             return result
         except (ValueError,ValidationError): raise HTTPException(422,'invalid_input') from None
 
@@ -85,6 +86,11 @@ def install_assessment_routes(app,accounts=None,private_root=None,snapshots=None
             try: validate_profile(value.nte_profile,value.nte_spec)
             except ValueError: raise HTTPException(422,'invalid_input') from None
         return store.save(authorization[0],value,'model')
+
+    @router.delete('/{game}/{character}/model')
+    async def restore(game:Literal['nte','wuthering_waves'],character:Character,authorization=Depends(owner)):
+        # Restores the built-in default (or none): the saved model wholly replaced it.
+        return dict(deleted=store.delete(authorization[0],game,character,'selected',kind='model'))
 
     @router.post('/{game}/{character}/configurations',status_code=201)
     async def save(request:Request,game:Literal['nte','wuthering_waves'],character:Character,authorization=Depends(owner)):

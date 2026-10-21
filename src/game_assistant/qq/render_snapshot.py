@@ -19,6 +19,8 @@ ROLE = frozenset('schema_version entries id name role_id role_name role_icon_url
 ROLE |= frozenset('group_type awaken_effects suit description_two description_four conditions activation_count core pie main_properties area substats_complete breakthrough_level buff_name buff_description lbd items title desc assessment score status reason model_version weight_version source formula contributions'.split())
 ROLE |= frozenset('formula_text model_fingerprint contribution_id weight unit current_value reference_value factor exact_fraction numerator denominator rounding_adjustment'.split())
 ROLE |= frozenset('item_id item_results partial partial_known_total display_mode'.split())
+# Built-in default score fields; phantom_id (a public echo resource ID) pairs item_results with echo slots.
+ROLE |= frozenset('grade max_value cost origin unofficial attribution phantom_id'.split())
 NTE_OVERVIEW = frozenset('id name level quality element awaken_level mix_level affinity_exp icon_url'.split())
 GACHA = frozenset('schema_version pools details name id item_id total_draws s_count average guarantee luck_title luck_type lucky_type pity obtained_at total gold_total items gold pool coverage earliest latest imported_at source message failed_pools state total rarity_distribution rank rarity time timestamp quantity reward_name reward_id reward_rank pool_group_id result_type pool_id total_pulls hard_pity_remaining rule_basis as_of latest_record_at basis missing_requirements total_records records counts complete'.split())
 GACHA |= frozenset('aggregates five_star_total period_count kind source_time time_basis diagnostics segment_count latest_confirmed continuity_confirmed warnings rule_version up_guarantee count status limit offset'.split())

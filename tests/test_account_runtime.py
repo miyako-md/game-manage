@@ -346,3 +346,29 @@ async def test_failed_rotation_and_late_result_keep_authorization_boundary(tmp_p
     assert not result.ok and result.error_kind == 'auth_expired'
     assert query.read(scope,'account').payload is None
     await runtime.aclose()
+
+
+async def test_skland_combat_reports_a_short_code_per_failed_kind(tmp_path, monkeypatch):
+    from game_assistant.adapters.endfield import skland_parse
+    from game_assistant.adapters.endfield.skland_client import SklandError
+    from game_assistant.models import Capability
+    runtime, adapter = await combat_runtime(tmp_path, monkeypatch, crisis=SklandError('RAW-ERROR message', code='10001'))
+    original = skland_parse.parse_challenge
+    def parse(kind, data):
+        if kind == 'war':
+            raise KeyError('RAW-KEY')
+        return original(kind, data)
+    monkeypatch.setattr(skland_parse, 'parse_challenge', parse)
+    fetched = await adapter.fetch(Capability.COMBAT)
+    assert fetched.ok and fetched.error_code is None  # HTTP status semantics unchanged
+    assert fetched.failure_codes == 'war:parse:KeyError,crisis:10001'
+    assert 'failure_codes' not in fetched.model_dump() and 'RAW' not in fetched.model_dump_json()
+    ChallengeClient.failures['monument'] = SklandError('RAW', status=503, code='http:503')
+    fetched = await adapter.fetch(Capability.COMBAT)
+    assert not fetched.ok and fetched.failure_codes == 'war:parse:KeyError,monument:http:503,crisis:10001'
+    async def refused(self, cred):
+        raise SklandError('RAW', code='10002', expired=True)
+    monkeypatch.setattr(ChallengeClient, 'refresh', refused)
+    fetched = await adapter.fetch(Capability.COMBAT)
+    assert (fetched.error_kind, fetched.failure_codes) == ('auth_expired', 'refresh:10002')
+    await runtime.aclose()

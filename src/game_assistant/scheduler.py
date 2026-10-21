@@ -316,8 +316,9 @@ class AccountPollingScheduler:
                                                     timeout=self.settings.cloud_upstream_timeout_seconds)
                 except AccountNotFoundError:
                     return FetchResult(ok=False, error_kind='account_changed')
-                except Exception:
-                    result = FetchResult(ok=False, error='数据源请求失败，请稍后重试', error_kind='source_error')
+                except Exception as error:
+                    result = FetchResult(ok=False, error='数据源请求失败，请稍后重试', error_kind='source_error',
+                                         failure_codes=f'exception:{type(error).__name__}')
                 try:
                     current = self.accounts.describe(scope)
                 except AccountNotFoundError:
@@ -341,9 +342,10 @@ class AccountPollingScheduler:
                     result.error = '授权已失效，请重新授权' if result.error_kind == 'auth_expired' else '数据源暂时不可用，保留上次数据'
                 status = self.query.snapshots.record_poll_scoped(scope, capability, result, version)
                 if not result.ok or failed_kinds:
-                    # Counts only; never scope identifiers or upstream messages.
-                    logger.warning('scoped_poll_failed game=%s capability=%s state=%s error_code=%s failed_kinds=%s',
-                                current['game'], capability, status['state'], result.error_code, ','.join(failed_kinds) or '-')
+                    # Counts and short fixed codes only; never scope identifiers or upstream messages.
+                    logger.warning('scoped_poll_failed game=%s capability=%s state=%s error_code=%s failed_kinds=%s failed_codes=%s',
+                                current['game'], capability, status['state'], result.error_code, ','.join(failed_kinds) or '-',
+                                result.failure_codes or '-')
                 if self.reminders:
                     try:
                         self.reminders.handle_poll(scope, capability, result, version)

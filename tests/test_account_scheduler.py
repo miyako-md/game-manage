@@ -362,7 +362,8 @@ async def test_partial_challenge_failure_keeps_last_success_of_that_kind(tmp_pat
     accounts, scope, store, query, adapter, polling, _ = await skland_fixture(tmp_path)
     first, second = '2026-10-21T00:00:00+00:00', '2026-10-21T00:15:00+00:00'
     adapter.results = [FetchResult(ok=True,payload=challenge_payload(first,failed=('crisis',))),
-                       FetchResult(ok=True,payload=challenge_payload(second,failed=('monument',)),error_code=429)]
+                       FetchResult(ok=True,payload=challenge_payload(second,failed=('monument',)),error_code=429,
+                                   failure_codes='monument:http:429')]
     await polling.poll_once(scope,'combat')
     stored = {r['kind']:r for r in json.loads(store.get_scoped(scope,'combat')['payload'])['reports']}
     assert stored['crisis']['available'] is False and stored['crisis']['stale'] is True
@@ -379,7 +380,9 @@ async def test_partial_challenge_failure_keeps_last_success_of_that_kind(tmp_pat
     assert (status['state'], status['error_code'], status['consecutive_failures']) == ('ok', 429, 0)
     assert polling._due[(scope,'combat')] == 1900
     messages = [r.getMessage() for r in caplog.records if r.name == 'game_assistant.scheduler']
-    assert messages[-1] == 'scoped_poll_failed game=endfield capability=combat state=ok error_code=429 failed_kinds=monument'
+    assert messages[-1] == ('scoped_poll_failed game=endfield capability=combat state=ok error_code=429 '
+                            'failed_kinds=monument failed_codes=monument:http:429')
+    assert 'failed_codes' not in str(status) and 'http:429' not in str(status)
     assert scope.account_id not in caplog.text and scope.role_id not in caplog.text
 
 
@@ -419,3 +422,21 @@ async def test_snapshot_staleness_follows_the_capability_interval(tmp_path):
         account, combat = [(await client.get(prefix+cap)).json() for cap in ('account','combat')]
     assert account['stale'] is True and combat['stale'] is False
     assert combat['poll_status']['error_code'] is None
+
+
+async def test_failed_poll_logs_short_codes_but_never_messages(tmp_path, caplog):
+    accounts, scope, store, query, adapter, polling, _ = await skland_fixture(tmp_path)
+    adapter.results = [FetchResult(ok=False,error='RAW upstream message',error_kind='source_error',
+                                   failure_codes='war:10001,monument:parse:KeyError,crisis:10001')]
+    await polling.poll_once(scope,'combat')
+    messages = [r.getMessage() for r in caplog.records if r.name == 'game_assistant.scheduler']
+    assert messages[-1] == ('scoped_poll_failed game=endfield capability=combat state=error error_code=None '
+                            'failed_kinds=- failed_codes=war:10001,monument:parse:KeyError,crisis:10001')
+    status = query.status(scope,'combat')
+    assert 'RAW' not in caplog.text and 'RAW' not in str(status) and '10001' not in str(status)
+    async def broken(capability):
+        raise TimeoutError('RAW secret')
+    adapter.fetch = broken
+    await polling.poll_once(scope,'combat')
+    assert caplog.records[-1].getMessage().endswith('failed_codes=exception:TimeoutError')
+    assert 'RAW' not in caplog.text and scope.account_id not in caplog.text

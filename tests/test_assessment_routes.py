@@ -84,24 +84,74 @@ def test_equipped_reading_skips_empty_slots_and_missing_lists():
     assert [(i.id,i.stats) for i in n.items]==[('core:1:i',[])]
 
 
-def test_projection_uses_current_scope_model_and_strips_unrelated_private_data(tmp_path):
+def detail_snapshot(character='1205'):
+    from game_assistant.accounts.models import QueryResult
+    from tests.test_assessment_defaults import CHANGLI
+    def source(item):
+        # Kuro role detail shape: main/sub lists of attribute_name/attribute_value, COST on the echo.
+        names={'crit_rate':'暴击','crit_damage':'暴击伤害','attack_ratio':'攻击','attack_flat':'攻击','health_ratio':'生命','health_flat':'生命',
+               'defense_ratio':'防御','defense_flat':'防御','energy_regen':'共鸣效率','fusion_damage':'热熔伤害加成','skill_damage':'共鸣技能伤害加成',
+               'liberation_damage':'共鸣解放伤害加成','basic_damage':'普攻伤害加成','heavy_damage':'重击伤害加成'}
+        prop=lambda s:dict(attribute_name=names[s['canonical_id']],attribute_value=s['value']+('' if s['unit']=='flat' else '%'))
+        return dict(cost=item['cost'],phantom_prop={'phantom_id':390080005+int(item['id'][-1]),'cost':item['cost']},
+                    main_props=[prop(s) for s in item['stats'] if s['role']=='main'],sub_props=[prop(s) for s in item['stats'] if s['role']=='sub'])
+    return QueryResult({'role':{'role_id':character,'role_name':'synthetic'},'token':'secret',
+        'phantom_data':{'equip_phantom_list':[source(i) for i in CHANGLI]}},'2026-10-14T00:00:00Z','ok',None)
+
+
+def test_projection_uses_scope_model_else_builtin_default_and_strips_unrelated_private_data(tmp_path):
     from game_assistant.assessment_store import AssessmentStore
     from game_assistant.assessment_projection import with_assessment
-    from game_assistant.accounts.models import QueryResult
+    from game_assistant.assessment_equipped import equipped_configuration
     from game_assistant.qq.render_snapshot import role_snapshot
     from datetime import datetime,timezone
     store=AssessmentStore(tmp_path/'score.db'); scope=AccountScope('u','a','r')
-    model=wuwa_model({'attack_flat':'0.1'})
-    store.save(scope,model,'model')
-    snap=QueryResult({'role':{'role_id':'c1','role_name':'synthetic'},'token':'secret',
-        'phantom_data':{'equip_phantom_list':[{'main_props':[{'attribute_name':'攻击','attribute_value':'100'}]}]}},'2026-10-14T00:00:00Z','ok',None)
+    snap=detail_snapshot()
+    items=equipped_configuration('wuthering_waves','1205',snap.payload).items
+    assert [(i.source_id,i.cost,i.stats_complete) for i in items][:2]==[('390080005',4,True),('390080006',3,True)]
     value=with_assessment(snap,store,scope,'wuthering_waves')
-    assert value.payload['assessment']['reason']=='UNKNOWN_STAT_COMPLETENESS'
-    other=with_assessment(snap,store,AccountScope('other','a','r'),'wuthering_waves')
-    assert other.payload['assessment']['status']=='unconfigured'
-    projected=role_snapshot('wuthering_waves',snap,datetime.now(timezone.utc),detail=value,resolved_id='c1')
-    assert projected['display_data']['detail']['assessment']['value'] is None
+    assessment=value.payload['assessment']
+    assert (assessment['status'],assessment['value'],assessment['origin'],assessment['attribution'])==('scored','168.16','builtin_default','gpl_snapshot')
+    projected=role_snapshot('wuthering_waves',snap,datetime.now(timezone.utc),detail=value,resolved_id='1205')
+    shown=projected['display_data']['detail']['assessment']
+    assert {k:shown[k] for k in ('value','grade','max_value','origin','unofficial','attribution')}=={'value':'168.16','grade':'a','max_value':250,
+        'origin':'builtin_default','unofficial':True,'attribution':'gpl_snapshot'}
+    assert [(i['cost'],i['grade'],i['max_value']) for i in shown['item_results']][:2]==[(4,'ss',50),(3,'ss',50)]
+    echo_ids=[e['phantom_prop']['phantom_id'] for e in projected['display_data']['detail']['phantom_data']['equip_phantom_list']]
+    assert [i['item_id'] for i in shown['item_results']]==[f'echo:{n}:{p}' for n,p in enumerate(echo_ids)]
     assert 'token' not in projected['display_data']['detail']
+    # A saved model wholly replaces the default, only for its own scope.
+    store.save(scope,wuwa_model({'attack_flat':'0.1'}).model_copy(update=dict(character_id='1205')),'model')
+    mine=with_assessment(snap,store,scope,'wuthering_waves').payload['assessment']
+    assert (mine['origin'],mine['grade'],mine['formula'])==('user_configured',None,'wuwa-custom-weighted-values-v1')
+    assert with_assessment(snap,store,AccountScope('other','a','r'),'wuthering_waves').payload['assessment']['origin']=='builtin_default'
+    # Without a default entry: unconfigured, which QQ images hide.
+    none=with_assessment(detail_snapshot('c1'),store,scope,'wuthering_waves').payload['assessment']
+    assert (none['status'],none['reason'],none['model_version'],none['origin'])==('unconfigured','NO_WEIGHTS','unconfigured','user_configured')
+    store.close()
+
+
+def test_model_put_refuses_builtin_source_and_delete_restores_the_default(identity,tmp_path):
+    client=identity[3]; store=install_assessment_routes(client.app,Accounts(),tmp_path/'private')
+    register(identity)
+    path='/api/accounts/owned/roles/role/assessment/wuthering_waves/1205'
+    builtin=client.get(path).json()['model']
+    assert (builtin['source'],builtin['attribution'])==('builtin_default','gpl_snapshot')
+    assert write(client,path+'/model',builtin,method='put').status_code==422
+    # The editor saves a copy of the default as the user's own model; it keeps the echo formula.
+    saved=write(client,path+'/model',dict(builtin,source='user_configured'),method='put')
+    assert saved.status_code==200 and saved.json()['data']==dict(builtin,source='user_configured',attribution=None)
+    assert client.get(path).json()['model']['source']=='user_configured'
+    from game_assistant.assessment import AssessmentModel, assess
+    from tests.test_assessment_defaults import golden
+    copy=assess(golden(),AssessmentModel.model_validate(saved.json()['data']))
+    assert (copy['value'],copy['grade'],copy['origin'],copy['unofficial'],copy['attribution'])==('168.16','a','user_configured',None,None)
+    assert client.delete(path+'/model').status_code==403
+    assert write(client,path+'/model',method='delete').json()=={'deleted':True}
+    assert client.get(path).json()['model']==builtin
+    assert write(client,path+'/model',method='delete').json()=={'deleted':False}
+    empty=client.get(path.replace('1205','c1')).json()['model']
+    assert (empty['version'],empty['source'],empty['wuwa_echo_profile'])==('unconfigured','user_configured',None)
     store.close()
 
 

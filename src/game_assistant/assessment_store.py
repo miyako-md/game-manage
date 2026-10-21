@@ -44,7 +44,8 @@ class AssessmentStore:
             self.db.execute('INSERT OR REPLACE INTO personal_assessment VALUES (?,?,?,?,?,?,?,?,?,?)',(*key,identity,value.model_dump_json(),revision,now))
         return dict(id=identity,data=value.model_dump(mode='json'),revision=revision,updated_at=now)
 
-    def delete(self,scope,game,character,identity):
+    def delete(self,scope,game,character,identity,kind='configuration'):
+        if kind not in ('model','configuration'): raise ValueError('unknown kind')
         with self.lock,self.db:
-            cursor=self.db.execute('DELETE FROM personal_assessment WHERE user_id=? AND account_id=? AND role_id=? AND game=? AND character=? AND kind=? AND id=?',(*self._key(scope,game,character,'configuration'),identity))
+            cursor=self.db.execute('DELETE FROM personal_assessment WHERE user_id=? AND account_id=? AND role_id=? AND game=? AND character=? AND kind=? AND id=?',(*self._key(scope,game,character,kind),identity))
         return bool(cursor.rowcount)

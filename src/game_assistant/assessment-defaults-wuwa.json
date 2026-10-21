@@ -1,0 +1,3024 @@
+{
+ "schema_version": 1,
+ "formula": "wuwa-echo-default-v1",
+ "data_version": "2026-10-22",
+ "provenance": {
+  "repository": "https://github.com/Celec7/WutheringWavesUID",
+  "original_repository": "kvcfdd/WutheringWavesUID (deleted; Celec7 is an archived mirror at the same commit)",
+  "commit": "1d693a2df0f940824cb34e102cec1cf3b381e70f",
+  "path": "WutheringWavesUID/utils/map/character/<name>/calc.json",
+  "author": "tyql688",
+  "license": "GPL-3.0",
+  "modified": "2026-10-22",
+  "changes": "Modified by game-manage: keyed by game character ID; upstream stat names mapped to canonical IDs; skill damage expanded by skill_weight and element damage to the character element; zero weights, grades, colours and score_max dropped (score_max is recomputed); conditional variants ignored; entries with origin self_made are not upstream data but derived from the default template."
+ },
+ "grade_thresholds": [
+  "0",
+  "0.48",
+  "0.6",
+  "0.7",
+  "0.78",
+  "0.84"
+ ],
+ "grades": [
+  "c",
+  "b",
+  "a",
+  "s",
+  "ss",
+  "sss"
+ ],
+ "characters": {
+  "1102": {
+   "name": "散华",
+   "origin": "gpl_snapshot",
+   "upstream": "散华",
+   "element": "冷凝",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "glacio_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.175",
+    "heavy_damage": "0.2002",
+    "liberation_damage": "0.5005",
+    "skill_damage": "0.495"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "glacio_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1103": {
+   "name": "白芷",
+   "origin": "gpl_snapshot",
+   "upstream": "白芷",
+   "element": "冷凝",
+   "main": {
+    "1": {
+     "health_flat": "0.003",
+     "health_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.0375",
+     "attack_ratio": "0.3",
+     "energy_regen": "0.3",
+     "health_ratio": "0.3"
+    },
+    "4": {
+     "healing_bonus": "0.375",
+     "health_ratio": "0.3"
+    }
+   },
+   "sub": {
+    "energy_regen": "1.2",
+    "health_flat": "0.01",
+    "health_ratio": "1.2"
+   },
+   "max_main": {
+    "1": [
+     "health_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "energy_regen",
+     "attack_flat"
+    ],
+    "4": [
+     "healing_bonus",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "health_ratio",
+    "health_flat",
+    "energy_regen"
+   ]
+  },
+  "1104": {
+   "name": "凌阳",
+   "origin": "gpl_snapshot",
+   "upstream": "凌阳",
+   "element": "冷凝",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "glacio_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.385",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.5",
+    "liberation_damage": "0.22",
+    "skill_damage": "0.605"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "glacio_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1105": {
+   "name": "折枝",
+   "origin": "gpl_snapshot",
+   "upstream": "折枝",
+   "element": "冷凝",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "glacio_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.55",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "heavy_damage": "0.22",
+    "skill_damage": "0.22"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "glacio_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "basic_damage"
+   ]
+  },
+  "1106": {
+   "name": "釉瑚",
+   "origin": "gpl_snapshot",
+   "upstream": "釉瑚",
+   "element": "冷凝",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "glacio_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5",
+     "healing_bonus": "0.375"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "skill_damage": "0.55"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "glacio_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1107": {
+   "name": "珂莱塔",
+   "origin": "gpl_snapshot",
+   "upstream": "珂莱塔",
+   "element": "冷凝",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "glacio_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "skill_damage": "0.91"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "glacio_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1108": {
+   "name": "绯雪",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "冷凝",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "glacio_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "liberation_damage": "0.77"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_rate",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "liberation_damage",
+    "attack_flat"
+   ]
+  },
+  "1109": {
+   "name": "洛瑟菈",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "冷凝",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "glacio_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.66",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.1"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_rate",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "basic_damage",
+    "attack_flat"
+   ]
+  },
+  "1110": {
+   "name": "穗穗",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "冷凝",
+   "main": {
+    "1": {
+     "health_flat": "0.003",
+     "health_ratio": "0.4"
+    },
+    "3": {
+     "energy_regen": "0.3",
+     "health_ratio": "0.3"
+    },
+    "4": {
+     "healing_bonus": "0.375",
+     "health_ratio": "0.3"
+    }
+   },
+   "sub": {
+    "crit_damage": "0.33",
+    "energy_regen": "1.2",
+    "health_flat": "0.01",
+    "health_ratio": "1.2"
+   },
+   "max_main": {
+    "1": [
+     "health_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "energy_regen",
+     "attack_flat"
+    ],
+    "4": [
+     "health_ratio",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "energy_regen",
+    "health_ratio",
+    "crit_damage",
+    "health_flat"
+   ]
+  },
+  "1202": {
+   "name": "炽霞",
+   "origin": "gpl_snapshot",
+   "upstream": "炽霞",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "fusion_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.165",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.5",
+    "liberation_damage": "0.44",
+    "skill_damage": "0.55"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "fusion_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1203": {
+   "name": "安可",
+   "origin": "gpl_snapshot",
+   "upstream": "安可",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "fusion_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.12",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.66",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "liberation_damage": "0.22",
+    "skill_damage": "0.275"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "fusion_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "basic_damage"
+   ]
+  },
+  "1204": {
+   "name": "莫特斐",
+   "origin": "gpl_snapshot",
+   "upstream": "莫特斐",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "fusion_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.5",
+    "liberation_damage": "0.605",
+    "skill_damage": "0.33"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "fusion_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1205": {
+   "name": "长离",
+   "origin": "gpl_snapshot",
+   "upstream": "长离",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "fusion_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "liberation_damage": "0.44",
+    "skill_damage": "0.66"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1206": {
+   "name": "布兰特",
+   "origin": "gpl_snapshot",
+   "upstream": "布兰特",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.011",
+     "attack_ratio": "0.11",
+     "energy_regen": "0.25782",
+     "fusion_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.011",
+     "attack_ratio": "0.11",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5",
+     "healing_bonus": "0.47"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.044",
+    "attack_ratio": "0.44",
+    "basic_damage": "0.66",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.8",
+    "liberation_damage": "0.165"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "fusion_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "energy_regen",
+    "basic_damage"
+   ]
+  },
+  "1207": {
+   "name": "露帕",
+   "origin": "gpl_snapshot",
+   "upstream": "露帕",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "fusion_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "liberation_damage": "0.737",
+    "skill_damage": "0.231"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "fusion_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1208": {
+   "name": "嘉贝莉娜",
+   "origin": "gpl_snapshot",
+   "upstream": "嘉贝莉娜",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "fusion_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "heavy_damage": "0.418"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "heavy_damage"
+   ]
+  },
+  "1209": {
+   "name": "莫宁",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "defense_ratio": "0.44"
+    },
+    "3": {
+     "defense_ratio": "0.255",
+     "energy_regen": "0.3003"
+    },
+    "4": {
+     "defense_ratio": "0.4",
+     "healing_bonus": "0.375"
+    }
+   },
+   "sub": {
+    "defense_flat": "0.15",
+    "defense_ratio": "1.2",
+    "energy_regen": "1.2",
+    "liberation_damage": "0.385"
+   },
+   "max_main": {
+    "1": [
+     "defense_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "defense_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "defense_ratio",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "defense_ratio",
+    "energy_regen",
+    "defense_flat",
+    "liberation_damage"
+   ]
+  },
+  "1210": {
+   "name": "爱弥斯",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "fusion_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.22",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "liberation_damage": "0.66"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_rate",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "liberation_damage",
+    "attack_flat"
+   ]
+  },
+  "1211": {
+   "name": "达妮娅",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "fusion_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.33",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.5",
+    "liberation_damage": "0.55"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_rate",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "liberation_damage",
+    "energy_regen"
+   ]
+  },
+  "1301": {
+   "name": "卡卡罗",
+   "origin": "gpl_snapshot",
+   "upstream": "卡卡罗",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "electro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.187",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "liberation_damage": "0.715",
+    "skill_damage": "0.242"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "electro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1302": {
+   "name": "吟霖",
+   "origin": "gpl_snapshot",
+   "upstream": "吟霖",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "electro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.4",
+    "liberation_damage": "0.33",
+    "skill_damage": "0.66"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "electro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1303": {
+   "name": "渊武",
+   "origin": "gpl_snapshot",
+   "upstream": "渊武",
+   "element": "导电",
+   "main": {
+    "1": {
+     "defense_ratio": "0.4"
+    },
+    "3": {
+     "defense_ratio": "0.275",
+     "electro_damage": "0.275"
+    },
+    "4": {
+     "crit_damage": "0.25",
+     "crit_rate": "0.5",
+     "defense_ratio": "0.4"
+    }
+   },
+   "sub": {
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "defense_flat": "0.1",
+    "defense_ratio": "0.8",
+    "energy_regen": "0.3",
+    "liberation_damage": "0.495",
+    "skill_damage": "0.495"
+   },
+   "max_main": {
+    "1": [
+     "defense_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "electro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "defense_ratio",
+    "defense_flat",
+    "skill_damage"
+   ]
+  },
+  "1304": {
+   "name": "今汐",
+   "origin": "gpl_snapshot",
+   "upstream": "今汐",
+   "element": "衍射",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "spectro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.25",
+    "liberation_damage": "0.33",
+    "skill_damage": "0.715"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "spectro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1305": {
+   "name": "相里要",
+   "origin": "gpl_snapshot",
+   "upstream": "相里要",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "electro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.165",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "liberation_damage": "0.715",
+    "skill_damage": "0.22"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "electro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1306": {
+   "name": "奥古斯塔",
+   "origin": "gpl_snapshot",
+   "upstream": "奥古斯塔",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "electro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "heavy_damage": "0.832"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "electro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "heavy_damage"
+   ]
+  },
+  "1307": {
+   "name": "卜灵",
+   "origin": "gpl_snapshot",
+   "upstream": "卜灵",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.44"
+    },
+    "3": {
+     "attack_flat": "0.0375",
+     "attack_ratio": "0.3",
+     "energy_regen": "0.3003"
+    },
+    "4": {
+     "attack_flat": "0.0375",
+     "attack_ratio": "0.3",
+     "healing_bonus": "0.375"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.15",
+    "attack_ratio": "1.2",
+    "energy_regen": "1.2"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "energy_regen",
+     "attack_flat"
+    ],
+    "4": [
+     "healing_bonus",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "attack_ratio",
+    "attack_flat",
+    "energy_regen"
+   ]
+  },
+  "1308": {
+   "name": "丽贝卡",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "electro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.66",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.5"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_rate",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "basic_damage",
+    "energy_regen"
+   ]
+  },
+  "1311": {
+   "name": "心",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "electro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.275",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "heavy_damage": "0.165",
+    "skill_damage": "0.66"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_rate",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "skill_damage",
+    "attack_flat"
+   ]
+  },
+  "1402": {
+   "name": "秧秧",
+   "origin": "gpl_snapshot",
+   "upstream": "秧秧",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "aero_damage": "0.275",
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.33",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "heavy_damage": "0.165",
+    "liberation_damage": "0.495",
+    "skill_damage": "0.165"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "aero_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1403": {
+   "name": "秋水",
+   "origin": "gpl_snapshot",
+   "upstream": "秋水",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "aero_damage": "0.275",
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.77",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "liberation_damage": "0.11",
+    "skill_damage": "0.11"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "aero_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "basic_damage"
+   ]
+  },
+  "1404": {
+   "name": "忌炎",
+   "origin": "gpl_snapshot",
+   "upstream": "忌炎",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "aero_damage": "0.275",
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.165",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "heavy_damage": "0.715",
+    "skill_damage": "0.33"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "aero_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "heavy_damage"
+   ]
+  },
+  "1405": {
+   "name": "鉴心",
+   "origin": "gpl_snapshot",
+   "upstream": "鉴心",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "aero_damage": "0.275",
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "heavy_damage": "0.55",
+    "liberation_damage": "0.22",
+    "skill_damage": "0.275"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "aero_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "heavy_damage"
+   ]
+  },
+  "1406": {
+   "name": "漂泊者·气动",
+   "origin": "gpl_snapshot",
+   "upstream": "漂泊者·气动",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "aero_damage": "0.275",
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "liberation_damage": "0.216",
+    "skill_damage": "0.84"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "aero_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1407": {
+   "name": "夏空",
+   "origin": "gpl_snapshot",
+   "upstream": "夏空",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "aero_damage": "0.275",
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.506",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "heavy_damage": "0.363",
+    "liberation_damage": "0.627"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "aero_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1408": {
+   "name": "漂泊者·气动",
+   "origin": "gpl_snapshot",
+   "upstream": "漂泊者·气动",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "aero_damage": "0.275",
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "liberation_damage": "0.216",
+    "skill_damage": "0.84"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "aero_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1409": {
+   "name": "卡提希娅",
+   "origin": "gpl_snapshot",
+   "upstream": "卡提希娅",
+   "element": "气动",
+   "main": {
+    "1": {
+     "health_flat": "0.0015",
+     "health_ratio": "0.3"
+    },
+    "3": {
+     "aero_damage": "0.28",
+     "health_ratio": "0.28"
+    },
+    "4": {
+     "crit_damage": "0.25",
+     "crit_rate": "0.5",
+     "health_ratio": "0.3"
+    }
+   },
+   "sub": {
+    "basic_damage": "0.704",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.1",
+    "health_flat": "0.01",
+    "health_ratio": "1.1",
+    "liberation_damage": "0.308"
+   },
+   "max_main": {
+    "1": [
+     "health_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "aero_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "health_ratio",
+    "health_flat",
+    "crit_rate",
+    "crit_damage",
+    "basic_damage"
+   ]
+  },
+  "1410": {
+   "name": "尤诺",
+   "origin": "gpl_snapshot",
+   "upstream": "尤诺",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "aero_damage": "0.275",
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "liberation_damage": "0.715"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "aero_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1411": {
+   "name": "仇远",
+   "origin": "gpl_snapshot",
+   "upstream": "仇远",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "aero_damage": "0.275",
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "heavy_damage": "0.561"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "heavy_damage"
+   ]
+  },
+  "1413": {
+   "name": "清宵",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "aero_damage": "0.275",
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.55",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "heavy_damage": "0.22",
+    "liberation_damage": "0.22"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_rate",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "basic_damage",
+    "attack_flat"
+   ]
+  },
+  "1501": {
+   "name": "漂泊者·衍射",
+   "origin": "gpl_snapshot",
+   "upstream": "漂泊者·衍射",
+   "element": "衍射",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "spectro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.165",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.25",
+    "heavy_damage": "0.165",
+    "liberation_damage": "0.22",
+    "skill_damage": "0.66"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "spectro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1502": {
+   "name": "漂泊者·衍射",
+   "origin": "gpl_snapshot",
+   "upstream": "漂泊者·衍射",
+   "element": "衍射",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "spectro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.165",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.25",
+    "heavy_damage": "0.165",
+    "liberation_damage": "0.22",
+    "skill_damage": "0.66"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "spectro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1503": {
+   "name": "维里奈",
+   "origin": "gpl_snapshot",
+   "upstream": "维里奈",
+   "element": "衍射",
+   "main": {
+    "1": {
+     "attack_ratio": "0.44"
+    },
+    "3": {
+     "attack_flat": "0.0375",
+     "attack_ratio": "0.3",
+     "energy_regen": "0.3003"
+    },
+    "4": {
+     "attack_flat": "0.0375",
+     "attack_ratio": "0.3",
+     "healing_bonus": "0.375"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.15",
+    "attack_ratio": "1.2",
+    "energy_regen": "1.2"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "energy_regen",
+     "attack_flat"
+    ],
+    "4": [
+     "healing_bonus",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "attack_ratio",
+    "attack_flat",
+    "energy_regen"
+   ]
+  },
+  "1504": {
+   "name": "灯灯",
+   "origin": "gpl_snapshot",
+   "upstream": "灯灯",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "electro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.66",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "liberation_damage": "0.385",
+    "skill_damage": "0.11"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "electro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "basic_damage"
+   ]
+  },
+  "1505": {
+   "name": "守岸人",
+   "origin": "gpl_snapshot",
+   "upstream": "守岸人",
+   "element": "衍射",
+   "main": {
+    "1": {
+     "health_flat": "0.003",
+     "health_ratio": "0.4"
+    },
+    "3": {
+     "energy_regen": "0.3",
+     "health_ratio": "0.3",
+     "spectro_damage": "0.28"
+    },
+    "4": {
+     "crit_damage": "0.2",
+     "healing_bonus": "0.47",
+     "health_ratio": "0.35"
+    }
+   },
+   "sub": {
+    "crit_damage": "0.33",
+    "energy_regen": "1.1",
+    "health_flat": "0.02",
+    "health_ratio": "1.2",
+    "liberation_damage": "0.385"
+   },
+   "max_main": {
+    "1": [
+     "health_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "energy_regen",
+     "attack_flat"
+    ],
+    "4": [
+     "healing_bonus",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "health_ratio",
+    "health_flat",
+    "energy_regen",
+    "crit_damage",
+    "liberation_damage"
+   ]
+  },
+  "1506": {
+   "name": "菲比",
+   "origin": "gpl_snapshot",
+   "upstream": "菲比",
+   "element": "衍射",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "spectro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.088",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.1",
+    "heavy_damage": "0.66",
+    "liberation_damage": "0.187",
+    "skill_damage": "0.055"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "spectro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "heavy_damage"
+   ]
+  },
+  "1507": {
+   "name": "赞妮",
+   "origin": "gpl_snapshot",
+   "upstream": "赞妮",
+   "element": "衍射",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "spectro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "heavy_damage": "0.715",
+    "liberation_damage": "0.154"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "spectro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "heavy_damage"
+   ]
+  },
+  "1508": {
+   "name": "千咲",
+   "origin": "gpl_snapshot",
+   "upstream": "千咲",
+   "element": "湮灭",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "havoc_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.25",
+    "liberation_damage": "0.605"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "havoc_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1509": {
+   "name": "琳奈",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "衍射",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "spectro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.715",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "liberation_damage": "0.11"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_rate",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "basic_damage",
+    "attack_flat"
+   ]
+  },
+  "1511": {
+   "name": "露西",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "衍射",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "spectro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.165",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "heavy_damage": "0.715"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_rate",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "heavy_damage",
+    "attack_flat"
+   ]
+  },
+  "1601": {
+   "name": "桃祈",
+   "origin": "gpl_snapshot",
+   "upstream": "桃祈",
+   "element": "湮灭",
+   "main": {
+    "1": {
+     "defense_ratio": "0.44"
+    },
+    "3": {
+     "defense_ratio": "0.255",
+     "havoc_damage": "0.275"
+    },
+    "4": {
+     "crit_damage": "0.15",
+     "crit_rate": "0.3",
+     "defense_ratio": "0.4",
+     "healing_bonus": "0.375"
+    }
+   },
+   "sub": {
+    "basic_damage": "0.72",
+    "crit_damage": "0.7",
+    "crit_rate": "1.4",
+    "defense_flat": "0.15",
+    "defense_ratio": "1.2",
+    "energy_regen": "0.3",
+    "liberation_damage": "0.48",
+    "skill_damage": "0.24"
+   },
+   "max_main": {
+    "1": [
+     "defense_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "defense_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "defense_ratio",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "defense_ratio",
+    "defense_flat",
+    "crit_rate",
+    "basic_damage",
+    "crit_damage"
+   ]
+  },
+  "1602": {
+   "name": "丹瑾",
+   "origin": "gpl_snapshot",
+   "upstream": "丹瑾",
+   "element": "湮灭",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "havoc_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "heavy_damage": "0.605",
+    "liberation_damage": "0.165",
+    "skill_damage": "0.495"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "havoc_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "heavy_damage"
+   ]
+  },
+  "1603": {
+   "name": "椿",
+   "origin": "gpl_snapshot",
+   "upstream": "椿",
+   "element": "湮灭",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "havoc_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.715",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.15",
+    "liberation_damage": "0.275"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "havoc_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "basic_damage"
+   ]
+  },
+  "1604": {
+   "name": "漂泊者·湮灭",
+   "origin": "gpl_snapshot",
+   "upstream": "漂泊者·湮灭",
+   "element": "湮灭",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "havoc_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.275",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.5",
+    "liberation_damage": "0.605",
+    "skill_damage": "0.22"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "havoc_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1605": {
+   "name": "漂泊者·湮灭",
+   "origin": "gpl_snapshot",
+   "upstream": "漂泊者·湮灭",
+   "element": "湮灭",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "havoc_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.275",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.5",
+    "liberation_damage": "0.605",
+    "skill_damage": "0.22"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "havoc_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1606": {
+   "name": "洛可可",
+   "origin": "gpl_snapshot",
+   "upstream": "洛可可",
+   "element": "湮灭",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "havoc_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "heavy_damage": "0.84"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "havoc_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "heavy_damage"
+   ]
+  },
+  "1607": {
+   "name": "坎特蕾拉",
+   "origin": "gpl_snapshot",
+   "upstream": "坎特蕾拉",
+   "element": "湮灭",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "havoc_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.66",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.5"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "havoc_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "basic_damage"
+   ]
+  },
+  "1608": {
+   "name": "弗洛洛",
+   "origin": "gpl_snapshot",
+   "upstream": "弗洛洛",
+   "element": "湮灭",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "havoc_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "skill_damage": "0.737"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "havoc_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1610": {
+   "name": "秧秧·玄翎",
+   "origin": "self_made",
+   "upstream": "default",
+   "element": "湮灭",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "havoc_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.165",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "heavy_damage": "0.715"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_rate",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "heavy_damage",
+    "attack_flat"
+   ]
+  }
+ }
+}
