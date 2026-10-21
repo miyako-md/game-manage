@@ -334,6 +334,43 @@ def verify_tree(root, *, ignored=frozenset()):
                 fail('unsupported_data_file')
 
 
+def seed_dependency_cache(root, kind, path, owner=None):
+    """Best effort: start a new lockfile's cache as a copy of the most recently used one.
+
+    Copies only what the builder itself owns (directories, regular files, symlinks kept
+    as links and never followed) and gives the copy to the builder. Any problem leaves
+    no cache, so the build downloads as before instead of failing.
+    """
+    sources = []
+    for item in root.iterdir():
+        info = item.lstat()
+        if item.name.startswith(kind + '-') and item != path and stat.S_ISDIR(info.st_mode):
+            sources.append((info.st_mtime, item.name, item))
+    if not sources:
+        return False
+    source = max(sources)[2]
+    partial = root / ('.seed-' + path.name + '-' + uuid.uuid4().hex)
+    try:
+        for directory, dirs, files in os.walk(source, followlinks=False):
+            for name in [directory, *(os.path.join(directory, x) for x in dirs + files)]:
+                info = os.lstat(name)
+                if not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)):
+                    return False
+                if owner is not None and info.st_uid != owner[0]:
+                    return False
+        shutil.copytree(source, partial, symlinks=True)
+        if owner is not None:
+            for directory, dirs, files in os.walk(partial, followlinks=False):
+                for name in [directory, *(os.path.join(directory, x) for x in dirs + files)]:
+                    os.chown(name, *owner, follow_symlinks=False)
+        os.rename(partial, path)
+        return True
+    except (OSError, shutil.Error):
+        return False
+    finally:
+        if os.path.lexists(partial): shutil.rmtree(partial, ignore_errors=True)
+
+
 @dataclass
 class DataScope:
     path: Path
@@ -652,8 +689,14 @@ class LinuxPlatform(Platform):
             fail('unsafe_build_cache')
         os.chmod(root, 0o755)
         caches = {}
+        for leftover in root.glob('.seed-*'):
+            if stat.S_ISDIR(leftover.lstat().st_mode): shutil.rmtree(leftover)
+            else: leftover.unlink()
         for kind, lockfile in (('uv', 'uv.lock'), ('npm', 'frontend/package-lock.json')):
             path = safe_path(root / (kind + '-' + digest(safe_path(release / lockfile))[:16]))
+            if not os.path.lexists(path):
+                # A changed lockfile still shares most packages with the previous one.
+                seed_dependency_cache(root, kind, path, (self.builder.pw_uid, self.builder.pw_gid))
             path.mkdir(mode=0o700, exist_ok=True)
             if not stat.S_ISDIR(path.lstat().st_mode):
                 fail('unsafe_build_cache')

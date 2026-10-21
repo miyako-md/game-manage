@@ -816,7 +816,13 @@ def test_linux_dependency_caches_follow_the_exact_lockfile_and_stay_bounded(tmp_
     second = LinuxPlatform.dependency_caches(platform, release('c', 'lock-2'))
     assert second['uv'] != first['uv'] and second['npm'] == first['npm']
     assert (first['uv'] / 'wheel').is_file()
+    # The new lockfile's cache starts from the previous one instead of empty.
+    assert (second['uv'] / 'wheel').read_text() == 'kept while the lockfile is unchanged'
+    assert (second['uv'].stat().st_mode & 0o777) == 0o700
+    (second['uv'] / 'newer').write_text('only in the most recently used cache')
     third = LinuxPlatform.dependency_caches(platform, release('d', 'lock-3'))
+    assert (third['uv'] / 'newer').is_file()
+    assert not list((releases / '.build-cache').glob('.seed-*'))
     uv_caches = sorted(p.name for p in (releases / '.build-cache').iterdir() if p.name.startswith('uv-'))
     assert uv_caches == sorted([second['uv'].name, third['uv'].name])
     assert not first['uv'].exists()
@@ -836,6 +842,56 @@ def test_linux_dependency_cache_root_must_not_be_a_link(tmp_path):
         LinuxPlatform.dependency_caches(platform, root)
     assert not list(elsewhere.iterdir())
 
+
+def _caches(root, entries):
+    for name, age in entries.items():
+        path = root / name; path.mkdir(parents=True)
+        (path / 'pkg').mkdir(); (path / 'pkg' / 'data').write_text(name)
+        os.utime(path, (1_000_000 + age, 1_000_000 + age))
+    return root
+
+
+def test_new_dependency_cache_is_seeded_from_the_most_recent_one_of_its_kind(tmp_path):
+    from game_assistant.system_update_worker import seed_dependency_cache
+    root = _caches(tmp_path / 'cache', {'uv-old': 1, 'uv-recent': 2, 'npm-newest': 3})
+    target = root / 'uv-new'
+    assert seed_dependency_cache(root, 'uv', target)
+    assert (target / 'pkg' / 'data').read_text() == 'uv-recent'
+    assert (root / 'uv-recent' / 'pkg' / 'data').is_file()
+    assert sorted(p.name for p in root.iterdir()) == ['npm-newest', 'uv-new', 'uv-old', 'uv-recent']
+    assert not seed_dependency_cache(root, 'pip', root / 'pip-new')
+    assert not (root / 'pip-new').exists()
+
+
+def test_failed_cache_seeding_leaves_an_empty_start_not_a_partial_copy(tmp_path, monkeypatch):
+    import game_assistant.system_update_worker as worker
+    root = _caches(tmp_path / 'cache', {'npm-old': 1})
+    copytree = shutil.copytree
+    def interrupted(source, destination, *args, **kwargs):
+        copytree(source, destination, *args, **kwargs)
+        if Path(destination).name.startswith('.seed-'): raise OSError('disk full')
+    monkeypatch.setattr(worker.shutil, 'copytree', interrupted)
+    assert not worker.seed_dependency_cache(root, 'npm', root / 'npm-new')
+    assert sorted(p.name for p in root.iterdir()) == ['npm-old']
+
+
+@pytest.mark.skipif(os.name == 'nt', reason='POSIX symlinks, FIFOs and ownership')
+def test_cache_seeding_keeps_links_unfollowed_and_skips_foreign_or_special_entries(tmp_path):
+    from game_assistant.system_update_worker import seed_dependency_cache
+    outside = tmp_path / 'outside'; outside.mkdir(); (outside / 'secret').write_text('not copied')
+    root = _caches(tmp_path / 'cache', {'uv-old': 1})
+    (root / 'uv-old' / 'link').symlink_to(outside, target_is_directory=True)
+    owner = (os.getuid(), os.getgid())
+    assert seed_dependency_cache(root, 'uv', root / 'uv-new', owner)
+    copied = root / 'uv-new' / 'link'
+    assert copied.is_symlink() and os.readlink(copied) == str(outside)
+    assert list(outside.iterdir()) == [outside / 'secret']
+    # Content the builder does not own (e.g. a hard link to a root file) is never copied.
+    assert not seed_dependency_cache(root, 'uv', root / 'uv-foreign', (os.getuid() + 1, os.getgid()))
+    os.mkfifo(root / 'uv-new' / 'pipe')
+    os.utime(root / 'uv-new', (2_000_000, 2_000_000))
+    assert not seed_dependency_cache(root, 'uv', root / 'uv-fifo', owner)
+    assert sorted(p.name for p in root.iterdir()) == ['uv-new', 'uv-old']
 
 
 def test_build_environment_keeps_npm_user_and_global_config_distinct(tmp_path):
