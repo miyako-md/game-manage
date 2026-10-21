@@ -286,6 +286,8 @@ const isAttributeList = (v) =>
         'equip_phantom_attribute_list',
         'equip_phantom_add_prop_list',
         'role_skin',
+        // The image layout already prints the level on the portrait card.
+        ...(imageMode ? ['level'] : []),
       ]"
     />
   </div>

@@ -45,6 +45,10 @@ test('R1: the image detail leads with a portrait card and fits skills and chains
   assert.equal(byClass(image, 'wuwa-skills')[0].props.style['--row-count'], 7)
   assert.equal(byClass(image, 'wuwa-chains')[0].props.style['--row-count'], 6)
   for (const name of ['basics', 'attrs', 'weapon', 'skills', 'chains', 'echoes']) assert.equal(byClass(image, `wuwa-detail-${name}`).length, 1, name)
+  // The top-level level is on the portrait card; the trailing field list must not repeat it in images.
+  const leveled = { ...data, level: 90 }
+  assert.doesNotMatch(content(mount(t, Detail, { imageMode: true, data: leveled })).replace(/Lv\.\d+/g, ''), /等级\s*90/)
+  assert.match(content(mount(t, Detail, { data: leveled })), /等级\s*90/)
   const noSkin = mount(t, Detail, { imageMode: true, data: { ...data, role_skin: {} } })
   assert.equal(nodes(nodes(noSkin, 'figure')[0], 'img')[0].props.src, 'https://web-static.kurobbs.com/role.png')
   const unknown = mount(t, Detail, { imageMode: true, data: { role: { role_name: '角色乙' } } })
