@@ -117,7 +117,8 @@ def test_managed_update_retains_public_render_assets_without_copying_old_entrypo
     (previous / 'assets/shared.css').write_text('old css')
     (target / 'assets/shared.css').write_text('new css')
     (previous / 'local-game-icons').mkdir(); (previous / 'local-game-icons/nte.png').write_bytes(b'public icon')
-    (previous / 'index.html').write_text('old entrypoint')
+    (previous / 'assets/stale.js').write_text('carried from an older release')
+    (previous / 'index.html').write_text('old entrypoint <script src="/assets/old.js"></script><link href="/assets/shared.css">')
     (target / 'index.html').write_text('new entrypoint')
     (previous / 'credentials.json').write_text('never copy')
     font = tmp_path / 'font.otf'; font.write_bytes(b'configured font')
@@ -129,6 +130,8 @@ def test_managed_update_retains_public_render_assets_without_copying_old_entrypo
     platform.previous = old; platform.runtime_data = {'qq_image_font_path': str(font)}
     platform.retain_render_assets(release)
     assert (target / 'assets/old.js').read_text() == 'old public chunk'
+    # Only chunks the previous release's own pages reference are carried; older leftovers drop out.
+    assert not (target / 'assets/stale.js').exists()
     assert (target / 'assets/shared.css').read_text() == 'new css'
     assert (target / 'local-game-icons/nte.png').read_bytes() == b'public icon'
     assert (target / 'render-font.woff2').read_bytes() == b'wOF2verified-font'
