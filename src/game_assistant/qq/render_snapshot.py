@@ -185,7 +185,7 @@ def notice_snapshot(card,now,page=1,*,command='帮助'):
         for row in [section,*section.get('rows',[])]:
             if row is not section and row.get('title') and not _TECHNICAL.match(row['title']):items.append(display_text(row['title']))
             items.extend(display_text(field['label']+'：'+field['value']) for field in row.get('fields',[]) if not _TECHNICAL.match(field['label']))
-        if items:sections.append({'title':display_text(section['title']),'items':items})
+        if items:sections.append({'title':display_text(section['title']),'items':items,**({'game':section['game']} if 'game' in section else {})})
     data={'title':display_text(card['title'],128),'sections':sections,'notices':list(user_notices(card['notices']))}
     return snapshot('notice',card['game'],data,now,page,data['title'],command)
 
