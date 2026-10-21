@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { attributeSplit, bestRank, daysUntil, otherZoneStars, towerFloors, towerTeam, endLabel, expProgress, historySubject, levelBands, levelSeries, pityGauge, poolPulls, rarityTotals, recentGold, rosterSummary, seasonStars, sourceShares, towerTotals } from './wuwa-charts.js'
+import { attributeSplit, bestRank, daysUntil, deepStars, otherZoneStars, seasonDelta, towerFloors, towerTeam, endLabel, expProgress, historySubject, levelBands, levelSeries, pityGauge, poolPulls, rarityTotals, recentGold, rosterSummary, seasonStars, sourceShares, towerTotals } from './wuwa-charts.js'
 
 test('experience keeps unknown sides unknown and clamps only the percentage', () => {
   assert.equal(expProgress(null), null)
@@ -185,4 +185,14 @@ test('the best slash rank follows SSS > SS > S > A > B > C and ignores unknown r
   assert.equal(bestRank([{ rank: 'B' }, { rank: null }, { rank: '?' }, { rank: 5 }]), 'B')
   assert.equal(bestRank([{ rank: null }, {}]), null)
   assert.equal(bestRank(null), null)
+})
+
+test('the season delta compares the newest item of each of the two newest seasons', () => {
+  const item = (season, stars) => ({ season, payload: { difficulty_list: [{ difficulty: 3, tower_area_list: stars.map(star => ({ star, max_star: 12 })) }] } })
+  assert.deepEqual(deepStars(item('2026-09-14T04:00:00+08:00', [12, 6]).payload), { got: 18, cap: 24 })
+  assert.equal(seasonDelta([item('2026-09-14T04:00:00+08:00', [12, 8]), item('2026-09-14T04:00:00+08:00', [12, 6]), item('2026-08-17T04:00:00+08:00', [8, 7])]), 5)
+  assert.equal(seasonDelta([item('2026-08-17T04:00:00+08:00', [12]), item('2026-09-14T04:00:00+08:00', [6])]), -6, 'seasons sort by their end, not list order')
+  assert.equal(seasonDelta([item('2026-09-14T04:00:00+08:00', [12]), item('2026-09-14T04:00:00+08:00', [6])]), null)
+  assert.equal(seasonDelta([item('2026-09-14T04:00:00+08:00', [12]), item('2026-08-17T04:00:00+08:00', [null])]), null)
+  assert.equal(seasonDelta([]), null)
 })

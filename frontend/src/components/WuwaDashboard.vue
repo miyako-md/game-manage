@@ -7,6 +7,7 @@ import WuwaActivities from './WuwaActivities.vue'
 import WuwaResources from './WuwaResources.vue'
 import WuwaGacha from './WuwaGacha.vue'
 import WuwaHistory from './WuwaHistory.vue'
+import WuwaHistorySummary from './WuwaHistorySummary.vue'
 import StaminaCard from './StaminaCard.vue'
 import ExplorationCard from './ExplorationCard.vue'
 import CalabashCard from './CalabashCard.vue'
@@ -193,7 +194,7 @@ const activeRead = computed(() => current.value[({gacha:'account',history:'accou
           <WuwaGacha :account-key="accountKey" />
         </WuwaModuleCard>
         <WuwaModuleCard v-if="section === 'history'" v-reveal class="wuwa-launcher is-hero" title="成长记录" primary :sheet-width="820">
-          <template #preview><p class="wuwa-launcher-copy">每次刷新数据后留存角色与玩法记录，在这里查看跨期变化。</p></template>
+          <template #preview><WuwaHistorySummary :account-key="accountKey" :combat="current.combat" /></template>
           <WuwaHistory :account-key="accountKey" :role-names="roleNames" />
         </WuwaModuleCard>
       </template>

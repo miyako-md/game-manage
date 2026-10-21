@@ -751,6 +751,36 @@
   font-size: 14px;
   line-height: 1.7;
 }
+/* The 成长记录 launcher summarises the archive before it is opened. */
+.history-summary {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.history-summary .wuwa-stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+}
+.history-summary .wuwa-stat:only-child {
+  max-width: 280px;
+}
+.history-summary dd.is-time {
+  font-size: 15px;
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.history-summary .wuwa-meta,
+.history-delta {
+  color: var(--wuwa-ink);
+}
+.history-delta {
+  font-size: 14px;
+}
+.history-delta b {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ── 档案 ───────────────────────────────────────────────────────────── */
 /* The account page inside its dialog (and the bot image): a level card, six counts, the collections. */

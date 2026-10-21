@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { nextTick } from 'vue'
+import { nextTick, reactive } from 'vue'
 import { loadVue, mount, content, nodes } from '../test-utils/vue.js'
 
 const component = name => loadVue(new URL(`./${name}.vue`, import.meta.url))
@@ -213,6 +213,69 @@ test('history draws a role line only from its second observation and season bars
   await tick()
   assert.equal(byClass(seasons, 'bar-chart').length, 1)
   assert.match(content(seasons), /8 星 08-17 18 星 09-14/)
+})
+
+test('the history card summarises the archive with one small read and compares the two newest seasons', async t => {
+  const Summary = await component('WuwaHistorySummary')
+  const tower = stars => ({ difficulty_list: [{ difficulty: 3, tower_area_list: stars.map(star => ({ star, max_star: 12 })) }] })
+  const season = (id, end, stars, observed) => ({ id, season: end, observed_at: observed, subject: '', payload: tower(stars), delta: null })
+  const combat = snap({ tower: { data: tower([12, 9]) } })
+  const calls = []
+  const answer = body => async url => { calls.push(url); return reply({ ...identity, total: body.items.length, archive_started_at: '2026-08-01T02:00:00Z', ...body }) }
+  t.mock.method(globalThis, 'fetch', answer({ total: 7, items: [
+    season(3, '2026-09-14T04:00:00+08:00', [12, 9], '2026-09-10T12:30:00+08:00'),
+    season(2, '2026-09-14T04:00:00+08:00', [12, 6], '2026-09-05T12:00:00+08:00'),
+    season(1, '2026-08-17T04:00:00+08:00', [10, 6], '2026-08-16T12:00:00+08:00'),
+  ] }))
+  const root = mount(t, Summary, { accountKey: 'account:server', combat })
+  await tick()
+  assert.deepEqual(calls, ['/api/wuwa/history?kind=tower&limit=10&offset=0'])
+  assert.match(content(root), /本期深境区 21 \/ 24 星 深塔记录 7 条 最近记录 2026-09-10 12:30 记录起点 2026-08-01 10:00/)
+  assert.match(content(root), /较上期 \+5 星/)
+  t.mock.method(globalThis, 'fetch', answer({ items: [season(1, '2026-09-14T04:00:00+08:00', [12], '2026-09-10T12:00:00+08:00')] }))
+  const single = mount(t, Summary, { accountKey: 'account:server', combat: null })
+  await tick()
+  assert.match(content(single), /本期深境区 未知 星 深塔记录 1 条/)
+  assert.doesNotMatch(content(single), /较上期/)
+  t.mock.method(globalThis, 'fetch', answer({ items: [] }))
+  const empty = mount(t, Summary, { accountKey: 'account:server', combat })
+  await tick()
+  assert.match(content(empty), /尚未开始记录；打开后可回补本人快照/)
+  assert.doesNotMatch(content(empty), /深塔记录/)
+  t.mock.method(globalThis, 'fetch', async () => ({ ok: false, status: 502, json: async () => ({}) }))
+  const failed = mount(t, Summary, { accountKey: 'account:server', combat })
+  await tick()
+  assert.match(content(failed), /记录摘要暂不可用（来源暂时不可用，请稍后重试），仍可打开查看完整记录/)
+})
+
+test('a history summary for a previous account is dropped and the new account is read once', async t => {
+  const Summary = await component('WuwaHistorySummary')
+  const pending = []
+  t.mock.method(globalThis, 'fetch', url => new Promise(resolve => pending.push({ url, resolve })))
+  const props = reactive({ accountKey: 'account:server', combat: null })
+  const root = mount(t, Summary, props)
+  await tick()
+  props.accountKey = 'other:server'
+  await tick()
+  assert.equal(pending.length, 2)
+  const answer = (role_id, total) => reply({ role_id, server_id: 'server', total, items: [{ id: 1, observed_at: '2026-09-10T12:00:00+08:00', payload: {} }], archive_started_at: '2026-08-01T00:00:00+08:00' })
+  pending[0].resolve(answer('account', 99))
+  await tick()
+  assert.doesNotMatch(content(root), /99/)
+  pending[1].resolve(answer('other', 4))
+  await tick()
+  assert.match(content(root), /深塔记录 4 条/)
+})
+
+test('the history tab shows the summary on its card and leaves the full archive closed', async t => {
+  const calls = []
+  t.mock.method(globalThis, 'fetch', async url => { calls.push(url); return reply({ ...identity, total: 0, items: [], archive_started_at: null }) })
+  const account = snap({ nickname: '漂泊者', extra: { ...identity } })
+  const root = mount(t, await component('WuwaDashboard'), { snaps: { account }, initialSection: 'history', configured: true })
+  await tick()
+  assert.deepEqual(calls, ['/api/wuwa/history?kind=tower&limit=10&offset=0'])
+  assert.match(content(root), /尚未开始记录；打开后可回补本人快照/)
+  assert.ok(nodes(root, 'button').some(n => content(n) === '查看成长记录'))
 })
 
 test('the account page shows the base box tiers as a donut and every other collection as bars', async t => {

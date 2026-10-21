@@ -141,6 +141,24 @@ export function bestRank(challenges) {
   return found.length ? RANKS[Math.min(...found)] : null
 }
 
+/** Deep-zone stars of a tower payload as towerTotals gives them. */
+export const deepStars = tower => towerTotals(deepZone(tower?.difficulty_list)?.tower_area_list)
+
+/**
+ * Deep-zone stars of the newest season against the season before, from tower history
+ * items listed newest first: each season is read from its newest item. Null with fewer
+ * than two seasons or when either total is unknown.
+ */
+export function seasonDelta(items) {
+  const newest = new Map()
+  for (const item of rows(items)) {
+    const at = parseBeijingTime(item.season)
+    if (at != null && !newest.has(at)) newest.set(at, item)
+  }
+  const [latest, previous] = [...newest].sort((a, b) => b[0] - a[0]).map(([, item]) => deepStars(item.payload).got)
+  return latest == null || previous == null ? null : latest - previous
+}
+
 /**
  * Sources of an income report as donut parts, largest first; a source without a number
  * reads as unknown. Beyond `limit` rows the smaller known sources fold into 其他, whose
@@ -227,8 +245,7 @@ export function levelSeries(items) {
 export function seasonStars(items) {
   return rows(items)
     .map(item => {
-      const zone = rows(item.payload?.difficulty_list).find(z => String(z.difficulty) === '3')
-      const { got } = towerTotals(zone?.tower_area_list)
+      const { got } = deepStars(item.payload)
       const at = parseBeijingTime(item.season)
       return got == null || at == null ? null : { at, label: stamp(item.season).slice(5, 10), value: got }
     })
