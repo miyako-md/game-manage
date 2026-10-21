@@ -116,13 +116,10 @@
   height: 32px;
 }
 
-.lab-sheet .guide-visual .icon-fallback {
-  font-size: 16px;
-  line-height: 1;
-}
-
+/* QQ minimum text is 17px, also for the initial shown when an icon is missing. */
+.lab-sheet .guide-visual .icon-fallback,
 .lab-sheet .guide-visual .visual-echo_stats .wuwa-item-icon .icon-fallback {
-  font-size: 12px;
+  font-size: 17px;
   line-height: 1;
 }
 
@@ -144,3 +141,7 @@
   color: var(--ink);
 }
 
+
+.page-guide .source-line {
+  font-size: 17px;
+}

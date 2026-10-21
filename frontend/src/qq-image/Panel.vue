@@ -1,5 +1,6 @@
 <script setup>
 import {gameVars} from '../dashboard.js'
+import {skinOf} from '../game-themes.js'
 import CloudCalendar from './CloudCalendar.vue'
 import NteCommunityGacha from '../components/NteCommunityGacha.vue'
 import EndfieldGachaPanel from '../components/EndfieldGachaPanel.vue'
@@ -14,7 +15,7 @@ const percent=v=>v==null?'—':Math.round(v)+'%'
 const ringStyle=p=>({'--pct':(p??0)+'%'})
 </script>
 <template>
- <section class="block" :class="['kind-'+panel.type,{'long-title':panel.title.length>4}]" :data-kind="panel.type" :style="(panel.gameId||panel.game)?gameVars(panel.gameId||panel.game):undefined">
+ <section class="block" :class="['kind-'+panel.type,{'long-title':panel.title.length>4}]" :data-kind="panel.type" :style="(panel.gameId||panel.game)?gameVars(panel.gameId||panel.game):undefined" :data-skin="skinOf(panel.gameId||panel.game)||undefined">
   <header class="block-cap"><span class="chapter-mark" aria-hidden="true"></span><h2>{{panel.title}}</h2></header>
   <div class="block-content">
    <p v-if="panel.caption" class="caption">{{panel.caption}}</p>
@@ -25,7 +26,7 @@ const ringStyle=p=>({'--pct':(p??0)+'%'})
    <div v-else-if="panel.type==='cloud_endfield_challenge'" class="cloud-endfield render-image"><EndfieldChallenges :kind="panel.report.kind" :value="{report:panel.report}" image-mode /></div>
    <CloudCalendar v-else-if="panel.type==='cloud_calendar'" :events="panel.events" :snapshots="panel.snapshots" :as-of="panel.asOf" :full="panel.full" />
    <div v-else-if="panel.type==='upcoming'" class="upcoming-list">
-    <article v-for="r in panel.rows" class="upcoming-row" :class="{'has-game':r.game}" :style="r.game?gameVars(r.gameId):undefined"><span v-if="r.game" class="upcoming-game">{{r.game}}</span><div class="upcoming-name"><h3>{{r.name}}</h3><small>{{r.category}}</small></div><span class="upcoming-time number">{{r.time}}</span><strong class="upcoming-countdown" :class="{urgent:r.urgent}">{{r.countdown}}</strong></article>
+    <article v-for="r in panel.rows" class="upcoming-row" :class="{'has-game':r.game}" :style="r.game?gameVars(r.gameId):undefined" :data-skin="r.game&&skinOf(r.gameId)||undefined"><span v-if="r.game" class="upcoming-game">{{r.game}}</span><div class="upcoming-name"><h3>{{r.name}}</h3><small>{{r.category}}</small></div><span class="upcoming-time number">{{r.time}}</span><strong class="upcoming-countdown" :class="{urgent:r.urgent}">{{r.countdown}}</strong></article>
     <p v-if="!panel.rows.length" class="upcoming-empty">{{panel.empty}}</p>
     <p v-if="panel.note" class="upcoming-note">{{panel.note}}</p>
    </div>

@@ -218,3 +218,32 @@ test('QQ 帮助 and 我的账号 notices use the command-card sheet; other notic
  assert.match(lab,/<HelpSheet v-if="helpVariant"[^>]*\/>\s*<ReuseBody v-else/)
  assert.match(lab,/\/帮助\/\.test\(s\.display_data\?\.title\)\?'help':\/我的账号\/\.test\(s\.display_data\?\.title\)\?'account':null/)
 })
+
+test('QQ cross-game pages: calendar, upcoming, guide and help text is never smaller than 17px',()=>{
+ const read=name=>readFileSync(new URL('./qq-image/'+name,import.meta.url),'utf8')
+ const charts=read('shared-charts.css'),calendar=charts.slice(charts.indexOf('/* Cloud Calendar Timeline'),charts.indexOf('/* NTE Teams'))
+ for(const [name,css] of [['calendar',calendar],['guide-image.css',read('guide-image.css')],['HelpSheet.vue',read('HelpSheet.vue')]]){
+  const sizes=[...css.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
+  assert.ok(sizes.length&&sizes.every(size=>size>=17),name+' '+sizes)
+  assert.doesNotMatch(css,/font-size:\s*min\(/,name)
+ }
+ // A whole version is too narrow per day for 17px labels: only weekly ticks, the month start and today stay labelled.
+ assert.match(calendar,/\.date-track:has\(> \.date-cell:nth-child\(22\)\) > \.date-cell:not\(:nth-child\(7n\+1\), \.is-month-start, \.is-today\) > :is\(small, strong\)/)
+})
+
+test('QQ dark skins: calendar bars, chips and nested game groups read on the dark base',()=>{
+ const skin=readFileSync(new URL('./qq-image/skin.css',import.meta.url),'utf8')
+ // No white bar start, white-on-accent chips or light remaining-days pills on a dark sheet.
+ assert.match(skin,/\.cloud-calendar \.timeline-event:not\(\.is-point\) \{\s+background: rgba\(var\(--skin-tint-rgb\), \.12\) !important;/)
+ assert.match(skin,/\.cloud-calendar :is\(\.event-status, \.day-today\) \{\s+background: var\(--skin-accent\) !important;\s+color: var\(--skin-on-accent\) !important;/)
+ assert.match(skin,/\.cloud-calendar \.event-remaining \{\s+background: transparent !important;\s+color: var\(--skin-ink\) !important;/)
+ // A nested game skin keeps the shell surfaces and only swaps accent and lines (D3).
+ const nested=skin.slice(skin.indexOf('.reuse.lab-sheet[data-skin]:not(.is-account-overview) [data-skin] {'))
+ for(const token of ['--skin-surface: var(--shell-surface)','--skin-ink: var(--shell-ink)','--game-accent: var(--skin-accent) !important'])assert.ok(nested.includes(token),token)
+})
+
+test('QQ panels and multi-game upcoming rows carry their game skin',t=>{
+ const panel=readFileSync(new URL('./qq-image/Panel.vue',import.meta.url),'utf8')
+ assert.match(panel,/:data-skin="skinOf\(panel\.gameId\|\|panel\.game\)\|\|undefined"/)
+ assert.match(panel,/class="upcoming-row"[^>]*:data-skin="r\.game&&skinOf\(r\.gameId\)\|\|undefined"/)
+})
