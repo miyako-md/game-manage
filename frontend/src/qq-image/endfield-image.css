@@ -73,27 +73,6 @@
 .lab-sheet :is(.cloud-endfield,.reuse-content,#render-content) .endfield-gacha .pull-value{font-size:26px!important;line-height:1!important}
 .lab-sheet :is(.cloud-endfield,.reuse-content,#render-content) .endfield-gacha .pull-tag{padding:0 8px;font-size:22px!important;line-height:1.5!important}
 
-.reuse.lab-sheet #render-content .ef-region-top {
-  grid-template-columns: 1fr !important;
-  gap: 18px;
-}
-
-.reuse.lab-sheet #render-content .ef-money {
-  display: flex !important;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 20px;
-}
-
-.reuse.lab-sheet #render-content .ef-money > .k {
-  flex-basis: 100%;
-}
-
-.reuse.lab-sheet #render-content .ef-money-values {
-  font-size: 22px !important;
-  white-space: nowrap;
-}
-
 .reuse.lab-sheet #render-content .ef-resident.compact .ring-gauge {
   width: 44px !important;
   height: 44px !important;
