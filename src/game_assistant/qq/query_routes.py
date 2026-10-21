@@ -249,7 +249,7 @@ class QqQueryService:
     def _endfield_challenge_document(self,selected,context):
         if context is not None:context['shared_notices']=[]
         from game_assistant.endfield_challenges import challenge_reports
-        from .endfield_presentation import challenge_document
+        from .endfield_presentation import challenge_document,challenge_image_reports
         selected=[item for item in selected if item[0]['provider']=='skland']
         if not selected:
             return view.message('endfield','终末地 · 挑战','挑战需要本人森空岛档案授权；请先在网站授权。')
@@ -263,9 +263,12 @@ class QqQueryService:
             snapshot=QueryResult(report,report['fetched_at'],
                 'error' if report['stale'] else 'ok' if report['available'] else 'never',None)
             self._capture_snapshot(context,scope,'challenge:'+kind,snapshot)
-        observation=QueryResult({'reports':reports},max((r['fetched_at'] for r in reports if r['fetched_at']),default=None),
+        # The image keeps each kind's latest records (pixel limit); the text card and website keep all.
+        shown,notices=challenge_image_reports(reports)
+        observation=QueryResult({'reports':shown},max((r['fetched_at'] for r in reports if r['fetched_at']),default=None),
             'error' if any(r['stale'] for r in reports) else 'ok',None)
         self._panel(context,row,'combat',observation)
+        if context is not None:context['panel_notices']+=notices
         return challenge_document(reports)
 
     def _public_events(self,games,command,context,page=1):
