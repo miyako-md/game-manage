@@ -250,7 +250,7 @@ async def test_reply_expiring_during_rate_wait_is_not_sent():
     finally:await client.aclose()
 
 
-async def test_image_upload_uses_forty_seconds_and_reserves_reply_time(monkeypatch):
+async def test_image_upload_uses_its_time_limit_and_reserves_reply_time(monkeypatch):
     import asyncio
     from io import BytesIO
     from types import SimpleNamespace
@@ -271,7 +271,7 @@ async def test_image_upload_uses_forty_seconds_and_reserves_reply_time(monkeypat
     client=OfficialQqClient('fixture','fixture',None,None,sdk=SimpleNamespace(QQApiClient=API));client.now=lambda:NOW
     try:
         await client.send_image(message(),image.getvalue(),1)
-        assert timeouts==[40,20]
+        assert timeouts==[75,20]
         assert calls[0][1]['srv_send_msg'] is False
         calls.clear();timeouts.clear()
         await client.send_image(message(deadline=NOW+timedelta(seconds=12)),image.getvalue(),1)

@@ -24,6 +24,8 @@ SDK_VERSION='1.2.2'
 GROUP_AND_C2C_INTENT=1 << 25
 # Shared by uploads and replies, below the documented 50/100 requests per second.
 OUTBOUND_INTERVAL_SECONDS=0.05
+# Upload body time varies widely on the server's uplink; still bounded by the reply deadline.
+UPLOAD_TIMEOUT=75
 MAX_REPLY_PIXELS = 16_000_000
 logger=logging.getLogger(__name__)
 BINDING_ERRORS = {
@@ -284,7 +286,7 @@ class OfficialQqClient:
         file_name='reply.png' if image.startswith(b'\x89PNG\r\n\x1a\n') else 'reply.jpg'
         try:
             # srv_send_msg=False ensures even an ambiguous upload cannot deliver a reply.
-            upload_timeout=min(40,remaining-5)
+            upload_timeout=min(UPLOAD_TIMEOUT,remaining-5)
             uploaded=await asyncio.wait_for(self.api.request('POST',f'/v2/{kind}/{target}/files',
                 {'file_type':1,'file_name':file_name,'file_data':base64.b64encode(image).decode('ascii'),'srv_send_msg':False},
                 timeout=httpx.Timeout(upload_timeout,connect=min(5,upload_timeout),pool=min(5,upload_timeout))),timeout=upload_timeout)

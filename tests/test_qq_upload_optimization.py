@@ -72,8 +72,22 @@ async def test_real_sdk_respects_upload_timeout_and_logs_only_safe_timings(caplo
         for seconds in [300,12,6]:
             message=InboundMessage(identity,'fixture-id','日历',now.isoformat(),(now+timedelta(seconds=seconds)).isoformat())
             await client.send_image(message,sample(),1)
-        assert deadlines==[{'connect':5,'read':40,'write':40,'pool':5},{'connect':5,'read':7,'write':7,'pool':5},{'connect':1,'read':1,'write':1,'pool':1}]
+        assert deadlines==[{'connect':5,'read':75,'write':75,'pool':5},{'connect':5,'read':7,'write':7,'pool':5},{'connect':1,'read':1,'write':1,'pool':1}]
         text=' '.join(record.getMessage() for record in caplog.records)
         assert 'send_body_ms=' in text and 'wait_headers_ms=' in text and 'wire_bytes=' in text
         assert 'private-' not in text
     finally:await client.aclose()
+
+
+def test_renders_over_the_lossless_limit_take_a_palette_at_original_size():
+    from random import Random
+    from game_assistant.qq.long_image_encoding import LOSSLESS_BYTES
+    rng=Random(7);image=Image.new('RGB',(1080,250))
+    image.putdata([(rng.randrange(0,40),rng.randrange(0,40),rng.randrange(60,90)) for _ in range(1080*250)])
+    stream=BytesIO();image.save(stream,'PNG');raw=stream.getvalue()
+    assert LOSSLESS_BYTES<len(raw)<=850*1024
+    data,metadata=encode(raw,True)
+    assert metadata['palette']==256 and metadata['format']=='png'
+    with Image.open(BytesIO(data)) as out:assert out.size==(1080,250)
+    stream=BytesIO();Image.open(BytesIO(sample())).save(stream,'PNG');small=stream.getvalue()
+    assert len(small)<=LOSSLESS_BYTES and encode(small,True)[0]==small

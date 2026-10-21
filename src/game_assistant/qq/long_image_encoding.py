@@ -2,6 +2,9 @@
 import io
 from PIL import Image
 MAX_BYTES=1048576
+# The server's uplink to QQ can drop to tens of KB/s; larger renders take the
+# palette/JPEG path at original dimensions so the upload fits its time limit.
+LOSSLESS_BYTES=400*1024
 def encode(png,prefer_palette=False,max_bytes=MAX_BYTES,*,optimize_transfer=False):
     data,metadata=_encode(png,prefer_palette,max_bytes)
     if optimize_transfer and metadata['format']=='png':
@@ -20,7 +23,7 @@ def encode(png,prefer_palette=False,max_bytes=MAX_BYTES,*,optimize_transfer=Fals
 def _encode(png,prefer_palette=False,max_bytes=MAX_BYTES):
     max_bytes=max(1,min(int(max_bytes),MAX_BYTES))
     with Image.open(io.BytesIO(png)) as im:
-        if len(png)<=min(850*1024,max_bytes):
+        if len(png)<=min(LOSSLESS_BYTES,max_bytes):
             return png,{'format':'png','quality':None,'palette':None,'method':'lossless'}
         rgb=im.convert('RGB')
         palettes=[256,192,128,96,64]
