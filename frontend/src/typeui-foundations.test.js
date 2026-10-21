@@ -44,3 +44,20 @@ test('style.css defines the shared TypeUI foundation tokens', () => {
     '--field-bg', '--field-border', '--dropdown-shadow', '--modal-shadow', '--scrim'])
     assert.match(style, new RegExp(`${token}\s*:`), `${token} is not defined`)
 })
+
+test('chips stay selectable so UIDs can be copied, while controls do not select on click', () => {
+  const style = read('style.css')
+  const rule = style.match(/^([^{}\n]*)\{[^}]*user-select\s*:\s*none/m)
+  assert.ok(rule, 'controls keep user-select:none')
+  const selectors = rule[1].split(',').map(selector => selector.trim())
+  for (const control of ['button', '[role="tab"]']) assert.ok(selectors.includes(control), `${control} should not select on click`)
+  assert.ok(!selectors.includes('.chip'), 'UID chips must stay copyable')
+  assert.match(read('components/NteDataCard.vue'), /class="chip mono">UID /)
+})
+
+test('the top bar search field is as tall as the 44px controls beside it', () => {
+  const style = read('style.css')
+  assert.match(style, /\.workspace-topbar\s*\{[^}]*--topbar-control-size\s*:\s*44px/)
+  assert.match(style, /\.topbar-left\s*>\s*\.search-trigger\s*\{[^}]*[\s;{]height\s*:\s*var\(--topbar-control-size\)/)
+  assert.match(style, /\.topbar-right\s*>\s*:is\([^)]*\.icon-button[^)]*\)\s*\{[^}]*height\s*:\s*var\(--topbar-control-size\)/)
+})
