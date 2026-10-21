@@ -1,6 +1,7 @@
 <script setup>
 import {computed} from 'vue'
 import {gameVars} from '../dashboard.js'
+import {skinOf} from '../game-themes.js'
 import {viewModel} from './models.js'
 import {imageWidth} from './designs.js'
 import ReuseBody from './ReuseBody.vue'
@@ -9,9 +10,11 @@ const props=defineProps({input:Object})
 const model=computed(()=>viewModel(props.input))
 const isExample=computed(()=>/合成|反馈示例|未绑定|未收录|无登录/.test(model.value.origin))
 const isAccountOverview=computed(()=>props.input?.snapshot?.kind==='game_snapshot'&&(props.input?.snapshot?.display_data?.panels||[]).some(p=>p.capability==='account'))
+// The multi-game overview keeps the obsidian (Wuwa) shell; its game blocks carry their own skin.
+const skin=computed(()=>skinOf(props.input?.snapshot?.game)||(isAccountOverview.value?'wuwa':null))
 </script>
 <template>
- <article class="lab-sheet dossier reuse" :class="['page-'+input.snapshot.kind,{'is-account-overview':isAccountOverview}]" :data-game="input.snapshot.game||'all'" :style="{width:imageWidth(input)+'px',...gameVars(input.snapshot.game)}">
+ <article class="lab-sheet dossier reuse" :class="['page-'+input.snapshot.kind,{'is-account-overview':isAccountOverview}]" :data-game="input.snapshot.game||'all'" :data-skin="skin" :style="{width:imageWidth(input)+'px',...gameVars(input.snapshot.game)}">
   <AccountOverviewSheet v-if="isAccountOverview" :input="input" />
   <template v-else>
    <header class="page-head head-dossier">

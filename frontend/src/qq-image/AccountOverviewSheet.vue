@@ -4,6 +4,7 @@ import { asset, display, roleIdentity, viewModel } from './models.js'
 import wuwaIcons from '../wuwa-icon-catalog.js'
 import nteIcons from '../nte-icon-catalog.js'
 import endfieldIcons from '../endfield-icon-catalog.js'
+import { skinOf } from '../game-themes.js'
 
 const props = defineProps({ input: Object })
 const model = computed(() => viewModel(props.input))
@@ -519,7 +520,7 @@ const notices = computed(() => props.input?.snapshot?.display_data?.notices || [
     </div>
 
     <!-- Per-Game Account Overview Block -->
-    <section v-for="block in gameBlocks" :key="block.game" class="ao-game-block">
+    <section v-for="block in gameBlocks" :key="block.game" class="ao-game-block" :data-skin="skinOf(block.game)">
       <!-- Top Stadium Pill Identity Banner -->
       <header class="ao-capsule-banner">
         <div class="ao-identity-pill">

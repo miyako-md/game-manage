@@ -471,7 +471,7 @@
 }
 
 .reuse.lab-sheet #render-content .wuwa-role-sub {
-  font-size: 14.5px !important;
+  font-size: var(--qq-small) !important;
   white-space: normal !important;
 }
 
@@ -629,35 +629,65 @@
   padding: 18px;
 }
 
-.reuse.lab-sheet #render-content .role-detail-view .nte-equipped-details .equipped-parts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* NTE drives: set header, then one cell per piece in two columns like the Wuwa echoes. */
+.reuse.lab-sheet #render-content .role-detail-view .nte-equipped-details .nte-suit-head {
   gap: 16px;
-  margin-top: 16px;
+  margin: 12px 0 4px;
 }
 
-.reuse.lab-sheet #render-content .role-detail-view .nte-equipped-details .equipped-part {
-  margin: 0;
-  padding: 16px;
+.reuse.lab-sheet #render-content .role-detail-view .nte-suit-head strong {
+  font-size: 24px !important;
+}
+
+.reuse.lab-sheet #render-content .role-detail-view .nte-suit-head :is(.nte-suit-count, .nte-suit-count b) {
+  font-size: var(--qq-small) !important;
+}
+
+.reuse.lab-sheet #render-content .role-detail-view .nte-drive-group {
+  margin-top: 18px;
+}
+
+.reuse.lab-sheet #render-content .role-detail-view .nte-drive-group-title {
+  margin-bottom: 10px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.reuse.lab-sheet #render-content .role-detail-view .nte-drive-group-title span {
+  color: var(--text-muted);
+  font-size: var(--qq-small) !important;
+}
+
+.reuse.lab-sheet #render-content .role-detail-view .nte-equipped-details .nte-drives {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 14px;
+}
+
+.reuse.lab-sheet #render-content .role-detail-view .nte-equipped-details .nte-drive {
+  padding: 16px 18px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--card-bg);
+  box-shadow: none;
 }
 
-.reuse.lab-sheet #render-content .role-detail-view .nte-equipped-details .equipped-part h5 {
+.reuse.lab-sheet #render-content .role-detail-view .nte-drive-name {
   font-size: 21px !important;
-  color: var(--text);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
-.reuse.lab-sheet #render-content .role-detail-view .nte-equipped-details .equipped-part dl > div {
+.reuse.lab-sheet #render-content .role-detail-view .nte-drive :is(.nte-drive-kind, .nte-drive-score) {
+  font-size: var(--qq-small) !important;
+}
+
+.reuse.lab-sheet #render-content .role-detail-view .nte-drive dl > div {
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
   gap: 10px;
-  padding: 4px 0;
+  padding: 3px 0;
 }
 
-.reuse.lab-sheet #render-content .role-detail-view .nte-equipped-details .equipped-part dd {
+.reuse.lab-sheet #render-content .role-detail-view .nte-drive dd {
   white-space: nowrap;
 }
 
