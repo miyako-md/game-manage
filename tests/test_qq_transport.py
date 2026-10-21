@@ -198,8 +198,10 @@ async def test_uploads_and_text_share_one_paced_outbound_budget(monkeypatch):
     # about the limiter itself.
     clock,sleeps,real_sleep=[1000.0],[],asyncio.sleep
     async def sleep(delay,*args,**kwargs):
+        # Let already-scheduled requests start at the current time first (3.11's
+        # wait_for runs its coroutine as a separate task), then let the time pass.
+        for _ in range(3):await real_sleep(0)
         sleeps.append(delay);clock[0]+=delay
-        await real_sleep(0)
     monkeypatch.setattr(qq_client,'time',SimpleNamespace(monotonic=lambda:clock[0]))
     monkeypatch.setattr(qq_client.asyncio,'sleep',sleep)
     calls=[]
