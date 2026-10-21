@@ -26,7 +26,7 @@ test('roster filters without losing source totals and exposes an on-demand detai
   nodes(root,'button').find(node=>content(node)==='查看配装').props.onClick();assert.deepEqual(seen,['a'])
 })
 
-test('website operators are portrait role cards with the shared rarity tag while images keep the compact tile',t=>{
+test('operators are portrait role cards with the shared rarity tag on the website and in images',t=>{
   const cards=root=>nodes(root,'article').filter(node=>String(node.props.class).includes('ef-operator'))
   const art=card=>nodes(card,'span').find(node=>String(node.props.class).split(' ').includes('endfield-artwork'))
   const web=mount(t,Reports,{payload,view:'operators'})
@@ -35,10 +35,33 @@ test('website operators are portrait role cards with the shared rarity tag while
   assert.deepEqual(cards(web).map(card=>nodes(card,'small').map(node=>[node.props.class,content(node),node.props['data-tier']])[0]),[['role-rarity','6★','top'],['role-rarity','5★',undefined]])
   assert.equal(nodes(web,'div')[0].props['data-skin'],'endfield')
   const image=mount(t,Reports,{payload,view:'operators',imageMode:true})
-  assert.ok(cards(image).every(card=>!art(card).props.class.split(' ').includes('is-portrait')))
-  assert.deepEqual(cards(image).map(card=>nodes(card,'small')[0].props.class),['ef-tier','ef-tier'])
-  assert.equal(nodes(image,'span').filter(node=>node.props.class==='role-rarity').length,0)
+  assert.ok(cards(image).every(card=>art(card).props.class.split(' ').includes('is-portrait')))
+  assert.deepEqual(cards(image).map(card=>nodes(card,'small').map(node=>[node.props.class,content(node),node.props['data-tier']])[0]),[['role-rarity','6★','top'],['role-rarity','5★',undefined]])
   assert.equal(nodes(image,'div')[0].props['data-skin'],undefined)
+})
+
+test('operators default to newest first on the website and in images, and the other sorts stay available',async t=>{
+  const order=[{id:'h1',char_id:'chr_0002_old',name:'旧干员',level:90,rarity:6},{id:'h2',name:'无模板',level:99,rarity:6},{id:'h3',char_id:'chr_0024_new',name:'新干员',level:1,rarity:5}]
+  const list={report:{...payload.report,training:{...payload.report.training,items:order}}}
+  const names=root=>nodes(root,'h3').map(content).filter(name=>order.some(item=>item.name===name))
+  for(const imageMode of [false,true]) assert.deepEqual(names(mount(t,Reports,{payload:list,view:'operators',imageMode})),['新干员','旧干员','无模板'])
+  const web=mount(t,Reports,{payload:list,view:'operators'})
+  const menu=nodes(web,'ul').find(node=>node.props.role==='listbox'&&node.props['aria-label']==='排序')
+  assert.deepEqual(nodes(menu,'li').map(node=>node.props['data-value']),['newest','level','rarity','potential','name'])
+  assert.equal(content(nodes(menu,'li')[0]),'从新到旧');assert.doesNotMatch(content(menu),/上线/)
+  choose(web,'排序','level');await nextTick();assert.deepEqual(names(web),['无模板','旧干员','新干员'])
+})
+
+test('the exploration image keeps region progress and collection totals but drops settlements and per-area lists',t=>{
+  const area=(name,current)=>({name,collections:[{key:'chests',label:'储藏箱',current,total:5},{key:'pieces',label:'灵感点',current:null,total:3}]})
+  const regions={items:[{id:'r',name:'四号谷地',level:2,money:{current:0,total:null},settlements:[{id:'s',name:'矿区据点',coupon:{current:0,total:100},officers:[{id:'a',name:'干员甲'}]}],areas:[area('矿区',1),area('谷地',4)]}]}
+  const root=mount(t,Reports,{payload:{report:{...payload.report,regions}},view:'regions',imageMode:true})
+  assert.match(content(root),/地区调度券 0 \/ 未知/);assert.match(content(root),/据点 1/);assert.match(content(root),/区域 2/)
+  assert.match(content(root),/储藏箱 5 \/ 10/);assert.match(content(root),/灵感点 未知 \/ 未知/)
+  assert.doesNotMatch(content(root),/矿区据点|派驻干员|矿区|剩余/)
+  assert.equal(nodes(root,'progress').length,0)
+  const web=mount(t,Reports,{payload:{report:{...payload.report,regions}},view:'regions'})
+  assert.match(content(web),/矿区据点/);assert.match(content(web),/派驻干员：干员甲/);assert.match(content(web),/矿区 储藏箱 1 \/ 5/)
 })
 
 test('regions distinguish unknown limits and show settlements, assignment and remaining collections',t=>{
@@ -187,7 +210,7 @@ const rich = { report: { schema_version: 1, observed_at: '2026-10-15T00:00:00Z',
   overview: { base: { name: '甲', level: 46, world_level: 5, role_id: '9' }, stamina: { current: 187, maximum: 240 },
     progress: [{ id: 'daily', name: '每日活跃', cur: 60, total: 100, remaining: 40 }, { id: 'weekly', name: '每周任务', cur: null, total: 2000, remaining: null }], todos: [] },
   training: { summary: { listed_count: 3, declared_count: 3, rarity_counts: { 6: 2, 5: 1 }, phase_counts: { 0: 1, 3: 2 } },
-    items: [{ id: 'a', name: '甲六', level: 80, rarity: 6, evolve_phase: 3 }, { id: 'b', name: '乙六', level: 70, rarity: 6, evolve_phase: 3 }, { id: 'c', name: '丙五', level: 60, rarity: 5, evolve_phase: 0 }] },
+    items: [{ id: 'a', char_id: 'chr_0030_a', name: '甲六', level: 80, rarity: 6, evolve_phase: 3 }, { id: 'b', char_id: 'chr_0020_b', name: '乙六', level: 70, rarity: 6, evolve_phase: 3 }, { id: 'c', char_id: 'chr_0010_c', name: '丙五', level: 60, rarity: 5, evolve_phase: 0 }] },
   regions: { items: [], summary: { region_count: 3 } }, ship: { rooms: [], summary: { room_count: 4 } } } }
 
 test('overview draws stamina and progress as rings and the counts as shortcut tiles that navigate', t => {
@@ -224,6 +247,14 @@ test('the 6★ rail follows the roster filters, has no headings of its own and o
   assert.equal(rail().length, 0)
   assert.deepEqual(nodes(root, 'h3').map(content), ['丙五'])
   assert.doesNotMatch(content(root), /6★ 干员/)
+})
+
+test('elite phases step from the track on the website but from the skin neutral grey in images, the top phase in the game colour', t => {
+  const four = { report: { ...rich.report, training: { ...rich.report.training, summary: { listed_count: 4, phase_counts: { 0: 1, 1: 1, 2: 1, 3: 1 } } } } }
+  const colours = root => nodes(nodes(root, 'div').find(node => node.props.role === 'img' && cls(node, 'stack-bar')), 'i').map(node => node.props.style['--series'])
+  assert.ok(colours(mount(t, Reports, { payload: four, view: 'operators' })).every(colour => colour.includes('var(--track)')))
+  const image = colours(mount(t, Reports, { payload: four, view: 'operators', imageMode: true }))
+  assert.deepEqual(image, ['color-mix(in srgb, var(--text) 0%, var(--ef-neutral))', 'color-mix(in srgb, var(--text) 23%, var(--ef-neutral))', 'color-mix(in srgb, var(--text) 45%, var(--ef-neutral))', 'var(--ef-vivid)'])
 })
 
 test('rarity and phase distributions come from the source counts, and a lone tier stays a plain tag', t => {

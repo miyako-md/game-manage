@@ -1,7 +1,7 @@
 <script setup>
 import MenuSelect from './MenuSelect.vue'
 import { computed, nextTick, ref, watch } from 'vue'
-import { profileReport, rows, displayValue as display, sourceName as named, selectOperators, selectMedals, rarityParts, phaseParts, medalCategoryParts, recentMedals, platedSummary } from '../endfield-reports.js'
+import { profileReport, rows, displayValue as display, sourceName as named, selectOperators, selectMedals, rarityParts, phaseParts, medalCategoryParts, recentMedals, platedSummary, collectionTotals } from '../endfield-reports.js'
 import { displayBeijing } from '../time.js'
 import { SHIP_CONVERSION_MODEL } from '../endfield-ship.js'
 import { vReveal } from '../motion.js'
@@ -28,7 +28,7 @@ const categories=computed(()=>[...new Set(medals.value.map(item=>item.category ?
 const filteredMedals=computed(()=>selectMedals(medals.value,{search:medalSearch.value,category:medalCategory.value===''?undefined:JSON.parse(medalCategory.value),sort:medalSort.value}))
 function clearMedalFilters(){medalSearch.value='';medalCategory.value=''}
 const mainMission=computed(()=>typeof overview.value.base?.main_mission === 'string' ? overview.value.base.main_mission.trim() : '')
-const search = ref(''), rarity = ref(''), profession = ref(''), sort = ref('level')
+const search = ref(''), rarity = ref(''), profession = ref(''), sort = ref('newest')
 const operators = computed(() => rows(training.value.items))
 const selected = computed(() => selectOperators(operators.value, { search: search.value, rarity: rarity.value, profession: profession.value, sort: sort.value }))
 const rarities = computed(() => [...new Set(operators.value.map(item => item.rarity).filter(value => value != null))].sort((a,b) => b-a))
@@ -68,9 +68,12 @@ const trainingMetrics = computed(() => [
 const RARITY_COLORS = ['var(--ef-vivid)', 'var(--chart-2)', 'var(--ef-grey)', 'var(--ef-grey-2)']
 const rarityChart = computed(() => rarityParts(training.value.summary?.rarity_counts).map((part, index) => ({ ...part, color: RARITY_COLORS[Math.min(index, RARITY_COLORS.length - 1)] })))
 // Elite phases are ordinal, so one hue steps from the track colour up to the full game colour.
+// On the dark image skin a yellow mixed into the translucent track reads olive, so images step
+// through the skin's neutral greys instead and only the top phase takes the game colour.
 const phaseChart = computed(() => {
-  const parts = phaseParts(training.value.summary?.phase_counts)
-  return parts.map((part, index) => ({ ...part, color: `color-mix(in srgb, var(--ef-vivid) ${parts.length > 1 ? Math.round(22 + 78 * index / (parts.length - 1)) : 100}%, var(--track))` }))
+  const parts = phaseParts(training.value.summary?.phase_counts), last = parts.length - 1
+  if (props.imageMode) return parts.map((part, index) => ({ ...part, color: index === last ? 'var(--ef-vivid)' : `color-mix(in srgb, var(--text) ${last > 1 ? Math.round(45 * index / (last - 1)) : 0}%, var(--ef-neutral))` }))
+  return parts.map((part, index) => ({ ...part, color: `color-mix(in srgb, var(--ef-vivid) ${parts.length > 1 ? Math.round(22 + 78 * index / last) : 100}%, var(--track))` }))
 })
 const phaseColor = value => phaseChart.value.find(part => part.key === String(value))?.color || 'var(--track)'
 const counts = computed(() => [
@@ -165,11 +168,11 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
         </section>
         <section v-reveal class="ef-card ef-roster-card">
           <p v-if="imageMode" class="ef-note">武器、装备、技能与战术道具详情：发送「终末地 角色 干员名」，按精确名称查看单干员配装。</p>
-          <div v-if="!imageMode" class="ef-filters"><label>查找干员<input :value="search" @input="search = $event.target.value" type="search" placeholder="姓名或编号" /></label><label>稀有度<MenuSelect v-model="rarity" label="稀有度" :options="[{value:'',label:'全部稀有度'},...rarities.map(value=>({value:String(value),label:value+'★'}))]" /></label><label>职业<MenuSelect v-model="profession" label="职业" :options="[{value:'',label:'全部职业'},...professions.map(value=>({value,label:value}))]" /></label><label>排序<MenuSelect v-model="sort" label="排序" :options="[{value:'level',label:'等级从高到低'},{value:'rarity',label:'稀有度从高到低'},{value:'potential',label:'潜能从高到低'},{value:'name',label:'姓名'}]" /></label></div>
+          <div v-if="!imageMode" class="ef-filters"><label>查找干员<input :value="search" @input="search = $event.target.value" type="search" placeholder="姓名或编号" /></label><label>稀有度<MenuSelect v-model="rarity" label="稀有度" :options="[{value:'',label:'全部稀有度'},...rarities.map(value=>({value:String(value),label:value+'★'}))]" /></label><label>职业<MenuSelect v-model="profession" label="职业" :options="[{value:'',label:'全部职业'},...professions.map(value=>({value,label:value}))]" /></label><label>排序<MenuSelect v-model="sort" label="排序" :options="[{value:'newest',label:'从新到旧'},{value:'level',label:'等级从高到低'},{value:'rarity',label:'稀有度从高到低'},{value:'potential',label:'潜能从高到低'},{value:'name',label:'姓名'}]" /></label></div>
           <p v-if="!selected.length" class="ef-empty">{{ operators.length ? '没有匹配的干员，可调整筛选。' : '尚无干员资料。' }}</p>
           <div v-else class="ef-roster"><article v-for="(operator,index) in selected" :key="operator.id || index" class="ef-operator" :class="rarityBadge(operator.rarity)">
             <div class="ef-operator-top">
-              <div class="ef-avatar"><EndfieldArtwork role :portrait="!imageMode" :operator-id="operator.char_id || operator.id" :src="operator.avatar_url" :name="operator.name || '干员'" /><small :class="imageMode ? 'ef-tier' : 'role-rarity'" :data-tier="!imageMode && Number(operator.rarity) >= 6 ? 'top' : undefined">{{ display(operator.rarity) }}★</small></div>
+              <div class="ef-avatar"><EndfieldArtwork role portrait :operator-id="operator.char_id || operator.id" :src="operator.avatar_url" :name="operator.name || '干员'" /><small class="role-rarity" :data-tier="Number(operator.rarity) >= 6 ? 'top' : undefined">{{ display(operator.rarity) }}★</small></div>
               <div class="ef-operator-copy"><h3>{{ display(operator.name) }}</h3><p class="ef-operator-level">Lv. {{ display(operator.level) }} <span>潜能 {{ display(operator.potential) }}</span></p></div>
             </div>
             <p class="ef-phase"><i class="ef-phase-dot" :style="{ '--tone': phaseColor(operator.evolve_phase ?? operator.phase) }" aria-hidden="true"></i>精英阶段 {{ display(operator.evolve_phase ?? operator.phase) }}</p>
@@ -189,16 +192,20 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
     <template v-else-if="view === 'regions'">
       <section v-reveal class="ef-card ef-section-intro"><header><div><h2>地区建设</h2></div><span class="ef-note">地区数 {{ display(report.regions?.summary?.region_count) }}</span></header><p v-if="!regions.length" class="ef-empty">尚无地区建设资料。</p></section>
       <section v-for="(region,index) in regions" :key="region.id || index" v-reveal class="ef-card ef-region"><header><div><h2>{{ named(region) }}</h2></div><span class="ef-level">等级 {{ display(region.level) }}</span></header>
-        <div class="ef-region-top">
+        <!-- The bot image keeps each region's progress and collection totals; settlements and per-area lists stay on the website. -->
+        <template v-if="imageMode">
+          <dl class="ef-region-facts"><div><dt>地区调度券</dt><dd>{{ display(region.money?.current ?? region.money?.count) }} <small>/ {{ display(region.money?.total) }}</small></dd></div><div><dt>据点</dt><dd>{{ display(settlementCount(region)) }}</dd></div><div><dt>区域</dt><dd>{{ rows(region.areas || region.levels).length }}</dd></div></dl>
+          <ul class="ef-facts ef-totals"><li v-for="item in collectionTotals(rows(region.areas || region.levels).map(collections))" :key="item.key"><span>{{ item.label }}</span><strong>{{ display(item.current) }} / {{ display(item.total) }}<small v-if="item.partial"> · 部分区域未知</small></strong><span v-if="item.percent != null" class="ef-bar meter" aria-hidden="true"><i :style="{ width: `${item.percent}%` }"></i></span></li></ul>
+        </template>
+        <div v-if="!imageMode" class="ef-region-top">
           <div class="ef-money"><span class="k">地区调度券</span>
-            <RingGauge :value="region.money?.current ?? region.money?.count" :max="region.money?.total" label="地区调度券" :size="108" :stroke="11" color="var(--ef-vivid)"><span v-if="imageMode" class="ef-pct">{{ typeof region.money?.percent === 'number' ? Math.round(region.money.percent) + '%' : '—' }}</span><span v-else class="ef-ring-center"><strong>{{ display(region.money?.current ?? region.money?.count) }} <small>/ {{ display(region.money?.total) }}</small></strong></span></RingGauge>
-            <p v-if="imageMode" class="ef-money-values">{{ display(region.money?.current ?? region.money?.count) }} / {{ display(region.money?.total) }}</p>
+            <RingGauge :value="region.money?.current ?? region.money?.count" :max="region.money?.total" label="地区调度券" :size="108" :stroke="11" color="var(--ef-vivid)"><span class="ef-ring-center"><strong>{{ display(region.money?.current ?? region.money?.count) }} <small>/ {{ display(region.money?.total) }}</small></strong></span></RingGauge>
           </div>
           <div class="ef-bases"><div class="ef-bases-head"><span class="k">据点</span><strong>{{ display(settlementCount(region)) }}</strong></div>
             <HRail v-if="rows(region.settlements).length" label="据点"><article v-for="(settlement,number) in rows(region.settlements)" :key="settlement.id || number" class="ef-settlement"><h3>{{ settlement.name || '据点' }} <small>等级 {{ display(settlement.level) }}</small></h3><p>基地调度券 <strong>{{ pair(settlement.coupon || {current:settlement.money,total:settlement.money_max}) }}</strong></p><span v-if="couponPercent(settlement) != null" class="ef-bar meter" aria-hidden="true"><i :style="{ width: `${couponPercent(settlement)}%` }"></i></span><p class="ef-note">派驻干员：{{ rows(settlement.officers).map(item => item.name || item.id || '未知').join('、') || (settlement.officers_available === true ? '无派驻' : '未提供') }}</p><div v-if="rows(settlement.officers).length" class="ef-assigned"><EndfieldArtwork v-for="(officer,officerIndex) in rows(settlement.officers)" :key="officer.id || officerIndex" role :operator-id="officer.id" :src="officer.avatar_url" :name="officer.name || officer.id || '干员'" /></div></article></HRail>
           </div>
         </div>
-        <div class="ef-areas"><article v-for="(area,number) in rows(region.areas || region.levels)" :key="area.id || number" class="ef-subsection"><h3>{{ area.name || '区域' }}</h3><ul class="ef-facts"><li v-for="item in collections(area)" :key="item.key"><span>{{ item.label }}</span><strong>{{ pair(item) }}<small v-if="item.remaining != null"> · 剩余 {{ item.remaining }}</small></strong><progress v-if="Number.isFinite(item.percent)" :value="item.percent" max="100" :aria-label="`${area.name || '区域'}${item.label}`" /></li></ul></article></div>
+        <div v-if="!imageMode" class="ef-areas"><article v-for="(area,number) in rows(region.areas || region.levels)" :key="area.id || number" class="ef-subsection"><h3>{{ area.name || '区域' }}</h3><ul class="ef-facts"><li v-for="item in collections(area)" :key="item.key"><span>{{ item.label }}</span><strong>{{ pair(item) }}<small v-if="item.remaining != null"> · 剩余 {{ item.remaining }}</small></strong><progress v-if="Number.isFinite(item.percent)" :value="item.percent" max="100" :aria-label="`${area.name || '区域'}${item.label}`" /></li></ul></article></div>
       </section>
     </template>
 
@@ -231,7 +238,7 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
 <style scoped>
 /* Flat white cards on a hairline; the game's pale tone is the one colour fill (--ef-tone, ink --ef-ink).
    Bot images set only --game-accent, so every game colour here has a static fallback. */
-.endfield-reports { --ef-vivid:var(--game-vivid,var(--game-endfield-vivid)); --ef-tone:var(--game-tone,var(--game-endfield-tone)); --ef-ink:var(--game-accent,var(--game-endfield)); --ef-grey:color-mix(in srgb,var(--text-faint) 34%,var(--card-bg)); --ef-grey-2:var(--border-strong); --accent:var(--ef-ink); --accent-soft:var(--ef-tone);
+.endfield-reports { --ef-neutral:var(--track); --ef-vivid:var(--game-vivid,var(--game-endfield-vivid)); --ef-tone:var(--game-tone,var(--game-endfield-tone)); --ef-ink:var(--game-accent,var(--game-endfield)); --ef-grey:color-mix(in srgb,var(--text-faint) 34%,var(--card-bg)); --ef-grey-2:var(--border-strong); --accent:var(--ef-ink); --accent-soft:var(--ef-tone);
   display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px; min-width:0; }
 .endfield-reports > * { grid-column:1 / -1; min-width:0; }
 .ef-contents { grid-column:1 / -1; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px; min-width:0; }
@@ -330,7 +337,6 @@ button.ef-count:active { transform:translateY(1px); }
 .ef-filters :deep(.menu-select-trigger) { min-height:38px; }
 .ef-filters input:focus-visible { border-color:var(--ef-ink); outline:0; box-shadow:var(--ring); }
 .ef-roster { display:grid; grid-template-columns:repeat(auto-fill,minmax(208px,1fr)); gap:12px; }
-/* Compact tile: bot images show the whole roster, so it stays short there. */
 .ef-operator { position:relative; display:grid; gap:10px; align-content:start; min-width:0; padding:14px; border-radius:var(--radius-tile); background:var(--surface-soft); overflow:hidden; }
 .ef-operator.top { background:var(--ef-tone); }
 .ef-operator-top { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; gap:12px; }
@@ -340,28 +346,25 @@ button.ef-count:active { transform:translateY(1px); }
 .ef-operator h3 { font-size:15px; line-height:22px; font-weight:600; letter-spacing:-.01em; overflow-wrap:anywhere; }
 .ef-operator .ef-operator-level { margin-top:2px; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
 .ef-operator-level span { margin-left:4px; color:var(--text-muted); font-size:12px; font-weight:400; }
-.ef-tier { position:absolute; left:50%; bottom:0; transform:translateX(-50%); padding:0 9px; border-radius:var(--radius-chip); background:var(--card-bg); color:var(--text-body); font-size:12px; font-weight:500; line-height:20px; white-space:nowrap; box-shadow:inset 0 0 0 1px var(--border-strong),0 0 0 2px var(--surface-soft); }
-.ef-operator.high .ef-tier { background:var(--ef-tone); color:var(--ef-ink); box-shadow:0 0 0 2px var(--surface-soft); }
-.ef-operator.top .ef-tier { background:var(--ef-ink); color:var(--accent-ink); box-shadow:0 0 0 2px var(--ef-tone); }
 .ef-phase { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; }
 .ef-phase-dot { flex:0 0 auto; width:10px; height:10px; border-radius:3px; background:var(--tone,var(--track)); }
 .ef-profession { margin-top:-4px; }
 .ef-operator .ui-button { justify-self:stretch; margin-top:2px; }
-/* On the website each operator is the same role card as the other games (shared role-card tokens): a white frame,
-   the portrait on the game tone with the rarity as the shared tag top left and the level as a white tag, then the text. */
-.endfield-reports:not(.is-image) .ef-roster { grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--role-card-min)),1fr)); gap:var(--role-card-gap); }
-.endfield-reports:not(.is-image) .ef-operator { grid-template-columns:minmax(0,1fr); gap:0; padding:var(--role-card-frame); border:1px solid var(--card-border); border-radius:var(--role-card-radius); background:var(--card-bg); box-shadow:var(--card-shadow); }
-.endfield-reports:not(.is-image) .ef-operator-top, .endfield-reports:not(.is-image) .ef-operator-copy { display:contents; }
-.endfield-reports:not(.is-image) .ef-avatar { grid-area:1 / 1; justify-self:stretch; height:var(--role-art-h); padding:0; border-radius:var(--role-art-radius); background:var(--ef-tone); overflow:hidden; isolation:isolate; }
+/* Each operator is the same role card as the other games (shared role-card tokens), on the website and in bot images:
+   a white frame, the portrait on the game tone with the rarity as the shared tag top left and the level as a white tag, then the text. */
+.endfield-reports .ef-roster { grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--role-card-min)),1fr)); gap:var(--role-card-gap); }
+.endfield-reports .ef-operator { grid-template-columns:minmax(0,1fr); gap:0; padding:var(--role-card-frame); border:1px solid var(--card-border); border-radius:var(--role-card-radius); background:var(--card-bg); box-shadow:var(--card-shadow); }
+.endfield-reports .ef-operator-top, .endfield-reports .ef-operator-copy { display:contents; }
+.endfield-reports .ef-avatar { grid-area:1 / 1; justify-self:stretch; height:var(--role-art-h); padding:0; border-radius:var(--role-art-radius); background:var(--ef-tone); overflow:hidden; isolation:isolate; }
 /* Portraits are cut at their own side edges, so they fill the panel's width and show from the head down. */
-.endfield-reports:not(.is-image) .ef-operator-top .endfield-artwork { position:absolute; inset:0; width:100%; height:100%; border-radius:0; background:transparent; }
-.endfield-reports:not(.is-image) .ef-operator-top .endfield-artwork :deep(img) { object-fit:cover; object-position:center top; }
-.endfield-reports:not(.is-image) .ef-operator .ef-operator-level { grid-area:1 / 1; z-index:1; align-self:end; justify-self:start; margin:0 0 11px 11px; padding:3px 8px; border-radius:var(--radius-chip); background:var(--card-bg); color:var(--ef-ink); font-size:12px; line-height:16px; font-weight:500; white-space:nowrap; }
-.endfield-reports:not(.is-image) .ef-operator-level span { margin-left:6px; color:var(--text-muted); }
-.endfield-reports:not(.is-image) .ef-operator h3 { grid-area:2 / 1; padding:12px 10px 0; font-size:14px; line-height:20px; }
-.endfield-reports:not(.is-image) .ef-profession { grid-area:3 / 1; margin-top:0; padding:2px 10px 0; font-size:12px; line-height:18px; }
-.endfield-reports:not(.is-image) .ef-phase { grid-area:4 / 1; padding:4px 10px 0; font-size:12px; line-height:18px; }
-.endfield-reports:not(.is-image) .ef-operator .ui-button { grid-area:5 / 1; margin:12px 4px 4px; }
+.endfield-reports .ef-operator-top .endfield-artwork { position:absolute; inset:0; width:100%; height:100%; border-radius:0; background:transparent; }
+.endfield-reports .ef-operator-top .endfield-artwork :deep(img) { object-fit:cover; object-position:center top; }
+.endfield-reports .ef-operator .ef-operator-level { grid-area:1 / 1; z-index:1; align-self:end; justify-self:start; margin:0 0 11px 11px; padding:3px 8px; border-radius:var(--radius-chip); background:var(--card-bg); color:var(--ef-ink); font-size:12px; line-height:16px; font-weight:500; white-space:nowrap; }
+.endfield-reports .ef-operator-level span { margin-left:6px; color:var(--text-muted); }
+.endfield-reports .ef-operator h3 { grid-area:2 / 1; padding:12px 10px 0; font-size:14px; line-height:20px; }
+.endfield-reports .ef-profession { grid-area:3 / 1; margin-top:0; padding:2px 10px 0; font-size:12px; line-height:18px; }
+.endfield-reports .ef-phase { grid-area:4 / 1; padding:4px 10px 0; font-size:12px; line-height:18px; }
+.endfield-reports .ef-operator .ui-button { grid-area:5 / 1; margin:12px 4px 4px; }
 .ef-detail { scroll-margin-top:80px; }
 .ef-detail:focus { outline:none; }
 .ef-detail > header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
@@ -397,6 +400,13 @@ button.ef-count:active { transform:translateY(1px); }
 .ef-facts li > span { color:var(--text-muted); }
 .ef-facts strong { font-weight:500; font-variant-numeric:tabular-nums; }
 .ef-facts small { font-size:12px; color:var(--text-muted); }
+.ef-region-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0; }
+.ef-region-facts > div { padding:12px 16px; border-radius:var(--radius-well); background:var(--surface-soft); }
+.ef-region-facts dt { font-size:12px; color:var(--text-muted); }
+.ef-region-facts dd { margin:2px 0 0; font-size:24px; font-weight:550; font-variant-numeric:tabular-nums; }
+.ef-region-facts small { font-size:13px; color:var(--text-muted); }
+.ef-totals { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 24px; padding:4px 16px 8px; border-radius:var(--radius-tile); background:var(--surface-soft); }
+.ef-totals .ef-bar { flex-basis:100%; }
 .ef-facts progress { flex-basis:100%; width:100%; height:8px; appearance:none; border:0; border-radius:6px; overflow:hidden; background:var(--track); }
 .ef-facts progress::-webkit-progress-bar { background:var(--track); border-radius:6px; }
 .ef-facts progress::-webkit-progress-value { background:var(--ef-vivid); border-radius:6px; }

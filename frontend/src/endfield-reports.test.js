@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { selectOperators, selectMedals, profileReport, operatorImage, operatorArtwork, gachaArtwork, rarityParts, phaseParts, medalCategoryParts, recentMedals, platedSummary } from './endfield-reports.js'
+import { selectOperators, selectMedals, profileReport, operatorImage, operatorArtwork, gachaArtwork, rarityParts, phaseParts, medalCategoryParts, recentMedals, platedSummary, collectionTotals } from './endfield-reports.js'
 
 test('operator filters combine name rarity and profession; stable numeric sorting preserves zero and unknown last', () => {
   const items = [{ id:'missing',name:'未知',rarity:6,profession:'近卫' },{id:'zero',name:'管理员零',level:0,rarity:6,profession:'近卫'},
@@ -8,6 +8,13 @@ test('operator filters combine name rarity and profession; stable numeric sortin
   assert.deepEqual(selectOperators(items).map(item=>item.id),['high','same','zero','missing'])
   assert.deepEqual(selectOperators(items,{search:'管理员',rarity:'6',profession:'近卫'}).map(item=>item.id),['high','zero'])
   assert.equal(items[0].id,'missing')
+})
+
+test('newest first reads the chr_NNNN template id, not the roster instance hash, and puts unplaced operators last', () => {
+  const items = [{ id:'0f3a', char_id:'chr_0003_a', name:'甲', level:90 },{ id:'chr_0026_b', name:'乙', level:1 },
+    { id:'9c1d', name:'无模板', level:99 },{ id:'77aa', char_id:'chr_0010_d', name:'丁' },{ id:'11bb', char_id:'legacy', name:'旧编号', level:50 }]
+  assert.deepEqual(selectOperators(items,{sort:'newest'}).map(item=>item.name),['乙','丁','甲','旧编号','无模板'])
+  assert.deepEqual(selectOperators(items).map(item=>item.name),['无模板','甲','旧编号','乙','丁'])
 })
 
 test('source reports remain authoritative and old profiles do not invent todos or aggregate values', () => {
@@ -140,4 +147,12 @@ test('gacha artwork uses the exact weapon catalog without borrowing operator ima
   assert.equal(gachaArtwork({name:'未收录武器'},'weapon'),null)
   assert.equal(gachaArtwork({name:'破碎君王'},undefined),null)
   assert.equal(gachaArtwork({name:'破碎'},'weapon'),null)
+})
+
+test('collection totals sum only fully known areas and flag partial sums instead of treating unknown as zero', () => {
+  const area = (chests, puzzles) => [{ key:'chests', label:'宝箱', ...chests }, { key:'puzzles', label:'醚质', ...puzzles }]
+  const totals = collectionTotals([area({ current:28, total:40 }, { current:0, total:8 }), area({ current:2, total:null }, { current:1, total:8 }), area({ current:10, total:20 }, { current:null, total:5 })])
+  assert.deepEqual(totals, [{ key:'chests', label:'宝箱', current:38, total:60, partial:true, percent:63 }, { key:'puzzles', label:'醚质', current:1, total:16, partial:true, percent:6 }])
+  assert.deepEqual(collectionTotals([area({ current:null, total:null }, { current:0, total:0 })]), [{ key:'chests', label:'宝箱', current:null, total:null, partial:false, percent:null }, { key:'puzzles', label:'醚质', current:0, total:0, partial:false, percent:null }])
+  assert.deepEqual(collectionTotals([]), [])
 })

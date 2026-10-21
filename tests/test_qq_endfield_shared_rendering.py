@@ -2,6 +2,7 @@
 from copy import deepcopy
 from datetime import datetime
 import json
+import re
 import pytest
 
 from game_assistant.accounts.models import QueryResult
@@ -166,6 +167,14 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
                             fill_width:element.querySelector('.pull-fill').getBoundingClientRect().width,
                         })),
                         pools:[...document.querySelectorAll('.endfield-gacha .pool-detail .detail-head h3')].map(element => element.innerText),
+                        ticks:[...document.querySelectorAll('#render-content :is(h2,h3)')].filter(element => getComputedStyle(element,'::before').content.includes('counter(ef-block')).map(element => element.innerText),
+                        tick_titles:[...document.querySelectorAll('#render-content h3')].filter(element => getComputedStyle(element,'::before').content.includes('counter(ef-block')).map(element => element.innerText),
+                        phases:[...document.querySelectorAll('.ef-phases .stack-bar > i')].map(element => getComputedStyle(element).backgroundColor),
+                        cards:[...document.querySelectorAll('.ef-roster .ef-operator')].map(element => ({card:box(element),art:box(element.querySelector('.ef-avatar')),
+                            portrait:!!element.querySelector('.endfield-artwork.is-portrait'),rarity:element.querySelector('.role-rarity')?.innerText})),
+                        regions:[...document.querySelectorAll('.ef-region')].map(element => ({totals:element.querySelectorAll('.ef-totals > li').length,
+                            details:element.querySelectorAll('.ef-settlement, .ef-subsection, .ring-gauge').length})),
+                        unknown_notes:[...document.querySelectorAll('.ef-resident .unknown-meter')].map(box),
                     };
                 }""")})
         return value
@@ -195,7 +204,16 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
         assert state['state']=='ready' and not state['overflow'] and state['layout_issues']==0 and state['bad_names']==0
         assert not captured[-1]['forbidden_requests']
         text=captured[-1]['text']
-        if command=='roster':assert '合成干员34' in text and '35' in text
+        layout=captured[-1]['layout']
+        if command=='roster':
+            assert '合成干员34' in text and '35' in text
+            # Portrait role cards like the website, five a row; the elite bar steps up from a neutral grey (no olive track).
+            cards=layout['cards'];assert len(cards)==35 and all(card['portrait'] and card['rarity'] for card in cards)
+            assert len({round(card['card']['x']) for card in cards})==5 and all(round(card['art']['height'])==160 for card in cards)
+            low=layout['phases'][0];channels=[float(v) for v in re.findall(r'[\d.]+',low)[:3]]
+            # Olive is a dark yellow: blue far below red and green. The skin's neutral is grey to slightly cool.
+            assert channels[2]>=channels[0] and max(channels)-min(channels)<=(12 if low.startswith('rgb') else 12/255),layout['phases']
+            assert layout['ticks'][:3]==['全员练度','稀有度分布','精英阶段']
         # The image is an icon wall: every medal name, no per-medal category text.
         elif command=='honor':assert '奖章0' in text and '奖章33' in text and '类别16' not in text
         elif command=='gacha':
@@ -214,6 +232,7 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
             assert min(row['track']['width'] for row in rows)>=200
         elif command=='combat':
             assert all(label+'观测时间' in text for label in ('战争','丰碑','危机'))
+            assert layout['ticks'][:3]==['战争 · 挑战记录','合成赛季','已有荣誉'] and '已有荣誉' in layout['tick_titles']
             assert all(moment in text for moment in ('2026-10-14 09:30','2026-10-14 10:30','2026-10-14 11:30'))
             assert '已有资料待更新' in text
         elif command in ('roles','roles_icon'):
@@ -222,10 +241,16 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
             assert skills[0]['images']==int(command=='roles_icon')
             assert skills[0]['level_font']=='26px'
             assert skills[0]['level']['y']>=skills[0]['artwork']['bottom']+7
-        elif command=='ship':assert '0%' in text and '未知' in text
+            assert layout['tick_titles'][:4]==['武器与基质','装备','技能','战术道具']
+        elif command=='ship':
+            assert '0%' in text and '未知' in text
+            assert layout['unknown_notes'] and all(note['width']>=120 for note in layout['unknown_notes'])
         elif command=='exploration':
             assert '四号谷地' in text and '武陵' in text and '地区数 2' in text
             assert all(label in text for label in ('宝箱','醚质','协议采录桩','装备制造模板','维修灵感点'))
+            # Region progress and collection totals only; settlements and per-area lists stay on the website.
+            assert [region['totals'] for region in layout['regions']]==[5,0] and all(region['details']==0 for region in layout['regions'])
+            assert '枢纽区据点' not in text and '剩余' not in text
         assert len(renderer._browser.contexts)==1 and renderer._a_context is renderer._browser.contexts[0]
         assert await renderer._a_page.locator('#app').inner_html()=='' and renderer._a_images=={}
         assert query.refreshes==[]

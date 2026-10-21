@@ -33,7 +33,11 @@
   counter-reset: ef-block;
 }
 
-.reuse.lab-sheet[data-skin="endfield"] #render-content .endfield-reports h2::before {
+/* Also on the challenge and gacha block titles, and on h3 titles that head a block of their own
+   (loadout modules, the tactical item, challenge records and honours, gacha pools); not on names inside a block. */
+.reuse.lab-sheet[data-skin="endfield"] #render-content :is(.endfield-reports h2, .endfield-challenges h2,
+  .endfield-challenges .report-heading h3, .endfield-challenges .challenge-record h3, .endfield-gacha h2, .endfield-gacha .detail-head h3,
+  .ef-loadout .loadout-module > header h3, .ef-tactical > header h3)::before {
   counter-increment: ef-block;
   content: counter(ef-block, decimal-leading-zero) ' / ';
   color: var(--skin-accent);
@@ -42,4 +46,36 @@
 
 .reuse.lab-sheet[data-skin="endfield"] .head-dossier h1 {
   margin-top: 2px;
+}
+
+/* Item and group names are content, not captions: full ink instead of lab.css's muted h4. */
+.reuse.lab-sheet[data-skin="endfield"] #render-content h4 {
+  color: var(--ink);
+}
+
+/* Square-cut like the rest of the skin (render.css rounds challenge cards and lab blocks to 20-24px). */
+.reuse.lab-sheet[data-skin="endfield"] #render-content .challenge-report,
+.lab-sheet[data-skin="endfield"] :is(.block, .guide-role-context) {
+  border-radius: var(--skin-radius-card);
+}
+
+.lab-sheet[data-skin="endfield"] .guide-role-context > :is(img, .endfield-artwork) {
+  border-radius: var(--skin-radius-tile);
+}
+
+/* Elite phases step through the skin's neutral greys (C3.4): a yellow mixed into the translucent track reads olive. */
+.reuse.lab-sheet[data-skin="endfield"] .endfield-reports {
+  --ef-neutral: color-mix(in srgb, var(--skin-muted) 55%, var(--skin-surface));
+}
+
+/* Role cards take the skin's square cut instead of the website's 22/16px corners. */
+.reuse.lab-sheet[data-skin="endfield"] #render-content {
+  --role-card-radius: var(--skin-radius-card);
+  --role-art-radius: var(--skin-radius-tile);
+}
+
+/* Metric tiles read as numbers first: the value above the body size, the caption stays small. */
+.reuse.lab-sheet[data-skin="endfield"] #render-content :is(.summary-metric .metric-copy > strong, .ef-ship-counts dd, .operator-marks dd) {
+  font-size: var(--qq-number) !important;
+  line-height: 1.3 !important;
 }
