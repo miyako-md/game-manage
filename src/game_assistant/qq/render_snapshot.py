@@ -36,7 +36,7 @@ END_FIELD |= frozenset('base stamina operators regions ship achievements main_mi
 CALABASH = COMMON | frozenset('base_catch catch_quality cur_exp max_count phantom_list phantom_name phantom_icon phantom_id quality catch_prob'.split())
 RESOURCES = COMMON | frozenset('period kind data total_coin total_star coin_inc star_inc inc coin_list star_list item_list num start_time end_time'.split())
 COMBAT = COMMON | ROLE | frozenset('tower hologram slash data star max_star difficulty_list difficulty difficulty_name tower_area_list area_name floor_list floor floor_index floor_name role_list roles role_level challenge_info boss_name boss_level pass_time season_end_at is_unlock challenge_list challenge_name score rank all_score max_score half_list half_name buff_list buff_name buff_description'.split())
-ASSETS = COMMON | frozenset('owned_count owned resident_ids furniture base advanced models show_name show_id members role_ids role_name slot role_id rarity image_urls'.split())
+ASSETS = COMMON | frozenset('owned_count owned resident_ids furniture base advanced models show_name show_id members role_ids role_name slot role_id rarity image_urls owned_role_names'.split())
 # Existing public article builders: WuWa announcements, Tajiduo _post_url,
 # endfield_public.NEWS_URL and sources.bilibili dynamic links. These anchors
 # never become image prefetch URLs and do not broaden assets.ALLOWED_HOSTS.

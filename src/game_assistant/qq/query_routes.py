@@ -135,6 +135,27 @@ class QqQueryService:
             if account is not None and isinstance(account['snapshot']['payload'],dict):account['snapshot']['payload'].update(shared_view.role_totals(row['game'],snapshot.payload))
             context['panel_notices'].append(GAME_NAMES[row['game']]+'总览最多展示 6 名角色；完整角色请使用角色指令。')
 
+    def _with_owned_team_roles(self,identity,snapshot,context,cache):
+        """Bound users get their NTE roster names so the team image keeps teams they can field.
+
+        Unbound users still receive the public list. Reading the roster goes through the same
+        scope capture as other private commands, so the cached image is per user and the
+        binding is re-checked after rendering."""
+        if self.query_service is None or not isinstance(snapshot.payload,dict):return snapshot
+        try:principal=self.bindings.resolve_qq_identity(identity)
+        except QqBindingError:return snapshot
+        names=set()
+        for row,scope in self._accounts(principal,'nte'):
+            if context is not None and context.get('user_id') is None:
+                context.update(user_id=principal.user_id,binding_revision=self._binding_revision(identity))
+            self._capture_scope(context,scope)
+            roles=self._snapshot(row,scope,'roles',context,cache)
+            payload=roles.payload if roles is not None else None
+            entries=payload.get('entries') if isinstance(payload,dict) else payload
+            names.update(str(e['name']) for e in entries or [] if isinstance(e,dict) and e.get('name'))
+        if not names:return snapshot
+        return QueryResult({**snapshot.payload,'owned_role_names':sorted(names)},snapshot.fetched_at,snapshot.state,snapshot.complete)
+
     def _ledger_snapshot(self, scope, game):
         """Read only an existing scoped shard; missing files never get initialized."""
         private=getattr(self.query_service,'private',None)
@@ -371,6 +392,7 @@ class QqQueryService:
             try:
                 snapshot=self.public.read(game,'teams')
                 self._capture_snapshot(context,None,game+':teams',snapshot)
+                snapshot=self._with_owned_team_roles(identity,snapshot,context,read_cache)
                 if context is not None:self._panel(context,{'game':game,'provider':'public'},'teams',snapshot)
                 return reply(view.snapshot_card(game,'','teams',snapshot,self.asset_cache))
             except AccountNotFoundError:

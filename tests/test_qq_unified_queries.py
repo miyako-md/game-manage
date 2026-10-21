@@ -361,3 +361,25 @@ def test_detail_does_not_project_scoring_credentials_or_untrusted_urls_from_sour
     text=service(query).query(IDENTITY,'roles','nte',role_name='角色')['text']
     assert 'NEVER' not in text and '999' not in text and 'untrusted.example' not in text
     assert '攻击：0' in text and '等级：未知' in text
+
+
+def test_nte_team_image_carries_the_bound_roster_and_unbound_users_keep_the_public_list():
+    from game_assistant.qq.bindings import QqBindingError
+    query=CachedQuery()
+    query.add('nte','tajiduo','n',{'roles':{'entries':[{'name':'娜娜莉'},{'name':'安魂曲'},{'name':''}]}})
+    teams=QueryResult({'entries':[{'id':1,'name':'娜娜莉队'}]},'2026-10-14T00:00:00Z','ok',None)
+    public=SimpleNamespace(read=lambda game,cap:teams)
+    def payload(api):
+        context={}
+        api.query(IDENTITY,'teams','nte',image_context=context)
+        [panel]=context['render_snapshot']['display_data']['panels']
+        return panel['snapshot']['payload'],context
+    bound=QqQueryService(SimpleNamespace(resolve_qq_identity=lambda i:Principal('u',False)),query,public)
+    data,context=payload(bound)
+    # The roster is private: it is read through a captured scope, so the image is cached per user
+    # and the binding is re-checked after rendering.
+    assert data['owned_role_names']==sorted(['娜娜莉','安魂曲'])
+    assert context['user_id']=='u' and [scope.account_id for scope,_ in context['grants']]==['n']
+    def unbound(identity):raise QqBindingError('qq_binding_required',403)
+    data,context=payload(QqQueryService(SimpleNamespace(resolve_qq_identity=unbound),query,public))
+    assert 'owned_role_names' not in data and context['user_id'] is None and not context['grants']

@@ -50,7 +50,7 @@ const data = computed(() => legacy.value ? {} : payload.value ?? {})
 const renderRoleCatalog=inject('renderRoleCatalog',{})
 // The image keeps one entry per team name and, when an owned roster is supplied, only teams naming an owned role.
 const entries = computed(() => props.imageMode && props.capability === 'teams'
-  ? imageTeams(list(data.value.entries), props.roles.map(role => role.name), list(renderRoleCatalog.nte).map(role => role.name))
+  ? imageTeams(list(data.value.entries), list(data.value.owned_role_names).length ? list(data.value.owned_role_names) : props.roles.map(role => role.name), list(renderRoleCatalog.nte).map(role => role.name))
   : list(data.value.entries))
 const roleMap = computed(() => new Map([...(renderRoleCatalog.nte||[]),...props.roles].map(role => [String(role.id), role])))
 const roleName = id => roleMap.value.get(String(id))?.name || (props.imageMode?'名称未提供':`角色 ${id}`)

@@ -121,3 +121,15 @@ test('the team image lists each name once while the website keeps every official
   const image = mount(t, NteAssetsPanel, { capability: 'teams', imageMode: true, snap: snap({ entries }) })
   assert.deepEqual(nodes(image, 'details').map(n => content(nodes(n, 'strong')[0])), ['主角·零', '合成配队'])
 })
+
+test('the team image filters by the roster the server attaches, ahead of the roles prop', async (t) => {
+  const { defineComponent, h, provide } = await import('vue')
+  const entries = [{ id: '1', name: '娜娜莉配队' }, { id: '2', name: '安魂曲配队' }, { id: '3', name: '合成配队' }]
+  const wrapped = (roles) => defineComponent({ setup() {
+    provide('renderRoleCatalog', { nte: [{ id: '1', name: '娜娜莉' }, { id: '2', name: '安魂曲' }] })
+    return () => h(NteAssetsPanel, { capability: 'teams', imageMode: true, roles, snap: snap({ entries, owned_role_names: ['娜娜莉'] }) })
+  } })
+  const names = root => nodes(root, 'details').map(n => content(nodes(n, 'strong')[0]))
+  // 安魂曲 is a known but unowned role; a name with no known role is kept.
+  assert.deepEqual(names(mount(t, wrapped([{ name: '安魂曲' }]), {})), ['娜娜莉配队', '合成配队'])
+})
