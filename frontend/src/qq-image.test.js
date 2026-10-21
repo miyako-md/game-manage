@@ -8,6 +8,7 @@ import {prepareReuse} from './qq-image/reuse-model.js'
 import {schemes} from './qq-image/designs.js'
 import {upcomingSections,windowEndpoint} from './qq-image/upcoming.js'
 import {loadVue,mount,nodes,content} from './test-utils/vue.js'
+import {sheetSkin} from './qq-image/sheet-skin.js'
 
 const CloudCalendar=await loadVue(new URL('./qq-image/CloudCalendar.vue',import.meta.url))
 
@@ -147,9 +148,9 @@ test('a bare guide reply is a plain notice, not an index image',()=>{
 
 test('QQ skins: the sheet and each overview game block carry data-skin, and skinned images start from dark tokens',t=>{
  const read=name=>readFileSync(new URL('./qq-image/'+name,import.meta.url),'utf8')
- assert.match(read('LabRoot.vue'),/skinOf\(props\.input\?\.snapshot\?\.game\)\|\|\(isAccountOverview\.value\?'wuwa':null\)/)
+ assert.match(read('LabRoot.vue'),/skin=computed\(\(\)=>sheetSkin\(props\.input\?\.snapshot\?\.game\)\)/)
  assert.match(read('LabRoot.vue'),/:data-skin="skin"/)
- assert.match(read('mount.js'),/dataset\.theme=skinOf\(snapshot\.game\)\?'dark':'light'/)
+ assert.match(read('mount.js'),/dataset\.theme=sheetSkin\(snapshot\.game\)\?'dark':'light'/)
  assert.match(read('mount.js'),/import '\.\/reuse\.css'[\s\S]*import '\.\/skin\.css'/)
  assert.match(read('mount.js'),/import '\.\/skin\.css'\s+import '\.\/skin-wuwa\.css'\s+import '\.\/skin-nte\.css'\s+import '\.\/skin-endfield\.css'/)
  for(const key of ['wuwa','nte','endfield']){
@@ -174,4 +175,46 @@ test('D7: no QQ obsidian text is smaller than 17px',()=>{
  const sizes=[...obsidian.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
  assert.ok(sizes.length&&sizes.every(size=>size>=17),String(sizes))
  assert.match(readFileSync(new URL('./qq-image/reuse.css',import.meta.url),'utf8'),/\.wuwa-role-sub \{\s+font-size: var\(--qq-small\) !important;/)
+})
+
+test('cross-game QQ pages keep the obsidian shell; a game page keeps its own skin',()=>{
+ assert.deepEqual(['all',undefined,'wuthering_waves','nte','endfield'].map(sheetSkin),['wuwa','wuwa','wuwa','nte','endfield'])
+})
+
+const HelpSheet=await loadVue(new URL('./qq-image/HelpSheet.vue',import.meta.url))
+const cls=(n,name)=>String(n.props.class||'').split(' ').includes(name)
+
+test('帮助 groups list registry lines as command cards; game groups carry their skin and placeholders are marked',t=>{
+ const data={title:'帮助 · 游戏管家',notices:['先登录网站生成绑定码。'],sections:[
+  {title:'绑定与账号',items:['绑定网站账号：绑定 实际绑定码','授权状态：我的账号']},
+  {title:'总览与角色',items:['角色详情：游戏 角色 精确名称']},
+  {title:'鸣潮专项',game:'wuthering_waves',items:['挑战记录：鸣潮 挑战']},
+  {title:'终末地专项',game:'endfield',items:['帝江号：终末地 帝江号']}]}
+ const root=mount(t,HelpSheet,{data,variant:'help'})
+ const groups=nodes(root,'section').filter(n=>cls(n,'hs-group'))
+ assert.deepEqual(groups.map(n=>[content(nodes(n,'h2')[0]),n.props['data-skin']]),[['绑定与账号',undefined],['总览与角色',undefined],['鸣潮专项','wuwa'],['终末地专项','endfield']])
+ // Every registry line survives as command + description, in order.
+ assert.deepEqual(nodes(root,'code').map(content),['绑定 实际绑定码','我的账号','游戏 角色 精确名称','鸣潮 挑战','终末地 帝江号'])
+ assert.deepEqual(nodes(root,'span').filter(n=>cls(n,'hs-desc')).map(content),['绑定网站账号','授权状态','角色详情','挑战记录','帝江号'])
+ const slots=nodes(root,'code').flatMap(n=>nodes(n,'span')).filter(n=>cls(n,'hs-slot')).map(content)
+ assert.deepEqual(slots,['实际绑定码','游戏','精确名称'])
+ assert.ok(nodes(root,'div').some(n=>cls(n,'hs-games')&&cls(n,'count-2')))
+ assert.match(content(nodes(root,'aside')[0]),/使用说明 先登录网站生成绑定码/)
+})
+
+test('我的账号 shows one card per account, tinted by its game, and flags accounts that need re-authorization',t=>{
+ const data={title:'QQ 网站绑定已确认。我的账号',notices:[],sections:[{title:'授权状态',items:[
+  '鸣潮','授权：已授权','默认账号：是','终末地 · 鹰角寻访','授权：需重新授权','默认账号：否','未知来源','授权：已授权']}]}
+ const root=mount(t,HelpSheet,{data,variant:'account'})
+ const cards=nodes(root,'article').filter(n=>cls(n,'hs-account'))
+ assert.deepEqual(cards.map(n=>[content(nodes(n,'h3')[0]),n.props['data-skin']]),[['鸣潮','wuwa'],['终末地 · 鹰角寻访','endfield'],['未知来源',undefined]])
+ const rows=cards.map(card=>nodes(card,'div').filter(n=>nodes(n,'dt').length).map(n=>[content(n),n.props.class||'']))
+ assert.deepEqual(rows[0],[['授权 已授权','is-ok'],['默认账号 是','']])
+ assert.deepEqual(rows[1][0],['授权 需重新授权','is-warn'])
+})
+
+test('QQ 帮助 and 我的账号 notices use the command-card sheet; other notices keep the shared notice body',()=>{
+ const lab=readFileSync(new URL('./qq-image/LabRoot.vue',import.meta.url),'utf8')
+ assert.match(lab,/<HelpSheet v-if="helpVariant"[^>]*\/>\s*<ReuseBody v-else/)
+ assert.match(lab,/\/帮助\/\.test\(s\.display_data\?\.title\)\?'help':\/我的账号\/\.test\(s\.display_data\?\.title\)\?'account':null/)
 })
