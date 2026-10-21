@@ -1,12 +1,12 @@
 import { reactive } from 'vue'
 import * as identity from './identity-api.js'
 import * as accounts from './accounts-api.js'
-import { setAccountScope, subscribeSessionInvalidation, obtainCsrf } from './http-client.js'
+import { setAccountScope, subscribeSessionInvalidation, clearCsrf } from './http-client.js'
 import { collectionState } from './snapshot-state.js'
 import { endfieldPageSources } from './endfield-accounts.js'
 const REFRESH_READ_INTERVAL = 2000, REFRESH_READ_LIMIT = 10, REFRESH_TRACK_TIMEOUT = 30000
 export function createCloudDashboard(overrides = {}) {
-  const api = { ...identity, ...accounts, obtainCsrf, ...overrides }
+  const api = { ...identity, ...accounts, clearCsrf, ...overrides }
   const state = reactive({ user: null, accounts: [], selected: null, role: '', snapshots: {}, readStates: {}, sources: {}, sourceSnapshots: {}, overview: {}, overviewLoading: false, sessions: [], error: '', loading: false, ready: false, logoutFailed: false, refreshing: {}, refreshPending: {}, revision: 0 })
   let epoch = 0, initializeGeneration = 0, disposed = false, keepSelectionEmpty = false
   let overviewGeneration = 0
@@ -25,7 +25,8 @@ export function createCloudDashboard(overrides = {}) {
     const valid = () => !disposed && version === initializeGeneration
     try {
       const user = await api.getMe(); if (!valid()) return
-      await api.obtainCsrf(true); if (!valid()) return
+      // Another tab may have rotated the session cookie: forget the token, writes fetch a new one on demand.
+      api.clearCsrf()
       if (state.user && state.user.user_id !== user.user_id) { clear(); version = initializeGeneration }
       state.user = user; state.error = ''; await loadAccounts()
     }

@@ -199,7 +199,7 @@ for (const [name, failure, expected] of [['the service cannot be reached', unrea
   })
 
 
-test('session reinitialization refreshes CSRF after another tab rotates its cookie',async t=>{
+test('session reinitialization forgets CSRF after another tab rotates its cookie, without a request of its own',async t=>{
   configureHttpClient({mode:'cloud'});t.after(()=>configureHttpClient({mode:'local'}))
   let owner='A',csrfReads=0
   t.mock.method(globalThis,'fetch',async(path,options)=>{
@@ -208,7 +208,9 @@ test('session reinitialization refreshes CSRF after another tab rotates its cook
     return new Response(JSON.stringify(path==='/api/identity/me'?{user_id:owner}:{accounts:[]}))
   })
   const d=createCloudDashboard();t.after(d.dispose)
-  await d.initialize();owner='B';await d.initialize()
+  await d.initialize();assert.equal(csrfReads,0,'a session check alone never asks for a CSRF token')
+  assert.deepEqual(await requestJson('/api/accounts/synthetic/roles/r/refresh/account',{method:'POST'}),{ok:true})
+  owner='B';await d.initialize();assert.equal(csrfReads,1)
   assert.deepEqual(await requestJson('/api/accounts/synthetic/roles/r/refresh/account',{method:'POST'}),{ok:true})
   assert.equal(csrfReads,2)
 })
