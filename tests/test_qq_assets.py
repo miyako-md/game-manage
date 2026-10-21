@@ -98,8 +98,10 @@ async def test_bad_decode_falls_back_and_retries_are_bounded(monkeypatch):
     monkeypatch.setattr(assets, '_download', fetch)
     cache = assets.PublicAssetCache()
     ref = cache.register_url('https://webstatic.tajiduo.com/a.png')
-    await cache.prefetch([ref], budget_seconds=.5)
-    await cache.prefetch([ref], budget_seconds=.5)
+    # A budget slow runners always meet: an image still being decoded at the
+    # deadline is cancelled and refetched later, which is not what this tests.
+    await cache.prefetch([ref], budget_seconds=10)
+    await cache.prefetch([ref], budget_seconds=10)
     assert cache.get_image(ref) is None
     assert len(calls) == 1
 
