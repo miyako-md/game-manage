@@ -30,3 +30,9 @@ test('an unknown section falls back to the roster outline instead of an empty pa
   const root = mount(t, Locked, { section: 'nonsense' })
   assert.match(content(root), /稀有度与精英阶段分布/)
 })
+
+test('the cloud page hides the note, leaving the explanation to the authorization guide', t => {
+  const root = mount(t, Locked, { section: 'operators', note: false })
+  assert.equal(nodes(root, 'p').length, 0)
+  assert.deepEqual(nodes(root, 'h2').map(content), ['全员练度', '稀有度分布', '精英阶段', '6★ 干员'])
+})

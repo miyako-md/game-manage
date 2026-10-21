@@ -82,9 +82,11 @@ class AccountService:
                     if not item['roles']:
                         item['state'] = 'role_unavailable'
                     if item['provider'] == 'skland':
-                        if 'channel' not in saved and not any('channel' in role for role in saved.get('_verified_roles', [])):
-                            item['channel'] = 'unknown'
                         parent = saved.get('_parent')
+                        if 'channel' not in saved and not any('channel' in role for role in saved.get('_verified_roles', [])):
+                            # Saved before channel storage: a passport-derived grant reports the channel
+                            # load_grant() just validated on its parent; a manual one stays unproven.
+                            item['channel'] = (parent.get('channel') or 'official') if parent else 'unknown'
                         item['authorization_source'] = 'passport' if parent else 'manual'
                         if parent:
                             item.update(parent_account_id=parent['account_id'],parent_role_id=parent['role_id'])

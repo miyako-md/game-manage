@@ -92,7 +92,8 @@ test('role selection removes both old sources before another character has loade
   assert.match(content(root), /同角色档案/); assert.match(content(root), /已记录寻访 12/)
   choose(root, '查看角色', 'other:role-other'); await settle()
   assert.doesNotMatch(content(root), /同角色档案|鹰角本人|已记录寻访 12/)
-  assert.match(content(root), /尚未连接此角色的森空岛/)
+  assert.match(content(root), /需要补授权：森空岛档案/)
+  assert.ok(nodes(root, 'a').some(node => node.props.href === '#/accounts?focus=skland' && /一键连接森空岛档案/.test(content(node))), 'the merged partner of another character is not borrowed')
   for (const finish of pending) finish()
   await settle()
 })
@@ -123,4 +124,66 @@ for (const hasPartner of [true, false]) test(`revoking the selected source ${has
     assert.match(content(root), /当前角色的授权已失效/)
     assert.ok(nodes(root, 'ul').some(node => node.props['aria-label'] === '查看角色'))
   }
+})
+
+function unpairedFetch(t, rows, calls = []) {
+  configureHttpClient({ mode: 'cloud' }); t.after(() => configureHttpClient({ mode: 'local' }))
+  t.mock.method(globalThis, 'fetch', async (path, options) => {
+    calls.push([path, options.method])
+    const data = path === '/api/identity/me' ? { user_id: 'owner' } : path.endsWith('/csrf') ? { csrf_token: 'fixture' }
+      : path === '/api/accounts' ? { accounts: rows }
+      : path === '/api/accounts/h/roles/role-h/snapshot/account' ? passport
+      : path === '/api/accounts/h/roles/role-h/snapshot/gacha' ? gacha
+      : path === '/api/accounts/s/roles/role-s/snapshot/account' ? profile
+      : path.endsWith('/operators/op') ? { operator: { name: '合并干员', weapon: { name: '同角色武器', level: 20 } } }
+      : { state: 'never', payload: null, supported: false }
+    return new Response(JSON.stringify(data))
+  })
+  return calls
+}
+const note = root => nodes(root, 'p').find(node => node.props.role === 'note' && String(node.props.class).includes('ef-fallback-note'))
+
+test('an unpaired entry borrows the other provider per page, says so, and keeps both entries and scopes apart', async t => {
+  const unknown = { ...s, channel: 'unknown' }, calls = unpairedFetch(t, [h, unknown])
+  const root = mount(t, App); await settle(); button(root, '终末地').props.onClick(); await settle()
+  assert.match(content(root), /终末地 · 鹰角寻访/)
+  const roleMenu = nodes(root, 'ul').find(node => node.props['aria-label'] === '查看角色')
+  assert.deepEqual(nodes(roleMenu, 'li').map(node => node.props['data-value']), ['h:role-h', 's:role-s'])
+  assert.equal(content(note(root)), '本页使用森空岛档案「共同角色 · 渠道未提供」，与当前鹰角寻访未配对为同一角色')
+  assert.match(content(root), /同角色档案/); assert.match(content(root), /已记录寻访 12/)
+  assert.doesNotMatch(content(root), /需要补授权/)
+  button(root, '全员练度').props.onClick(); await tick()
+  assert.ok(note(root)); assert.match(content(root), /合并干员/)
+  button(root, '查看配装').props.onClick(); await settle()
+  assert.ok(calls.some(([path]) => path === '/api/accounts/s/roles/role-s/endfield/skland/operators/op'))
+  button(root, '抽卡统计').props.onClick(); await tick()
+  assert.equal(note(root), undefined, 'gacha is the selected entry\'s own data')
+  choose(root, '查看角色', 's:role-s'); await settle()
+  assert.match(content(root), /终末地 · 森空岛档案/)
+  button(root, '抽卡统计').props.onClick(); await settle()
+  assert.equal(content(note(root)), '本页使用鹰角寻访「共同角色 · B 服」，与当前森空岛档案未配对为同一角色')
+  assert.match(content(root), /鹰角本人 · 角色编号 9001/)
+  assert.ok(calls.every(([path]) => !path.startsWith('/api/endfield/')))
+})
+
+test('with several unpaired candidates nothing is borrowed and the guide lists them for 查看角色', async t => {
+  const unknown = { ...s, channel: 'unknown' }, second = { ...unknown, account_id: 's2', grant_id: 'grant-s2', roles: [{ ...unknown.roles[0], role_id: 'role-s2' }] }
+  const calls = unpairedFetch(t, [h, unknown, second])
+  const root = mount(t, App); await settle(); button(root, '终末地').props.onClick(); await settle()
+  assert.equal(note(root), undefined)
+  assert.match(content(root), /请在“查看角色”中选择对应角色/)
+  const guide = nodes(root, 'section').find(node => node.props['aria-label'] === '终末地授权引导')
+  assert.deepEqual(nodes(guide, 'li').map(content), ['共同角色 · 渠道未提供 · 森空岛档案', '共同角色 · 渠道未提供 · 森空岛档案'])
+  assert.doesNotMatch(content(root), /同角色档案/)
+  assert.ok(calls.every(([path]) => !path.includes('/endfield/skland/')))
+})
+
+test('a user with only one side sees the guide for the other side instead of a borrowed page', async t => {
+  unpairedFetch(t, [s])
+  const root = mount(t, App); await settle(); button(root, '终末地').props.onClick(); await settle()
+  assert.match(content(root), /同角色档案/); assert.equal(note(root), undefined)
+  assert.doesNotMatch(content(root), /需要补授权/)
+  button(root, '抽卡统计').props.onClick(); await tick()
+  assert.match(content(root), /需要补授权：鹰角寻访/); assert.match(content(root), /寻访抽卡统计/)
+  assert.ok(nodes(root, 'a').some(node => node.props.href === '#/accounts' && /前往账号与授权/.test(content(node))))
 })

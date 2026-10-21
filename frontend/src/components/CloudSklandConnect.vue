@@ -1,6 +1,6 @@
 <script setup>
 import MenuSelect from './MenuSelect.vue'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { connectCloudSkland, connectCloudSklandPassport } from '../accounts-api.js'
 import { isCloudMode, subscribeSessionInvalidation } from '../http-client.js'
 const props = defineProps({ accounts: { type: Array, default: () => [] }, userId: { type: String, required: true } })
@@ -53,10 +53,13 @@ function connectManual() {
   return run('manual', signal => connectCloudSkland(bodyCred, bodyDevice, { signal }))
 }
 const stop = subscribeSessionInvalidation(clear)
+// The Endfield authorization guide links here with #/accounts?focus=skland.
+const panel = ref(null)
+onMounted(() => { if (/[?&]focus=skland(?:&|$)/.test(globalThis.location?.hash || '')) panel.value?.scrollIntoView?.({ block: 'start' }) })
 onBeforeUnmount(() => { stop(); clear() })
 </script>
 <template>
-  <section v-if="isCloudMode()" class="cap-card cloud-skland" aria-label="森空岛档案授权">
+  <section v-if="isCloudMode()" ref="panel" class="cap-card cloud-skland" aria-label="森空岛档案授权">
     <h2>终末地 · 森空岛档案授权</h2>
     <p v-if="error" role="alert">{{ error }}</p><p v-if="success" role="status">{{ success }}</p>
     <form aria-label="通过鹰角授权连接森空岛" @submit.prevent="connectPassport">

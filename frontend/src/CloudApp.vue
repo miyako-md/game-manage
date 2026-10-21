@@ -1,9 +1,9 @@
 <script setup>
 import MenuSelect from './components/MenuSelect.vue'
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onBeforeUnmount, provide, ref, watch } from 'vue'
 import { createCloudDashboard } from './cloud-dashboard.js'
 import { accountCapabilities, providerName, getPublicSnapshot } from './accounts-api.js'
-import { endfieldRoleChoices } from './endfield-accounts.js'
+import { endfieldRoleChoices, endfieldFallbackCandidates } from './endfield-accounts.js'
 import { revokeSession, getMe } from './identity-api.js'
 import { followSystem } from './theme.js'
 import { lazyPage } from './lazy-page.js'
@@ -93,6 +93,8 @@ const defaultRole = account => account?.roles?.find(role => role.is_default)?.ro
 const endfieldChoices = computed(() => endfieldRoleChoices(state.accounts))
 const sameChoice = (choice, account, role) => choice.account.account_id === account?.account_id && choice.role === role || Object.values(choice.sources).some(source => source.account.account_id === account?.account_id && source.role === role)
 const selectedChoice = computed(() => endfieldChoices.value.find(choice => sameChoice(choice, state.selected, state.role)))
+// The Endfield authorization guide names the entries it could not choose between.
+provide('endfieldCandidates', computed(() => Object.fromEntries(['hypergryph', 'skland'].map(provider => [provider, endfieldFallbackCandidates(endfieldChoices.value, selectedChoice.value, provider)]))))
 const channelLabel = account => ({ official: '官服', bilibili: 'B 服' })[account?.channel] || '渠道未提供'
 const choiceName = choice => {
   const role = choice.account.roles?.find(row => row.role_id === choice.role)

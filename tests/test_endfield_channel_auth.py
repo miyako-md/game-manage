@@ -175,3 +175,59 @@ async def test_manual_skland_unknown_channel_is_preserved_as_unknown(cloud, monk
     result = await login.connect_skland(P, 'test-cred')
     row = next(item for item in accounts.list_accounts(P) if item['account_id'] == result['account_id'])
     assert row['channel'] == 'unknown'
+
+
+def strip_channel(store, grant, parent_channel=False):
+    """Rewrite a grant as saved before channel storage (d9a0f4e)."""
+    saved = store.load_grant('a', grant['grant_id'])
+    saved.pop('channel')
+    saved['_verified_roles'] = [{k: v for k, v in role.items() if k != 'channel'} for role in saved['_verified_roles']]
+    if '_parent' in saved and not parent_channel:
+        saved['_parent'].pop('channel')
+    store.save_grant('a', grant['grant_id'], saved, grant['version'])
+
+
+async def test_legacy_passport_skland_reports_parent_channel_and_pairs(cloud):
+    _, store, accounts, login = cloud
+    hg = parent(accounts)
+    sk = await connect(login, hg)
+    strip_channel(store, sk)
+    rows = {row['account_id']: row for row in accounts.list_accounts(P)}
+    item = rows[sk['account_id']]
+    assert item['state'] == 'active' and item['roles']
+    assert item['channel'] == rows[hg['account_id']]['channel'] == 'official'
+    assert (item['authorization_source'], item['parent_account_id']) == ('passport', hg['account_id'])
+    assert item['server'] == rows[hg['account_id']]['server']
+    assert item['roles'][0]['game_uid'] == rows[hg['account_id']]['roles'][0]['game_uid']
+
+
+async def test_legacy_passport_skland_follows_explicit_parent_channel(cloud, monkeypatch):
+    db, store, accounts, login = cloud
+    hg = parent(accounts, channel='bilibili')
+
+    async def binding(self, *args):
+        return {'list': [{'appCode': 'endfield', 'bindingList': [
+            {'uid': 'hg-user', 'channelMasterId': 2, 'isOfficial': False, 'channelName': 'bilibili服',
+             'roles': [{'roleId': 'role', 'serverId': '1'}]}]}]}
+
+    monkeypatch.setattr(Client, 'binding', binding)
+    sk = await connect(login, hg)
+    strip_channel(store, sk, parent_channel=True)
+    # Pre-channel storage scoped every skland row under 'official'.
+    db.execute('BEGIN')
+    db.execute('PRAGMA defer_foreign_keys=ON')
+    db.execute("UPDATE accounts SET channel='official' WHERE account_id=?", (sk['account_id'],))
+    db.execute("UPDATE roles SET channel='official' WHERE account_id=?", (sk['account_id'],))
+    db.commit()
+    item = next(row for row in accounts.list_accounts(P) if row['account_id'] == sk['account_id'])
+    assert item['state'] == 'active' and item['channel'] == 'bilibili'
+
+
+def test_legacy_manual_skland_without_channel_stays_unknown(tmp_path):
+    _, store, accounts, _ = setup(tmp_path)
+    manual = accounts.save_verified(P, 'skland', {'user_id': 'sk-user', 'cred': 'manual',
+        'role_id': 'role', 'server_id': '1'})
+    strip_channel(store, manual)
+    item = next(row for row in accounts.list_accounts(P) if row['account_id'] == manual['account_id'])
+    assert item['state'] == 'active' and item['channel'] == 'unknown'
+    assert item['authorization_source'] == 'manual' and 'parent_account_id' not in item

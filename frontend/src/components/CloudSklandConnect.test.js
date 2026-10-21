@@ -164,3 +164,17 @@ test('cloud manual fallback retains its separate cred route and clears sensitive
   assert.equal(write.options.headers['X-CSRF-Token'], 'csrf-fixture')
   assert.ok(nodes(form, 'input').every(node => !node.props.value))
 })
+
+test('the Endfield guide link scrolls the connector into view; a plain visit does not', async t => {
+  configureHttpClient({ mode: 'cloud' }); t.after(() => configureHttpClient({ mode: 'local' }))
+  const scrolled = [], location = globalThis.location
+  // Test renderer nodes are plain objects; give them the one DOM method the connector calls.
+  Object.defineProperty(Object.prototype, 'scrollIntoView', { configurable: true, value(options) { scrolled.push([this.type, options]) } })
+  t.after(() => { delete Object.prototype.scrollIntoView; if (location === undefined) delete globalThis.location; else globalThis.location = location })
+  globalThis.location = { hash: '#/accounts' }
+  mount(t, Connector, { accounts: [account('A')], userId: 'owner' })
+  assert.deepEqual(scrolled, [])
+  globalThis.location = { hash: '#/accounts?focus=skland' }
+  mount(t, Connector, { accounts: [account('A')], userId: 'owner' })
+  assert.deepEqual(scrolled, [['section', { block: 'start' }]])
+})

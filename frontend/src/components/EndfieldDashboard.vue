@@ -1,6 +1,6 @@
 <script setup>
 import MenuSelect from './MenuSelect.vue'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   getPublic, refreshPublic, getMap, getMapMark, getSklandStatus, connectSkland, connectSklandWithPassport, chooseSklandRole,
   disconnectSkland, getSklandCard, refreshSklandCard, getAttendance, signAttendance,
@@ -20,6 +20,8 @@ import EndfieldNewsSummary from './EndfieldNewsSummary.vue'
 import { attendanceEnvelope } from '../endfield-attendance.js'
 import { vGlide } from '../motion.js'
 import EndfieldLocked from './EndfieldLocked.vue'
+import EndfieldAuthGuide from './EndfieldAuthGuide.vue'
+import { endfieldProviderLabel, endfieldSourceLabel } from '../endfield-accounts.js'
 
 const props = defineProps({ cloudAccount:Object, cloudRole:String, cloudSources:Object, sourceSnapshots:Object, isAdmin:Boolean, configured:{type:Boolean,default:undefined}, authAccount:Object, refreshing:Boolean, snaps: { type: Object, default: () => ({}) }, initialSection: { type: String, default: 'overview' } })
 const emit = defineEmits(['calendar','refresh'])
@@ -27,7 +29,11 @@ const cloud = computed(()=>!!props.cloudAccount)
 const passportSource = computed(() => props.cloudSources ? props.cloudSources.hypergryph || null : props.cloudAccount?.provider === 'hypergryph' ? { account: props.cloudAccount, role: props.cloudRole } : null)
 const profileSource = computed(() => props.cloudSources ? props.cloudSources.skland || null : props.cloudAccount?.provider === 'skland' ? { account: props.cloudAccount, role: props.cloudRole } : null)
 const passport = computed(() => !cloud.value || !!passportSource.value)
-const merged = computed(() => cloud.value && !!passportSource.value && !!profileSource.value)
+// A fallback lends one provider's pages from an entry that is not paired with the selected one.
+const fallbackSource = computed(() => Object.values(props.cloudSources || {}).find(source => source?.fallback) || null)
+const merged = computed(() => cloud.value && !!passportSource.value && !!profileSource.value && !fallbackSource.value)
+const candidates = inject('endfieldCandidates', null)
+const guideCandidates = provider => candidates?.value?.[provider] || []
 const profileSnapshot = computed(() => {
   if (!props.cloudSources?.skland) return props.cloudAccount?.provider === 'skland' ? props.snaps.account || null : null
   const snapshot = props.sourceSnapshots?.skland?.account, source = profileSource.value
@@ -35,6 +41,10 @@ const profileSnapshot = computed(() => {
 })
 const passportSnapshots = computed(() => props.cloudSources?.hypergryph ? props.sourceSnapshots?.hypergryph || {} : props.snaps)
 const canMaintain = computed(()=>!cloud.value || props.isAdmin)
+const connectionHint = computed(() => {
+  const source = profileSource.value?.fallback ? profileSource.value : { account: props.cloudAccount, role: props.cloudRole }
+  return `${merged.value ? '鹰角资料与寻访 · 森空岛档案' : profileSource.value ? '森空岛档案' : '鹰角资料与寻访'} · ${source.account?.roles?.find(r => r.role_id === source.role)?.display_name || source.role}`
+})
 const tabs = [
   ['overview', '概览'], ['operators', '全员练度'], ['regions', '地区建设'], ['ship', '帝江号'], ['gacha', '抽卡统计'],
   ['honor', '光荣之路'], ['challenges', '挑战记录'], ['news', '公告与资讯'], ['map', '地图与图鉴'], ['blueprints', '蓝图收藏'],
@@ -44,6 +54,12 @@ const additionalTabs = tabs.slice(5)
 const moreOpen = ref(false)
 const profileSections = ['overview', 'operators', 'regions', 'ship', 'honor', 'challenges']
 const section = ref(tabs.some(([id]) => id === props.initialSection) ? props.initialSection : 'overview')
+// The overview shows the profile and the gacha summary; the map's catalog query is a Skland route.
+const sectionUses = provider => provider === 'hypergryph' ? ['overview', 'gacha'].includes(section.value) : [...profileSections, 'map', 'blueprints'].includes(section.value)
+const fallbackNote = computed(() => {
+  const source = fallbackSource.value
+  return source && sectionUses(source.account.provider) ? `本页使用${endfieldProviderLabel(source.account.provider)}「${endfieldSourceLabel(source)}」，与当前${endfieldProviderLabel(props.cloudAccount.provider)}未配对为同一角色` : ''
+})
 const status = ref(null), statusBusy = ref(false), statusError = ref('')
 const card = ref(null), cardBusy = ref(false), cardError = ref('')
 const operatorDetail = ref(null), operatorDetailId = ref(''), operatorBusy = ref(false), operatorError = ref(''), operatorStale = ref(false)
@@ -387,9 +403,10 @@ onUnmounted(() => { destroyed = true; mapController?.abort(); ++statusSeq; ++pri
       <button type="button" class="text-link ef-calendar-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历<AppIcon name="arrow" :size="15" /></button>
       <nav v-show="moreOpen" id="endfield-more-nav" class="ef-more-nav segmented" aria-label="其他终末地入口"><button v-for="[id,label] in additionalTabs" :key="id" type="button" :aria-pressed="section === id" @click="selectSection(id)">{{ label }}</button></nav>
     </div>
+    <p v-if="fallbackNote" class="cap-card hint ef-fallback-note" role="note">{{ fallbackNote }}</p>
 
     <div v-if="profileSections.includes(section)" class="endfield-stack">
-      <section class="cap-card ef-connection" :class="{ 'is-connected': connected }"><div class="cap-title"><span class="ef-connection-dot" :class="{ connected }"></span>{{ merged ? '终末地游戏档案' : cloud && passport ? '鹰角通行证寻访' : '森空岛游戏档案' }}<span v-if="connected && connectionSource" class="badge">{{ connectionSource }}</span><span v-if="card?.stale" class="badge badge-stale">待更新</span></div>
+      <section class="cap-card ef-connection" :class="{ 'is-connected': connected }"><div class="cap-title"><span class="ef-connection-dot" :class="{ connected }"></span>{{ merged ? '终末地游戏档案' : cloud && passport && !profileSource ? '鹰角通行证寻访' : '森空岛游戏档案' }}<span v-if="connected && connectionSource" class="badge">{{ connectionSource }}</span><span v-if="card?.stale" class="badge badge-stale">待更新</span></div>
         <p v-if="statusBusy" class="hint" role="status">正在读取连接状态…</p>
         <p v-if="statusError" class="error" role="alert">{{ statusError }}</p>
         <template v-if="!cloud && !statusBusy && !connected">
@@ -409,10 +426,11 @@ onUnmounted(() => { destroyed = true; mapController?.abort(); ++statusSeq; ++pri
         <div v-else-if="connected && !cloud" class="role-bar"><label><span class="ef-role-label">当前角色</span><MenuSelect label="森空岛角色" :model-value="roleKey" :disabled="actionBusy" @change="selectRole" :options="[{value:'',label:'请选择角色'},...list(status.roles).map(role=>({value:`${role.role_id}:${role.server_id}`,label:roleLabel(role)}))]" /></label><button type="button" class="ui-button" :disabled="actionBusy || !roleKey || cardBusy" @click="loadCard(true)"><AppIcon name="refresh" :size="14" />{{ cardBusy ? '读取中…' : '刷新档案' }}</button><details class="ef-connection-settings"><summary>连接设置</summary><button type="button" class="ui-button" :disabled="actionBusy" @click="disconnect">断开森空岛</button></details></div>
         <p v-if="connected && !roleKey" class="hint">{{ status.source === 'passport' ? '森空岛绑定的角色与通行证登录的角色不同，请确认后手动选择。' : '请选择一个森空岛角色。' }}</p>
 
-        <p v-if="cloud" class="hint">{{ merged ? '鹰角资料与寻访 · 森空岛档案' : profileSource ? '森空岛档案' : '鹰角资料与寻访' }} · {{ cloudAccount.roles?.find(r=>r.role_id === cloudRole)?.display_name || cloudRole }}</p><p v-if="cloud && !connected" class="hint">尚未连接此角色的森空岛档案，请到<a href="#/accounts">账号与授权</a>连接。</p>
+        <p v-if="cloud" class="hint">{{ connectionHint }}</p>
         <p v-if="actionError" class="error" role="alert">{{ actionError }}</p><p v-if="actionMessage" class="hint" role="status">{{ actionMessage }}</p>
       </section>
-      <EndfieldLocked v-if="!roleKey && section !== 'overview'" :section="section" />
+      <EndfieldAuthGuide v-if="cloud && !connected" need="skland" :passport="!!passportSource" :candidates="guideCandidates('skland')" />
+      <EndfieldLocked v-if="!roleKey && section !== 'overview'" :section="section" :note="!cloud" />
 
       <template v-if="section === 'overview'">
         <template v-if="roleKey"><p v-if="cardBusy" class="hint" role="status">正在读取档案…</p><p v-if="cardError" class="error" role="alert">{{ cardError }}</p>
@@ -432,7 +450,7 @@ onUnmounted(() => { destroyed = true; mapController?.abort(); ++statusSeq; ++pri
       <EndfieldChallenges v-if="section === 'challenges' && roleKey" :value="challenge" :kind="challengeKind" :busy="challengeBusy" :error="challengeError" @select-kind="challengeKind = $event" @reload="loadChallenge" />
     </div>
 
-    <div v-else-if="section === 'gacha'" class="endfield-stack"><section v-if="passport" class="cap-card ef-identity-card"><div class="cap-title">鹰角通行证寻访账号<span v-if="passportView.snapshot?.stale" class="badge badge-stale">寻访待更新</span></div><p v-if="passportView.account" class="identity">{{ passportView.account.nickname || '未知昵称' }} · 角色编号 {{ passportView.account.role_id }}</p><p v-if="passportView.message" class="hint">{{ passportView.message }}</p><button type="button" class="ui-button" :disabled="refreshing" @click="emit('refresh')">{{ refreshing ? '同步中…' : '刷新寻访数据' }}</button></section><EndfieldGachaPanel v-if="passport && passportView.accountId" :snap="passportView.snapshot" :account-id="passportView.accountId" /><p v-if="!passport" class="cap-card hint">尚未连接此角色的鹰角寻访，请到「账号与授权」登录。</p></div>
+    <div v-else-if="section === 'gacha'" class="endfield-stack"><section v-if="passport" class="cap-card ef-identity-card"><div class="cap-title">鹰角通行证寻访账号<span v-if="passportView.snapshot?.stale" class="badge badge-stale">寻访待更新</span></div><p v-if="passportView.account" class="identity">{{ passportView.account.nickname || '未知昵称' }} · 角色编号 {{ passportView.account.role_id }}</p><p v-if="passportView.message" class="hint">{{ passportView.message }}</p><button type="button" class="ui-button" :disabled="refreshing" @click="emit('refresh')">{{ refreshing ? '同步中…' : '刷新寻访数据' }}</button></section><EndfieldGachaPanel v-if="passport && passportView.accountId" :snap="passportView.snapshot" :account-id="passportView.accountId" /><EndfieldAuthGuide v-if="!passport" need="hypergryph" :candidates="guideCandidates('hypergryph')" /></div>
 
     <div v-else-if="section === 'map'" class="endfield-stack"><section class="cap-card"><div class="cap-title">官方地图</div><form class="map-filters" @submit.prevent="submitMapSearch"><label>地图<MenuSelect v-model="mapId" label="地图" :options="[{value:'',label:'请选择地图'},...list(map?.maps).map(item=>({value:item.id,label:item.name}))]" /></label><label>区域<MenuSelect v-model="levelId" label="区域" :options="[{value:'',label:'默认区域'},...list(selectedMap?.levels).map(item=>({value:item.id,label:item.name}))]" /></label><label>点位类型<MenuSelect v-model="typeId" label="点位类型" :options="[{value:'',label:'全部类型'},...list(map?.categories).map(item=>({value:item.id,label:item.name}))]" /></label><label>搜索点位<input v-model="mapQuery" type="search" placeholder="输入名称" /></label><button type="submit" class="ui-button primary" :disabled="mapBusy">搜索</button></form><p v-if="mapBusy" class="hint" role="status">正在读取地图点位…</p><p v-if="mapError" class="error" role="alert">{{ mapError }}</p><p v-if="map?.stale" class="badge badge-stale">地图待更新</p><p v-if="!mapBusy && !list(map?.marks).length" class="empty">暂无匹配点位</p><ul v-else class="mark-list"><li v-for="(mark, i) in list(map?.marks)" :key="mark.id || i"><div><strong>{{ display(mark.name) }}</strong><p class="hint">坐标 {{ display(mark.x) }}，{{ display(mark.y) }}，{{ display(mark.z) }}<span v-if="mark.description"> · {{ mark.description }}</span></p></div><div class="actions"><button type="button" class="ui-button" :disabled="markBusy" @click="loadMark(mark)">查看详情</button><a v-if="safeExternalUrl(mark.url)" :href="safeExternalUrl(mark.url)" target="_blank" rel="noopener noreferrer">官方地图<AppIcon name="arrow" :size="14" /></a></div></li></ul><section v-if="markDetail || markBusy || markError" class="inner-card mark-detail"><p v-if="markBusy" class="hint" role="status">正在读取点位详情…</p><p v-if="markError" class="error" role="alert">{{ markError }}</p><template v-if="markDetail"><h3>{{ markDetail.typeSub?.name || markDetail.typeMain?.name || "地图点位" }}</h3><p v-if="markDetail.desc">{{ markDetail.desc }}</p><p>坐标：{{ display(markDetail.pos?.x) }}，{{ display(markDetail.pos?.y) }}，{{ display(markDetail.pos?.z) }}</p><a v-if="safeExternalUrl(markDetail.link)" :href="safeExternalUrl(markDetail.link)" target="_blank" rel="noopener noreferrer">{{ markDetail.linkText || "查看官方说明" }}<AppIcon name="arrow" :size="14" /></a></template></section><div v-if="map?.total > map?.limit" class="actions"><button type="button" class="ui-button" :disabled="mapBusy || mapOffset === 0" @click="mapOffset = Math.max(0, mapOffset - map.limit)">上一页</button><span class="hint">{{ mapOffset + 1 }}–{{ Math.min(mapOffset + map.limit, map.total) }} / {{ map.total }}</span><button type="button" class="ui-button" :disabled="mapBusy || mapOffset + map.limit >= map.total" @click="mapOffset += map.limit">下一页</button></div></section><section class="cap-card"><div class="cap-title">官方百科与养成</div><p v-if="publicBusy" class="hint" role="status">正在读取官方入口…</p><p v-if="publicError" class="error" role="alert">{{ publicError }}</p><p v-if="!officialTools.length" class="empty">暂未取得官方入口</p><ul v-else class="tool-grid"><li v-for="tool in officialTools" :key="tool.id"><a :href="safeExternalUrl(tool.url)" target="_blank" rel="noopener noreferrer"><strong>{{ tool.name }}</strong><AppIcon name="arrow" :size="14" /></a><p class="hint">{{ tool.description }}</p><p v-if="tool.status === 'unavailable'" class="hint">请前往官网查看。</p></li></ul></section>
       <section class="cap-card"><div class="cap-title">森空岛资料查询<span v-if="toolData?.stale" class="badge badge-stale">待更新</span></div>
@@ -464,7 +482,7 @@ onUnmounted(() => { destroyed = true; mapController?.abort(); ++statusSeq; ++pri
         </template>
       </section></div>
 
-    <div v-else-if="section === 'blueprints'" class="endfield-stack"><p v-if="cloud && !profileSource" class="cap-card hint">尚未连接此角色的森空岛档案，请到「账号与授权」连接后使用蓝图收藏。</p><section v-else class="cap-card"><div class="cap-title">蓝图收藏<button type="button" class="ui-button" :disabled="blueprintBusy" @click="downloadBlueprints">导出备份</button></div><form class="field-grid" @submit.prevent="submitBlueprint"><label>名称<input v-model="blueprintName" type="text" maxlength="100" required /></label><label>分享码<input v-model="blueprintCode" type="text" maxlength="2000" required /></label><label>备注<textarea v-model="blueprintNotes" maxlength="2000" rows="2" /></label><div class="actions"><button type="submit" class="ui-button primary" :disabled="blueprintBusy">{{ editingId === null ? '保存蓝图' : '保存修改' }}</button><button v-if="editingId !== null" type="button" class="ui-button" @click="resetBlueprint">取消编辑</button></div></form><p v-if="blueprintError" class="error" role="alert">{{ blueprintError }}</p><p v-if="blueprintMessage" class="hint" role="status">{{ blueprintMessage }}</p><p v-if="blueprintBusy" class="hint" role="status">正在处理蓝图…</p><p v-if="!blueprintBusy && !blueprints.length" class="empty">还没有收藏蓝图</p><ul v-else class="blueprint-list"><li v-for="item in blueprints" :key="item.id"><strong>{{ item.name }}</strong><code>{{ item.code }}</code><p v-if="item.notes" class="hint">{{ item.notes }}</p><div class="actions"><button type="button" class="ui-button" @click="copyCode(item.code)">复制分享码</button><button type="button" class="ui-button" :disabled="blueprintBusy" @click="editBlueprint(item)">编辑</button><button type="button" class="ui-button" :disabled="blueprintBusy" @click="removeBlueprint(item.id)">删除</button></div></li></ul></section></div>
+    <div v-else-if="section === 'blueprints'" class="endfield-stack"><EndfieldAuthGuide v-if="cloud && !profileSource" need="skland" :passport="!!passportSource" :candidates="guideCandidates('skland')" /><section v-else class="cap-card"><div class="cap-title">蓝图收藏<button type="button" class="ui-button" :disabled="blueprintBusy" @click="downloadBlueprints">导出备份</button></div><form class="field-grid" @submit.prevent="submitBlueprint"><label>名称<input v-model="blueprintName" type="text" maxlength="100" required /></label><label>分享码<input v-model="blueprintCode" type="text" maxlength="2000" required /></label><label>备注<textarea v-model="blueprintNotes" maxlength="2000" rows="2" /></label><div class="actions"><button type="submit" class="ui-button primary" :disabled="blueprintBusy">{{ editingId === null ? '保存蓝图' : '保存修改' }}</button><button v-if="editingId !== null" type="button" class="ui-button" @click="resetBlueprint">取消编辑</button></div></form><p v-if="blueprintError" class="error" role="alert">{{ blueprintError }}</p><p v-if="blueprintMessage" class="hint" role="status">{{ blueprintMessage }}</p><p v-if="blueprintBusy" class="hint" role="status">正在处理蓝图…</p><p v-if="!blueprintBusy && !blueprints.length" class="empty">还没有收藏蓝图</p><ul v-else class="blueprint-list"><li v-for="item in blueprints" :key="item.id"><strong>{{ item.name }}</strong><code>{{ item.code }}</code><p v-if="item.notes" class="hint">{{ item.notes }}</p><div class="actions"><button type="button" class="ui-button" @click="copyCode(item.code)">复制分享码</button><button type="button" class="ui-button" :disabled="blueprintBusy" @click="editBlueprint(item)">编辑</button><button type="button" class="ui-button" :disabled="blueprintBusy" @click="removeBlueprint(item.id)">删除</button></div></li></ul></section></div>
 
     <div v-else-if="section === 'news'" class="endfield-stack"><AnnouncementList game-id="endfield" :snap="newsSnapshots[0]" :extra-snaps="newsSnapshots.slice(1)"><template #actions><button v-if="canMaintain" type="button" class="ui-button" :disabled="publicBusy" @click="loadPublic(true)"><AppIcon name="refresh" :size="14" />{{ publicBusy ? '正在读取…' : '刷新资讯' }}</button></template></AnnouncementList><p v-if="publicBusy" class="hint" role="status">正在读取公开资讯…</p><p v-if="publicError && !publicNewsSnap" class="error" role="alert">{{ publicError }}</p></div>
   </div>

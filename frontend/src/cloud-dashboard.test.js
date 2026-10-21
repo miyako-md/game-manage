@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { configureHttpClient, requestJson } from './http-client.js'
+import { configureHttpClient, requestJson, getAccountScope } from './http-client.js'
 import { createCloudDashboard } from './cloud-dashboard.js'
 
 const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve() }
@@ -393,4 +393,43 @@ test('an initial Endfield source failure carries only its requested account and 
       assert.equal(error.payload, null); assert.equal(error.state, 'error'); assert.equal(error.error, '来源首次读取失败')
     }
   }
+})
+
+// Unpaired: the Skland grant reports an unknown channel, so the two entries stay separate choices.
+const unpairedAccounts = () => { const rows = endfieldAccounts(); rows[0].channel = 'official'; rows[1].channel = 'unknown'; return rows }
+test('an unpaired Endfield entry reads the missing provider from its unique fallback scope without changing the selection', async t => {
+  const reads = [], receipts = []
+  const dashboard = createCloudDashboard({ getAccountSnapshot: async (account, role, cap) => { reads.push([account, role, cap]); return endfieldSnapshot(account, role) },
+    refreshAccount: async (account, role, cap) => { receipts.push([account, role, cap]); return { state: 'queued' } } })
+  t.after(dashboard.dispose)
+  dashboard.state.user = { user_id: 'u' }; dashboard.state.accounts = unpairedAccounts(); dashboard.selectAccount(dashboard.state.accounts[0])
+  assert.equal(dashboard.state.selected.account_id, 'hypergryph'); assert.equal(dashboard.state.role, 'hypergryph-role')
+  assert.equal(dashboard.state.sources.skland.account.account_id, 'skland'); assert.equal(dashboard.state.sources.skland.fallback, true)
+  assert.equal(dashboard.state.sources.hypergryph.fallback, undefined)
+  assert.deepEqual(getAccountScope().sources.skland, { user_id: 'u', account_id: 'skland', role_id: 'skland-role', provider: 'skland', version: 1, grant_id: 'skland-grant' })
+  await dashboard.loadSelectedSnapshots()
+  assert.deepEqual(reads.sort(), [['hypergryph', 'hypergryph-role', 'account'], ['hypergryph', 'hypergryph-role', 'gacha'], ['skland', 'skland-role', 'account']])
+  assert.equal(dashboard.state.sourceSnapshots.skland.account.account_id, 'skland')
+  assert.equal(dashboard.state.snapshots.account.account_id, 'hypergryph', 'fallback data never enters the selected snapshot')
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
+  await dashboard.refreshSelected()
+  assert.deepEqual(receipts.sort(), [['hypergryph', 'hypergryph-role', 'account'], ['hypergryph', 'hypergryph-role', 'gacha'], ['skland', 'skland-role', 'account']])
+  assert.equal(dashboard.state.refreshPending['skland:account'], true)
+})
+test('a fallback is dropped when it becomes ambiguous or paired, and never takes over a removed selection', async t => {
+  let rows = unpairedAccounts()
+  const dashboard = createCloudDashboard({ getAccounts: async () => ({ accounts: rows }), getAccountSnapshot: async (account, role) => endfieldSnapshot(account, role) })
+  t.after(dashboard.dispose)
+  dashboard.state.user = { user_id: 'u' }; dashboard.state.accounts = rows; dashboard.selectAccount(rows[0])
+  rows = [...unpairedAccounts(), { ...unpairedAccounts()[1], account_id: 'second-skland' }]; await dashboard.loadAccounts()
+  assert.deepEqual(Object.keys(dashboard.state.sources), ['hypergryph'])
+  rows = unpairedAccounts(); await dashboard.loadAccounts()
+  assert.equal(dashboard.state.sources.skland.fallback, true)
+  const revision = dashboard.state.revision
+  rows = unpairedAccounts(); rows[1].channel = 'official'; await dashboard.loadAccounts()
+  assert.equal(dashboard.state.sources.skland.fallback, undefined, 'the same scope, now paired, is no longer a fallback')
+  assert.ok(dashboard.state.revision > revision)
+  rows = unpairedAccounts(); await dashboard.loadAccounts()
+  rows = unpairedAccounts(); rows[0].state = 'revoked'; await dashboard.loadAccounts()
+  assert.equal(dashboard.state.selected, null); assert.deepEqual(dashboard.state.sources, {})
 })

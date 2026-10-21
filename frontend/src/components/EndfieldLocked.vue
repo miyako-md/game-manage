@@ -5,7 +5,8 @@ import RingGauge from './RingGauge.vue'
 
 // The profile tabs need a connected Skland role. Until then each shows a muted outline of what will
 // appear: the same cards and chart shapes with no values, so nothing here can be read as data.
-const props = defineProps({ section: { type: String, default: 'operators' } })
+// The cloud page explains the missing authorization in EndfieldAuthGuide and hides this note.
+const props = defineProps({ section: { type: String, default: 'operators' }, note: { type: Boolean, default: true } })
 const TILES = {
   operators: ['已记录干员', '来源干员数', '已知等级均值', '最高已知等级'],
   honor: ['来源成就总数', '已记录奖章'],
@@ -29,7 +30,7 @@ const tiles = computed(() => TILES[props.section] || TILES.operators)
 
 <template>
   <section class="ef-locked" aria-label="连接后可查看的内容">
-    <p class="locked-note" role="note"><AppIcon name="shield" :size="16" />连接森空岛并选择角色后，这里显示{{ preview.note }}。</p>
+    <p v-if="note" class="locked-note" role="note"><AppIcon name="shield" :size="16" />连接森空岛并选择角色后，这里显示{{ preview.note }}。</p>
     <div class="locked-grid" aria-hidden="true">
       <div v-for="(card, index) in preview.cards" :key="index" class="locked-card" :style="{ '--span': card.span }">
         <h2 class="locked-title">{{ card.title }}</h2>

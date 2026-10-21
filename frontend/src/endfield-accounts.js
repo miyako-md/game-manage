@@ -39,3 +39,30 @@ export function endfieldRoleChoices(accounts) {
   }
   return choices
 }
+// A choice lacking one provider may borrow that provider's pages from another single-provider choice.
+// It is never paired: merged choices belong to their own character, and a known different owner,
+// channel, server or UID proves another character, so neither is offered.
+const sourceRole = source => roles(source.account).find(role => role.role_id === source.role)
+const provenDifferent = (a, b) => !sameOwner(a.account, b.account) || (knownChannel(a.account.channel) && knownChannel(b.account.channel) && a.account.channel !== b.account.channel) ||
+  (a.account.server && b.account.server && a.account.server !== b.account.server) || (uid(sourceRole(a)) && uid(sourceRole(b)) && uid(sourceRole(a)) !== uid(sourceRole(b)))
+export function endfieldFallbackCandidates(choices, current, provider) {
+  const own = Object.values(current?.sources || {})
+  if (!providers.includes(provider) || own.length !== 1 || current.sources[provider]) return []
+  return (Array.isArray(choices) ? choices : []).filter(choice => Object.keys(choice?.sources || {}).length === 1 && choice.sources[provider] && !provenDifferent(own[0], choice.sources[provider]))
+}
+export function endfieldFallback(choices, current, provider) {
+  const candidates = endfieldFallbackCandidates(choices, current, provider)
+  return candidates.length === 1 ? candidates[0] : null
+}
+// The selected character's sources plus, for a missing provider, the unique fallback flagged as such.
+export function endfieldPageSources(accounts, account, roleId) {
+  const sources = resolveEndfieldSources(accounts, account, roleId), choices = endfieldRoleChoices(accounts)
+  for (const provider of providers) {
+    const other = endfieldFallback(choices, { sources }, provider)
+    if (other) sources[provider] = { ...other.sources[provider], fallback: true }
+  }
+  return sources
+}
+export const endfieldProviderLabel = provider => ({ hypergryph: '鹰角寻访', skland: '森空岛档案' })[provider] || ''
+export const endfieldChannelLabel = channel => ({ official: '官服', bilibili: 'B 服' })[channel] || '渠道未提供'
+export const endfieldSourceLabel = source => `${sourceRole(source)?.display_name || '未命名角色'} · ${endfieldChannelLabel(source.account.channel)}`
