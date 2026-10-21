@@ -907,7 +907,7 @@ input {
 }
 
 .ao-multi-badge {
-  font-size: 13px;
+  font-size: var(--qq-min-text);
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--skin-accent);
@@ -920,7 +920,7 @@ input {
 }
 
 .ao-multi-cmd {
-  font-size: 14px;
+  font-size: var(--qq-min-text);
   color: var(--skin-muted);
 }
 
@@ -1015,7 +1015,7 @@ input {
 }
 
 .ao-game-tag {
-  font-size: 13px;
+  font-size: var(--qq-min-text);
   font-weight: 700;
   color: var(--skin-on-accent);
   background: linear-gradient(135deg, var(--skin-hot) 0%, var(--skin-accent-2) 100%);
@@ -1032,7 +1032,7 @@ input {
 }
 
 .ao-subtag-pill {
-  font-size: 14px;
+  font-size: var(--qq-min-text);
   font-weight: 600;
   color: var(--ao-soft-ink, #c8cfde);
   background: var(--ao-well, rgba(12, 14, 21, 0.72));
@@ -1043,7 +1043,7 @@ input {
 }
 
 .ao-extra-pill {
-  font-size: 13px;
+  font-size: var(--qq-min-text);
   font-weight: 600;
   color: var(--ao-accent-text, #ebd29f);
   background: rgba(var(--skin-tint-rgb), 0.14);
@@ -1081,7 +1081,7 @@ input {
 }
 
 .ao-hero-lbl {
-  font-size: 15px;
+  font-size: var(--qq-min-text);
   font-weight: 600;
   color: var(--ao-label, #9aa2b4);
   line-height: 1.25;
@@ -1125,7 +1125,7 @@ input {
 }
 
 .ao-diamond {
-  font-size: 16px;
+  font-size: var(--qq-min-text);
   color: var(--ao-accent-text, #dec188);
 }
 
@@ -1169,7 +1169,7 @@ input {
 }
 
 .ao-stat-lbl {
-  font-size: 15px;
+  font-size: var(--qq-min-text);
   font-weight: 600;
   color: var(--ao-label, #98a0b3);
   line-height: 1.25;
@@ -1311,7 +1311,7 @@ input {
   left: 8px;
   bottom: 8px;
   max-width: calc(100% - 52px);
-  font-size: 13px;
+  font-size: var(--qq-min-text);
   font-weight: 700;
   color: #ffffff;
   background: rgba(12, 14, 21, 0.78);
@@ -1334,7 +1334,7 @@ input {
 }
 
 .ao-chain-pill {
-  font-size: 13px;
+  font-size: var(--qq-min-text);
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 5px;
@@ -1366,7 +1366,7 @@ input {
 }
 
 .ao-role-lv {
-  font-size: 16px;
+  font-size: var(--qq-min-text);
   font-weight: 800;
   color: #ffffff;
   font-variant-numeric: tabular-nums;
@@ -1388,7 +1388,7 @@ input {
 
 .ao-notice-item {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--qq-min-text);
   color: var(--ao-soft-ink, #c9d0df);
   line-height: 1.4;
 }
@@ -1401,7 +1401,7 @@ input {
   justify-content: center;
   gap: 10px;
   padding-top: 6px;
-  font-size: 14px;
+  font-size: var(--qq-min-text);
   font-weight: 600;
   color: var(--ao-label, #8c95a8);
   letter-spacing: 0.04em;

@@ -164,3 +164,10 @@ test('QQ overview blocks take their own game skin inside the obsidian shell (D3)
  const root=mount(t,Sheet,{input})
  assert.deepEqual(nodes(root,'section').filter(n=>String(n.props.class).includes('ao-game-block')).map(n=>n.props['data-skin']),['wuwa','nte','endfield'])
 })
+
+test('D7: no QQ obsidian text is smaller than 17px',()=>{
+ const lab=readFileSync(new URL('./qq-image/lab.css',import.meta.url),'utf8'),obsidian=lab.slice(lab.indexOf('.lab-sheet.is-account-overview {'))
+ const sizes=[...obsidian.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
+ assert.ok(sizes.length&&sizes.every(size=>size>=17),String(sizes))
+ assert.match(readFileSync(new URL('./qq-image/reuse.css',import.meta.url),'utf8'),/\.wuwa-role-sub \{\n  font-size: var\(--qq-small\) !important;/)
+})
