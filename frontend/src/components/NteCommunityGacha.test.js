@@ -27,6 +27,16 @@ test('image groups every current pool using the shared history rows, including u
   assert.equal(nodes(root,'li').length,3)
   assert.equal(nodes(root,'nav').length,0)
 })
+test('pools without a details list (the overview projection) never claim 0 S records', t => {
+  const summary = pools.map(({ details, ...pool }) => pool)
+  const image = mount(t, Panel, { snap: snapshot(summary), imageMode: true })
+  assert.equal(nodes(image, 'section').filter(n => String(n.props.class).includes('history-panel')).length, 0)
+  assert.match(content(image), /限定卡池.*100.*抽.*出 S 数量 2/)
+  assert.doesNotMatch(content(image), /0 条|暂无已出 S 明细/)
+  const web = mount(t, Panel, { snap: snapshot(summary) })
+  assert.match(content(web), /已出 S 记录 未提供.*明细未提供/)
+  assert.doesNotMatch(content(web), /0 条/)
+})
 test('community view switches pool history without inventing pity, coverage or luck', async t => {
   const root = mount(t, Panel, { snap: snapshot(pools) })
   assert.match(content(root), /100 抽/)

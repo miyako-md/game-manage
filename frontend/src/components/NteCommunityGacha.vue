@@ -15,8 +15,11 @@ const pools = computed(() => !legacy.value && Array.isArray(props.snap?.payload?
 const selected = ref(0), failedImages = reactive(new Set())
 watch(pools, value => { if (!value[selected.value]) selected.value = 0 })
 const current = computed(() => pools.value[selected.value])
+// A pool without a details list (the overview projection drops them) has unknown S records, not zero:
+// images leave its history out and the website says 未提供.
 const historyGroups = computed(() => (props.imageMode ? pools.value : current.value ? [current.value] : [])
-  .map(pool => ({pool,entries:Array.isArray(pool.details) ? pool.details : []})))
+  .map(pool => ({pool,entries:Array.isArray(pool.details) ? pool.details : null}))
+  .filter(group => !props.imageMode || group.entries))
 const known = value => finiteValue(value) !== null && value >= 0
 const show = value => known(value) ? value : '未知'
 const average = value => known(value) ? Number(value.toFixed(1)) : '未知'
@@ -69,10 +72,11 @@ function obtained(value) {
       <section v-for="(group, groupIndex) in historyGroups" :key="groupIndex" class="history-panel" :aria-label="`${group.pool.name || '未命名卡池'}已出 S 明细`">
         <div class="history-bar">
           <nav v-if="!imageMode" v-glide class="pool-tabs segmented" aria-label="选择抽卡统计卡池"><button v-for="(pool, index) in pools" :key="index" type="button" :aria-pressed="selected === index" @click="selected = index">{{ pool.name || '未命名卡池' }}</button></nav>
-          <h3><template v-if="imageMode">{{ group.pool.name || '未命名卡池' }} · </template>已出 S 记录 <span>{{ group.entries.length }} 条</span></h3>
+          <h3><template v-if="imageMode">{{ group.pool.name || '未命名卡池' }} · </template>已出 S 记录 <span>{{ group.entries ? `${group.entries.length} 条` : '未提供' }}</span></h3>
           <InfoHint align="end" text="仅展示已抽出的 S 级条目与本次出 S 抽数，不展示当前垫抽。" />
         </div>
-        <p v-if="!group.entries.length" class="empty">该卡池暂无已出 S 明细。</p>
+        <p v-if="!group.entries" class="empty">该卡池的已出 S 明细未提供。</p>
+        <p v-else-if="!group.entries.length" class="empty">该卡池暂无已出 S 明细。</p>
         <ol v-else class="pull-list">
           <li v-for="(entry, index) in group.entries" :key="`${groupIndex}-${entry.item_id}-${index}`" class="pull-row">
             <div class="reward-icon"><img v-if="icon(entry)" :src="icon(entry)" :alt="nteItemLabel(entry.item_id,entry.name)" loading="lazy" referrerpolicy="no-referrer" @error="imageFailed(entry)" /><span v-else aria-hidden="true">{{ nteItemLabel(entry.item_id,entry.name).slice(0, 2) }}</span></div>
@@ -81,7 +85,7 @@ function obtained(value) {
             <time class="pull-time">{{ obtained(entry.obtained_at) }}</time>
           </li>
         </ol>
-        <footer v-if="group.entries.length" class="bar-legend"><span><i class="short" />欧 / 超欧</span><span><i class="medium" />普通 / 非</span><span><i class="long" />超非</span><span v-if="scale(group.pool)">本池标尺 {{ scale(group.pool) }} 抽</span><InfoHint align="end" text="评价与配色沿用塔吉多；横条表示这次出 S 的抽数，不表示当前垫抽。未提供评价时显示灰色，未提供标尺时不绘制比例。" /></footer>
+        <footer v-if="group.entries?.length" class="bar-legend"><span><i class="short" />欧 / 超欧</span><span><i class="medium" />普通 / 非</span><span><i class="long" />超非</span><span v-if="scale(group.pool)">本池标尺 {{ scale(group.pool) }} 抽</span><InfoHint align="end" text="评价与配色沿用塔吉多；横条表示这次出 S 的抽数，不表示当前垫抽。未提供评价时显示灰色，未提供标尺时不绘制比例。" /></footer>
       </section>
     </template>
   </section>
