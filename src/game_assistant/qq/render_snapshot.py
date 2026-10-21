@@ -191,8 +191,7 @@ def notice_snapshot(card,now,page=1,*,command='帮助'):
 
 
 def filtered_events_snapshot(snapshots,command,now,page=1):
-    from .event_views import normalized,endpoint
-    from datetime import timedelta
+    from .event_views import normalized,endpoint,recent_window,RECENT_HOURS
     panels=[]
     for game,row in snapshots.items():
         selected=[]
@@ -203,11 +202,11 @@ def filtered_events_snapshot(snapshots,command,now,page=1):
                 include=not invalid and first is not None and last is not None and first<=now<last
                 include|=(invalid or first is None or last is None) and not (last and last<=now or first and first>now)
             else:
-                include=not invalid and any(stamp is not None and now<stamp<=now+timedelta(hours=168) for stamp in (first,last))
-                include|=invalid or any(endpoint(item,side) is None and (item.get(side+'_text') or item.get(side+'_date') or item.get(side+'_precision') in ('relative','day','dependent')) for side in ('start','end'))
+                sides,pending=recent_window(item,now)
+                include=bool(sides) or pending
             if include:selected.append({**{key:value for key,value in item.items() if key!='display_title'},'name':item['display_title']})
         panels.append(game_panel(game,'public',command,replace(row,payload=selected)))
-    return game_snapshot(panels,now,page,title='进行中的活动' if command=='events' else '近期活动 · 未来168小时',command='活动' if command=='events' else '近期活动')
+    return game_snapshot(panels,now,page,title='进行中的活动' if command=='events' else f'近期活动 · 未来 {RECENT_HOURS} 小时',command='活动' if command=='events' else '近期活动')
 
 
 def project(value, allowed, *, depth=0):

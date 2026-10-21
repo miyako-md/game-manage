@@ -23,7 +23,12 @@ const ringStyle=p=>({'--pct':(p??0)+'%'})
    <div v-else-if="panel.type==='cloud_teams'" class="cloud-teams render-image"><NteAssetsPanel capability="teams" :snap="panel.snapshot" :roles="panel.roles" image-mode /></div>
    <div v-else-if="panel.type==='cloud_endfield_gacha'" class="cloud-endfield cloud-gacha render-image"><EndfieldGachaPanel :snap="panel.snapshot" image-mode /></div>
    <div v-else-if="panel.type==='cloud_endfield_challenge'" class="cloud-endfield render-image"><EndfieldChallenges :kind="panel.report.kind" :value="{report:panel.report}" image-mode /></div>
-   <CloudCalendar v-else-if="panel.type==='cloud_calendar'" :events="panel.events" :snapshots="panel.snapshots" :as-of="panel.asOf" />
+   <CloudCalendar v-else-if="panel.type==='cloud_calendar'" :events="panel.events" :snapshots="panel.snapshots" :as-of="panel.asOf" :full="panel.full" />
+   <div v-else-if="panel.type==='upcoming'" class="upcoming-list">
+    <article v-for="r in panel.rows" class="upcoming-row" :class="{'has-game':r.game}" :style="r.game?gameVars(r.gameId):undefined"><span v-if="r.game" class="upcoming-game">{{r.game}}</span><div class="upcoming-name"><h3>{{r.name}}</h3><small>{{r.category}}</small></div><span class="upcoming-time number">{{r.time}}</span><strong class="upcoming-countdown" :class="{urgent:r.urgent}">{{r.countdown}}</strong></article>
+    <p v-if="!panel.rows.length" class="upcoming-empty">{{panel.empty}}</p>
+    <p v-if="panel.note" class="upcoming-note">{{panel.note}}</p>
+   </div>
    <template v-else-if="panel.type==='metrics'">
     <div v-if="panel.metrics?.length" class="metric-grid">
      <div v-for="m in panel.metrics" class="metric" :class="{'has-ring':m.pct!=null}">

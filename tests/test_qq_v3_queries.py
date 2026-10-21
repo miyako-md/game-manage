@@ -26,19 +26,25 @@ def test_cards_without_a_subtitle_add_no_subtitle_line():
 def event(name,start,end,**extra):
     return dict(name=name,start_at=start,end_at=end,source_name='官方公告',source_title='来源说明',**extra)
 
-def test_recent_168_hour_endpoints_and_uncertain_precision():
+def test_recent_72_hour_endpoints_day_precision_and_uncertain_precision():
     from game_assistant.qq.event_views import event_document
-    data=[event('恰好七天后开始',(NOW+timedelta(hours=168)).isoformat(),None),
-          event('超过七天',(NOW+timedelta(hours=168,minutes=1)).isoformat(),None),
+    data=[event('恰好三天后开始',(NOW+timedelta(hours=72)).isoformat(),None),
+          event('超过三天',(NOW+timedelta(hours=72,minutes=1)).isoformat(),None),
           event('维护前',None,(NOW+timedelta(hours=2)).isoformat(),end_precision='version_end',end_text='维护前'),
           event('日期项','2026-10-15','2026-10-16',start_precision='day',end_precision='day'),
-          event('更新后',None,(NOW+timedelta(days=9)).isoformat(),start_date='2026-10-15',start_precision='relative',start_text='版本更新后')]
+          event('更新后',None,(NOW+timedelta(days=9)).isoformat(),start_date='2026-10-15',start_precision='relative',start_text='版本更新后'),
+          event('早已开放',None,(NOW+timedelta(days=9)).isoformat(),start_date='2026-10-01',start_precision='relative'),
+          event('依赖结束','2026-10-01T10:00:00+08:00',None,end_precision='dependent',end_text='下个版本前')]
     card=event_document('recent_events',{'nte':QueryResult(data,NOW.isoformat(),'ok',None)},now=NOW)
+    assert card['title']=='近期活动 · 未来 72 小时'
     sections={s['title']:s for s in card['sections']}
-    assert [r['title'] for r in sections['即将开始']['rows']]==['恰好七天后开始']
-    assert [r['title'] for r in sections['即将结束']['rows']]==['维护前']
-    assert {r['title'] for r in sections['时间待确认']['rows']}=={'日期项','更新后'}
-    assert '2小时' in str(sections['即将结束'])
+    # A day-precision start counts from 00:00, its end until 23:59:59 of that day.
+    assert [r['title'] for r in sections['72 小时内开始']['rows']]==['日期项','恰好三天后开始']
+    assert [r['title'] for r in sections['72 小时内结束']['rows']]==['维护前','日期项']
+    # A relative start dated well before today cannot fall in the window; undated vague ends can.
+    assert {r['title'] for r in sections['时间待确认']['rows']}=={'更新后','依赖结束'}
+    assert '2小时' in str(sections['72 小时内结束'])
+    assert '2天11小时59分钟' in str(sections['72 小时内结束'])
     assert '00:00' not in str(sections['时间待确认'])
 
 def test_current_events_and_version_summary_preserve_phase_gaps():
@@ -170,15 +176,42 @@ def test_reversed_day_range_is_uncertain_without_invalid_timeline():
     pending=next(s for s in card['sections'] if s.get('game')=='nte')
     assert 'timeline' not in pending['rows'][0]
 
-def test_recent_window_excludes_now_and_includes_exact_168h_for_both_endpoints():
+def test_recent_window_includes_now_and_exact_72h_for_both_endpoints():
     from game_assistant.qq.event_views import event_document
     data=[event('当前时刻开始',NOW.isoformat(),None),event('当前时刻结束',None,NOW.isoformat()),
-          event('七天边界开始',(NOW+timedelta(hours=168)).isoformat(),None),event('七天边界结束',None,(NOW+timedelta(hours=168)).isoformat()),
-          event('边界外结束',None,(NOW+timedelta(hours=168,seconds=1)).isoformat())]
+          event('刚刚开始',(NOW-timedelta(seconds=1)).isoformat(),None),
+          event('三天边界开始',(NOW+timedelta(hours=72)).isoformat(),None),event('三天边界结束',None,(NOW+timedelta(hours=72)).isoformat()),
+          event('边界外结束',None,(NOW+timedelta(hours=72,seconds=1)).isoformat()),
+          event('窗口内起止',(NOW+timedelta(hours=1)).isoformat(),(NOW+timedelta(hours=5)).isoformat()),
+          event('窗口外的进行中',(NOW-timedelta(days=3)).isoformat(),(NOW+timedelta(days=5)).isoformat())]
     card=event_document('recent_events',{'nte':QueryResult(data,NOW.isoformat(),'ok',None)},now=NOW)
     sections={s['title']:s for s in card['sections']}
-    assert [r['title'] for r in sections['即将开始']['rows']]==['七天边界开始']
-    assert [r['title'] for r in sections['即将结束']['rows']]==['七天边界结束']
+    assert [r['title'] for r in sections['72 小时内开始']['rows']]==['当前时刻开始','窗口内起止','三天边界开始']
+    assert [r['title'] for r in sections['72 小时内结束']['rows']]==['当前时刻结束','窗口内起止','三天边界结束']
+    assert '时间待确认' not in sections
+
+
+def test_recent_day_precision_end_counts_until_end_of_beijing_day():
+    from game_assistant.qq.event_views import recent_window,window_endpoint
+    last=dict(name='最后一天',end_date='2026-10-17',end_precision='day')
+    assert window_endpoint(last,'end').isoformat()=='2026-10-17T23:59:59+08:00'
+    assert recent_window(last,datetime(2026,10,17,23,59,tzinfo=NOW.tzinfo))==(('end',),False)
+    assert recent_window(last,datetime(2026,10,18,0,0,tzinfo=NOW.tzinfo))==((),False)
+    start=dict(name='首日',start_at='2026-10-17',start_precision='day')
+    assert window_endpoint(start,'start').isoformat()=='2026-10-17T00:00:00+08:00'
+    assert recent_window(start,NOW)==(('start',),False)
+    assert recent_window(dict(name='未知',start_precision='unknown',end_precision='unknown'),NOW)==((),True)
+
+
+def test_recent_render_snapshot_keeps_listed_and_pending_rows_only():
+    from game_assistant.qq.render_snapshot import filtered_events_snapshot
+    data=[event('即将开始',(NOW+timedelta(hours=3)).isoformat(),(NOW+timedelta(days=9)).isoformat()),
+          event('窗口外的进行中',(NOW-timedelta(days=3)).isoformat(),(NOW+timedelta(days=5)).isoformat()),
+          event('日期项结束','2026-10-01','2026-10-16',start_precision='day',end_precision='day'),
+          event('时间未知',None,None,start_precision='unknown',end_precision='unknown')]
+    value=filtered_events_snapshot({'nte':QueryResult(data,NOW.isoformat(),'ok',None)},'recent_events',NOW)
+    assert value['title']=='近期活动 · 未来 72 小时'
+    assert [e['name'] for e in value['display_data']['panels'][0]['snapshot']['payload']]==['即将开始','日期项结束','时间未知']
 
 def test_nte_gacha_weapon_uses_audited_weapon_icon_lookup():
     from game_assistant.qq.assets import PublicAssetCache
