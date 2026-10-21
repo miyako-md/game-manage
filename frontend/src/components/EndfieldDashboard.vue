@@ -40,6 +40,12 @@ const profileSnapshot = computed(() => {
   return snapshot?.account_id === source.account.account_id && snapshot?.role_id === source.role ? snapshot : null
 })
 const passportSnapshots = computed(() => props.cloudSources?.hypergryph ? props.sourceSnapshots?.hypergryph || {} : props.snaps)
+// Cloud challenges come from the scheduler's combat snapshot of the same Skland role; switching kinds sends no request.
+const challengeSnapshot = computed(() => {
+  if (!props.cloudSources?.skland) return props.cloudAccount?.provider === 'skland' ? props.snaps.combat || null : null
+  const snapshot = props.sourceSnapshots?.skland?.combat, source = profileSource.value
+  return snapshot?.account_id === source.account.account_id && snapshot?.role_id === source.role ? snapshot : null
+})
 const canMaintain = computed(()=>!cloud.value || props.isAdmin)
 const connectionHint = computed(() => {
   const source = profileSource.value?.fallback ? profileSource.value : { account: props.cloudAccount, role: props.cloudRole }
@@ -91,6 +97,14 @@ const list = value => Array.isArray(value) ? value : []
 const humanError = value => value === '暂时无法连接服务，请稍后重试。' ? value : value ? friendlyDataError(value) : ''
 const roleLabel = role => cloud.value ? `${role.nickname || '未命名角色'} · ${role.role_id}` : `${role.nickname || '未命名角色'} · ${role.role_id} / ${role.server_id}`
 const roleValue = computed(() => roleKey.value)
+const cloudChallenge = computed(() => {
+  const snapshot = challengeSnapshot.value, report = list(snapshot?.payload?.reports).find(item => item?.kind === challengeKind.value)
+  return report ? { kind: challengeKind.value, report, stale: !!(snapshot.stale || report.stale) } : null
+})
+const cloudChallengeError = computed(() => {
+  const snapshot = challengeSnapshot.value, report = cloudChallenge.value?.report
+  return humanError(snapshot?.error || snapshot?.poll_status?.error) || (report?.stale && !report.available ? '最近一次采集失败，尚无成功资料。' : '')
+})
 const publicNewsSnap = computed(() => publicData.value?.news ? { ...publicData.value.news, payload: publicData.value.news.items, error: publicError.value } : null)
 const newsSnapshots = computed(() => [publicNewsSnap.value, props.snaps.news, props.snaps.announcement].filter(Boolean))
 const officialTools = computed(() => list(publicData.value?.tools).filter(item => safeExternalUrl(item.url)))
@@ -229,7 +243,7 @@ async function loadAttendance(sign = false) {
   finally { if (seq === attendanceSeq) attendanceBusy.value = false }
 }
 async function loadChallenge() {
-  if (!roleKey.value) return
+  if (cloud.value || !roleKey.value) return
   const seq = ++challengeSeq, kind = challengeKind.value, owner = roleKey.value
   const previous = challengeReport(challenge.value, kind).available ? challenge.value : null
   const current = () => !destroyed && seq === challengeSeq && owner === roleKey.value && kind === challengeKind.value
@@ -447,7 +461,7 @@ onUnmounted(() => { destroyed = true; mapController?.abort(); ++statusSeq; ++pri
         <p v-else-if="!cardBusy && !cardError" class="empty cap-card">暂无档案数据，请手动刷新。</p>
       </template>
 
-      <EndfieldChallenges v-if="section === 'challenges' && roleKey" :value="challenge" :kind="challengeKind" :busy="challengeBusy" :error="challengeError" @select-kind="challengeKind = $event" @reload="loadChallenge" />
+      <EndfieldChallenges v-if="section === 'challenges' && roleKey" :value="cloud ? cloudChallenge : challenge" :kind="challengeKind" :busy="cloud ? refreshing : challengeBusy" :error="cloud ? cloudChallengeError : challengeError" @select-kind="challengeKind = $event" @reload="cloud ? emit('refresh') : loadChallenge()" />
     </div>
 
     <div v-else-if="section === 'gacha'" class="endfield-stack"><section v-if="passport" class="cap-card ef-identity-card"><div class="cap-title">鹰角通行证寻访账号<span v-if="passportView.snapshot?.stale" class="badge badge-stale">寻访待更新</span></div><p v-if="passportView.account" class="identity">{{ passportView.account.nickname || '未知昵称' }} · 角色编号 {{ passportView.account.role_id }}</p><p v-if="passportView.message" class="hint">{{ passportView.message }}</p><button type="button" class="ui-button" :disabled="refreshing" @click="emit('refresh')">{{ refreshing ? '同步中…' : '刷新寻访数据' }}</button></section><EndfieldGachaPanel v-if="passport && passportView.accountId" :snap="passportView.snapshot" :account-id="passportView.accountId" /><EndfieldAuthGuide v-if="!passport" need="hypergryph" :candidates="guideCandidates('hypergryph')" /></div>
