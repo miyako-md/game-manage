@@ -144,31 +144,3 @@
   color: var(--ink);
 }
 
-.guide-entry-art {
-  display: flex;
-  gap: 4px;
-  flex: none;
-  width: 54px;
-  align-items: center;
-}
-
-.guide-entry-art figure {
-  margin: 0;
-  min-width: 0;
-}
-
-.guide-entry-art.multi {
-  width: 84px;
-}
-
-.guide-entry-art.multi img {
-  width: 40px;
-  height: 54px;
-}
-
-.guide-entry-art figcaption {
-  text-align: center;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.4;
-}
