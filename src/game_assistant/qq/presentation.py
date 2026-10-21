@@ -172,7 +172,8 @@ def account_fields(game, provider, payload):
 
 
 def overview_roles(game,provider,snapshot,asset_cache=None,*,details=None):
-    entries=role_entries(game,snapshot.payload,provider)
+    from ..role_order import overview_roles as ordered
+    entries=ordered(game,role_entries(game,snapshot.payload,provider))
     output=[]
     for entry in entries[:6]:
         values=[];weapon=obj(entry.get('weapon'));equipment=[]

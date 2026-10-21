@@ -141,11 +141,15 @@ def game_panel(game,provider,capability,row,*,summary=False,resolved=None):
     if resolved is not None and capability=='roles':
         raw={**raw,'operators':[resolved]} if game=='endfield' and isinstance(raw,dict) else [resolved] if isinstance(raw,list) else {**raw,'entries':[resolved]}
     if summary and capability=='roles':
-        if isinstance(raw,list):raw=raw[:6]
-        elif isinstance(raw,dict):raw={**raw,**{key:raw[key][:6] for key in ('entries','operators') if isinstance(raw.get(key),list)}}
+        # Same order as the website before the cut: Wuwa catalogue, NTE id, Endfield level.
+        from ..role_order import overview_roles
+        if isinstance(raw,list):raw=overview_roles(game,raw)[:6]
+        elif isinstance(raw,dict):raw={**raw,**{key:overview_roles(game,raw[key])[:6] for key in ('entries','operators') if isinstance(raw.get(key),list)}}
         fields=NTE_OVERVIEW|frozenset('schema_version entries operators role_id role_name role_icon_url weapon_type_name attribute weapon chain breach star_level extra total_skill_level chain_unlock_num rarity potential evolve_phase profession property'.split())
         if game=='nte':fields=NTE_OVERVIEW|{'schema_version','entries'}
         raw=project(raw,fields)
+    # The overview sheet reads only the data bank level; the echo list would only add icons to prefetch.
+    if summary and capability=='calabash' and isinstance(raw,dict):raw={key:raw[key] for key in ('level',) if key in raw}
     if summary and capability=='gacha':raw=project(raw,PANEL_CAPS[game]['gacha']-{'details','records','items','gold','recent_six','history','aggregates'})
     return {'game':game,'provider':provider,'capability':capability,'snapshot':metadata(row,panel_payload(game,provider,capability,raw))}
 

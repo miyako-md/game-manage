@@ -280,6 +280,19 @@ class QqQueryService:
             context['render_snapshot']=shared_view.calendar_snapshot(snapshots,self.clock(),page) if command=='calendar' else shared_view.filtered_events_snapshot(snapshots,command,self.clock(),page)
         return event_document(command,snapshots,now=self.clock(),asset_cache=self.asset_cache)
 
+    def _endfield_overview_roles(self,projected,context):
+        """The overview sheet shows six operators in the report's level order.
+
+        Counts stay full: the report summary and the raw roster are kept; only the
+        shown list, and so the prefetched pictures, is cut."""
+        from game_assistant.role_order import overview_roles
+        report=projected.payload['report'];training=report.get('training')
+        if not isinstance(training,dict) or not isinstance(training.get('items'),list) or not training['items']:return projected
+        shown=overview_roles('endfield',training['items'])[:6]
+        if context is not None:context['panel_notices'].append(GAME_NAMES['endfield']+'总览最多展示 6 名角色；完整角色请使用角色指令。')
+        payload={**projected.payload,'report':{**report,'training':{**training,'items':shown}}}
+        return QueryResult(payload,projected.fetched_at,projected.state,projected.complete)
+
     def _endfield_document(self, selected, command, context, cache, role_name=None):
         """Project each default provider independently; never join game identities."""
         from . import endfield_presentation as endfield
@@ -327,6 +340,7 @@ class QqQueryService:
                               'operator_stale':detail.state not in ('ok','success') if detail is not None else False}
                         self._panel(context,row,'operator_detail',QueryResult(data,snapshot.fetched_at,snapshot.state,snapshot.complete))
                     return endfield.operator_document(snapshot,role_name,self.asset_cache,detail=detail)
+                if command=='summary':projected=self._endfield_overview_roles(projected,context)
                 self._panel(context,row,'account' if command=='summary' else command,projected)
                 builder={'roles':endfield.training_document,'exploration':endfield.regions_document,
                          'ship':endfield.ship_document,'honor':endfield.honor_document}.get(command)
@@ -461,7 +475,8 @@ class QqQueryService:
                         self._panel(context,row,'roles',roles,summary=True)
                         details={}
                         if row['game']=='wuthering_waves':
-                            for entry in view.role_entries(row['game'],roles.payload,row['provider'])[:6]:
+                            from game_assistant.role_order import overview_roles
+                            for entry in overview_roles(row['game'],view.role_entries(row['game'],roles.payload,row['provider']))[:6]:
                                 detail=self._role_detail_snapshot(scope,entry.get('role_id'))
                                 if detail is not None:
                                     self._capture_snapshot(context,scope,'role_detail',detail)
@@ -470,7 +485,7 @@ class QqQueryService:
                     if row['game']=='wuthering_waves':
                         calabash=self._snapshot(row,scope,'calabash',context,read_cache)
                         if calabash is not None:
-                            self._panel(context,row,'calabash',calabash)
+                            self._panel(context,row,'calabash',calabash,summary=True)
                             sections.append(view.capability_section(row['game'],row['provider'],'calabash',calabash,self.asset_cache))
                 card=view.document('overview','all','我的 · 三游戏总览',sections=sections,notices=notices)
                 card['version']=3
@@ -544,7 +559,7 @@ class QqQueryService:
                         return reply(card)
                     if command=='gacha' and context is not None:
                         context['render_snapshot']=shared_view.gacha_snapshot(game,snapshot,self.clock(),page)
-                    self._panel(context,row,cap,snapshot,summary=(command=='summary' and cap!='roles'))
+                    self._panel(context,row,cap,snapshot,summary=command=='summary')
                     if command!='summary':return reply(view.snapshot_card(game,row['provider'],cap,snapshot,self.asset_cache))
                     if cap=='roles':
                         card=view.role_card(game,row['provider'],snapshot,asset_cache=self.asset_cache)
@@ -556,7 +571,7 @@ class QqQueryService:
                     sections.append(section)
                 if command=='summary' and game=='wuthering_waves' and context is not None:
                     calabash=self._snapshot(row,scope,'calabash',context,read_cache)
-                    if calabash is not None:self._panel(context,row,'calabash',calabash)
+                    if calabash is not None:self._panel(context,row,'calabash',calabash,summary=True)
             if not sections and not notices:notices=['当前授权没有可用查询能力；请在网站检查授权。']
             if command=='refresh':
                 notices.append('只提交现有能力的刷新队列；查询时仍读取缓存。抽卡导入和缺失详情请在网站操作。')

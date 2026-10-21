@@ -137,6 +137,81 @@ def test_role_totals_omit_gold_count_when_any_rarity_is_unknown():
     assert shared.role_totals('nte',{'entries':[]})=={} and shared.role_totals('endfield',{'operators':[{}]})=={}
 
 
+# Real catalogue names; the expected order is the frontend newestFirst order (role-order.js).
+WUWA_ROLES=[{'role_id':i,'name':name,'level':90-i,'star_level':5} for i,name in enumerate(['今汐','秋水','心','长离','未收录角色','椿','莉莉','守岸人'])]
+WUWA_SHOWN=['莉莉','心','椿','守岸人','长离','今汐']
+NTE_ROLES={'entries':[{'id':str(i),'name':f'异能者{i}','quality':'S','level':i} for i in (1003,1076,1012,1050,1001,1060,1020)]}
+NTE_SHOWN=['异能者1076','异能者1060','异能者1050','异能者1020','异能者1012','异能者1003']
+
+
+def _roster(panels,game):
+    payload=next(p for p in panels if p['game']==game and p['capability']=='roles')['snapshot']['payload']
+    rows=payload if isinstance(payload,list) else payload.get('entries') or payload.get('operators')
+    return [row['name'] for row in rows]
+
+
+def test_overview_orders_each_game_like_the_website_before_cutting_six():
+    from tests.test_qq_endfield_reports import synthetic_account
+    query=CachedQuery()
+    query.add('wuthering_waves','kuro','ww',{'account':{'nickname':'鸣潮'},'roles':WUWA_ROLES})
+    query.add('nte','tajiduo','nte',{'account':{'nickname':'异环'},'roles':NTE_ROLES})
+    endfield=synthetic_account(9)
+    query.add('endfield','skland','sk',{'account':endfield})
+    context={};reply=service(query).query(IDENTITY,'overview',image_context=context)
+    panels=context['render_snapshot']['display_data']['panels']
+    assert _roster(panels,'wuthering_waves')==WUWA_SHOWN and _roster(panels,'nte')==NTE_SHOWN
+    from game_assistant.endfield_reports import build_endfield_report
+    by_level=[item['name'] for item in build_endfield_report(endfield)['training']['items']][:6]
+    assert _roster(panels,'endfield')==by_level
+    # The text card's equipment rows (and the Wuwa detail lookups) take the same six.
+    card=context['card']
+    wuwa=next(section for section in card['sections'] if '角色装备速览' in section['title'] and '鸣潮' in section['title'])
+    assert [row['title'] for row in wuwa['rows']]==WUWA_SHOWN and '（6/8）' in wuwa['title']
+    assert 'text' in reply
+    validate_snapshot(context['render_snapshot'])
+
+
+@pytest.mark.parametrize('game,provider,roles,shown,total',[('wuthering_waves','kuro',WUWA_ROLES,WUWA_SHOWN,8),('nte','tajiduo',NTE_ROLES,NTE_SHOWN,7)])
+def test_single_game_overview_also_shows_six_ordered_roles_with_full_counts(game,provider,roles,shown,total):
+    query=CachedQuery();query.add(game,provider,'acc',{'account':{'nickname':'合成'},'roles':roles})
+    context={};service(query).query(IDENTITY,'summary',game,image_context=context)
+    value=context['render_snapshot'];panels=value['display_data']['panels']
+    assert _roster(panels,game)==shown
+    account=next(p for p in panels if p['capability']=='account')['snapshot']['payload']
+    assert account['role_total']==total and account['gold_role_total']==total
+    assert any('最多展示 6 名' in notice for notice in value['display_data']['notices'])
+    validate_snapshot(value)
+
+
+def test_single_game_endfield_overview_shows_six_operators_by_level_with_full_counts():
+    from tests.test_qq_endfield_reports import synthetic_account
+    from game_assistant.endfield_reports import build_endfield_report
+    payload=synthetic_account(35)
+    for operator in payload['operators']:operator['avatar_url']=f"https://web.hycdn.cn/avatar/{operator['id']}.png"
+    query=CachedQuery();query.add('endfield','skland','sk',{'account':payload})
+    context={};service(query).query(IDENTITY,'summary','endfield',image_context=context)
+    value=context['render_snapshot']
+    account=next(p for p in value['display_data']['panels'] if p['capability']=='account')['snapshot']['payload']
+    expected=[item['id'] for item in build_endfield_report(payload)['training']['items'][:6]]
+    assert [item['id'] for item in account['report']['training']['items']]==expected
+    assert account['report']['training']['summary']['listed_count']==35==len(account['operators'])
+    assert any('终末地总览最多展示 6 名' in notice for notice in value['display_data']['notices'])
+    # Only the six shown operators' pictures are prefetched, not all 35.
+    assert {url for url,_ in shared.asset_requests(value) if '/avatar/' in url}=={f'https://web.hycdn.cn/avatar/{id}.png' for id in expected}
+    validate_snapshot(value)
+
+
+def test_overview_data_bank_panel_carries_only_its_level_and_no_echo_icons():
+    calabash={'level':7,'base_catch':0.5,'phantom_list':[{'phantom_name':'声骸','phantom_icon':'https://web-static.kurobbs.com/echo/one.png'}]}
+    for command,game in (('overview',None),('summary','wuthering_waves')):
+        query=CachedQuery();query.add('wuthering_waves','kuro','ww',{'account':{'nickname':'鸣潮'},'calabash':calabash})
+        context={};service(query).query(IDENTITY,command,game,image_context=context)
+        value=context['render_snapshot']
+        panel=next(p for p in value['display_data']['panels'] if p['capability']=='calabash')
+        assert panel['snapshot']['payload']=={'level':7}
+        assert not [url for url,_ in shared.asset_requests(value) if 'echo' in url]
+
+
 def test_shared_full_roster_does_not_inherit_legacy_document_clipping_notices():
     query=CachedQuery();query.add('wuthering_waves','kuro','private-account',{'roles':[{'role_id':i,'name':f'合成角色{i:03}','level':0} for i in range(300)]})
     context={};service(query).query(IDENTITY,'roles','wuthering_waves',image_context=context)
