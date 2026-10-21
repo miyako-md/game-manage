@@ -261,7 +261,10 @@ class BrowserRenderer(AImageRenderer,SummaryRenderer):
         key=self.cache_key(scope,result)
         with self.lock:
             cached=self.cache.get(key)
-            if cached and cached[1]>time.monotonic():return cached[2]
+            if cached and cached[1]>time.monotonic():
+                from .rendering import RENDER_TIMING
+                if (timing:=RENDER_TIMING.get()) is not None:timing['render_cache']='hit'
+                return cached[2]
             generation=self.generation
         if self.template=='a':return await self._render_a(scope,result,snapshot,deadline,key,generation)
         context=None

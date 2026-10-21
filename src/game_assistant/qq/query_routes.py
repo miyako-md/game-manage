@@ -3,6 +3,7 @@ from typing import Literal
 import base64
 import hashlib
 import json
+import logging
 import time
 from datetime import datetime
 
@@ -15,10 +16,12 @@ from game_assistant.accounts.models import AccountScope, QueryResult
 from .bindings import QqBindingError
 from .commands import GAME_NAMES, PAGED_COMMANDS, MAX_PAGE, accepts, retired_reply, safe_text
 from .internal_routes import IdentityBody
-from .rendering import RenderQueue, RenderingPageUnavailable, RenderingUnavailable
+from .rendering import RENDER_TIMING, RenderQueue, RenderingPageUnavailable, RenderingUnavailable, elapsed_ms
 from .cards import card_to_text
 from . import presentation as view
 from . import render_snapshot as shared_view
+
+logger = logging.getLogger(__name__)
 
 
 class QueryBody(BaseModel):
@@ -55,12 +58,17 @@ class QqQueryService:
         self.dashboard_url,self.urls_approved=dashboard_url,urls_approved
         self.render_queue=render_queue
         self.asset_cache=asset_cache
+        self.last_timing=None
         self.clock=clock or (lambda:datetime.now(view.BEIJING))
         if render_queue is not None and query is not None:
             query.accounts._listeners.append(self.invalidate)
 
     def invalidate(self, user_id, grant_id):
         self.render_queue.renderer.invalidate_account(user_id)
+
+    def start_prewarm(self):
+        """Warm the image browser in the background; nothing when QQ images are off."""
+        return self.render_queue.prewarm() if self.render_queue is not None else None
 
     async def aclose(self):
         if self.render_queue is not None:
@@ -585,8 +593,11 @@ class QqQueryService:
             return reply(view.message(game,'查询状态','查询或刷新暂不可用；请在网站检查授权和服务状态。'))
 
     async def query_reply(self,identity,command,game=None,*,image_requested=False,budget_seconds=0,role_name=None,page=1,retired=None):
-        deadline=time.monotonic()+max(0,min(10,budget_seconds))
+        started=time.monotonic()
+        deadline=started+max(0,min(10,budget_seconds))
         context={}
+        # Fixed codes and numbers only (command/game are validated literals): never names or IDs.
+        timing={'command':command,'game':game or 'all'}
         try:
             response=self.query(identity,command,game,image_context=context if image_requested else None,
                                 role_name=role_name,page=page,retired=retired)
@@ -608,18 +619,29 @@ class QqQueryService:
         rendered=QueryResult(payload,max((s.fetched_at for s in snapshots if s.fetched_at),default=None),
             'ok' if all(s.state in ('ok','success') for s in snapshots) else 'stale',
             True if snapshots and all(s.complete is True for s in snapshots) else False if any(s.complete is False for s in snapshots) else None)
+        timing['query_ms']=elapsed_ms(started)
         if self.asset_cache is not None:
             remaining=max(0,deadline-time.monotonic())
+            prefetch_started=time.monotonic()
             try:
                 refs=[self.asset_cache.register_url(url,artwork=mode=='artwork',portrait=mode=='portrait') for url,mode in shared_view.asset_requests(context['render_snapshot'])] if context.get('render_snapshot') is not None else list(view.asset_refs(context['card']))
                 refs=list(dict.fromkeys(ref for ref in refs if ref))
-                await self.asset_cache.prefetch(refs,budget_seconds=min(5,remaining*0.5))
+                counts=await self.asset_cache.prefetch(refs,budget_seconds=min(5,remaining*0.5))
+                timing.update({'prefetch_'+key:value for key,value in (counts or {}).items()})
             except Exception:
                 # Assets may fail independently; resolved in-memory images remain usable.
-                pass
+                timing['prefetch']='qq_asset_prefetch_failed'
+            timing['prefetch_ms']=elapsed_ms(prefetch_started)
+        token=RENDER_TIMING.set(timing)
         try:
             png=await self.render_queue.render(scope,rendered,budget_seconds=max(0,deadline-time.monotonic()))
         except Exception:png=None
+        finally:RENDER_TIMING.reset(token)
+        timing['total_ms']=elapsed_ms(started)
+        timing['result']=('image' if isinstance(png,bytes) else str(png) if isinstance(png,RenderingUnavailable)
+                          else timing.get('result','qq_render_unavailable'))
+        self.last_timing=dict(timing)
+        logger.info('QQ render timing: %s',' '.join(f'{key}={value}' for key,value in timing.items()))
         if user_id is not None:
             try:
                 principal=self.bindings.resolve_qq_identity(identity)
