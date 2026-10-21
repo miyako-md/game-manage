@@ -32,6 +32,17 @@ test('achievement card renders medals and counts under achievement progress', (t
   assert.doesNotMatch(text, /重置/)
 })
 
+test('achievement categories over their total keep the source counts and say the target is met', (t) => {
+  // Seen on real data (QQ review 029): a category reported 61 / 53. Counts stay as reported, the bar is full.
+  const root = card(t, 'progress', { completed: 269, total: 480, categories: [
+    { name: '引力', current: 61, total: 53 }, { name: '恰好', current: 4, total: 4 }, { name: '未知', current: null, total: 9 }] })
+  const text = content(root)
+  assert.match(text, /引力 61 \/ 53 已达目标/)
+  assert.equal((text.match(/已达目标/g) || []).length, 1)
+  assert.match(text, /未知 未知 \/ 9/)
+  assert.deepEqual(nodes(root, 'progress').slice(1).map(n => [n.props.value, n.props.max]), [[61, 53], [4, 4]])
+})
+
 test('exploration only derives a percentage from known counts and a positive denominator', (t) => {
   const root = card(t, 'exploration', { areas: [
     { id: 'a', name: '新赫兰', current: 1, total: 4, details: [{ id: '1', name: '宝箱', current: null, total: 10 }] },
