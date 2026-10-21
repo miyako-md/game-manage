@@ -1,7 +1,7 @@
 <script setup>
 import MenuSelect from './MenuSelect.vue'
 import { computed, nextTick, ref, watch } from 'vue'
-import { profileReport, rows, displayValue as display, sourceName as named, selectOperators, selectMedals, rarityParts, phaseParts, medalCategoryParts, recentMedals, platedSummary } from '../endfield-reports.js'
+import { profileReport, rows, displayValue as display, sourceName as named, selectOperators, selectMedals, rarityParts, phaseParts, medalCategoryParts, recentMedals, platedSummary, collectionTotals } from '../endfield-reports.js'
 import { displayBeijing } from '../time.js'
 import { SHIP_CONVERSION_MODEL } from '../endfield-ship.js'
 import { vReveal } from '../motion.js'
@@ -189,7 +189,12 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
     <template v-else-if="view === 'regions'">
       <section v-reveal class="ef-card ef-section-intro"><header><div><h2>地区建设</h2></div><span class="ef-note">地区数 {{ display(report.regions?.summary?.region_count) }}</span></header><p v-if="!regions.length" class="ef-empty">尚无地区建设资料。</p></section>
       <section v-for="(region,index) in regions" :key="region.id || index" v-reveal class="ef-card ef-region"><header><div><h2>{{ named(region) }}</h2></div><span class="ef-level">等级 {{ display(region.level) }}</span></header>
-        <div class="ef-region-top">
+        <!-- The bot image keeps each region's progress and collection totals; settlements and per-area lists stay on the website. -->
+        <template v-if="imageMode">
+          <dl class="ef-region-facts"><div><dt>地区调度券</dt><dd>{{ display(region.money?.current ?? region.money?.count) }} <small>/ {{ display(region.money?.total) }}</small></dd></div><div><dt>据点</dt><dd>{{ display(settlementCount(region)) }}</dd></div><div><dt>区域</dt><dd>{{ rows(region.areas || region.levels).length }}</dd></div></dl>
+          <ul class="ef-facts ef-totals"><li v-for="item in collectionTotals(rows(region.areas || region.levels).map(collections))" :key="item.key"><span>{{ item.label }}</span><strong>{{ display(item.current) }} / {{ display(item.total) }}<small v-if="item.partial"> · 部分区域未知</small></strong><span v-if="item.percent != null" class="ef-bar meter" aria-hidden="true"><i :style="{ width: `${item.percent}%` }"></i></span></li></ul>
+        </template>
+        <div v-if="!imageMode" class="ef-region-top">
           <div class="ef-money"><span class="k">地区调度券</span>
             <RingGauge :value="region.money?.current ?? region.money?.count" :max="region.money?.total" label="地区调度券" :size="108" :stroke="11" color="var(--ef-vivid)"><span v-if="imageMode" class="ef-pct">{{ typeof region.money?.percent === 'number' ? Math.round(region.money.percent) + '%' : '—' }}</span><span v-else class="ef-ring-center"><strong>{{ display(region.money?.current ?? region.money?.count) }} <small>/ {{ display(region.money?.total) }}</small></strong></span></RingGauge>
             <p v-if="imageMode" class="ef-money-values">{{ display(region.money?.current ?? region.money?.count) }} / {{ display(region.money?.total) }}</p>
@@ -198,7 +203,7 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
             <HRail v-if="rows(region.settlements).length" label="据点"><article v-for="(settlement,number) in rows(region.settlements)" :key="settlement.id || number" class="ef-settlement"><h3>{{ settlement.name || '据点' }} <small>等级 {{ display(settlement.level) }}</small></h3><p>基地调度券 <strong>{{ pair(settlement.coupon || {current:settlement.money,total:settlement.money_max}) }}</strong></p><span v-if="couponPercent(settlement) != null" class="ef-bar meter" aria-hidden="true"><i :style="{ width: `${couponPercent(settlement)}%` }"></i></span><p class="ef-note">派驻干员：{{ rows(settlement.officers).map(item => item.name || item.id || '未知').join('、') || (settlement.officers_available === true ? '无派驻' : '未提供') }}</p><div v-if="rows(settlement.officers).length" class="ef-assigned"><EndfieldArtwork v-for="(officer,officerIndex) in rows(settlement.officers)" :key="officer.id || officerIndex" role :operator-id="officer.id" :src="officer.avatar_url" :name="officer.name || officer.id || '干员'" /></div></article></HRail>
           </div>
         </div>
-        <div class="ef-areas"><article v-for="(area,number) in rows(region.areas || region.levels)" :key="area.id || number" class="ef-subsection"><h3>{{ area.name || '区域' }}</h3><ul class="ef-facts"><li v-for="item in collections(area)" :key="item.key"><span>{{ item.label }}</span><strong>{{ pair(item) }}<small v-if="item.remaining != null"> · 剩余 {{ item.remaining }}</small></strong><progress v-if="Number.isFinite(item.percent)" :value="item.percent" max="100" :aria-label="`${area.name || '区域'}${item.label}`" /></li></ul></article></div>
+        <div v-if="!imageMode" class="ef-areas"><article v-for="(area,number) in rows(region.areas || region.levels)" :key="area.id || number" class="ef-subsection"><h3>{{ area.name || '区域' }}</h3><ul class="ef-facts"><li v-for="item in collections(area)" :key="item.key"><span>{{ item.label }}</span><strong>{{ pair(item) }}<small v-if="item.remaining != null"> · 剩余 {{ item.remaining }}</small></strong><progress v-if="Number.isFinite(item.percent)" :value="item.percent" max="100" :aria-label="`${area.name || '区域'}${item.label}`" /></li></ul></article></div>
       </section>
     </template>
 
@@ -397,6 +402,13 @@ button.ef-count:active { transform:translateY(1px); }
 .ef-facts li > span { color:var(--text-muted); }
 .ef-facts strong { font-weight:500; font-variant-numeric:tabular-nums; }
 .ef-facts small { font-size:12px; color:var(--text-muted); }
+.ef-region-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0; }
+.ef-region-facts > div { padding:12px 16px; border-radius:var(--radius-well); background:var(--surface-soft); }
+.ef-region-facts dt { font-size:12px; color:var(--text-muted); }
+.ef-region-facts dd { margin:2px 0 0; font-size:24px; font-weight:550; font-variant-numeric:tabular-nums; }
+.ef-region-facts small { font-size:13px; color:var(--text-muted); }
+.ef-totals { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 24px; padding:4px 16px 8px; border-radius:var(--radius-tile); background:var(--surface-soft); }
+.ef-totals .ef-bar { flex-basis:100%; }
 .ef-facts progress { flex-basis:100%; width:100%; height:8px; appearance:none; border:0; border-radius:6px; overflow:hidden; background:var(--track); }
 .ef-facts progress::-webkit-progress-bar { background:var(--track); border-radius:6px; }
 .ef-facts progress::-webkit-progress-value { background:var(--ef-vivid); border-radius:6px; }

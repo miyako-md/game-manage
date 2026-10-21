@@ -164,3 +164,21 @@
 .lab-sheet .kind-portraits p {
   text-wrap: pretty;
 }
+
+/* Exploration: region facts and collection totals only (C3.3). */
+.reuse.lab-sheet #render-content .ef-region-facts > div > dt {
+  font-size: var(--qq-small) !important;
+}
+
+.reuse.lab-sheet #render-content .ef-region-facts > div > dd {
+  font-size: var(--qq-number) !important;
+  line-height: 1.3 !important;
+}
+
+.reuse.lab-sheet #render-content .ef-region-facts > div > dd small {
+  font-size: 20px !important;
+}
+
+.reuse.lab-sheet #render-content .ef-totals li {
+  padding: 10px 0 12px;
+}

@@ -53,6 +53,18 @@ test('operators default to newest first on the website and in images, and the ot
   choose(web,'排序','level');await nextTick();assert.deepEqual(names(web),['无模板','旧干员','新干员'])
 })
 
+test('the exploration image keeps region progress and collection totals but drops settlements and per-area lists',t=>{
+  const area=(name,current)=>({name,collections:[{key:'chests',label:'储藏箱',current,total:5},{key:'pieces',label:'灵感点',current:null,total:3}]})
+  const regions={items:[{id:'r',name:'四号谷地',level:2,money:{current:0,total:null},settlements:[{id:'s',name:'矿区据点',coupon:{current:0,total:100},officers:[{id:'a',name:'干员甲'}]}],areas:[area('矿区',1),area('谷地',4)]}]}
+  const root=mount(t,Reports,{payload:{report:{...payload.report,regions}},view:'regions',imageMode:true})
+  assert.match(content(root),/地区调度券 0 \/ 未知/);assert.match(content(root),/据点 1/);assert.match(content(root),/区域 2/)
+  assert.match(content(root),/储藏箱 5 \/ 10/);assert.match(content(root),/灵感点 未知 \/ 未知/)
+  assert.doesNotMatch(content(root),/矿区据点|派驻干员|矿区|剩余/)
+  assert.equal(nodes(root,'progress').length,0)
+  const web=mount(t,Reports,{payload:{report:{...payload.report,regions}},view:'regions'})
+  assert.match(content(web),/矿区据点/);assert.match(content(web),/派驻干员：干员甲/);assert.match(content(web),/矿区 储藏箱 1 \/ 5/)
+})
+
 test('regions distinguish unknown limits and show settlements, assignment and remaining collections',t=>{
   const root=mount(t,Reports,{payload,view:'regions'})
   assert.match(content(root),/地区调度券 0 \/ 未知/);assert.match(content(root),/矿区据点/);assert.match(content(root),/派驻干员：干员甲/)

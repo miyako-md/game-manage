@@ -183,3 +183,21 @@ export function platedSummary(items) {
   const list = rows(items)
   return { plated: list.filter(item => item.is_plated === true).length, known: list.filter(item => typeof item.is_plated === 'boolean').length, listed: list.length }
 }
+
+/** Collection totals across a region's areas, one row per collection kind. Only areas that
+ *  report both a count and a total are summed; `partial` marks a sum that left some out. */
+export function collectionTotals(areas) {
+  const kinds = new Map()
+  for (const list of rows(areas)) for (const item of rows(list)) {
+    if (!kinds.has(item.key)) kinds.set(item.key, { key: item.key, label: item.label, items: [] })
+    kinds.get(item.key).items.push(item)
+  }
+  const finite = value => typeof value === 'number' && Number.isFinite(value)
+  return [...kinds.values()].map(({ items, ...kind }) => {
+    const known = items.filter(item => finite(item.current) && finite(item.total))
+    const current = known.length ? known.reduce((sum, item) => sum + item.current, 0) : null
+    const total = known.length ? known.reduce((sum, item) => sum + item.total, 0) : null
+    return { ...kind, current, total, partial: known.length > 0 && known.length < items.length,
+      percent: total > 0 ? Math.round(Math.min(1, current / total) * 100) : null }
+  })
+}

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { selectOperators, selectMedals, profileReport, operatorImage, operatorArtwork, gachaArtwork, rarityParts, phaseParts, medalCategoryParts, recentMedals, platedSummary } from './endfield-reports.js'
+import { selectOperators, selectMedals, profileReport, operatorImage, operatorArtwork, gachaArtwork, rarityParts, phaseParts, medalCategoryParts, recentMedals, platedSummary, collectionTotals } from './endfield-reports.js'
 
 test('operator filters combine name rarity and profession; stable numeric sorting preserves zero and unknown last', () => {
   const items = [{ id:'missing',name:'未知',rarity:6,profession:'近卫' },{id:'zero',name:'管理员零',level:0,rarity:6,profession:'近卫'},
@@ -147,4 +147,12 @@ test('gacha artwork uses the exact weapon catalog without borrowing operator ima
   assert.equal(gachaArtwork({name:'未收录武器'},'weapon'),null)
   assert.equal(gachaArtwork({name:'破碎君王'},undefined),null)
   assert.equal(gachaArtwork({name:'破碎'},'weapon'),null)
+})
+
+test('collection totals sum only fully known areas and flag partial sums instead of treating unknown as zero', () => {
+  const area = (chests, puzzles) => [{ key:'chests', label:'宝箱', ...chests }, { key:'puzzles', label:'醚质', ...puzzles }]
+  const totals = collectionTotals([area({ current:28, total:40 }, { current:0, total:8 }), area({ current:2, total:null }, { current:1, total:8 }), area({ current:10, total:20 }, { current:null, total:5 })])
+  assert.deepEqual(totals, [{ key:'chests', label:'宝箱', current:38, total:60, partial:true, percent:63 }, { key:'puzzles', label:'醚质', current:1, total:16, partial:true, percent:6 }])
+  assert.deepEqual(collectionTotals([area({ current:null, total:null }, { current:0, total:0 })]), [{ key:'chests', label:'宝箱', current:null, total:null, partial:false, percent:null }, { key:'puzzles', label:'醚质', current:0, total:0, partial:false, percent:null }])
+  assert.deepEqual(collectionTotals([]), [])
 })
