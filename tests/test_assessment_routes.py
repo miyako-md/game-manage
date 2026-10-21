@@ -117,6 +117,8 @@ def test_projection_uses_scope_model_else_builtin_default_and_strips_unrelated_p
     assert {k:shown[k] for k in ('value','grade','max_value','origin','unofficial','attribution')}=={'value':'168.16','grade':'a','max_value':250,
         'origin':'builtin_default','unofficial':True,'attribution':'gpl_snapshot'}
     assert [(i['cost'],i['grade'],i['max_value']) for i in shown['item_results']][:2]==[(4,'ss',50),(3,'ss',50)]
+    echo_ids=[e['phantom_prop']['phantom_id'] for e in projected['display_data']['detail']['phantom_data']['equip_phantom_list']]
+    assert [i['item_id'] for i in shown['item_results']]==[f'echo:{n}:{p}' for n,p in enumerate(echo_ids)]
     assert 'token' not in projected['display_data']['detail']
     # A saved model wholly replaces the default, only for its own scope.
     store.save(scope,wuwa_model({'attack_flat':'0.1'}).model_copy(update=dict(character_id='1205')),'model')
