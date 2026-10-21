@@ -12,6 +12,7 @@ import SummaryMetrics from './SummaryMetrics.vue'
 import EndfieldArtwork from './EndfieldArtwork.vue'
 import EndfieldShipResident from './EndfieldShipResident.vue'
 import EndfieldLoadout from './EndfieldLoadout.vue'
+import { skinOf } from '../game-themes.js'
 const props = defineProps({ payload: Object, imageMode:Boolean, view: { type: String, default: 'overview' }, fetchedAt: String, stale: Boolean,
   operatorDetail: Object, operatorDetailId: String, operatorBusy: Boolean, operatorError: String, operatorStale: Boolean, operatorFetchedAt: String })
 const emit = defineEmits(['inspect', 'navigate', 'close-detail'])
@@ -106,7 +107,7 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
 </script>
 
 <template>
-  <div class="endfield-reports" :class="{ 'is-image': imageMode }">
+  <div class="endfield-reports" :class="{ 'is-image': imageMode }" :data-skin="imageMode ? undefined : skinOf('endfield')">
     <!-- 概览 -->
     <template v-if="view === 'overview'">
       <section v-reveal class="ef-card ef-hero"><header><div><h2>今日档案</h2></div><span v-if="stale && !imageMode" class="badge badge-stale">待更新</span><span v-else class="chip">森空岛档案</span></header>
@@ -168,7 +169,7 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
           <p v-if="!selected.length" class="ef-empty">{{ operators.length ? '没有匹配的干员，可调整筛选。' : '尚无干员资料。' }}</p>
           <div v-else class="ef-roster"><article v-for="(operator,index) in selected" :key="operator.id || index" class="ef-operator" :class="rarityBadge(operator.rarity)">
             <div class="ef-operator-top">
-              <div class="ef-avatar"><EndfieldArtwork role :operator-id="operator.char_id || operator.id" :src="operator.avatar_url" :name="operator.name || '干员'" /><small class="ef-tier">{{ display(operator.rarity) }}★</small></div>
+              <div class="ef-avatar"><EndfieldArtwork role :portrait="!imageMode" :operator-id="operator.char_id || operator.id" :src="operator.avatar_url" :name="operator.name || '干员'" /><small :class="imageMode ? 'ef-tier' : 'role-rarity'" :data-tier="!imageMode && Number(operator.rarity) >= 6 ? 'top' : undefined">{{ display(operator.rarity) }}★</small></div>
               <div class="ef-operator-copy"><h3>{{ display(operator.name) }}</h3><p class="ef-operator-level">Lv. {{ display(operator.level) }} <span>潜能 {{ display(operator.potential) }}</span></p></div>
             </div>
             <p class="ef-phase"><i class="ef-phase-dot" :style="{ '--tone': phaseColor(operator.evolve_phase ?? operator.phase) }" aria-hidden="true"></i>精英阶段 {{ display(operator.evolve_phase ?? operator.phase) }}</p>
@@ -346,14 +347,15 @@ button.ef-count:active { transform:translateY(1px); }
 .ef-phase-dot { flex:0 0 auto; width:10px; height:10px; border-radius:3px; background:var(--tone,var(--track)); }
 .ef-profession { margin-top:-4px; }
 .ef-operator .ui-button { justify-self:stretch; margin-top:2px; }
-/* On the website each operator is the mockup role card: a white frame, the art on the game tone with the level as a white tag, then the text. */
-.endfield-reports:not(.is-image) .ef-roster { grid-template-columns:repeat(auto-fill,minmax(196px,1fr)); gap:16px; }
-.endfield-reports:not(.is-image) .ef-operator { grid-template-columns:minmax(0,1fr); gap:0; padding:6px; border:1px solid var(--card-border); border-radius:22px; background:var(--card-bg); box-shadow:var(--card-shadow); }
+/* On the website each operator is the same role card as the other games (shared role-card tokens): a white frame,
+   the portrait on the game tone with the rarity as the shared tag top left and the level as a white tag, then the text. */
+.endfield-reports:not(.is-image) .ef-roster { grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--role-card-min)),1fr)); gap:var(--role-card-gap); }
+.endfield-reports:not(.is-image) .ef-operator { grid-template-columns:minmax(0,1fr); gap:0; padding:var(--role-card-frame); border:1px solid var(--card-border); border-radius:var(--role-card-radius); background:var(--card-bg); box-shadow:var(--card-shadow); }
 .endfield-reports:not(.is-image) .ef-operator-top, .endfield-reports:not(.is-image) .ef-operator-copy { display:contents; }
-.endfield-reports:not(.is-image) .ef-avatar { grid-area:1 / 1; justify-self:stretch; height:136px; padding:0; border-radius:16px; background:var(--ef-tone); overflow:hidden; }
-.endfield-reports:not(.is-image) .ef-operator-top .endfield-artwork { position:absolute; right:0; bottom:0; width:128px; height:128px; border-radius:0; background:transparent; }
-.endfield-reports:not(.is-image) .ef-tier { left:11px; top:11px; bottom:auto; transform:none; padding:3px 7px; line-height:16px; background:var(--card-bg); color:var(--ef-ink); box-shadow:none; }
-.endfield-reports:not(.is-image) .ef-operator.top .ef-tier { background:var(--ef-ink); color:var(--accent-ink); }
+.endfield-reports:not(.is-image) .ef-avatar { grid-area:1 / 1; justify-self:stretch; height:var(--role-art-h); padding:0; border-radius:var(--role-art-radius); background:var(--ef-tone); overflow:hidden; isolation:isolate; }
+/* Portraits are cut at their own side edges, so they fill the panel's width and show from the head down. */
+.endfield-reports:not(.is-image) .ef-operator-top .endfield-artwork { position:absolute; inset:0; width:100%; height:100%; border-radius:0; background:transparent; }
+.endfield-reports:not(.is-image) .ef-operator-top .endfield-artwork :deep(img) { object-fit:cover; object-position:center top; }
 .endfield-reports:not(.is-image) .ef-operator .ef-operator-level { grid-area:1 / 1; z-index:1; align-self:end; justify-self:start; margin:0 0 11px 11px; padding:3px 8px; border-radius:var(--radius-chip); background:var(--card-bg); color:var(--ef-ink); font-size:12px; line-height:16px; font-weight:500; white-space:nowrap; }
 .endfield-reports:not(.is-image) .ef-operator-level span { margin-left:6px; color:var(--text-muted); }
 .endfield-reports:not(.is-image) .ef-operator h3 { grid-area:2 / 1; padding:12px 10px 0; font-size:14px; line-height:20px; }
@@ -465,6 +467,8 @@ button.ef-count:active { transform:translateY(1px); }
   .ef-region-top { grid-template-columns:1fr; }
   .ef-money { grid-template-columns:auto 1fr; justify-items:start; gap:18px; }
 }
+/* Phones: two cards a row, like the other games' role grids. */
+@media (max-width:767px) { .endfield-reports:not(.is-image) .ef-roster { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; } }
 @media (max-width:600px) {
   .ef-card { padding:16px; border-radius:22px; }
   .ef-hero-body { grid-template-columns:1fr; justify-items:stretch; }
@@ -474,10 +478,7 @@ button.ef-count:active { transform:translateY(1px); }
   .ef-roster { grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); }
   .ef-operator { padding:12px; }
   .ef-operator-top { grid-template-columns:1fr; gap:8px; }
-  .endfield-reports:not(.is-image) .ef-roster { grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:12px; }
-  .endfield-reports:not(.is-image) .ef-operator { padding:6px; }
-  .endfield-reports:not(.is-image) .ef-avatar { height:124px; }
-  .endfield-reports:not(.is-image) .ef-operator-top .endfield-artwork { width:118px; height:118px; }
+  .endfield-reports:not(.is-image) .ef-operator { padding:var(--role-card-frame); }
   .ef-medal { gap:12px; padding:14px; border-radius:22px; }
   .ef-medal > .endfield-artwork { width:60px; height:70px; }
 }
