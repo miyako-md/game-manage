@@ -200,3 +200,21 @@ async def test_queue_fallbacks_record_their_code_in_the_reply_timing():
             assert timing['result'] == code
     finally:
         await queue.aclose()
+
+
+async def test_render_queue_pauses_deferred_asset_work_while_rendering():
+    from game_assistant.qq.assets import PublicAssetCache
+    cache = PublicAssetCache()
+    seen = []
+    class Renderer:
+        asset_cache = cache
+        async def render_summary_async(self, *args, **kwargs):
+            seen.append(cache._idle.is_set())
+            raise RenderingUnavailable('qq_browser_not_ready')
+    queue = RenderQueue(Renderer())
+    try:
+        assert await queue.render(SCOPE, QueryResult({}, None, 'ok', None), budget_seconds=1) is None
+    finally:
+        await queue.aclose()
+    assert seen == [False] and cache._idle.is_set()
+    await cache.aclose()
