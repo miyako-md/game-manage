@@ -11,7 +11,8 @@ const input=(capability,payload)=>({kind:'game_snapshot',game:'endfield',as_of:'
 const profile={report:{schema_version:1,overview:{base:{name:'共享管理员',role_id:'100123456',level:0},stamina:{current:0,maximum:null},progress:[{id:'daily',name:'每日业务进度',cur:0,total:100,remaining:100}],todos:[{name:'每日业务进度',remaining:100}]},training:{items:[{id:'first',name:'共享首干员',level:0},{id:'last',name:'共享末干员',level:null}],summary:{listed_count:2}},regions:{items:[{name:'共享首地区'},{name:'共享末地区'}]},ship:{rooms:[{name:'共享首房间',operators:[]},{name:'共享末房间',operators:[]}],summary:{room_count:2}},honor:{available:true,items:[{name:'共享首奖章',level:0},{name:'共享末奖章',level:null}],summary:{listed_count:2}}}}
 
 test('roles image shares the complete web roster overview and directs loadouts to a single operator card',t=>{
- const items=Array.from({length:35},(_,i)=>({id:`operator-${i}`,name:`全配装干员${i}`,level:i===0?0:null,potential:i===0?0:null,evolve_phase:3,rarity:6,profession:'近卫',property:'物理',weapon:{name:'保留详情武器',level:80},equipment:[{slot:'bodyEquip',name:'保留详情护甲',level:70}],skills:[{name:'保留详情技能',level:9}]}))
+ // Template ids count down so the default newest-first order is the source order.
+ const items=Array.from({length:35},(_,i)=>({id:`operator-${i}`,char_id:`chr_${String(100-i).padStart(4,"0")}_synthetic`,name:`全配装干员${i}`,level:i===0?0:null,potential:i===0?0:null,evolve_phase:3,rarity:6,profession:'近卫',property:'物理',weapon:{name:'保留详情武器',level:80},equipment:[{slot:'bodyEquip',name:'保留详情护甲',level:70}],skills:[{name:'保留详情技能',level:9}]}))
  const payload={report:{schema_version:1,training:{items,summary:{listed_count:35,declared_count:35}}}}
  for(const root of [mount(t,Reports,{payload,view:'operators'}),mount(t,Render,{snapshot:input('roles',payload)})]) {
   assert.deepEqual(nodes(root,'h3').map(content),items.map(item=>item.name))
