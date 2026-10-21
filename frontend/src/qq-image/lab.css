@@ -847,18 +847,43 @@ input {
    WutheringWavesUID-Inspired Dark Obsidian Account Overview (.is-account-overview)
    ========================================================================== */
 .lab-sheet.is-account-overview {
-  background-color: #11131c !important;
+  background-color: var(--skin-bg) !important;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1080' height='900' viewBox='0 0 1080 900'%3E%3Ccircle cx='880' cy='220' r='310' fill='none' stroke='%23d4b475' stroke-opacity='0.14' stroke-width='1' stroke-dasharray='6 8'/%3E%3Ccircle cx='880' cy='220' r='220' fill='none' stroke='%23d4b475' stroke-opacity='0.11' stroke-width='0.9'/%3E%3Cpath d='M 40 290 L 320 170 L 760 270 L 1030 130' fill='none' stroke='%23d4b475' stroke-opacity='0.14' stroke-width='1'/%3E%3Ccircle cx='320' cy='170' r='3.5' fill='%23d4b475' fill-opacity='0.28'/%3E%3Ccircle cx='760' cy='270' r='4' fill='%23d4b475' fill-opacity='0.24'/%3E%3Cg transform='translate(1058, 180)' fill='%23d4b475' fill-opacity='0.28' font-size='10' font-family='monospace'%3E%3Cline x1='8' y1='0' x2='16' y2='0' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='-4' y='4'%3EII%3C/text%3E%3Cline x1='8' y1='70' x2='16' y2='70' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='0' y='74'%3EI%3C/text%3E%3Cline x1='8' y1='140' x2='16' y2='140' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='-2' y='144'%3EP%3C/text%3E%3Cline x1='8' y1='210' x2='16' y2='210' stroke='%23d4b475' stroke-opacity='0.3'/%3E%3Ctext x='-2' y='214'%3EF%3C/text%3E%3C/g%3E%3C/svg%3E"),
-    radial-gradient(circle at 22% 8%, rgba(214, 188, 138, 0.12) 0%, rgba(18, 20, 28, 0) 48%),
-    linear-gradient(180deg, #161924 0%, #11131c 55%, #0d0f16 100%) !important;
+    radial-gradient(circle at 22% 8%, rgba(var(--skin-tint-rgb), 0.12) 0%, rgba(18, 20, 28, 0) 48%),
+    var(--skin-bg-grad) !important;
   background-repeat: no-repeat, no-repeat, no-repeat !important;
   background-position: top center, top left, center !important;
-  color: #f3f4f8;
+  color: var(--skin-ink);
   padding: 28px 30px 24px !important;
-  border: 1px solid rgba(214, 188, 138, 0.28);
+  border: 1px solid var(--skin-line);
   position: relative;
   overflow: hidden;
+  /* The shell's own skin, captured here so a game block can keep it (below). */
+  --ao-shell-bg: var(--skin-bg);
+  --ao-shell-bg-grad: var(--skin-bg-grad);
+  --ao-shell-surface: var(--skin-surface);
+  --ao-shell-ink: var(--skin-ink);
+  --ao-shell-muted: var(--skin-muted);
+  --ao-shell-radius-card: var(--skin-radius-card);
+  --ao-shell-radius-tile: var(--skin-radius-tile);
+  --ao-shell-radius-chip: var(--skin-radius-chip);
+  --ao-shell-glow: var(--skin-glow);
+}
+
+/* A game block brings its own data-skin, but only its accent and line colours
+   apply; surfaces, text and shapes stay the shell's (one obsidian sheet for
+   "我的总览" instead of three alternating backgrounds). */
+.ao-game-block[data-skin] {
+  --skin-bg: var(--ao-shell-bg);
+  --skin-bg-grad: var(--ao-shell-bg-grad);
+  --skin-surface: var(--ao-shell-surface);
+  --skin-ink: var(--ao-shell-ink);
+  --skin-muted: var(--ao-shell-muted);
+  --skin-radius-card: var(--ao-shell-radius-card);
+  --skin-radius-tile: var(--ao-shell-radius-tile);
+  --skin-radius-chip: var(--ao-shell-radius-chip);
+  --skin-glow: var(--ao-shell-glow);
 }
 
 .ao-canvas {
@@ -876,27 +901,27 @@ input {
   justify-content: space-between;
   gap: 16px;
   padding: 10px 20px;
-  border-radius: 999px;
-  background: rgba(24, 28, 40, 0.85);
-  border: 1px solid rgba(214, 188, 138, 0.35);
+  border-radius: var(--skin-radius-chip);
+  background: var(--skin-surface);
+  border: 1px solid rgba(var(--skin-tint-rgb), 0.35);
 }
 
 .ao-multi-badge {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #dfc38d;
+  color: var(--skin-accent);
 }
 
 .ao-multi-title {
   font-size: 18px;
   font-weight: 700;
-  color: #f5f2eb;
+  color: var(--ao-title-ink, #f5f2eb);
 }
 
 .ao-multi-cmd {
   font-size: 14px;
-  color: #a5adbe;
+  color: var(--skin-muted);
 }
 
 .ao-game-block {
@@ -908,7 +933,7 @@ input {
 
 .ao-game-block + .ao-game-block {
   padding-top: 22px;
-  border-top: 1px dashed rgba(214, 188, 138, 0.25);
+  border-top: 1px dashed rgba(var(--skin-tint-rgb), 0.25);
 }
 
 /* Top Stadium Pill Banner */
@@ -918,12 +943,12 @@ input {
   justify-content: space-between;
   gap: 20px;
   padding: 10px 28px 10px 10px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(25, 29, 41, 0.95) 0%, rgba(18, 21, 30, 0.92) 100%);
-  border: 1.5px solid rgba(214, 188, 138, 0.58);
+  border-radius: var(--skin-radius-chip);
+  background: var(--ao-banner, linear-gradient(90deg, rgba(25, 29, 41, 0.95) 0%, rgba(18, 21, 30, 0.92) 100%));
+  border: 1.5px solid var(--skin-line-strong);
   box-shadow:
     0 10px 28px rgba(0, 0, 0, 0.42),
-    inset 0 0 24px rgba(214, 188, 138, 0.06);
+    var(--skin-glow);
 }
 
 .ao-identity-pill {
@@ -931,9 +956,9 @@ input {
   align-items: center;
   gap: 16px;
   padding: 8px 26px 8px 10px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(32, 37, 52, 0.92) 0%, rgba(22, 26, 37, 0.78) 100%);
-  border: 1px solid rgba(214, 188, 138, 0.36);
+  border-radius: var(--skin-radius-chip);
+  background: var(--ao-pill, linear-gradient(90deg, rgba(32, 37, 52, 0.92) 0%, rgba(22, 26, 37, 0.78) 100%));
+  border: 1px solid rgba(var(--skin-tint-rgb), 0.36);
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -943,7 +968,7 @@ input {
   height: 82px;
   border-radius: 50%;
   padding: 3px;
-  background: linear-gradient(135deg, #f0d7a3 0%, #9e7b42 100%);
+  background: var(--ao-ring, linear-gradient(135deg, #f0d7a3 0%, #9e7b42 100%));
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
   flex: none;
   overflow: hidden;
@@ -958,7 +983,7 @@ input {
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  background: #151822;
+  background: var(--ao-deep, #151822);
   display: block;
 }
 
@@ -992,10 +1017,10 @@ input {
 .ao-game-tag {
   font-size: 13px;
   font-weight: 700;
-  color: #161822;
-  background: linear-gradient(135deg, #ecd39f 0%, #c8a362 100%);
+  color: var(--skin-on-accent);
+  background: linear-gradient(135deg, var(--skin-hot) 0%, var(--skin-accent-2) 100%);
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--skin-radius-chip);
   line-height: 1.3;
 }
 
@@ -1009,22 +1034,22 @@ input {
 .ao-subtag-pill {
   font-size: 14px;
   font-weight: 600;
-  color: #c8cfde;
-  background: rgba(12, 14, 21, 0.72);
+  color: var(--ao-soft-ink, #c8cfde);
+  background: var(--ao-well, rgba(12, 14, 21, 0.72));
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 4px 14px;
-  border-radius: 999px;
+  border-radius: var(--skin-radius-chip);
   line-height: 1.3;
 }
 
 .ao-extra-pill {
   font-size: 13px;
   font-weight: 600;
-  color: #ebd29f;
-  background: rgba(214, 188, 138, 0.14);
-  border: 1px solid rgba(214, 188, 138, 0.35);
+  color: var(--ao-accent-text, #ebd29f);
+  background: rgba(var(--skin-tint-rgb), 0.14);
+  border: 1px solid rgba(var(--skin-tint-rgb), 0.35);
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--skin-radius-chip);
   line-height: 1.3;
 }
 
@@ -1052,13 +1077,13 @@ input {
 }
 
 .ao-hero-col.is-accent .ao-hero-val {
-  color: #f0d59c;
+  color: var(--ao-accent-text, #f0d59c);
 }
 
 .ao-hero-lbl {
   font-size: 15px;
   font-weight: 600;
-  color: #9aa2b4;
+  color: var(--ao-label, #9aa2b4);
   line-height: 1.25;
 }
 
@@ -1081,11 +1106,11 @@ input {
 }
 
 .ao-head-line.left {
-  background: linear-gradient(90deg, rgba(214, 188, 138, 0.04) 0%, rgba(214, 188, 138, 0.55) 100%);
+  background: linear-gradient(90deg, rgba(var(--skin-tint-rgb), 0.04) 0%, rgba(var(--skin-tint-rgb), 0.55) 100%);
 }
 
 .ao-head-line.right {
-  background: linear-gradient(90deg, rgba(214, 188, 138, 0.55) 0%, rgba(214, 188, 138, 0.04) 100%);
+  background: linear-gradient(90deg, rgba(var(--skin-tint-rgb), 0.55) 0%, rgba(var(--skin-tint-rgb), 0.04) 100%);
 }
 
 .ao-section-title {
@@ -1095,22 +1120,22 @@ input {
   gap: 10px;
   font-size: 22px;
   font-weight: 800;
-  color: #f5efe2;
+  color: var(--ao-title-ink, #f5efe2);
   letter-spacing: 0.08em;
 }
 
 .ao-diamond {
   font-size: 16px;
-  color: #dec188;
+  color: var(--ao-accent-text, #dec188);
 }
 
 /* 6-Column Basic Info Stat Grid */
 .ao-stat-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  background: rgba(20, 23, 33, 0.86);
-  border: 1px solid rgba(214, 188, 138, 0.26);
-  border-radius: 16px;
+  background: var(--ao-panel, rgba(20, 23, 33, 0.86));
+  border: 1px solid rgba(var(--skin-tint-rgb), 0.26);
+  border-radius: var(--skin-radius-card);
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
 }
@@ -1146,7 +1171,7 @@ input {
 .ao-stat-lbl {
   font-size: 15px;
   font-weight: 600;
-  color: #98a0b3;
+  color: var(--ao-label, #98a0b3);
   line-height: 1.25;
 }
 
@@ -1163,8 +1188,8 @@ input {
 }
 
 .ao-role-card {
-  border-radius: 12px;
-  background: #181b26;
+  border-radius: var(--skin-radius-tile);
+  background: var(--ao-card, #181b26);
   border: 1.5px solid rgba(255, 255, 255, 0.16);
   overflow: hidden;
   display: flex;
@@ -1184,7 +1209,7 @@ input {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  background: radial-gradient(circle at 50% 35%, #2a3045 0%, #151822 100%);
+  background: var(--ao-portrait, radial-gradient(circle at 50% 35%, #2a3045 0%, #151822 100%));
   overflow: hidden;
 }
 
@@ -1260,7 +1285,7 @@ input {
   height: 34px;
   border-radius: 8px;
   background: rgba(14, 16, 23, 0.76);
-  border: 1px solid rgba(230, 207, 163, 0.35);
+  border: 1px solid var(--ao-badge-line, rgba(230, 207, 163, 0.35));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1299,7 +1324,7 @@ input {
 
 /* Card Bottom Strip: Chain + Level */
 .ao-role-footer {
-  background: #11131b;
+  background: var(--ao-deep, #11131b);
   padding: 7px 10px;
   display: flex;
   align-items: center;
@@ -1356,15 +1381,15 @@ input {
   display: grid;
   gap: 6px;
   padding: 12px 18px;
-  border-radius: 12px;
-  background: rgba(24, 28, 40, 0.78);
-  border: 1px solid rgba(214, 188, 138, 0.25);
+  border-radius: var(--skin-radius-tile);
+  background: var(--ao-panel, rgba(24, 28, 40, 0.78));
+  border: 1px solid rgba(var(--skin-tint-rgb), 0.25);
 }
 
 .ao-notice-item {
   margin: 0;
   font-size: 14px;
-  color: #c9d0df;
+  color: var(--ao-soft-ink, #c9d0df);
   line-height: 1.4;
 }
 
@@ -1378,7 +1403,7 @@ input {
   padding-top: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #8c95a8;
+  color: var(--ao-label, #8c95a8);
   letter-spacing: 0.04em;
 }
 

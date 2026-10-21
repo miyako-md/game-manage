@@ -32,3 +32,24 @@ test('skin text colours stay readable on the skin background and surface', () =>
     assert.ok(contrast(bg, rgb(values['--skin-accent'])) >= 4.5, `${key} on-accent`)
   }
 })
+
+// The obsidian overview (qq-image/lab.css) used these literals before it read the
+// skin tokens; the Wuwa skin must reproduce them exactly so its image is unchanged.
+const OBSIDIAN = {
+  '--skin-bg': '#11131c', '--skin-bg-grad': 'linear-gradient(180deg, #161924 0%, #11131c 55%, #0d0f16 100%)',
+  '--skin-surface': 'rgba(24, 28, 40, 0.85)', '--skin-line': 'rgba(214, 188, 138, 0.28)', '--skin-line-strong': 'rgba(214, 188, 138, 0.58)',
+  '--skin-ink': '#f3f4f8', '--skin-muted': '#a5adbe', '--skin-accent': '#dfc38d', '--skin-accent-2': '#c8a362', '--skin-hot': '#ecd39f',
+  '--skin-on-accent': '#161822', '--skin-radius-card': '16px', '--skin-radius-tile': '12px', '--skin-radius-chip': '999px',
+  '--skin-glow': 'inset 0 0 24px rgba(214, 188, 138, 0.06)', '--skin-tint-rgb': '214, 188, 138',
+}
+const same = value => value.replace(/\b0\./g, '.').replace(/\s+/g, ' ').trim()
+
+test('the Wuwa skin equals the former obsidian literals, which lab.css now reads as tokens', () => {
+  const wuwa = block('wuwa')
+  for (const [token, literal] of Object.entries(OBSIDIAN)) assert.equal(same(wuwa[token]), same(literal), token)
+  const lab = readFileSync(new URL('./qq-image/lab.css', import.meta.url), 'utf8')
+  const obsidian = lab.slice(lab.indexOf('.lab-sheet.is-account-overview {'))
+  for (const literal of ['#11131c', '#f3f4f8', '#dfc38d', '#a5adbe', '#161822', 'rgba(214, 188, 138', 'rgba(24, 28, 40, 0.85)'])
+    assert.ok(!obsidian.includes(literal), literal)
+  assert.match(obsidian, /\.ao-game-block\[data-skin\] \{[^}]*--skin-surface: var\(--ao-shell-surface\)/)
+})
