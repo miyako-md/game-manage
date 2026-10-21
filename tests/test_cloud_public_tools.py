@@ -75,6 +75,7 @@ def test_public_tools_require_login_and_preserve_local_response(cloud):
     ('/api/admin/nte/guides/sources/1/refresh', {}),
     ('/api/admin/wuwa/guides/updates', {'character_id': '1', 'name': '测试'}),
     ('/api/admin/wuwa/guides/updates/extract', {'character_id': '1', 'name': '测试', 'post_id': '1'}),
+    ('/api/admin/wuwa/guides/tower/check', {}),
     ('/api/admin/endfield/public/refresh', {}),
 ])
 def test_maintenance_requires_admin_and_csrf(cloud, path, payload):
@@ -202,6 +203,27 @@ def test_admin_wuwa_search_failure_preserves_cached_candidates(cloud):
     assert response.status_code == 200
     assert response.json()['error'] and response.json()['candidates'][0]['id'] == '1'
     assert client.get('/api/public/wuwa/guides/updates', params=query).json()['candidates'][0]['id'] == '1'
+
+
+def test_wuwa_tower_guides_need_login_and_admin_failure_keeps_cache(cloud):
+    from datetime import timedelta
+    from game_assistant.wuwa_guide_updates import SEARCH_URL
+    app, client, _, upstream = cloud
+    now = datetime.now(timezone.utc)
+    guide = {'id': '1', 'periodStart': (now - timedelta(days=1)).isoformat(),
+             'periodEnd': (now + timedelta(days=27)).isoformat()}
+    client.portal.call(lambda: app.state.wuwa_tower_guides.save({'guides': [guide],
+        'checked_at': (now - timedelta(hours=2)).isoformat(), 'attempted_at': (now - timedelta(hours=2)).isoformat(),
+        'error': None}))
+    route = upstream.post(SEARCH_URL).mock(return_value=httpx.Response(503))
+    assert client.get('/api/public/wuwa/guides/tower').status_code == 401
+    login(client)
+    assert client.get('/api/public/wuwa/guides/tower').json()['guides'][0]['id'] == '1'
+    assert route.call_count == 0
+    response = write(client, '/api/admin/wuwa/guides/tower/check', {})
+    assert response.status_code == 200 and route.call_count == 1
+    assert response.json()['error'] and response.json()['guides'][0]['id'] == '1'
+    assert write(client, '/api/admin/wuwa/guides/tower/check', {}).status_code == 429
 
 
 def test_scoped_history_backfill_uses_only_owned_current_snapshots(tmp_path):

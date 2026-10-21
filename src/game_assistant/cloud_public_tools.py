@@ -17,6 +17,7 @@ from .identity.dependencies import require_user
 from .nte_guides import GuideService, GuideSourceError
 from .nte_guides_catalog import SOURCES, guide_catalog
 from .wuwa_guide_updates import GuideUpdates, Search, Selection
+from .wuwa_tower_guides import TowerGuides
 
 
 class CloudEndfieldPublicService(EndfieldPublicService):
@@ -59,6 +60,7 @@ class CloudPublicTools:
         path = Path(settings.db_path)
         self.nte = GuideService(path.with_suffix('.nte-guides.sqlite3'))
         self.wuwa = GuideUpdates(path.with_suffix('.wuwa-guides.sqlite3'))
+        self.wuwa_tower = TowerGuides(path.with_suffix('.wuwa-guides.sqlite3'))
         self.endfield = CloudEndfieldPublicService(path)
         self.maintenance_attempts = {}
 
@@ -118,6 +120,7 @@ def install_cloud_public_tools(app, settings):
     app.state.cloud_public_tools = tools
     app.state.nte_guides = tools.nte
     app.state.wuwa_guide_updates = tools.wuwa
+    app.state.wuwa_tower_guides = tools.wuwa_tower
     app.state.endfield_public = tools.endfield
     readers = APIRouter(prefix='/api/public', dependencies=[Depends(require_user)])
 
@@ -156,6 +159,15 @@ def install_cloud_public_tools(app, settings):
         tools.maintenance('wuwa-extract')
         query = Search(**selection.model_dump(exclude={'post_id'}))
         return await tools.bounded(lambda: tools.wuwa.extract(query, selection.post_id))
+
+    @readers.get('/wuwa/guides/tower')
+    async def wuwa_tower():
+        return tools.wuwa_tower.read()
+
+    @writers.post('/wuwa/guides/tower/check')
+    async def wuwa_tower_check():
+        tools.maintenance('wuwa-tower')
+        return await tools.bounded(tools.wuwa_tower.check)
 
     @readers.get('/endfield/public')
     async def endfield_public():

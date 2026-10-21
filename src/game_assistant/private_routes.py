@@ -514,10 +514,12 @@ _declare('private_modify','POST',
 _declare('private_modify','PUT','/api/endfield/blueprints/{identity}')
 _declare('private_modify','DELETE','/api/auth/{game}','/api/endfield/blueprints/{identity}','/api/endfield/skland/connection')
 _declare('public_read_only','GET','/api/endfield/public','/api/endfield/map','/api/endfield/map/marks/{mark_id}',
-    '/api/nte/guides','/api/nte/guides/sources/{post_id}','/api/wuwa/guides/updates','/api/health','/api/games',
+    '/api/nte/guides','/api/nte/guides/sources/{post_id}','/api/wuwa/guides/updates','/api/wuwa/guides/tower',
+    '/api/health','/api/games',
     policy='reviewed_read_only')
 _declare('admin_sources','POST','/api/endfield/public/refresh','/api/nte/guides/sources/{post_id}/refresh',
-    '/api/wuwa/guides/updates','/api/wuwa/guides/updates/extract','/api/lol/esports/refresh',
+    '/api/wuwa/guides/updates','/api/wuwa/guides/updates/extract','/api/wuwa/guides/tower/check',
+    '/api/lol/esports/refresh',
     '/api/auth/bilibili-source/credentials','/api/sources/bilibili/{game}/refresh',policy='admin_required')
 _declare('admin_sources','GET','/api/auth/bilibili-source/login/status',
     '/api/auth/bilibili-source/login/sessions/{sid}','/api/sources/bilibili','/api/sources/bilibili/{game}/audit',policy='admin_required')
