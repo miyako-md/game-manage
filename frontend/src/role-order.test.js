@@ -20,3 +20,17 @@ test('unknown games and malformed roles are unplaced, never invented', () => {
   assert.equal(roleRecency('nte', null), null)
   assert.equal(roleRecency('nte', { id: '' }), null)
 })
+
+test('the generated Wuwa order is the icon catalogue order, without importing the catalogue', async () => {
+  const { readFileSync } = await import('node:fs')
+  const { default: catalog } = await import('./wuwa-icon-catalog.js')
+  const { default: order } = await import('./wuwa-role-order.json', { with: { type: 'json' } })
+  assert.deepEqual(order.names, Object.keys(catalog.roles))
+  assert.doesNotMatch(readFileSync(new URL('./role-order.js', import.meta.url), 'utf8'), /wuwa-icon-catalog/)
+})
+
+test('shared sample: same overview order as the backend role_order.py', async () => {
+  const { readFileSync } = await import('node:fs')
+  const { cases } = JSON.parse(readFileSync(new URL('../../tests/fixtures/role_order.json', import.meta.url), 'utf8'))
+  for (const { game, roles, expected } of cases) assert.deepEqual(names([...roles].sort(newestFirst(game))), expected, game)
+})

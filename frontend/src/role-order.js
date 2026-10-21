@@ -2,9 +2,12 @@
 // Wuwa = official wiki catalogue order (listed newest first; role ids are grouped by
 // element, not by date), NTE = numeric role id, Endfield = the number in chr_NNNN_*.
 // Roles a proxy cannot place go last; ties fall back to the name.
-import wuwaCatalog from './wuwa-icon-catalog.js'
+// The Wuwa name list is generated from the icon catalogue (scripts/generate-character-search.mjs),
+// so this module does not pull the whole catalogue into every page that sorts roles.
+// Backend twin: src/game_assistant/role_order.py.
+import wuwaOrder from './wuwa-role-order.json' with { type: 'json' }
 
-const wuwaNames = Object.keys(wuwaCatalog.roles)
+const wuwaNames = wuwaOrder.names
 const wuwaRank = new Map(wuwaNames.map((name, index) => [name, wuwaNames.length - index]))
 const number = value => /^\d+$/.test(String(value ?? '')) ? Number(value) : null
 
