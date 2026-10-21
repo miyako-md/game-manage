@@ -272,3 +272,99 @@ test('malformed advanced JSON shows a fixed Chinese error message instead of a r
  assert.match(content(root), /JSON 格式无效，请检查后再保存/)
  assert.equal(calls.length, before)
 })
+
+// M8: default scores (builtin weights) are unofficial and say where their weights come from.
+const defaultItem = (index, value, grade) => ({ item_id: `echo:${index}:unknown`, status: 'scored', value, grade, max_value: 50, cost: 3 })
+const defaultScore = (attribution = 'gpl_snapshot') => ({ status: 'scored', value: '182.50', grade: 's', max_value: 250, origin: 'builtin_default', unofficial: true, attribution,
+  source: 'builtin_default', model_version: 'default-v1', weight_version: 'default-v1', formula: 'wuwa-echo-default-v1', partial: false,
+  item_results: [defaultItem(0, '38.52', 'ss'), { item_id: 'echo:1:unknown', status: 'unscorable', reason: 'NO_STAT_VALUES', value: null, grade: null, max_value: null, cost: null }] })
+const noDefault = { status: 'unconfigured', value: null, reason: 'NO_WEIGHTS', model_version: 'unconfigured', source: 'user_configured', item_results: [], partial: null }
+
+test('a scored default shows on the image as an unofficial score with its total, grade and weight source', async t => {
+  const fetch = t.mock.method(globalThis, 'fetch', async () => reply({}))
+  const root = mount(t, Assessment, { game: 'wuthering_waves', characterId: '1205', imageMode: true, autoLoad: true, initialAssessment: defaultScore() })
+  assert.match(content(root), /默认评分 · 非官方.*总分 182.50 \/ 250 · 等级 S.*权重改编自 WutheringWavesUID（GPL-3.0）.*装备 1：已评分 · 38.52 \/ 50 · SS.*装备 2：不可评分/)
+  assert.match(content(mount(t, Assessment, { game: 'wuthering_waves', characterId: '1205', imageMode: true, initialAssessment: defaultScore('self_made') })), /默认评分 · 非官方.*自制权重/)
+  for (const status of ['unconfigured', 'unscorable']) assert.doesNotMatch(content(mount(t, Assessment, { game: 'wuthering_waves', characterId: '1205', imageMode: true, initialAssessment: { ...defaultScore(), status, value: null } })), /非官方|评分/)
+  const own = content(mount(t, Assessment, { game: 'wuthering_waves', characterId: '1205', imageMode: true, initialAssessment: scored('3.00') }))
+  assert.match(own, /个人权重评分.*已评分：3.00/); assert.doesNotMatch(own, /非官方|\/ 250|WutheringWavesUID/)
+  await nextTick(); assert.equal(fetch.mock.callCount(), 0, 'image data arrives via props')
+})
+
+function autoLoaded(t, { equipped = () => reply({ configuration: { items: [], observed_at: null }, assessment: defaultScore() }), model = { game: 'wuthering_waves', character_id: '1205', version: 'mine', source: 'user_configured', wuwa_weights: { attack_flat: '1' } } } = {}) {
+  const calls = []
+  t.mock.method(globalThis, 'fetch', async (path, options = {}) => {
+    const method = options.method || 'GET', key = `${method} ${path.replace(/^\/api\/assessment\/[^/]+\/[^/]+/, '')}`
+    calls.push(key)
+    if (key === 'GET /equipped') return equipped()
+    if (key === 'DELETE /model') return reply({ deleted: true })
+    return reply({ model, configurations: [] })
+  })
+  const emitted = []
+  const props = reactive({ game: 'wuthering_waves', characterId: '1205', scopeKey: 'a', autoLoad: true, onAssessment: value => emitted.push(value) })
+  const root = mount(t, Assessment, props)
+  const settle = async () => { for (let i = 0; i < 4; i++) await nextTick() }
+  const click = async label => { await nodes(root, 'button').find(node => content(node) === label).props.onClick(); await settle() }
+  return { root, props, calls, emitted, settle, click }
+}
+
+test('the website reads the equipped default score on mount, without a click', async t => {
+  const { root, calls, emitted, settle } = autoLoaded(t)
+  await settle()
+  assert.deepEqual(calls, ['GET /equipped'])
+  assert.match(content(root), /默认评分 · 非官方.*总分 182.50 \/ 250 · 等级 S.*权重改编自 WutheringWavesUID（GPL-3.0）/)
+  assert.ok(nodes(root, 'details').some(node => /来源 内置默认（非官方）/.test(content(node))))
+  assert.equal(emitted.at(-1).origin, 'builtin_default')
+})
+
+test('without autoLoad (history entries, NTE) nothing is requested before the editor opens', async t => {
+  const { root, props, calls, settle } = autoLoaded(t)
+  await settle(); props.autoLoad = false; await settle()
+  assert.deepEqual(calls, ['GET /equipped'])
+  assert.doesNotMatch(content(root), /总分|非官方/)
+})
+
+test('a character without default weights says so on the website', async t => {
+  const { root, settle } = autoLoaded(t, { equipped: () => reply({ configuration: { items: [] }, assessment: noDefault }) })
+  await settle()
+  assert.match(content(root), /个人权重评分.*暂无默认权重/)
+  assert.doesNotMatch(content(root), /未配置|非官方/)
+})
+
+test('a failing equipped read shows its error and a later character reads again', async t => {
+  let fail = true
+  const { root, props, calls, settle } = autoLoaded(t, { equipped: () => fail ? { ok: false, status: 503, json: async () => ({ detail: 'unavailable' }) } : reply({ assessment: defaultScore() }) })
+  await settle()
+  assert.ok(nodes(root, 'p').some(node => node.props.role === 'alert'))
+  fail = false; props.characterId = '1304'; await settle()
+  assert.equal(calls.filter(key => key === 'GET /equipped').length, 2)
+  assert.ok(!nodes(root, 'p').some(node => node.props.role === 'alert'))
+  assert.match(content(root), /总分 182.50/)
+})
+
+test('an equipped read of the previous character never lands on the next one', async t => {
+  const late = defer(); let first = true
+  const { root, props, emitted, settle } = autoLoaded(t, { equipped: () => first ? (first = false, late.promise) : reply({ assessment: noDefault }) })
+  props.characterId = '1304'; await settle()
+  late.resolve(reply({ assessment: defaultScore() })); await settle()
+  assert.match(content(root), /暂无默认权重/); assert.doesNotMatch(content(root), /总分/)
+  assert.deepEqual(emitted.at(-1), noDefault)
+})
+
+test('the editor starts from the default model as a personal copy, without a restore button', async t => {
+  const { root, click, settle } = autoLoaded(t, { model: { game: 'wuthering_waves', character_id: '1205', version: 'default-v1', source: 'builtin_default', wuwa_weights: { crit_rate: '2' } } })
+  await settle(); await click(open)
+  const model = JSON.parse(nodes(root, 'textarea').find(node => node.props['aria-label'] === '权重及公式配置 JSON').props.value)
+  assert.equal(model.source, 'user_configured'); assert.equal(model.version, 'default-v1'); assert.deepEqual(model.wuwa_weights, { crit_rate: '2' })
+  assert.ok(!nodes(root, 'button').some(node => content(node) === '恢复默认'))
+})
+
+test('restoring the default deletes the personal model, closes the editor and reads the equipped score again', async t => {
+  const { root, calls, click, settle } = autoLoaded(t)
+  await settle(); await click(open)
+  assert.doesNotMatch(content(root), /总分/, 'the open editor shows the score of its own input only')
+  await click('恢复默认')
+  assert.deepEqual(calls, ['GET /equipped', 'GET ', 'DELETE /model', 'GET /equipped'])
+  assert.ok(nodes(root, 'button').some(node => content(node) === open))
+  assert.match(content(root), /默认评分 · 非官方.*总分 182.50/)
+})
