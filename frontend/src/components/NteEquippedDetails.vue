@@ -10,7 +10,10 @@ const rows = value => Array.isArray(value) ? value : []
 const awakenName = (effect, i) => { const title = displayNteText(effect).split(/[\n：:]/)[0].trim(); return !title || title.length > 12 || title.endsWith('待核验') ? `觉醒 ${i + 1}` : title }
 // The upstream groups are only `core` and `pie`; the game calls them 空幕 and 驱动.
 const GROUPS = [{ key:'core', label:'空幕' }, { key:'pie', label:'驱动' }]
-const pieces = suit => GROUPS.reduce((n, g) => n + rows(suit[g.key]).length, 0)
+// Real piece counts are unverified (the samples used 4 + 2): any count fills the grid in order,
+// a group without pieces has no heading, and malformed entries are skipped rather than shown.
+const parts = (suit, key) => rows(suit?.[key]).filter(item => item && typeof item === 'object')
+const pieces = suit => GROUPS.reduce((n, g) => n + parts(suit, g.key).length, 0)
 </script>
 <template>
   <div class="nte-equipped-details" :class="{ 'is-image': imageMode }">
@@ -19,8 +22,8 @@ const pieces = suit => GROUPS.reduce((n, g) => n + rows(suit[g.key]).length, 0)
     <section class="equipped-suit"><h4>已装备套装</h4>
       <template v-if="role.suit">
         <header class="nte-suit-head"><NteIcon :src="nteNamedIcon('sets', role.suit.name)" :name="show(role.suit.name)" size="large" /><div><strong>{{ show(role.suit.name) }}</strong><span class="nte-suit-count">激活数 <b>{{ show(role.suit.activation_count) }}</b></span></div></header>
-        <template v-for="group in GROUPS" :key="group.key"><div v-if="rows(role.suit[group.key]).length" class="nte-drive-group"><h5 class="nte-drive-group-title">{{ group.label }}<span>{{ rows(role.suit[group.key]).length }} 件</span></h5>
-          <div class="nte-drives"><article v-for="(item,i) in rows(role.suit[group.key])" :key="i" class="nte-drive">
+        <template v-for="group in GROUPS" :key="group.key"><div v-if="parts(role.suit, group.key).length" class="nte-drive-group"><h5 class="nte-drive-group-title">{{ group.label }}<span>{{ parts(role.suit, group.key).length }} 件</span></h5>
+          <div class="nte-drives"><article v-for="(item,i) in parts(role.suit, group.key)" :key="i" class="nte-drive">
             <h6 class="nte-drive-name">{{ show(item.name) }} · Lv{{ show(item.level) }}</h6>
             <template v-for="kind in [{ key:'main_properties', label:'主属性' }, { key:'properties', label:'副属性' }]" :key="kind.key"><p class="nte-drive-kind">{{ kind.label }}</p><dl v-if="rows(item[kind.key]).length"><div v-for="(p,j) in rows(item[kind.key])" :key="j"><dt>{{ show(p.name) }}</dt><dd>{{ show(p.value) }}</dd></div></dl><p v-else class="nte-drive-empty">未提供</p></template>
             <!-- D6: no built-in weights yet. The website shows the reserved slot; QQ images hide it (no height). -->

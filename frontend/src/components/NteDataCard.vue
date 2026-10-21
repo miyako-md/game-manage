@@ -115,7 +115,7 @@ const medals = computed(() => [
           <span class="k" :title="category.name">{{ display(category.name) }}</span>
           <progress v-if="measurable(category.current, category.total)" :value="category.current" :max="category.total" :aria-label="category.name || '成就分类'" />
           <span v-else class="meter-none" aria-hidden="true" />
-          <span class="v">{{ display(category.current) }}<small> / {{ display(category.total) }}</small></span>
+          <span class="v">{{ display(category.current) }}<small> / {{ display(category.total) }}</small><span v-if="exceedsTarget(category.current, category.total)" class="target-met">已达目标</span></span>
         </li>
       </ul>
     </template>

@@ -106,6 +106,14 @@ test('element, sort direction and favorites filter control the card list', async
   assert.equal(cards(root).length, 1); assert.match(content(cards(root)[0]), /角色1/)
   button(root, '取消收藏角色1').props.onClick(); await nextTick(); assert.equal(cards(root).length, 0)
 })
+test('roles default to newest first (role id) on the website and in images; other sorts stay available', async t => {
+  const list = [{ id: '1003', name: '早雾', level: 90 }, { id: null, name: '无编号', level: 99 }, { id: '1076', name: '真红', level: 10 }, { id: '1057', name: '明音', level: 50 }]
+  const names = root => cards(root).map(card => content(card).match(/早雾|无编号|真红|明音/)[0])
+  for (const imageMode of [false, true]) assert.deepEqual(names(mount(t, Panel, { snap: snap(list), accountId: 'a', imageMode })), ['真红', '明音', '早雾', '无编号'])
+  const root = mount(t, Panel, { snap: snap(list), accountId: 'a' })
+  choose(root, '角色排序', 'level'); await nextTick()
+  assert.deepEqual(names(root), ['无编号', '早雾', '明音', '真红'])
+})
 test('favorites survive remount, isolate accounts, and report unavailable storage without crashing', async t => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage'), map = new Map()
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: k => map.get(k) ?? null, setItem: (k, v) => map.set(k, v) } })

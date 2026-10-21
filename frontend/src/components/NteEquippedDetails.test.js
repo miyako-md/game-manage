@@ -52,6 +52,29 @@ test('a set without pieces says so instead of showing empty groups', t => {
   assert.match(content(root), /合成套装 激活数 未提供 驱动件 未提供/)
 })
 
+const piece = (kind, i) => ({ name: `合成${kind}${i}`, level: 20, main_properties: [{ name: '攻击力', value: '63' }], properties: [{ name: '暴击率', value: '3%' }] })
+const suitWith = (core, pie) => ({ ...completeRole(), suit: { name: '迪亚波罗斯', activation_count: 2, core, pie } })
+
+test('any real piece count gets one cell per piece and empty groups lose their heading', t => {
+  const range = (kind, n) => Array.from({ length: n }, (_, i) => piece(kind, i + 1))
+  for (const imageMode of [false, true]) for (const [core, pie] of [[0, 1], [1, 0], [3, 0], [5, 1], [4, 3], [0, 5], [7, 2]]) {
+    const root = mount(t, Equipped, { role: suitWith(range('空幕', core), range('驱动', pie)), imageMode })
+    assert.equal(byClass(root, 'nte-drive').length, core + pie)
+    assert.deepEqual(byClass(root, 'nte-drive-group-title').map(content), [...(core ? [`空幕 ${core} 件`] : []), ...(pie ? [`驱动 ${pie} 件`] : [])])
+    assert.doesNotMatch(content(root), /未提供/)
+  }
+})
+
+test('a missing group or malformed pieces are skipped; no pieces at all stays 未提供, never 0 件', t => {
+  const root = mount(t, Equipped, { role: suitWith(undefined, [null, 'x', piece('驱动', 1), 7]), imageMode: true })
+  assert.equal(byClass(root, 'nte-drive').length, 1)
+  assert.deepEqual(byClass(root, 'nte-drive-group-title').map(content), ['驱动 1 件'])
+  const none = mount(t, Equipped, { role: suitWith([null], {}) })
+  assert.equal(byClass(none, 'nte-drive-group').length, 0)
+  assert.match(content(none), /驱动件 未提供/)
+  assert.doesNotMatch(content(none), /0 件/)
+})
+
 test('the full role detail shows skill names and levels only, in both modes', t => {
   for (const imageMode of [false, true]) {
     const root = mount(t, RoleDetail, { role: completeRole(), imageMode })

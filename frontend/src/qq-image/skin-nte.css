@@ -14,3 +14,107 @@
   padding-bottom: 10px;
   background: linear-gradient(90deg, var(--skin-accent), var(--skin-accent-2)) left bottom / 100% 2px no-repeat;
 }
+
+/* Neon kept to the page header (D9). Gradients are dithered by Chromium and that noise does
+   not compress (two radial glows in the header alone cost a progress page ~100 KiB), so the
+   glow is drawn with blurred shadows, which stay smooth: an inner purple bloom in the header,
+   a lit title, and a hard-edged purple-to-cyan hairline on top of each card. */
+.reuse.lab-sheet[data-skin="nte"] .head-dossier {
+  box-shadow: var(--skin-glow), inset 0 0 28px rgba(199, 155, 255, .16);
+}
+
+.reuse.lab-sheet[data-skin="nte"] .head-dossier h1 {
+  text-shadow: 0 0 14px rgba(199, 155, 255, .55);
+}
+
+.reuse.lab-sheet[data-skin="nte"] #render-content .cap-card {
+  background-image: linear-gradient(90deg, rgba(199, 155, 255, .7), rgba(79, 227, 224, .45)) !important;
+  background-size: 100% 2px !important;
+  background-position: left top !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Panels of the guide and gacha pages carry the website palette inline (gameVars); the skin wins. */
+.reuse.lab-sheet[data-skin="nte"] .block {
+  --game-accent: var(--skin-accent) !important;
+  --game-vivid: var(--skin-accent) !important;
+  --game-tone: rgba(var(--skin-tint-rgb), .14) !important;
+}
+
+/* Icon letters (a picture that has no art) follow the 17px minimum; the weapon tile grows to hold two. */
+.reuse.lab-sheet[data-skin="nte"] :is(#render-content .nte-icon .icon-fallback, .guide-visual .icon-fallback, .cloud-gacha .reward-icon > span) {
+  font-size: var(--qq-small) !important;
+}
+
+.reuse.lab-sheet[data-skin="nte"] #render-content .role-detail-view .weapon .nte-icon {
+  --size: 44px !important;
+}
+
+/* 攻略: a role without a portrait (主角·零 has two) keeps its title on one full-width column. */
+.reuse.lab-sheet[data-skin="nte"] .guide-role-context:not(:has(> img, > .endfield-artwork)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* 攻略: the source line under each block was 16px; panel caps take a flat tint instead of the
+   dithered tone-to-transparent banner (the 娜娜莉 guide was already over 512 KiB). */
+.reuse.lab-sheet[data-skin="nte"] .source-line {
+  font-size: var(--qq-small);
+}
+
+.reuse.lab-sheet[data-skin="nte"] .block-cap {
+  background: rgba(var(--skin-tint-rgb), .08);
+}
+
+/* 探索 / 进度: a count above its total keeps the tag under the numbers instead of past the card edge. */
+.reuse.lab-sheet[data-skin="nte"] #render-content :is(.area-details, .categories) .target-met {
+  display: block;
+  width: max-content;
+  margin: 2px 0 0 auto;
+}
+
+/* 进度: one value column for every category row, so the bars start and end on one line. */
+.reuse.lab-sheet[data-skin="nte"] #render-content .categories > .bar-row {
+  grid-template-columns: minmax(150px, 1fr) minmax(120px, 1fr) 150px !important;
+}
+
+.reuse.lab-sheet[data-skin="nte"] #render-content .categories > .bar-row > .v {
+  text-align: right;
+}
+
+/* 抽卡 (colour only, 031): the shared pastel bars on a near-white track were built for the
+   light template. On the night base the track is a dim well, the bars keep the Tajiduo
+   hues (green / amber / red) as translucent fills and the numbers stay light. */
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha {
+  --nte-short: rgba(88, 214, 160, .42);
+  --nte-medium: rgba(240, 190, 90, .42);
+  --nte-long: rgba(255, 111, 140, .42);
+}
+
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha .bar-track {
+  background: rgba(255, 255, 255, .06);
+  box-shadow: inset 0 0 0 1px rgba(var(--skin-tint-rgb), .16);
+}
+
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha :is(.pull-bar, .bar-legend i, .luck-title).short { background: var(--nte-short); }
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha :is(.pull-bar, .bar-legend i, .luck-title).medium { background: var(--nte-medium); }
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha :is(.pull-bar, .bar-legend i, .luck-title).long { background: var(--nte-long); }
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha :is(.pull-bar, .bar-legend i, .luck-title).unknown { background: rgba(255, 255, 255, .1); }
+
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha .bar-values {
+  color: var(--skin-ink);
+}
+
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha .bar-values .rating {
+  background: rgba(0, 0, 0, .38);
+  color: var(--skin-ink);
+  font-size: var(--qq-small);
+}
+
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha .bar-values .rating.short { color: #8ff0c4; }
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha .bar-values .rating.medium { color: #f6d68d; }
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha .bar-values .rating.long { color: #ff9db4; }
+
+.reuse.lab-sheet[data-skin="nte"] .cloud-gacha .pull-time {
+  color: var(--skin-muted);
+  font-size: var(--qq-small);
+}
