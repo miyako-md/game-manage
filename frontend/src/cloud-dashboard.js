@@ -3,7 +3,7 @@ import * as identity from './identity-api.js'
 import * as accounts from './accounts-api.js'
 import { setAccountScope, subscribeSessionInvalidation, obtainCsrf } from './http-client.js'
 import { collectionState } from './snapshot-state.js'
-import { resolveEndfieldSources } from './endfield-accounts.js'
+import { endfieldPageSources } from './endfield-accounts.js'
 const REFRESH_READ_INTERVAL = 2000, REFRESH_READ_LIMIT = 10, REFRESH_TRACK_TIMEOUT = 30000
 export function createCloudDashboard(overrides = {}) {
   const api = { ...identity, ...accounts, obtainCsrf, ...overrides }
@@ -53,7 +53,7 @@ export function createCloudDashboard(overrides = {}) {
         }
       } else if (!keepSelectionEmpty) selected ||= state.accounts[0]
       if (!selected && !previous && keepSelectionEmpty) return
-      const nextSources = resolveEndfieldSources(state.accounts, selected, role)
+      const nextSources = endfieldPageSources(state.accounts, selected, role)
       if (selected && selected.account_id === state.selected?.account_id && authorizationKey(selected) === authorizationKey(state.selected) && sourcesKey(nextSources) === sourcesKey(state.sources)) {
         state.selected = selected; state.sources = nextSources
       } else selectAccount(selected || null, selected?.roles?.some(row => row.role_id === role) ? role : undefined)
@@ -66,7 +66,7 @@ export function createCloudDashboard(overrides = {}) {
     user_id: account.user_id, state: account.state, version: account.version, grant_id: account.grant_id,
     roles: [...(account.roles || [])].sort((a, b) => a.role_id.localeCompare(b.role_id)), capabilities: account.capabilities,
   })
-  const sourcesKey = sources => JSON.stringify(Object.keys(sources).sort().map(provider => [provider, sources[provider].role, authorizationKey(sources[provider].account)]))
+  const sourcesKey = sources => JSON.stringify(Object.keys(sources).sort().map(provider => [provider, sources[provider].role, authorizationKey(sources[provider].account), !!sources[provider].fallback]))
   const isEndfieldAccount = account => account && (account.game == null || account.game === 'endfield') && ['hypergryph', 'skland'].includes(account.provider)
   // Only the previously confirmed partner may take over. A new binding with an
   // equal display name, changed identity, missing UID or ambiguous role is not a
@@ -74,7 +74,8 @@ export function createCloudDashboard(overrides = {}) {
   function survivingEndfieldSource(rows, previousSources, selectedId) {
     const candidates = []
     for (const source of Object.values(previousSources)) {
-      if (source.account.account_id === selectedId) continue
+      // A page fallback was never confirmed as the same character.
+      if (source.account.account_id === selectedId || source.fallback) continue
       const oldRole = source.account.roles?.find(role => role.role_id === source.role), oldUid = oldRole?.game_uid
       if (!['official', 'bilibili'].includes(source.account.channel) || !source.account.server || oldUid == null || String(oldUid) === '') continue
       const matching = rows.filter(account => isEndfieldAccount(account) && account.state === 'active' && account.provider === source.account.provider &&
@@ -88,14 +89,14 @@ export function createCloudDashboard(overrides = {}) {
   const scopeFor = (account, role) => ({ user_id: state.user?.user_id, account_id: account.account_id, role_id: role, provider: account.provider, version: account.version, grant_id: account.grant_id })
   function selectAccount(account, role) {
     const nextRole = role || account?.roles?.find(row => row.is_default)?.role_id || account?.roles?.[0]?.role_id || ''
-    const nextSources = resolveEndfieldSources(state.accounts, account, nextRole)
+    const nextSources = endfieldPageSources(state.accounts, account, nextRole)
     if (account && state.selected && nextRole === state.role && authorizationKey(account) === authorizationKey(state.selected) && sourcesKey(nextSources) === sourcesKey(state.sources)) {
       state.selected = account; state.sources = nextSources; return
     }
     keepSelectionEmpty = false
     stopTracking(); reads.clear(); scopedReads.clear()
     epoch++; state.revision++; state.selected = account; state.role = role || account?.roles?.find(row => row.is_default)?.role_id || account?.roles?.[0]?.role_id || ''
-    state.sources = resolveEndfieldSources(state.accounts, account, state.role)
+    state.sources = endfieldPageSources(state.accounts, account, state.role)
     state.snapshots = {}; state.readStates = {}; state.sourceSnapshots = {}; state.refreshing = {}; state.refreshPending = {}; state.error = ''; state.loading = false
     const scope = account && state.role ? scopeFor(account, state.role) : null
     if (scope && isEndfield()) scope.sources = Object.fromEntries(Object.entries(state.sources).map(([provider, source]) => [provider, scopeFor(source.account, source.role)]))
