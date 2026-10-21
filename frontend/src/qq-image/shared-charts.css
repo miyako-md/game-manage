@@ -231,7 +231,8 @@
   font-size: 19px;
 }
 
-/* Cloud Calendar Timeline */
+/* Cloud Calendar Timeline: the shared component in compact image mode (no
+   artwork, one short row per activity, state chips at the end of the bar). */
 .cloud-calendar {
   display: grid;
   gap: 24px;
@@ -282,30 +283,42 @@
   line-height: 1.4;
 }
 
+.lab-sheet .cloud-calendar .header-label small {
+  font-size: 15px;
+}
+
+/* A version can span seven weeks or more: date labels shrink with the column
+   width (date track width / day count) so no label leaves its own day. */
+.lab-sheet .cloud-calendar .date-track {
+  container-type: inline-size;
+}
+
 .lab-sheet .cloud-calendar .date-cell {
   position: relative;
   min-width: 0;
   width: 100%;
-  min-height: 82px;
-  grid-template-rows: 22px 26px 20px;
-  padding: 8px 0;
+  min-height: 0;
+  grid-template-rows: auto auto;
+  align-content: start;
+  padding: 8px 0 28px;
   gap: 2px;
 }
 
 .lab-sheet .cloud-calendar .date-cell small {
-  font-size: 16px;
+  font-size: min(16px, calc(100cqw / var(--day-count) * 0.78)) !important;
   line-height: 1.35;
 }
 
 .lab-sheet .cloud-calendar .date-cell strong,
 .lab-sheet .cloud-calendar .date-cell.is-month-start strong {
-  font-size: 18px !important;
-  line-height: 1.2;
+  font-size: min(18px, calc(100cqw / var(--day-count) * 0.6)) !important;
+  line-height: 1.45;
   min-width: 0;
   max-width: 100%;
   padding: 0 !important;
   height: auto;
   white-space: nowrap;
+  text-align: center;
 }
 
 .lab-sheet .cloud-calendar .day-today {
@@ -317,6 +330,7 @@
   min-width: 44px;
   font-size: 15px !important;
   line-height: 1.35 !important;
+  text-align: center;
   background: var(--game-accent, var(--accent));
   color: #ffffff;
   padding: 0 4px;
@@ -336,20 +350,9 @@
   margin-bottom: 8px;
 }
 
-.lab-sheet .cloud-calendar .group-label > div,
-.lab-sheet .cloud-calendar .group-label > .game-monogram {
-  position: static !important;
-}
-
 .lab-sheet .cloud-calendar .group-label strong {
   font-size: 20px;
   line-height: 1.4;
-}
-
-.lab-sheet .cloud-calendar .group-category {
-  font-size: 17px;
-  line-height: 1.4;
-  margin-top: 6px;
 }
 
 .lab-sheet .cloud-calendar .group-label small {
@@ -365,53 +368,30 @@
 
 .lab-sheet .cloud-calendar .group-track {
   overflow: visible !important;
-  padding: 10px 0;
+  padding: 8px 0;
   min-width: 0;
 }
 
 .lab-sheet .cloud-calendar .event-lane {
-  min-height: 100px;
-  padding-bottom: 8px;
+  min-height: 46px;
+  padding-bottom: 6px;
 }
 
-/* Crisp light/game-tinted event card when no artwork is present */
 .lab-sheet .cloud-calendar .timeline-event:not(.is-point) {
   height: auto !important;
-  min-height: 90px;
-  padding: 10px 14px;
+  min-height: 40px;
+  padding: 6px 10px;
   overflow: visible !important;
   background: linear-gradient(90deg, #ffffff 0%, var(--game-tone, #f3f5f8) 100%) !important;
   color: var(--ink) !important;
   border: 1px solid var(--line) !important;
   border-left: 4px solid var(--game-accent, var(--accent)) !important;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(18, 24, 34, 0.05) !important;
+  border-radius: 8px;
+  box-shadow: none !important;
 }
 
 .lab-sheet .cloud-calendar .timeline-event:not(.is-point)::before {
   display: none !important;
-}
-
-/* Dark scrim only when artwork is actually present */
-.lab-sheet .cloud-calendar .timeline-event:not(.is-point):has(.event-artwork) {
-  background: #1b2634 !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
-  border-left: 4px solid var(--game-accent, var(--accent)) !important;
-}
-
-.lab-sheet .cloud-calendar .timeline-event:not(.is-point):has(.event-artwork)::before {
-  display: block !important;
-  inset: 0;
-  z-index: 1;
-  border-radius: inherit;
-  background: linear-gradient(90deg, rgba(12, 19, 29, 0.88) 0%, rgba(12, 19, 29, 0.66) 55%, rgba(12, 19, 29, 0.16) 100%) !important;
-}
-
-.lab-sheet .cloud-calendar .event-artwork {
-  object-position: center 38%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .lab-sheet .cloud-calendar .timeline-event .event-summary {
@@ -429,68 +409,68 @@
   text-shadow: none !important;
 }
 
-.lab-sheet .cloud-calendar .timeline-event:has(.event-artwork) .event-summary {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85) !important;
-}
-
 .lab-sheet .cloud-calendar .event-heading {
   gap: 4px 8px;
 }
 
 .lab-sheet .cloud-calendar .event-bar-title {
-  font-size: 19px !important;
+  flex: 1 1 min(100%, 9em) !important;
+  font-size: 18px !important;
   line-height: 1.4 !important;
-  display: block !important;
   white-space: normal !important;
-  overflow: visible !important;
-  -webkit-line-clamp: unset !important;
+  overflow-wrap: anywhere;
   font-weight: 600;
-  overflow-wrap: normal;
   color: inherit !important;
 }
 
+/* Chips never grow wider than the bar (or floating label) that holds them. */
 .lab-sheet .cloud-calendar :is(.event-category, .event-status, .event-remaining) {
-  font-size: 15px !important;
+  font-size: 14px !important;
   line-height: 1.4 !important;
-  padding: 2px 8px !important;
+  padding: 1px 7px !important;
   border-radius: 999px;
   white-space: nowrap !important;
+  max-width: 100%;
 }
 
-.lab-sheet .cloud-calendar .timeline-event:not(:has(.event-artwork)) .event-category {
+.lab-sheet .cloud-calendar .event-category {
   background: var(--soft) !important;
   color: var(--ink) !important;
   border: 1px solid var(--line) !important;
 }
 
-.lab-sheet .cloud-calendar .timeline-event:not(:has(.event-artwork)) .event-status {
+.lab-sheet .cloud-calendar .event-status {
   background: var(--game-accent, var(--accent)) !important;
   color: #ffffff !important;
-  border-color: transparent !important;
+  border: 1px solid transparent !important;
 }
 
-.lab-sheet .cloud-calendar .timeline-event:not(:has(.event-artwork)) .event-remaining {
+.lab-sheet .cloud-calendar .event-remaining {
   background: rgba(255, 255, 255, 0.85) !important;
   color: var(--muted) !important;
   border: 1px solid var(--line) !important;
 }
 
+/* Short bars float their label beside the bar; label-left keeps it inside
+   the track when the bar sits in the right half. */
 .lab-sheet .cloud-calendar .timeline-event.is-short:not(.is-point) {
-  padding: 10px 0;
-  overflow: visible !important;
+  padding: 6px 0;
 }
 
 .lab-sheet .cloud-calendar .timeline-event.is-short .event-summary {
-  width: 300px !important;
-  max-width: 300px !important;
+  width: max-content !important;
+  max-width: min(360px, 46cqw) !important;
   left: 4px !important;
-  padding: 8px 12px !important;
+  padding: 4px 10px !important;
   background: var(--surface) !important;
-  color: var(--ink) !important;
   border: 1px solid var(--line);
   border-left: 4px solid var(--game-accent, var(--accent));
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(18, 24, 34, 0.08);
+  border-radius: 8px;
+}
+
+.lab-sheet .cloud-calendar .timeline-event.is-short .event-bar-title,
+.lab-sheet .cloud-calendar .point-label strong {
+  flex: 0 1 auto !important;
 }
 
 .lab-sheet .cloud-calendar .timeline-event.is-short.label-left .event-summary {
@@ -498,39 +478,30 @@
   transform: translateX(-100%) !important;
 }
 
-.lab-sheet .cloud-calendar .timeline-event.is-short .event-bar-title {
-  font-size: 18px !important;
-  color: var(--ink) !important;
-}
-
 .lab-sheet .cloud-calendar .timeline-event.is-point {
-  min-height: 94px !important;
-  height: 94px;
+  min-height: 40px !important;
+  height: auto;
 }
 
 .lab-sheet .cloud-calendar .point-diamond {
-  top: 22px;
+  top: 20px;
 }
 
 .lab-sheet .cloud-calendar .point-label {
-  width: 300px !important;
-  max-width: 300px !important;
-  font-size: 18px;
-  line-height: 1.45;
-  padding: 8px 10px;
+  width: max-content !important;
+  max-width: min(360px, 46cqw) !important;
+  min-height: 40px;
+  padding: 4px 10px;
   background: var(--surface);
-  min-height: 76px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
 }
 
 .lab-sheet .cloud-calendar .point-label strong {
   font-size: 18px;
   line-height: 1.4;
+  font-weight: 600;
   white-space: normal;
-}
-
-.lab-sheet .cloud-calendar .point-artwork {
-  width: 64px;
-  height: 52px;
 }
 
 .lab-sheet .cloud-calendar .calendar-unplaced {
@@ -540,9 +511,17 @@
   border-radius: 14px;
 }
 
+.lab-sheet .cloud-calendar .unplaced-heading {
+  margin-bottom: 10px;
+}
+
 .lab-sheet .cloud-calendar .unplaced-heading h2 {
   font-size: 21px;
   line-height: 1.45;
+}
+
+.lab-sheet .cloud-calendar .unplaced-grid {
+  gap: 14px;
 }
 
 .lab-sheet .cloud-calendar .unplaced-bucket h3 {
@@ -550,8 +529,12 @@
   line-height: 1.45;
 }
 
+.lab-sheet .cloud-calendar .unplaced-event {
+  padding: 6px 0;
+}
+
 .lab-sheet .cloud-calendar .unplaced-event strong {
-  font-size: 19px;
+  font-size: 18px;
   line-height: 1.45;
 }
 
@@ -560,9 +543,90 @@
   line-height: 1.45;
 }
 
-.lab-sheet .cloud-calendar .unplaced-artwork {
-  width: 84px;
-  height: 58px;
+/* 近期活动: what starts or ends within 72 hours, one line per activity. */
+.upcoming-list {
+  display: grid;
+}
+
+.upcoming-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 196px 168px;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 4px;
+  border-top: 1px solid var(--line);
+}
+
+.upcoming-row:first-child {
+  border-top: 0;
+}
+
+.upcoming-row.has-game {
+  grid-template-columns: 76px minmax(0, 1fr) 196px 168px;
+}
+
+.upcoming-game {
+  justify-self: start;
+  font-size: 15px;
+  line-height: 1.4;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  color: var(--game-accent, var(--accent));
+  background: var(--game-tone, var(--soft));
+  border: 1px solid var(--line);
+}
+
+.upcoming-name {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
+.upcoming-name h3 {
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.upcoming-name small {
+  font-size: 15px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.upcoming-time {
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.upcoming-countdown {
+  text-align: right;
+  font-size: 17px;
+  line-height: 1.4;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.upcoming-countdown.urgent {
+  color: var(--game-accent, var(--accent));
+}
+
+.upcoming-empty,
+.upcoming-note {
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.upcoming-note {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 }
 
 /* NTE Teams inside Cloud / Reuse */
@@ -648,30 +712,4 @@
   height: auto;
   object-fit: contain;
   border-radius: 8px;
-}
-
-/* Preserve the accepted three-row QQ date header when the shared screen
-   calendar adds explicit grid rows for its separate month labels. */
-.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .date-cell {
-  min-height: 82px;
-  grid-template-rows: 22px 26px 20px;
-  padding: 8px 0;
-  gap: 2px;
-}
-
-.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .day-month {
-  display: none;
-}
-
-.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .day-weekday {
-  grid-row: 1;
-}
-
-.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .date-cell strong {
-  grid-row: 2;
-  height: auto;
-}
-
-.lab-sheet .cloud-calendar .calendar-content:not(.image-mode) .day-today {
-  grid-row: auto;
 }

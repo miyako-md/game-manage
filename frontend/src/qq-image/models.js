@@ -1,5 +1,6 @@
 import {fieldLabels} from '../wuwa-display.js'
-import {collectVersionCalendars,collectCalendarEvents,formatBeijingDateTime} from '../calendar.js'
+import {collectVersionCalendars,collectCalendarEvents,formatBeijingDateTime,versionCalendarRange} from '../calendar.js'
+import {upcomingSections,RECENT_HOURS} from './upcoming.js'
 import nteIcons from '../nte-icon-catalog.js'
 import wuwaIcons from '../wuwa-icon-catalog.js'
 import endfieldIcons from '../endfield-icon-catalog.js'
@@ -54,10 +55,27 @@ function attrib(title,rows,caption){return {title,type:'attributes',fields:rows,
 function equipment(title,entries,caption){return {title,type:'equipment',entries,caption}}
 function stateNotes(s){return [s?.state==='auth_expired'?'登录已过期，请在看板重新登录。':null,s?.stale?'当前为缓存快照，来源可能过期。':null].filter(Boolean)}
 
+const panelEvents=p=>collectCalendarEvents([{game_id:p.game,display_name:names[p.game]}],{[p.game]:{events:p.snapshot}})
 function timelineGroups(c){
- const s=c.snapshot,d=s.display_data,now=Date.parse(s.as_of)
- const groups=s.kind==='calendar'?collectVersionCalendars(d.games,d.snapshots,'',now):(d.panels||[]).filter(p=>['events','recent_events'].includes(p.capability)).map(p=>({gameId:p.game,gameName:names[p.game],version:{id:list(p.snapshot.payload)[0]?.version},events:collectCalendarEvents([{game_id:p.game,display_name:names[p.game]}],{[p.game]:{events:p.snapshot}})}))
- return groups.map((g,i)=>({title:`${g.gameName} · ${g.version?.id?g.version.id+' 版本':'活动日历'}`,gameId:g.gameId,type:'cloud_calendar',events:g.events,snapshots:d.snapshots||{},asOf:now,caption:i===groups.length-1?'北京时间 · 展示近 14 天活动排期，左右箭头代表跨窗口延续':''}))
+ const s=c.snapshot,d=s.display_data,now=Date.parse(s.as_of),calendar=s.kind==='calendar'
+ const groups=calendar?collectVersionCalendars(d.games,d.snapshots,'',now):(d.panels||[]).filter(p=>p.capability==='events').map(p=>({gameId:p.game,gameName:names[p.game],version:{id:list(p.snapshot.payload)[0]?.version},events:panelEvents(p)}))
+ return groups.map((g,i)=>{
+  // 日历 spans the whole version like the website; without version metadata it keeps the 14-day window.
+  const full=calendar&&!!g.version?.id&&!!versionCalendarRange(g.events,now)
+  const caption=calendar?(full?'北京时间 · 本版本已公布活动的完整排期':'北京时间 · 来源未提供版本信息，展示近 14 天活动排期'):i===groups.length-1?'北京时间 · 展示近 14 天活动排期，左右箭头代表跨窗口延续':''
+  return {title:`${g.gameName} · ${g.version?.id?g.version.id+' 版本':'活动日历'}`,gameId:g.gameId,type:'cloud_calendar',events:g.events,snapshots:d.snapshots||{},asOf:now,full,caption}
+ })
+}
+
+function upcomingPanels(c){
+ const s=c.snapshot,now=Date.parse(s.as_of),multi=s.game==='all'
+ const events=(s.display_data.panels||[]).filter(p=>p.capability==='recent_events').flatMap(panelEvents)
+ const {starting,ending,pending}=upcomingSections(events,now)
+ const row=e=>({game:multi?e.gameName:'',gameId:e.gameId,name:e.name||'未命名活动',category:e.category,time:e.time,countdown:e.countdown,urgent:e.urgent})
+ const note=pending?`另有 ${pending} 项时间待确认`:'',caption=`北京时间 · 日期精度的活动按当天 00:00 开始、23:59 结束计算`
+ const game=multi?undefined:s.game
+ if(!starting.length&&!ending.length)return [{title:'近期活动',type:'upcoming',gameId:game,rows:[],empty:`未来 ${RECENT_HOURS} 小时内没有开始或结束的活动`,note,caption}]
+ return [['开始',starting],['结束',ending]].map(([verb,rows],i)=>({title:`${RECENT_HOURS} 小时内${verb}`,type:'upcoming',gameId:game,rows:rows.map(row),empty:`未来 ${RECENT_HOURS} 小时内没有${verb}的活动`,note:i?note:'',caption:i?'':caption}))
 }
 
 function combat(p){
@@ -224,7 +242,8 @@ function gamePanel(panel){
 export function viewModel(c){
  const s=c.snapshot,d=s.display_data
  let result={title:s.title||c.command,game:names[s.game]||'游戏管家',command:c.command,asOf:formatBeijingDateTime(s.as_of),origin:c.origin,panels:[],hero:null}
- if(s.kind==='calendar'||d.panels?.some(p=>['events','recent_events'].includes(p.capability)))result.panels=timelineGroups(c)
+ if(d.panels?.some(p=>p.capability==='recent_events'))result.panels=upcomingPanels(c)
+ else if(s.kind==='calendar'||d.panels?.some(p=>p.capability==='events'))result.panels=timelineGroups(c)
  else if(s.kind==='wuwa_role')Object.assign(result,wuwaRole(d))
  else if(s.kind==='nte_role'&&d.snapshot.display_mode==='detail')Object.assign(result,nteRole(d))
  else if(s.kind==='nte_role')result.panels=[{title:'异环角色',type:'portraits',roles:portraits('nte',d.snapshot.payload.entries)}]

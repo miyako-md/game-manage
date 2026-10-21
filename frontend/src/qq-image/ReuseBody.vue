@@ -10,7 +10,7 @@ provide('wuwaImageMode',true)
 provide('renderRoleCatalog',{nte:knownRoles('nte')})
 const snapshot=computed(()=>prepareReuse(props.input)),model=computed(()=>viewModel(props.input))
 const cap=computed(()=>snapshot.value.display_data.panels?.length===1?snapshot.value.display_data.panels[0].capability:null)
-const special=computed(()=>['calendar','guide','nte_gacha'].includes(snapshot.value.kind)||model.value.panels.every(p=>['cloud_calendar','guide_context'].includes(p.type)))
+const special=computed(()=>['calendar','guide','nte_gacha'].includes(snapshot.value.kind)||model.value.panels.every(p=>['cloud_calendar','upcoming','guide_context'].includes(p.type)))
 </script>
 <template>
  <div class="reuse-content">
