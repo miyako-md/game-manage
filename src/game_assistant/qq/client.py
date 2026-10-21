@@ -203,6 +203,7 @@ class InternalQqClient:
             return '绑定成功。发送「我的总览」查看本人数据，或发送对应游戏的查询指令。'
         body={'identity':identity,'command':command.command,'game':command.game}
         if getattr(command,'role_name',None) is not None:body['role_name']=command.role_name
+        if command.command=='retired':body['retired']=command.retired
         if command.page!=1:body['page']=command.page
         if self.images_enabled:
             body.update(image_requested=True,render_budget_seconds=max(0,min(10,(instant(message.reply_deadline)-utcnow()).total_seconds()-15)))

@@ -19,9 +19,76 @@ VERBS.update({'理智':'stamina','练度':'training','全员练度':'training','
               '地区':'regions','地区建设':'regions','regions':'regions','帝江号':'ship','ship':'ship','寻访战报':'gacha',
               '光荣之路':'honor','勋章':'honor','奖章':'honor','honor':'honor'})
 VERBS.update({'攻略':'guide','角色攻略':'guide','guide':'guide','guides':'guide'})
-PAGED_COMMANDS = frozenset(('help','stamina','calabash','overview','summary','status','roles','exploration','combat','progress','gacha','calendar','events','recent_events','news',
-                            'activities','resources','realestate','vehicles','teams','record','training','regions','ship','honor'))
+PAGED_COMMANDS = frozenset(('help','overview','summary','status','roles','exploration','combat','progress','gacha','calendar','events','recent_events',
+                            'resources','realestate','vehicles','teams','ship','honor'))
 MAX_PAGE = 100
+ALL_GAMES = tuple(GAME_NAMES)
+WW, NTE, EF = ('wuthering_waves',), ('nte',), ('endfield',)
+
+
+@dataclass(frozen=True)
+class Entry:
+    """One help line and the (command, game) pairs it makes valid."""
+    command: str
+    section: str
+    description: str
+    syntax: str  # 游戏 is the game-prefix placeholder
+    games: tuple = ()
+    bare: bool = False  # also valid without a game
+
+
+# The single source of valid commands: the parser rejects every pair missing
+# here, and help lists exactly these lines.
+REGISTRY = (
+    Entry('binding','绑定与账号','绑定网站账号','绑定 实际绑定码',bare=True),
+    Entry('status','绑定与账号','授权状态','我的账号',bare=True),
+    Entry('dashboard','绑定与账号','网站入口','看板',bare=True),
+    Entry('help','绑定与账号','单游戏帮助','游戏 帮助',ALL_GAMES,bare=True),
+    Entry('overview','总览与角色','本人总览','我的总览',bare=True),
+    Entry('summary','总览与角色','单游戏总览','游戏 总览',ALL_GAMES),
+    Entry('roles','总览与角色','角色列表','游戏 角色',ALL_GAMES),
+    Entry('roles','总览与角色','角色详情','游戏 角色 精确名称',ALL_GAMES),
+    Entry('guide','总览与角色','角色攻略','游戏 攻略 精确名称',ALL_GAMES,bare=True),
+    Entry('exploration','资源与进度','探索进度','游戏 探索',ALL_GAMES),
+    Entry('progress','资源与进度','成长进度','游戏 进度',WW+NTE),
+    Entry('refresh','资源与进度','刷新缓存','刷新 游戏',ALL_GAMES),
+    Entry('gacha','抽卡','抽卡记录','游戏 抽卡',ALL_GAMES),
+    Entry('recent_events','活动与日历','即将开始或结束的活动','游戏 近期活动',ALL_GAMES,bare=True),
+    Entry('events','活动与日历','进行中的活动','游戏 活动',ALL_GAMES,bare=True),
+    Entry('calendar','活动与日历','版本日历','游戏 日历',ALL_GAMES,bare=True),
+    Entry('combat','鸣潮专项','挑战记录','游戏 挑战',WW),
+    Entry('resources','鸣潮专项','资源收入','游戏 资源',WW),
+    Entry('realestate','异环专项','房产','游戏 房产',NTE),
+    Entry('vehicles','异环专项','车辆','游戏 车辆',NTE),
+    Entry('teams','异环专项','官方配队','游戏 队伍',NTE),
+    Entry('ship','终末地专项','帝江号','游戏 帝江号',EF),
+    Entry('honor','终末地专项','光荣之路','游戏 光荣之路',EF),
+    Entry('combat','终末地专项','挑战记录','游戏 挑战',EF),
+    Entry('gacha','终末地专项','寻访战报','游戏 寻访战报',EF),
+    Entry('roles','终末地专项','干员配装','游戏 干员 精确名称',EF),
+)
+ACCEPTED = frozenset((entry.command,game) for entry in REGISTRY for game in entry.games+((None,) if entry.bare else ()))
+
+# Retired for one release cycle: the old words still parse, but only to a
+# fixed notice that never reads account data or builds an old panel. Delete
+# together with the 'retired' branches in query_routes.py and group_settings.py.
+_TO_HELP = '该指令已下线，发送「帮助」查看现有指令。'
+RETIRED = {  # command: (games it is retired for, None = all games and the bare word; reply)
+    'news':(None,'该指令已下线，公告请到网站“公告资讯”页查看。'),
+    'stamina':(None,_TO_HELP),'calabash':(None,_TO_HELP),'activities':(None,_TO_HELP),'record':(None,_TO_HELP),
+    'training':(None,'该指令已下线，请改用「终末地 角色」。'),
+    'regions':(None,'该指令已下线，请改用「终末地 探索」。'),
+    'progress':(EF,_TO_HELP),'combat':(NTE,_TO_HELP),
+}
+
+
+def accepts(command, game=None):
+    return (command,game) in ACCEPTED
+
+
+def retired_reply(verb, game=None):
+    games,reply=RETIRED.get(verb,((),None))
+    return reply if games is None or game in games else None
 
 
 @dataclass(frozen=True)
@@ -31,6 +98,7 @@ class Command:
     code: str | None = None
     role_name: str | None = None
     page: int = 1
+    retired: str | None = None  # the retired verb, see RETIRED
 
 
 def parse_command(content):
@@ -55,7 +123,9 @@ def parse_command(content):
         return Command('dashboard')
     if raw in GAMES:
         return Command('summary',GAMES[raw])
-    if parts and parts[0] in VERBS and VERBS[parts[0]] in ('help','events','recent_events','calendar','guide'):
+    if len(parts)==1 and parts[0] in VERBS and retired_reply(VERBS[parts[0]]):
+        return Command('retired',retired=VERBS[parts[0]])
+    if parts and parts[0] in VERBS and accepts(VERBS[parts[0]]):
         verb=VERBS[parts[0]]
         if len(parts)==1:return Command(verb)
         if len(parts)==2 and re.fullmatch(r'[0-9]+',parts[1]):
@@ -74,7 +144,8 @@ def parse_command(content):
     elif parts[1] in GAMES and parts[0] in VERBS:
         game,verb=GAMES[parts[1]],VERBS[parts[0]]
     else:return Command('help')
-    if verb in ('training','regions','ship','honor') and game!='endfield':return Command('help')
+    if retired_reply(verb,game):return Command('retired',game,retired=verb)
+    if not accepts(verb,game):return Command('help')
     rest=parts[2:]
     page=1
     if rest and re.fullmatch(r'[0-9]+',rest[-1]):

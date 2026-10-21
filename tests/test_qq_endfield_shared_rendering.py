@@ -14,7 +14,7 @@ from tests.test_qq_endfield_challenges import setup, synthetic_challenges
 
 NOW = datetime.fromisoformat('2026-10-15T12:00:00+08:00')
 
-@pytest.mark.parametrize('command,cap', [('summary','account'),('roles','roles'),('training','training'),('stamina','stamina'),('progress','progress'),('exploration','exploration'),('regions','regions'),('ship','ship'),('honor','honor')])
+@pytest.mark.parametrize('command,cap', [('summary','account'),('roles','roles'),('exploration','exploration'),('ship','ship'),('honor','honor')])
 def test_profile_commands_forward_shared_report_and_zero_without_scope_identifiers(command, cap):
     query=CachedQuery();payload=synthetic_account(35)
     payload['base']['role_id']='123456789';payload['uid']='PRIVATE_SOURCE_ID';payload['token']='PRIVATE_TOKEN'
@@ -30,7 +30,7 @@ def test_profile_commands_forward_shared_report_and_zero_without_scope_identifie
     assert validate_snapshot(snapshot)==snapshot
 
 
-@pytest.mark.parametrize('command,cap',[('summary','account'),('regions','regions'),('exploration','exploration')])
+@pytest.mark.parametrize('command,cap',[('summary','account'),('exploration','exploration')])
 def test_regions_projection_preserves_all_collection_labels_keys_zero_and_known_summary(command,cap):
     query=CachedQuery();query.add('endfield','skland','scope-account',{'account':synthetic_account(3)})
     context={};service(query).query(IDENTITY,command,'endfield',image_context=context)
@@ -89,7 +89,7 @@ def test_gacha_keeps_all_seventeen_returned_pools_and_history_rows():
 def test_report_maps_keep_only_bounded_business_counts_and_validator_rejects_unknown_map_keys():
     payload={'report':{'schema_version':1,'training':{'summary':{'rarity_counts':{'6':0,'token':9,'1000':1},'phase_counts':{'0':0,'3':4,'-1':5}}}}}
     row=QueryResult(payload,NOW.isoformat(),'ok',None)
-    panel=game_panel('endfield','skland','training',row)
+    panel=game_panel('endfield','skland','roles',row)
     summary=panel['snapshot']['payload']['report']['training']['summary']
     assert summary=={'rarity_counts':{'6':0},'phase_counts':{'0':0,'3':4}}
     snapshot=game_snapshot([panel],NOW)
@@ -104,7 +104,7 @@ def test_noncredential_roster_identifiers_survive_text_sanitization_for_exact_jo
     assert data['operators'][0]['id']==identity
 
 
-@pytest.mark.parametrize('command,role_name',[('training',None),('regions',None),('ship',None),('honor',None),('roles','佩丽卡'),('roles_icon','佩丽卡'),('combat',None),('gacha',None)])
+@pytest.mark.parametrize('command,role_name',[('roster',None),('exploration',None),('ship',None),('honor',None),('roles','佩丽卡'),('roles_icon','佩丽卡'),('combat',None),('gacha',None)])
 async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfield_views(tmp_path,monkeypatch,command,role_name):
     import os
     from io import BytesIO
@@ -176,7 +176,7 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
     try:
         from datetime import timedelta,timezone
         now=datetime.now(timezone.utc)
-        raw='终末地 干员 佩丽卡' if role_name else {'training':'终末地 练度','regions':'终末地 地区','ship':'终末地 帝江号','honor':'终末地 光荣之路','combat':'终末地 挑战','gacha':'终末地 寻访战报'}[command]
+        raw='终末地 干员 佩丽卡' if role_name else {'roster':'终末地 角色','exploration':'终末地 探索','ship':'终末地 帝江号','honor':'终末地 光荣之路','combat':'终末地 挑战','gacha':'终末地 寻访战报'}[command]
         reply=await internal.execute(InboundMessage(identity,'synthetic-once',raw,now.isoformat(),(now+timedelta(minutes=5)).isoformat()))
         # Synthetic-only diagnostics are captured before the rejected page is
         # recycled. A text fallback must still fail the image contract.
@@ -195,7 +195,7 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
         assert state['state']=='ready' and not state['overflow'] and state['layout_issues']==0 and state['bad_names']==0
         assert not captured[-1]['forbidden_requests']
         text=captured[-1]['text']
-        if command=='training':assert '合成干员34' in text and '35' in text
+        if command=='roster':assert '合成干员34' in text and '35' in text
         elif command=='honor':assert '奖章33' in text and '类别16' in text
         elif command=='gacha':
             assert '合成池16' in text and all(f'合成池{i}' in text for i in range(17))
@@ -222,7 +222,7 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
             assert skills[0]['level_font']=='26px'
             assert skills[0]['level']['y']>=skills[0]['artwork']['bottom']+7
         elif command=='ship':assert '0%' in text and '未知' in text
-        elif command=='regions':
+        elif command=='exploration':
             assert '四号谷地' in text and '武陵' in text and '地区数 2' in text
             assert all(label in text for label in ('宝箱','醚质','协议采录桩','装备制造模板','维修灵感点'))
         assert len(renderer._browser.contexts)==1 and renderer._a_context is renderer._browser.contexts[0]

@@ -22,7 +22,7 @@ def test_guide_names_and_pages_do_not_accept_other_selectors():
     for text in ['攻略 散华','鸣潮 攻略 散华 other-account','鸣潮 攻略 散华 2']:
         assert parse_command(text).command=='help'
 
-@pytest.mark.parametrize('game,name,kind',[(None,None,'guide_index'),('wuthering_waves','散华','guide'),('nte','安魂曲','guide'),('nte','黑羽','guide'),('endfield',None,'notice')])
+@pytest.mark.parametrize('game,name,kind',[('wuthering_waves','散华','guide'),('nte','安魂曲','guide'),('nte','黑羽','guide'),('endfield',None,'notice')])
 def test_guides_use_public_catalog_without_bindings_or_live_accounts(game,name,kind):
     class NoBindings:
         def resolve_qq_identity(self,*args):raise AssertionError('public guide must not read bindings')
@@ -39,8 +39,21 @@ def test_guide_display_still_rejects_private_fields_and_arbitrary_keys():
     snapshot['display_data']['guide']['user_id']='private'
     with pytest.raises(RenderingUnavailable):validate_snapshot(snapshot)
 
-def test_guide_index_uses_all_reviewed_entries_and_missing_sources_are_explicit():
-    _,snapshot=reply(None,None,datetime.fromisoformat('2026-10-18T00:00:00+08:00'))
-    assert len(snapshot['display_data']['guides'])==69
+@pytest.mark.parametrize('game,text',[
+    (None,'请发送「鸣潮 攻略 角色名」或「异环 攻略 角色名」查看单个角色攻略；可用角色见网站攻略页。'),
+    ('wuthering_waves','请发送「鸣潮 攻略 角色名」查看单个角色攻略；可用角色见网站攻略页。'),
+    ('nte','请发送「异环 攻略 角色名」查看单个角色攻略；可用角色见网站攻略页。'),
+    ('endfield','当前项目尚未收录可核验的终末地角色攻略。'),
+])
+def test_bare_guide_is_a_text_notice_instead_of_an_index_image(game,text):
+    from game_assistant.qq.cards import card_to_text
+    card,snapshot=reply(game,None,datetime.fromisoformat('2026-10-18T00:00:00+08:00'))
+    assert snapshot['kind']=='notice' and validate_snapshot(snapshot)==snapshot
+    assert snapshot['display_data']['sections']==[] and snapshot['display_data']['notices']==[text]
+    assert text in card_to_text(card)
+    index={**snapshot,'kind':'guide_index','display_data':{'guides':[]}}
+    with pytest.raises(RenderingUnavailable):validate_snapshot(index)
+
+def test_missing_sources_are_explicit():
     card,missing=reply('endfield','伊冯',datetime.fromisoformat('2026-10-18T00:00:00+08:00'))
     assert missing['kind']=='notice' and '尚未收录' in str(card)

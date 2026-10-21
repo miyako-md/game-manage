@@ -128,16 +128,6 @@ def test_artwork_registration_eviction_removes_its_mode_bookkeeping():
     assert ref not in cache._sources and ref not in cache._artwork_refs
 
 
-def test_projected_news_cover_fields_become_actual_article_artwork_candidates():
-    raw=[{'title':'公告','cover_url':COVER,'image_urls':[ICON,'https://evil.invalid/private.png'],'token':'PRIVATE'}]
-    panel=shared.game_panel('nte','public','news',row(raw))
-    payload=panel['snapshot']['payload'][0]
-    assert payload['images']==[COVER,ICON] and 'token' not in payload
-    snapshot=shared.game_snapshot([panel],NOW)
-    validate_snapshot(snapshot)
-    assert set(shared.asset_requests(snapshot))=={(COVER,'artwork'),(ICON,'artwork')}
-
-
 @pytest.mark.parametrize('game,payload,expected',[
     ('wuthering_waves',{'name':'今汐'},('role','今汐')),
     ('wuthering_waves',{'name':'苍鳞千嶂'},('weapon','苍鳞千嶂')),
@@ -225,7 +215,7 @@ async def test_newly_available_public_artwork_changes_the_browser_cache_key(monk
 def test_endfield_portraits_are_reserved_for_mounted_loadouts_and_follow_visible_icons():
     portrait=CATALOG['games']['endfield']['portrait']['佩丽卡']
     icon=CATALOG['games']['endfield']['role']['佩丽卡']
-    roster=shared.game_panel('endfield','skland','training',row({'operators':[{'name':'佩丽卡'}]}))
+    roster=shared.game_panel('endfield','skland','roles',row({'operators':[{'name':'佩丽卡'}]}))
     assert (icon,'icon') in list(shared.asset_requests(shared.game_snapshot([roster],NOW)))
     assert (portrait,'portrait') not in list(shared.asset_requests(shared.game_snapshot([roster],NOW)))
     detail=shared.game_panel('endfield','skland','operator_detail',row({'operator_detail':{'name':'佩丽卡'}}))
@@ -328,9 +318,7 @@ def test_real_tajiduo_hash_post_route_matches_cached_cover_without_catalog_guess
     assert enriched.payload[0]['image_urls']==[COVER]
     snapshot=shared.calendar_snapshot({'nte':enriched},NOW)
     assert list(shared.asset_requests(snapshot))==[(COVER,'artwork')]
-    news=shared.game_panel('nte','public','news',row([article]))
-    assert news['snapshot']['payload'][0]['url']==url
-    assert list(shared.asset_requests(shared.game_snapshot([news],NOW)))==[(COVER,'artwork')]
+    assert shared.safe_article_url(url)==url
     assert not list(shared.asset_requests(shared.calendar_snapshot({'nte':row([{'name':'早雾'}])},NOW)))
 
 
@@ -352,8 +340,8 @@ def test_tajiduo_fragment_identity_does_not_broaden_article_or_image_rules(url):
         row([{'id':'494294','url':'https://bbs.tajiduo.com/forum/post/494294','image_url':COVER}])).payload[0]
 
 
-@pytest.mark.parametrize('cap',['events','recent_events','news'])
-def test_public_event_and_news_names_never_request_character_catalog_art(cap):
+@pytest.mark.parametrize('cap',['events','recent_events'])
+def test_public_event_names_never_request_character_catalog_art(cap):
     panel=shared.game_panel('nte','public',cap,row([{'name':'早雾','title':'勿忘伞'}]))
     assert not list(shared.asset_requests(shared.game_snapshot([panel],NOW)))
 

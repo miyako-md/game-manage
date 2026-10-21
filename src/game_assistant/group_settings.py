@@ -38,7 +38,7 @@ class GroupSettingsService:
             return image_requested
         settings = self.read(identity.app_id, identity.group_openid)
         now = self.clock()
-        if command not in ('help', 'dashboard'):
+        if command not in ('help', 'dashboard', 'retired'):
             if game is not None and game not in settings.allowed_games:
                 raise HTTPException(403, 'group_game_disabled')
             # Global/private overview must not reveal a game disabled for this group.

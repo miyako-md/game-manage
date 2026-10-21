@@ -86,3 +86,26 @@ async def test_real_a_calendar_one_image_cached_and_account_context_disposed():
         assert not renderer.cache
     finally:await renderer.aclose()
     assert renderer._browser is None and renderer._a_page is None
+
+
+@pytest.mark.parametrize('case',['help','help_endfield','guide_hint','retired'])
+async def test_real_a_registry_help_bare_guide_and_retired_notices_render_one_clean_image(case,tmp_path):
+    from game_assistant.qq.guides import reply
+    from game_assistant.qq.commands import retired_reply
+    from game_assistant.qq.presentation import help_document, message
+    from game_assistant.qq.render_snapshot import notice_snapshot
+    executable=os.environ.get('QQ_RENDER_TEST_EXECUTABLE');font=os.environ.get('QQ_RENDER_TEST_FONT')
+    if not executable or not font:pytest.skip('Set isolated Chromium/font paths for native acceptance')
+    if case=='guide_hint':_,snap=reply(None,None,NOW)
+    elif case=='retired':snap=notice_snapshot(message('endfield','指令已下线',retired_reply('training','endfield')),NOW)
+    else:snap=notice_snapshot(help_document('endfield' if case=='help_endfield' else None),NOW)
+    value=QueryResult({'text':'合成检查','render_snapshot':snap,'snapshot_fingerprints':['a'*64]},NOW.isoformat(),'ok',True)
+    renderer=BrowserRenderer(template='a',executable_path=executable,font_path=font)
+    try:
+        image=await renderer.render_summary_async(AccountScope('fixture','account','role'),value,budget_seconds=10)
+        assert image.page==image.total_pages==1
+        assert Image.open(BytesIO(image)).size[0]<=1080
+        state=renderer.last_state
+        assert state['state']=='ready' and not state['overflow'] and state['layout_issues']==0 and not state['missing_assets']
+        (tmp_path/f'{case}.png').write_bytes(bytes(image))
+    finally:await renderer.aclose()

@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from game_assistant.qq.commands import parse_command, safe_text
+from game_assistant.qq.commands import GAME_NAMES, parse_command, safe_text
 from game_assistant.qq.models import QqIdentity
 from game_assistant.qq.query_routes import QqQueryService
 from game_assistant.accounts.models import QueryResult
@@ -18,7 +18,7 @@ def test_commands_are_explicit_self_queries():
                             ('我的账号','status',None),('/ww','summary','wuthering_waves'),
                             ('/yh','summary','nte'),('/endfield','summary','endfield'),
                             ('鸣潮角色','roles','wuthering_waves'),('活动 鸣潮','events','wuthering_waves'),
-                            ('公告 异环','news','nte'),('刷新 终末地','refresh','endfield'),('看板','dashboard',None)]:
+                            ('公告 异环','retired','nte'),('刷新 终末地','refresh','endfield'),('看板','dashboard',None)]:
         parsed=parse_command(raw)
         assert parsed.command==command and parsed.game==game
     for raw in ['/ww other-account','异环 123456789','刷新 异环 其他用户','/help https://secret.example']:
@@ -28,7 +28,7 @@ def test_commands_are_explicit_self_queries():
 @pytest.mark.parametrize('raw,command,game',[
     ('ww 查询','summary','wuthering_waves'),('yh 查询','summary','nte'),
     ('终末地 查询','summary','endfield'),('/ww 活动','events','wuthering_waves'),
-    ('ww 公告','news','wuthering_waves'),('yh 刷新','refresh','nte'),
+    ('ww 日历','calendar','wuthering_waves'),('yh 刷新','refresh','nte'),
     ('ww 角色','roles','wuthering_waves'),
 ])
 def test_game_first_command_aliases_remain_self_only(raw,command,game):
@@ -54,7 +54,7 @@ def test_named_role_filter_targets_own_cached_exact_name(raw):
 def test_named_role_filter_is_bounded_printable_and_roles_only():
     assert parse_command('ww 角色 '+'名'*64).role_name == '名'*64
     for raw in ('ww 角色 '+'名'*65,'ww 角色 名\x00字','ww 角色 名\x1f字','ww 角色 今汐 other-user',
-                'ww 查询 今汐','ww 公告 今汐'):
+                'ww 查询 今汐','ww 探索 今汐'):
         parsed = parse_command(raw)
         assert parsed.command == 'help' and parsed.role_name is None
     assert parse_command('ww 角色').role_name is None
@@ -92,9 +92,9 @@ def test_unbound_user_gets_help_only():
 
 def test_public_queries_do_not_require_bound_game():
     service=unbound_service()
-    service.public=SimpleNamespace(read=lambda game,cap:QueryResult([{'title':'Public notice','url':'https://example.com'}],None,'never',None))
-    assert 'Public notice' in service.query(IDENTITY,'news','nte')['text']
-    assert 'https://' not in service.query(IDENTITY,'news','nte')['text']
+    service.public=SimpleNamespace(read=lambda game,cap:QueryResult([{'name':'Public event https://example.com','start_at':'2026-10-01T00:00:00+08:00','end_at':'2099-10-01T00:00:00+08:00'}],None,'never',None))
+    assert 'Public event' in service.query(IDENTITY,'calendar','nte')['text']
+    assert 'https://' not in service.query(IDENTITY,'calendar','nte')['text']
 
 
 async def test_web_and_qq_share_snapshot(tmp_path):
@@ -286,8 +286,8 @@ def test_snapshot_next_commands_parse_back_into_their_public_or_scoped_query():
 
 @pytest.mark.parametrize('raw,command,game',[
     ('帮助 2','help',None),('help 100','help',None),('鸣潮 帮助 2','help','wuthering_waves'),
-    ('异环 体力 2','stamina','nte'),('鸣潮 数据坞 2','calabash','wuthering_waves'),
-    ('终末地 理智 2','stamina','endfield'),
+    ('异环 探索 2','exploration','nte'),('鸣潮 资源 2','resources','wuthering_waves'),
+    ('终末地 帝江号 2','ship','endfield'),
 ])
 def test_read_only_queries_can_continue_without_enabling_action_pagination(raw,command,game):
     from game_assistant.qq.query_routes import QueryBody
@@ -307,13 +307,12 @@ def test_action_query_bodies_still_reject_pagination(command):
 
 @pytest.mark.parametrize('command,game,role',[
     ('help',None,None),('help','nte',None),('status',None,None),('overview',None,None),
-    ('summary','nte',None),('stamina','nte',None),('calabash','wuthering_waves',None),
-    ('exploration','nte',None),('combat','nte',None),('progress','nte',None),
-    ('activities','nte',None),('resources','nte',None),('realestate','nte',None),
-    ('vehicles','nte',None),('teams','nte',None),('record','nte',None),
-    ('news','nte',None),('gacha','nte',None),
-    ('roles','wuthering_waves',None),
-    ('roles','endfield','陈千语'),('training','endfield',None),
+    ('summary','nte',None),('combat','wuthering_waves',None),
+    ('exploration','nte',None),('progress','nte',None),
+    ('resources','wuthering_waves',None),('realestate','nte',None),
+    ('vehicles','nte',None),('teams','nte',None),('gacha','nte',None),
+    ('roles','wuthering_waves',None),('exploration','endfield',None),('ship','endfield',None),
+    ('roles','endfield','陈千语'),('honor','endfield',None),
     ('calendar','nte',None),('events','nte',None),('recent_events','nte',None),
     ('events',None,None),('recent_events',None,None),('calendar',None,None),
 ])
@@ -343,3 +342,134 @@ async def test_multipage_action_reply_falls_back_without_exposing_action_continu
     reply=await api.query_reply(IDENTITY,'refresh','nte',image_requested=True,budget_seconds=5)
     assert 'image' not in reply and '图片暂不可用' in reply['text'] and '下一页' not in reply['text']
     assert len(query.refreshes)==1 and query.refreshes[0][1]=='stamina'
+
+
+RETIRED_FORMS=[
+    ('公告',None,'公告资讯'),('资讯',None,'公告资讯'),('news',None,'公告资讯'),('鸣潮 公告','wuthering_waves','公告资讯'),
+    ('公告 异环','nte','公告资讯'),('终末地资讯','endfield','公告资讯'),
+    ('体力',None,'帮助'),('鸣潮 体力','wuthering_waves','帮助'),('异环体力 2','nte','帮助'),('终末地 理智','endfield','帮助'),
+    ('鸣潮 数据坞','wuthering_waves','帮助'),('鸣潮 活动进度','wuthering_waves','帮助'),
+    ('异环 挑战','nte','帮助'),('异环 战斗','nte','帮助'),('异环 档案','nte','帮助'),
+    ('终末地 进度','endfield','帮助'),('终末地 练度','endfield','终末地 角色'),('终末地 全员练度','endfield','终末地 角色'),
+    ('练度',None,'终末地 角色'),('终末地 地区','endfield','终末地 探索'),('地区建设 终末地','endfield','终末地 探索'),
+]
+
+
+@pytest.mark.parametrize('raw,game,pointer',RETIRED_FORMS)
+def test_retired_commands_parse_to_a_fixed_notice_with_a_replacement(raw,game,pointer):
+    from game_assistant.qq.commands import RETIRED, retired_reply
+    parsed=parse_command(raw)
+    assert (parsed.command,parsed.game,parsed.role_name,parsed.page)==('retired',game,None,1) and parsed.retired in RETIRED
+    notice=retired_reply(parsed.retired,parsed.game)
+    assert notice.startswith('该指令已下线') and pointer in notice
+
+
+@pytest.mark.parametrize('raw,command,game',[
+    ('鸣潮 挑战','combat','wuthering_waves'),('终末地 挑战','combat','endfield'),('鸣潮 战斗','combat','wuthering_waves'),
+    ('鸣潮 进度','progress','wuthering_waves'),('异环 进度','progress','nte'),('终末地 干员','roles','endfield'),
+    ('终末地 探索','exploration','endfield'),('进度','help',None),('挑战','help',None),
+])
+def test_partially_retired_words_keep_their_other_games(raw,command,game):
+    parsed=parse_command(raw)
+    assert (parsed.command,parsed.game)==(command,game)
+
+
+async def test_retired_commands_send_only_the_retired_word_to_the_query_route():
+    from game_assistant.qq.client import InternalQqClient
+    from game_assistant.qq.models import InboundMessage
+    sent=[]
+    class Client(InternalQqClient):
+        async def post(self,path,body):
+            sent.append((path,body));return {'text':'fixed'}
+    client=Client('http://127.0.0.1:8020','service')
+    message=InboundMessage(IDENTITY,'m','终末地 练度','2026-10-21T00:00:00+00:00','2026-10-21T00:05:00+00:00')
+    assert await client.execute(message)=='fixed'
+    assert sent==[('/internal/qq/query',{'identity':asdict(IDENTITY),'command':'retired','game':'endfield','retired':'training'})]
+    await client.aclose()
+
+
+@pytest.mark.parametrize('retired,game,pointer',[('training','endfield','终末地 角色'),('regions','endfield','终末地 探索'),
+    ('news',None,'公告资讯'),('stamina','nte','帮助'),('combat','nte','帮助')])
+def test_retired_reply_is_a_fixed_notice_image_without_any_binding_or_data_read(retired,game,pointer):
+    from game_assistant.qq.query_routes import QueryBody
+    QueryBody(identity=asdict(IDENTITY),command='retired',game=game,retired=retired)
+    class Never:
+        def __getattr__(self,name):raise AssertionError('retired commands must not read '+name)
+    service=QqQueryService(Never(),Never(),Never())
+    context={}
+    text=service.query(IDENTITY,'retired',game,image_context=context,retired=retired)['text']
+    assert '该指令已下线' in text and pointer in text
+    snapshot=context['render_snapshot']
+    assert snapshot['kind']=='notice' and not context['panels'] and not context['snapshots'] and not context['grants']
+    assert pointer in str(snapshot['display_data']['notices'])
+
+
+@pytest.mark.parametrize('body',[dict(command='retired',game='nte',retired='calendar'),dict(command='retired',game='nte'),
+    dict(command='retired',game='nte',retired='progress'),dict(command='summary',game='nte',retired='stamina')])
+def test_query_body_accepts_only_known_retired_words(body):
+    from pydantic import ValidationError
+    from game_assistant.qq.query_routes import QueryBody
+    with pytest.raises(ValidationError):
+        QueryBody(identity=asdict(IDENTITY),**body)
+
+
+@pytest.mark.parametrize('command,game',[('stamina','nte'),('news','nte'),('calabash','wuthering_waves'),('activities','wuthering_waves'),
+    ('record','nte'),('training','endfield'),('regions','endfield'),('combat','nte'),('progress','endfield'),('resources','nte'),('refresh',None)])
+def test_query_body_rejects_retired_and_unregistered_commands(command,game):
+    from pydantic import ValidationError
+    from game_assistant.qq.query_routes import QueryBody
+    with pytest.raises(ValidationError):
+        QueryBody(identity=asdict(IDENTITY),command=command,game=game)
+
+
+def _help_pairs(game):
+    """Parse every help line back, expanding the 游戏 placeholder to each named game."""
+    from game_assistant.qq.presentation import help_document
+    pairs=set()
+    for section in help_document(game)['sections']:
+        for field in section['fields']:
+            syntax=field['value'].replace('实际绑定码','CODE1234').replace('精确名称','合成角色')
+            assert not any(word in syntax for word in ('体力','理智','公告','资讯','数据坞','活动进度','档案','练度','地区')),syntax
+            # A line for some games names them in its label, e.g. 成长进度（鸣潮、异环）.
+            names=[name for name in GAME_NAMES.values() if name in field['label']] or list(GAME_NAMES.values())
+            for name in (names if '游戏' in syntax else (None,)):
+                parsed=parse_command(syntax.replace('游戏',name) if name else syntax)
+                assert parsed.command!='retired' and (parsed.command!='help' or syntax.endswith('帮助')),syntax
+                pairs.add((parsed.command,parsed.game))
+    return pairs
+
+
+def test_help_is_generated_from_the_registry_and_matches_the_parser():
+    from game_assistant.qq.commands import ACCEPTED, VERBS
+    listed=_help_pairs(None)
+    # Help lists exactly the accepted game commands plus the game-less account commands.
+    assert listed=={(command,game) for command,game in ACCEPTED if game is not None or command in ('binding','status','overview','dashboard')}
+    for game,name in GAME_NAMES.items():
+        assert _help_pairs(game)=={pair for pair in listed if pair[1] in (game,None)}
+        for word in VERBS:
+            parsed=parse_command(name+' '+word)
+            assert parsed.command in ('help','retired') or (parsed.command,game) in listed,(name,word)
+
+
+def test_help_wording_describes_recent_events_without_a_fixed_window():
+    from game_assistant.qq.cards import card_to_text
+    from game_assistant.qq.presentation import help_document
+    for game in (None,'nte'):
+        text=card_to_text(help_document(game))
+        assert '7 天' not in text and '即将开始或结束' in text and '攻略索引' not in text
+    assert '成长进度（鸣潮、异环）：游戏 进度' in card_to_text(help_document())
+    assert '游戏 进度' not in card_to_text(help_document('endfield')) and '终末地 进度' not in card_to_text(help_document('endfield'))
+
+
+KEPT={'鸣潮':'总览 角色 攻略 探索 进度 挑战 抽卡 资源 帮助 活动 近期活动 日历 刷新','异环':'总览 角色 攻略 探索 进度 抽卡 房产 车辆 队伍 帮助 活动 近期活动 日历 刷新',
+      '终末地':'总览 角色 干员 攻略 探索 挑战 抽卡 寻访战报 帝江号 光荣之路 帮助 活动 近期活动 日历 刷新'}
+
+
+def test_every_kept_command_still_parses():
+    from game_assistant.qq.commands import GAMES, accepts
+    for name,words in KEPT.items():
+        for word in words.split():
+            parsed=parse_command(name+' '+word)
+            assert parsed.game==GAMES[name] and accepts(parsed.command,parsed.game),(name,word)
+    for raw in ('帮助','我的账号','我的总览','活动','近期活动','日历','看板','绑定 CODE1234','攻略'):
+        assert parse_command(raw).command not in ('retired','help') or raw=='帮助',raw

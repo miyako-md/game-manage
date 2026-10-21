@@ -63,9 +63,8 @@ def snapshot(payload=None, **kwargs):
     return QueryResult(synthetic_account() if payload is None else payload,NOW,kwargs.get('state','ok'),kwargs.get('complete',None))
 
 
-@pytest.mark.parametrize('text,command', [('终末地 理智','stamina'),('终末地练度','training'),
-    ('终末地 全员练度','training'),('地区 终末地','regions'),('终末地 地区建设','regions'),
-    ('终末地 帝江号','ship'),('终末地 寻访战报','gacha')])
+@pytest.mark.parametrize('text,command', [('终末地 干员','roles'),('终末地角色','roles'),
+    ('探索 终末地','exploration'),('终末地 帝江号','ship'),('终末地 寻访战报','gacha'),('终末地 光荣之路','honor')])
 def test_endfield_natural_commands(text,command):
     parsed=parse_command(text)
     assert parsed.command==command and parsed.game=='endfield'
@@ -73,7 +72,7 @@ def test_endfield_natural_commands(text,command):
 
 
 def test_endfield_specific_commands_do_not_leak_to_other_games():
-    assert parse_command('鸣潮 练度').command=='help'
+    assert parse_command('鸣潮 帝江号').command=='help'
     with pytest.raises(ValidationError): QueryBody(identity=asdict(IDENTITY),command='ship',game='nte')
     assert parse_command('终末地 干员 陈千语').role_name=='陈千语'
 
@@ -122,9 +121,9 @@ def test_reports_use_only_required_default_provider_snapshot():
     query.add('endfield','skland','sk',{'account':synthetic_account()})
     query.add('endfield','skland','other',{'account':{'base':{'name':'NEVER OTHER'}}},default=False)
     api=service(query)
-    for command in ('roles','training','regions','ship','stamina','progress'):
+    for command in ('roles','exploration','ship','honor'):
         query.reads.clear();context={}
-        result=api.query(IDENTITY,command,'endfield',image_context=context,page=2 if command!='stamina' else 1)
+        result=api.query(IDENTITY,command,'endfield',image_context=context,page=2)
         assert 'Independent passport' not in result['text'] and 'NEVER OTHER' not in result['text']
         assert [(scope.account_id,cap) for scope,cap in query.reads]==[('sk','account')]
         assert len(context['grants'])==1 and context['card']['game']=='endfield'

@@ -13,7 +13,7 @@ from game_assistant.accounts.store import AccountNotFoundError
 from game_assistant.auth.store import CredentialStoreError
 from game_assistant.accounts.models import AccountScope, QueryResult
 from .bindings import QqBindingError
-from .commands import GAME_NAMES, PAGED_COMMANDS, MAX_PAGE, safe_text
+from .commands import GAME_NAMES, PAGED_COMMANDS, MAX_PAGE, accepts, retired_reply, safe_text
 from .internal_routes import IdentityBody
 from .rendering import RenderQueue, RenderingPageUnavailable, RenderingUnavailable
 from .cards import card_to_text
@@ -24,14 +24,15 @@ from . import render_snapshot as shared_view
 class QueryBody(BaseModel):
     model_config=ConfigDict(extra='forbid')
     identity: IdentityBody
-    command: Literal['help','status','overview','summary','roles','stamina','exploration','combat','progress','gacha',
-                     'calendar','events','recent_events','news','refresh','dashboard','calabash','activities','resources','realestate','vehicles','teams','record',
-                     'training','regions','ship','honor','guide']
+    command: Literal['help','status','overview','summary','roles','exploration','combat','progress','gacha',
+                     'calendar','events','recent_events','refresh','dashboard','resources','realestate','vehicles','teams',
+                     'ship','honor','guide','retired']
     game: Literal['wuthering_waves','nte','endfield'] | None = None
     image_requested: bool = False
     render_budget_seconds: float = Field(default=0, ge=0, le=10, allow_inf_nan=False)
     role_name: str | None = Field(default=None, min_length=1, max_length=64)
     page: int = Field(default=1, ge=1, le=MAX_PAGE, strict=True)
+    retired: str | None = Field(default=None, max_length=32)
 
     @model_validator(mode='after')
     def selectors_only(self):
@@ -41,8 +42,10 @@ class QueryBody(BaseModel):
             raise ValueError('page_not_supported')
         if self.command=='overview' and self.game is not None:
             raise ValueError('overview_all_games')
-        if self.command in ('training','regions','ship','honor') and self.game!='endfield':
-            raise ValueError('endfield_report_only')
+        if self.command=='retired':
+            if not retired_reply(self.retired,self.game):raise ValueError('retired_command_unknown')
+        elif self.retired is not None or not accepts(self.command,self.game):
+            raise ValueError('command_not_available')
         return self
 
 
@@ -258,7 +261,7 @@ class QqQueryService:
         # Shared website components carry their own coverage/state text. Legacy
         # text-card image budgets must never describe this complete Vue image.
         if context is not None:context['shared_notices']=[]
-        account_commands = ('roles','training','stamina','exploration','regions','ship','progress','honor')
+        account_commands = ('roles','exploration','ship','honor')
         if command in account_commands:
             selected = [item for item in selected if item[0]['provider']=='skland']
             if not selected:
@@ -300,11 +303,9 @@ class QqQueryService:
                         self._panel(context,row,'operator_detail',QueryResult(data,snapshot.fetched_at,snapshot.state,snapshot.complete))
                     return endfield.operator_document(snapshot,role_name,self.asset_cache,detail=detail)
                 self._panel(context,row,'account' if command=='summary' else command,projected)
-                builder={'roles':endfield.training_document,'training':endfield.training_document,
-                         'regions':endfield.regions_document,'exploration':endfield.regions_document,
+                builder={'roles':endfield.training_document,'exploration':endfield.regions_document,
                          'ship':endfield.ship_document,'honor':endfield.honor_document}.get(command)
-                card=builder(snapshot,self.asset_cache) if builder else endfield.overview_document(snapshot,self.asset_cache,
-                    focus=command if command in ('stamina','progress') else None)
+                card=builder(snapshot,self.asset_cache) if builder else endfield.overview_document(snapshot,self.asset_cache)
                 if command!='summary':return card
                 card['sections'][0]['fields']+=view.metadata(snapshot)
                 sections=card['sections']+sections;notices+=card['notices']
@@ -328,20 +329,22 @@ class QqQueryService:
         return view.document('summary','endfield','终末地 · 今日总览' if command=='summary' else '终末地 · 查询状态',
             sections=sections,notices=notices,footer='时间均为北京时间')
 
-    def query(self,identity,command,game=None,*,image_context=None,role_name=None,page=1):
+    def query(self,identity,command,game=None,*,image_context=None,role_name=None,page=1,retired=None):
         context=image_context
         read_cache={}
         if context is not None:
-            labels={'help':'帮助','status':'状态','overview':'总览','summary':'查询','roles':'角色','stamina':'体力',
+            labels={'help':'帮助','status':'状态','overview':'总览','summary':'查询','roles':'角色',
                     'exploration':'探索','combat':'挑战','progress':'进度','gacha':'抽卡','calendar':'日历','events':'活动',
-                    'recent_events':'近期活动','news':'公告','refresh':'刷新','calabash':'数据坞','activities':'活动进度',
-                    'resources':'资源','realestate':'房产','vehicles':'车辆','teams':'队伍','record':'档案',
-                    'training':'练度','regions':'地区','ship':'帝江号','honor':'光荣之路','guide':'攻略'}
+                    'recent_events':'近期活动','refresh':'刷新','resources':'资源','realestate':'房产','vehicles':'车辆','teams':'队伍',
+                    'ship':'帝江号','honor':'光荣之路','guide':'攻略','retired':'帮助'}
             continuation=(GAME_NAMES[game]+' ' if game is not None and command not in ('overview','status') else '')+labels.get(command,command)
             if role_name is not None:continuation+=' '+role_name
             context.update(grants=[],grant_ids={},snapshots=[],fingerprints=[],user_id=None,panels=[],panel_notices=[],shared_required=True,
                            next_command=continuation)
         reply=lambda card:self._reply(card,page,context)
+        if command=='retired':
+            # Fixed notice only: no binding, account or public-source read.
+            return reply(view.message(game,'指令已下线',retired_reply(retired,game)))
         if command=='help':
             card=view.help_document(game)
             return reply(card)
@@ -368,15 +371,6 @@ class QqQueryService:
                 return reply(view.snapshot_card(game,'','teams',snapshot,self.asset_cache))
             except AccountNotFoundError:
                 return reply(view.message(game,'官方配队推荐','官方配队缓存暂不可用。'))
-        if command=='news':
-            if self.public is None or game is None:return reply(view.message(game,'公共资讯','公共资讯暂不可用；请稍后再试。'))
-            try:
-                cap='news'
-                snapshot=self.public.read(game,cap)
-                self._capture_snapshot(context,None,game+':'+cap,snapshot)
-                if context is not None:self._panel(context,{'game':game,'provider':'public'},cap,snapshot)
-                return reply(view.snapshot_card(game,'',cap,snapshot,self.asset_cache))
-            except AccountNotFoundError:return reply(view.message(game,'公共资讯','该游戏公共资讯暂不可用。'))
         try:
             principal=self.bindings.resolve_qq_identity(identity)
         except QqBindingError:
@@ -460,7 +454,7 @@ class QqQueryService:
             selected=self._accounts(principal,game,metadata_only=challenge)
             if not selected:return reply(view.message(game,GAME_NAMES[game],GAME_NAMES[game]+'暂无有效授权账号；请在网站授权。'))
             if challenge:return reply(self._endfield_challenge_document(selected,context))
-            if game=='endfield' and command in ('summary','roles','training','stamina','exploration','regions','ship','progress','gacha','honor'):
+            if game=='endfield' and command in ('summary','roles','exploration','ship','gacha','honor'):
                 return reply(self._endfield_document(selected,command,context,read_cache,role_name))
             sections=[];notices=[]
             for row,scope in selected:
@@ -549,12 +543,12 @@ class QqQueryService:
         except (HTTPException,PermissionError,ValueError,shared_view.RenderingUnavailable):
             return reply(view.message(game,'查询状态','查询或刷新暂不可用；请在网站检查授权和服务状态。'))
 
-    async def query_reply(self,identity,command,game=None,*,image_requested=False,budget_seconds=0,role_name=None,page=1):
+    async def query_reply(self,identity,command,game=None,*,image_requested=False,budget_seconds=0,role_name=None,page=1,retired=None):
         deadline=time.monotonic()+max(0,min(10,budget_seconds))
         context={}
         try:
             response=self.query(identity,command,game,image_context=context if image_requested else None,
-                                role_name=role_name,page=page)
+                                role_name=role_name,page=page,retired=retired)
         except RenderingUnavailable:
             # Public projections run before private-account lookup. A rejected
             # full input must not become an HTTP 500 or a truncated image.
@@ -648,7 +642,7 @@ def install_qq_query_routes(app, *, app_id, dashboard_url='', urls_approved=Fals
         groups=getattr(app.state,'qq_group_settings',None)
         image_requested=groups.consume(body.identity.identity(),body.game,body.command,body.image_requested) if groups else body.image_requested
         return await service.query_reply(body.identity.identity(),body.command,body.game,
-            image_requested=image_requested,budget_seconds=body.render_budget_seconds,role_name=body.role_name,page=body.page)
+            image_requested=image_requested,budget_seconds=body.render_budget_seconds,role_name=body.role_name,page=body.page,retired=body.retired)
     app.add_api_route('/internal/qq/query',query,methods=['POST'])
     allow_cloud_route(app,'/internal/qq/query',{'POST'},access='service')
     return service
