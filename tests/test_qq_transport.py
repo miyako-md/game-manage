@@ -186,19 +186,29 @@ async def test_real_sdk_identify_subscribes_only_group_and_c2c_events():
     assert frames[0]['d']['shard']==[0,1]
 
 
-async def test_uploads_and_text_share_one_paced_outbound_budget():
+async def test_uploads_and_text_share_one_paced_outbound_budget(monkeypatch):
     import asyncio
     from io import BytesIO
     from types import SimpleNamespace
-    import time
     from PIL import Image
-    from game_assistant.qq.client import OfficialQqClient
+    import game_assistant.qq.client as qq_client
+    from game_assistant.qq.client import OfficialQqClient,OUTBOUND_INTERVAL_SECONDS
+    # The limiter's clock and sleep are simulated, so the check is exact: real
+    # Windows timers may wake one ~16 ms clock tick early, which says nothing
+    # about the limiter itself.
+    clock,sleeps,real_sleep=[1000.0],[],asyncio.sleep
+    async def sleep(delay,*args,**kwargs):
+        sleeps.append(delay);clock[0]+=delay
+        await real_sleep(0)
+    monkeypatch.setattr(qq_client,'time',SimpleNamespace(monotonic=lambda:clock[0]))
+    monkeypatch.setattr(qq_client.asyncio,'sleep',sleep)
     calls=[]
     class API:
         def __init__(self,*args,**kwargs):pass
         def setup(self,http):pass
         async def request(self,method,path,body,*,timeout=None):
-            calls.append((time.monotonic(),path))
+            calls.append((clock[0],path))
+            clock[0]+=0.001
             return {'file_info':'media'} if path.endswith('/files') else {'id':'message'}
     client=OfficialQqClient('app','fixture',None,None,sdk=SimpleNamespace(QQApiClient=API))
     client.now=lambda:NOW
@@ -211,7 +221,8 @@ async def test_uploads_and_text_share_one_paced_outbound_budget():
         assert len(calls)==5
         assert sum(path.endswith('/files') for _,path in calls)==2
         # Actual outbound starts remain well below even the smaller 50/s upload limit.
-        assert all(b[0]-a[0]>=0.04 for a,b in zip(calls,calls[1:]))
+        assert OUTBOUND_INTERVAL_SECONDS>=0.04 and len(sleeps)==4
+        assert all(b[0]-a[0]>=OUTBOUND_INTERVAL_SECONDS-1e-9 for a,b in zip(calls,calls[1:]))
     finally:await client.aclose()
 
 
