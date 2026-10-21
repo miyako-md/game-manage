@@ -48,7 +48,8 @@ class Settings(BaseSettings):
     cloud_credentials_key_path: str = ''
     cloud_data_root: str = 'data/cloud'
     cloud_private_poll_seconds: int = Field(default=900, ge=60, le=86400)
-    cloud_public_poll_seconds: int = Field(default=600, ge=60, le=86400)
+    # 公共来源（B站动态、库街区/塔吉多公告、终末地官网、配队推荐）每 6 小时采集一次。
+    cloud_public_poll_seconds: int = Field(default=21600, ge=60, le=86400)
     cloud_poll_concurrency: int = Field(default=4, ge=1, le=16)
     cloud_provider_concurrency: int = Field(default=1, ge=1, le=4)
     cloud_upstream_timeout_seconds: int = Field(default=120, ge=5, le=600)

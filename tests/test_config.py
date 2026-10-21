@@ -6,6 +6,8 @@ def test_defaults_when_no_file(tmp_path):
     assert s.stamina_seconds == 300
     assert s.activity_seconds == 3600
     assert s.news_seconds == 14400
+    # Cloud public sources (news, announcements, calendars) are collected every 6 hours.
+    assert s.cloud_public_poll_seconds == 21600 and s.cloud_private_poll_seconds == 900
     assert s.notify_send_key == ""
     assert s.wuwa_enabled is True
 

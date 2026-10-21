@@ -35,7 +35,11 @@ def visible_article(post):
     """Editorial scope for the list; never change calendar acceptance decisions."""
     if post.get('decision') == 'accepted':
         return True
-    if post.get('reason') not in ('promotion', 'lottery', 'not_ingame', 'no_date'):
+    # Dateless official posts and character/operator intel are news only;
+    # calendar parsers still require an accepted decision.
+    if post.get('reason') in ('no_date', 'intel'):
+        return bool(post.get('body'))
+    if post.get('reason') not in ('promotion', 'lottery', 'not_ingame'):
         return False
     return bool(post.get('body') and re.search(
         r'网页活动|创作(?:征集|激励)|同人(?:征集|创作|活动)|线下活动|漫展|参展|ChinaJoy|社区活动',

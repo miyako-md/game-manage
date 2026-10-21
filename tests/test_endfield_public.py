@@ -328,3 +328,29 @@ async def test_failed_explicit_refresh_remains_stale_on_following_reads_and_rest
 
     monkeypatch.setattr(service, '_refresh_news', recover)
     assert not (await service.public(force=True))['calendar']['stale']
+
+
+async def test_official_news_is_read_at_most_every_six_hours_unless_forced(tmp_path):
+    from datetime import timedelta
+    service = EndfieldPublicService(tmp_path / 'ttl.db')
+    refreshes = []
+
+    async def refresh():
+        refreshes.append(1)
+    service._refresh_news = refresh
+
+    def age(hours):
+        at = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        for key, value in (('news', []), ('calendar', {'events': []}), ('news_status', {'error': None})):
+            service.conn.execute('INSERT OR REPLACE INTO cache VALUES (?,?,?)', (key, json.dumps(value), at))
+        service.conn.commit()
+
+    age(5)
+    await service.public()
+    assert refreshes == []
+    age(7)
+    await service.public()
+    assert refreshes == [1]
+    age(5)
+    await service.public(force=True)
+    assert refreshes == [1, 1]

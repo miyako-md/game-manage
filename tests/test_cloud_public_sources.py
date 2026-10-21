@@ -280,3 +280,72 @@ def test_matched_community_pictures_survive_cached_public_events_and_news():
         'images': community['image_urls'], 'content_status': 'full'}], now)
     news = q.read('wuthering_waves', 'news')
     assert any(row.get('images') == community['image_urls'] for row in news.payload)
+
+
+def test_six_hourly_public_collection_is_not_reported_stale_between_runs():
+    from game_assistant.config import Settings
+    from game_assistant.sources.public_snapshot import read_public_snapshot
+    def read(hours):
+        at = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        q, store = query(rows=[{'name': 'B站活动', 'source': 'bilibili'}], status='ok', last_success=at)
+        save(store, 'wuthering_waves', 'events', [{'name': '社区活动'}], at)
+        store.record_poll('wuthering_waves', 'events', FetchResult(ok=True), now=datetime.fromisoformat(at))
+        return q, store
+    q, store = read(5)
+    assert q.settings.cloud_public_poll_seconds == 21600
+    statuses = q.read('wuthering_waves', 'events').poll_status['source_statuses']
+    assert not statuses['bilibili']['stale'] and not statuses['community']['stale']
+    # The local app keeps its own hourly announcement interval.
+    local = read_public_snapshot(store, 'wuthering_waves', 'events', Settings(), q.bilibili)
+    assert local['poll_status']['source_statuses']['community']['stale']
+    q, _ = read(13)
+    statuses = q.read('wuthering_waves', 'events').poll_status['source_statuses']
+    assert statuses['bilibili']['stale'] and statuses['community']['stale']
+
+
+class CollectingBili(Bili):
+    def __init__(self, game, **state):
+        super().__init__(game, **state)
+        self.runs = []
+
+    async def run(self, game, backfill=False, *, history_days=None):
+        self.runs.append((game, backfill, history_days))
+        self.data = {**self.data, 'status': 'ok'}
+
+
+def forced_query(game, bili):
+    from game_assistant.models import Capability
+    class Adapter(DummyAdapter):
+        game_id = game
+        capabilities = [Capability.NEWS, Capability.EVENTS]
+        def prepare_refresh(self):
+            self.calls.append('prepare')
+        async def fetch(self, cap):
+            self.calls.append(cap.value)
+            return FetchResult(ok=cap == Capability.NEWS, payload=[], error_kind=None if cap == Capability.NEWS else 'source_error')
+    adapter = Adapter()
+    return CloudPublicQuery(FakeRegistry(adapter), SnapshotStore(':memory:'), bilibili=bili), adapter
+
+
+async def test_forced_public_poll_refreshes_official_cache_then_backfills_bilibili():
+    bili = CollectingBili('endfield')
+    q, adapter = forced_query('endfield', bili)
+    outcome = await q.poll('endfield', force=True, backfill=True)
+    assert adapter.calls == ['prepare', 'news', 'events']
+    assert bili.runs == [('endfield', True, 60)]
+    assert outcome == {'bilibili': 'ok', 'failed': ['events']}
+    # The periodic pass neither forces the official cache nor backfills.
+    adapter.calls.clear()
+    assert (await q.poll('endfield'))['bilibili'] == 'ok'
+    assert adapter.calls == ['news', 'events'] and bili.runs[-1] == ('endfield', False, None)
+
+
+async def test_forced_public_poll_respects_bilibili_backoff_and_still_reads_other_sources():
+    import time
+    bili = CollectingBili('wuthering_waves', status='error', next_retry=time.time() + 600)
+    q, adapter = forced_query('wuthering_waves', bili)
+    outcome = await q.poll('wuthering_waves', force=True, backfill=True)
+    assert bili.runs == [] and outcome['bilibili'] == 'backoff'
+    assert adapter.calls == ['prepare', 'news', 'events']
+    bili.data = {'status': 'ok', 'next_retry': time.time() + 30}
+    assert (await q.poll('wuthering_waves', force=True, backfill=True))['bilibili'] == 'cooldown'

@@ -59,6 +59,15 @@ def test_notice_year_inference_preserves_cross_year_leap_and_explicit_dates(publ
     ('最新消息\n9月16日版本PV发布活动', 'DYNAMIC_TYPE_DRAW', 'promotion'),
     ('“万念证心，一剑清平。”\n角色故事介绍\n——————————————————\n3.6版本将于8月20日开启', 'DYNAMIC_TYPE_DRAW', 'not_ingame'),
     ('「启程！鸣潮巡游巴士」广州站\n9月13日活动开启', 'DYNAMIC_TYPE_DRAW', 'promotion'),
+    # Official character/operator intel is news, never calendar input; it wins over promotion words.
+    ('后勤备忘 - 独家揭秘! | 祀\n9月15日版本活动', 'DYNAMIC_TYPE_DRAW', 'intel'),
+    ('//危境情报//祀//\n版本更新后开启', 'DYNAMIC_TYPE_DRAW', 'intel'),
+    ('#异环# 角色档案 | 某角色\n9月15日版本PV', 'DYNAMIC_TYPE_DRAW', 'intel'),
+    ('干员情报 | 某干员', 'DYNAMIC_TYPE_DRAW', 'intel'),
+    ('后勤备忘 | 某干员\n9月15日活动，转发参与抽奖', 'DYNAMIC_TYPE_DRAW', 'lottery'),
+    ('后勤备忘 | 某干员', 'DYNAMIC_TYPE_AV', 'video'),
+    ('#鸣潮# #鸣潮3.7版本#\n《鸣潮》3.7版本近期活动汇总\n多项活动正在进行中', 'DYNAMIC_TYPE_DRAW', 'no_date'),
+    ('✦ 故影同行✦\n《鸣潮》3.7版本剧情图文', 'DYNAMIC_TYPE_DRAW', 'no_date'),
 ])
 def test_excludes_non_notice_content(text, kind, reason):
     r = classify_dynamic(post(text, kind=kind), UID, NOW)
@@ -108,3 +117,25 @@ def test_official_cdn_http_picture_is_upgraded_without_admitting_arbitrary_http(
         {'url':'http://unverified.example/picture.jpg'}, {'url':'javascript:bad'},
         {'url':'//i0.hdslb.com/bfs/new_dyn/verified.jpg'}]
     assert classify_dynamic(value,UID,NOW)['images']==['https://i0.hdslb.com/bfs/new_dyn/verified.jpg']
+
+
+@pytest.mark.parametrize('text,reason', [
+    ('#鸣潮# #鸣潮3.7版本#\n《鸣潮》3.7版本近期活动汇总\n多项活动正在进行中', 'no_date'),
+    ('✦ 故影同行✦\n《鸣潮》3.7版本剧情图文', 'no_date'),
+    ('后勤备忘 - 独家揭秘! | 祀\n9月15日版本活动', 'intel'),
+    ('//危境情报//祀//\n版本更新后开启', 'intel'),
+])
+def test_dateless_posts_and_intel_are_news_but_never_calendar_input(text, reason):
+    from game_assistant.sources.public_content import calendar_from_posts, visible_article
+    row = classify_dynamic(post(text), UID, NOW)
+    assert (row['decision'], row['reason']) == ('excluded', reason)
+    assert visible_article(row)
+    for game in ('wuthering_waves', 'nte', 'endfield'):
+        assert calendar_from_posts([row], game, now=NOW)['events'] == []
+
+
+@pytest.mark.parametrize('reason', ['video', 'incomplete', 'unsupported'])
+def test_video_incomplete_and_unsupported_posts_stay_out_of_news(reason):
+    from game_assistant.sources.public_content import visible_article
+    assert not visible_article({'decision': 'excluded', 'reason': reason, 'body': '网页活动开启'})
+    assert not visible_article({'decision': 'excluded', 'reason': 'no_date', 'body': ''})

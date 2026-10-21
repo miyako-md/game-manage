@@ -30,6 +30,8 @@ python -c 'import os; f=os.open("/etc/game-manage-cloud/grants.key",os.O_WRONLY|
 
 鸣潮开始登录需要查询服务器的实际出口公网 IP。运营者可在云端 TOML 顶层设置 `wuwa_login_public_ip_url`，默认 `https://api.ipify.org`；当前允许 `https://api64.ipify.org`（IPv4/IPv6）及 `https://checkip.amazonaws.com`。值不带 query（包括 `?format=json`）、fragment 或用户凭据；仅选择服务器已实测可达且返回纯文本有效公网 IP 的来源。HTTPS 证书正常校验，单次超时 10 秒，无自动回退、重试或代入 SSH 地址；无效／私网结果会拒绝初始化。该选项只来自运营者配置，网站登录请求不能指定查询 URL，不改变手机号、极验或短信流程。普通 wheel 安装须在新 release 中重新安装包并核对实际导入版本，不能只改发布目录源码假设已生效。
 
+采集频率（2026-10-21 起）：公共来源，即 B 站官方动态、库街区/塔吉多公告、终末地官网资讯和异环配队推荐，由 `cloud_public_poll_seconds` 控制，默认 21600 秒（每 6 小时一次）；终末地官网另有 6 小时缓存，网页读取不会额外访问官网。私人数据（体力等）仍按 `cloud_private_poll_seconds`（900 秒），不受影响。资讯和日历的“已过期”判断按 2 倍采集周期计，6 小时周期内的数据不会被标为过期。服务器 TOML 若显式写了 `cloud_public_poll_seconds = 600`，须改为 `21600` 或删除该行才生效；API 重启后会立即采集一轮，之后按周期执行。需要立即更新时，管理员在「今日总览」点「采集与回补」：每个游戏立即排一次公共采集（终末地强制刷新官网缓存，B 站回补近 60 天；B 站处于失败退避时跳过 B 站并在进度中注明），同时刷新管理员本人各账号的私人数据；同一游戏已在采集时合并，不重复排队，全站 5 分钟内只能触发一次。
+
 `game-manage.service` 与 `game-manage-qq.service` 是待审核模板。只在新独立路径安装；检查 `systemd-analyze verify` 后再启用。资源初值：API `MemoryHigh=512M/MemoryMax=768M`，QQ `192M/256M`；CPU 配额分别 150%/50%，失败最多 300 秒内重启 3 次。OOM 停止后查看失败并告警，不能无限重启。数值是试运行初值，不是容量结论。`journald-cloud.conf` 安装到专用 `/etc/systemd/journald@game-manage-cloud.conf.d/limits.conf`，namespace 日志保留最多 64MiB/7 天，运行时最多 16MiB；不调整现有服务全局日志策略。
 
 合并 Caddy 片段到操作者审核的新配置后先运行 `caddy validate --config <reviewed-config>`。只有校验成功、域名解析/TLS 实测及明确切换授权后才 reload；模板不得替换整份服务器配置。`__Host-ga_session`/preauth 为 Secure、HTTPOnly、SameSite=Lax，无 Domain、Path=/，要求真实 HTTPS。HTTP 页面不能作为网站登录验收。

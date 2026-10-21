@@ -160,3 +160,111 @@ def test_different_game_manual_jobs_use_existing_global_limit(cloud, monkeypatch
     client.portal.call(gate.set)
     client.portal.call(polling.drain)
     assert maximum == 1 and calls == 2
+
+
+COLLECT = '/api/admin/collect'
+
+
+def test_collect_is_admin_only(cloud):
+    client, identity, admin, *_ = cloud
+    assert client.get(COLLECT).status_code == 401
+    invite = identity.create_invite(admin)
+    assert write(client, '/api/identity/register', {'username':'reader','password':'Reader-password-123','invite':invite}).status_code == 200
+    assert client.get(COLLECT).status_code == 403
+    assert write(client, COLLECT, {'backfill':True}).status_code == 403
+    assert write(client, COLLECT).status_code == 403
+    login(client)
+    assert client.post(COLLECT, json={'backfill':True}).status_code == 403  # CSRF still required
+    # The scheduler is not running in this fixture.
+    assert write(client, COLLECT).status_code == 503
+    assert write(client, COLLECT, {'backfill':'true'}).status_code == 422
+    assert write(client, COLLECT, {'backfill':True,'games':['nte']}).status_code == 422
+
+
+def test_collect_queues_every_game_merges_duplicates_and_cools_down(cloud, monkeypatch):
+    from game_assistant.models import FetchResult
+    client, *_ = cloud
+    login(client)
+    polling = client.app.state.scheduler
+    calls, fetched = [], []
+    async def collect(fetch, uid, now, **options):
+        calls.append((options['days'], options['mode']))
+        return {'cutoff':now.isoformat()}
+    monkeypatch.setattr('game_assistant.sources.bilibili_service.collect_pages', collect)
+    adapter = client.app.state.public_query.registry.get('wuthering_waves')
+    async def fetch(cap):
+        fetched.append(cap.value)
+        return FetchResult(ok=True, payload=[])
+    monkeypatch.setattr(adapter, 'fetch', fetch)
+    async def start_and_block():
+        polling.start(periodic=False)
+        for _ in range(polling.settings.cloud_poll_concurrency):
+            await polling._global.acquire()
+    client.portal.call(start_and_block)
+    first = write(client, COLLECT).json()
+    assert [(g['game_id'], g['state'], g['generation']) for g in first['games']] == [('wuthering_waves', 'queued', 0)]
+    assert first['private_refresh'] == {'requested':0, 'skipped':0} and first['backfill'] is True
+    assert client.get(COLLECT).json()['games'][0]['queue_state'] == 'queued'
+    # The per-game Bilibili control sees the same queue entry.
+    assert write(client, ROOT+'/wuthering_waves/refresh', {'backfill':False}).json()['detail'] == 'source_busy'
+    cooling = write(client, COLLECT, {'backfill':True})
+    assert cooling.status_code == 429 and cooling.json()['detail'] == 'collect_cooldown'
+    assert 0 < cooling.json()['retry_after'] <= 300 and cooling.headers['Retry-After'] == str(cooling.json()['retry_after'])
+    client.app.state.cloud_collect.last = None
+    merged = write(client, COLLECT, {'backfill':True}).json()['games'][0]
+    assert merged['state'] == 'merged' and merged['job_id'] == first['games'][0]['job_id']
+    client.portal.call(polling._global.release)
+    client.portal.call(polling.drain)
+    assert calls == [(60, 'backfill')]
+    assert set(fetched) >= {'announcement', 'events'} and len(fetched) == len(set(fetched))
+    status = client.get(COLLECT).json()
+    game = status['games'][0]
+    assert game['queue_state'] == 'idle' and game['generation'] == 1
+    assert game['outcome']['state'] == 'done' and game['outcome']['bilibili'] == 'ok' and game['outcome']['failed'] == []
+    assert status['retry_after'] > 0
+    assert polling._due[('public', 'wuthering_waves')] - polling.clock() > 21000
+
+
+def test_collect_reports_bilibili_backoff_and_failed_sources(cloud, monkeypatch):
+    from game_assistant.models import FetchResult
+    client, *_ = cloud
+    login(client)
+    polling = client.app.state.scheduler
+    source = client.app.state.bilibili
+    source.store.set_state('wuthering_waves', '123', status='error', next_retry=time.time()+3600)
+    async def collect(fetch, uid, now, **options):
+        raise AssertionError('backoff must not be skipped')
+    monkeypatch.setattr('game_assistant.sources.bilibili_service.collect_pages', collect)
+    adapter = client.app.state.public_query.registry.get('wuthering_waves')
+    async def fetch(cap):
+        return FetchResult(ok=cap.value != 'announcement', payload=[], error_kind=None if cap.value != 'announcement' else 'source_error')
+    monkeypatch.setattr(adapter, 'fetch', fetch)
+    client.portal.call(lambda: polling.start(periodic=False))
+    assert write(client, COLLECT, {'backfill':False}).json()['backfill'] is False
+    client.portal.call(polling.drain)
+    outcome = client.get(COLLECT).json()['games'][0]['outcome']
+    assert outcome['bilibili'] == 'backoff' and outcome['failed'] == ['announcement'] and outcome['state'] == 'failed'
+
+
+def test_collect_refreshes_only_the_admins_active_scopes():
+    from fastapi import HTTPException
+    from game_assistant.cloud_public_tools import CloudCollect
+    class Accounts:
+        def list_accounts(self, principal):
+            return [dict(account_id='a', state='active', roles=[{'role_id':'r1'}, {'role_id':'r2'}]),
+                    dict(account_id='b', state='revoked', roles=[{'role_id':'r3'}])]
+        def require_scope(self, principal, account_id, role_id):
+            return (principal, account_id, role_id)
+    class Query:
+        def capabilities(self, scope):
+            return ['stamina', 'roles']
+    class Scheduler:
+        public = None
+        calls = []
+        def request_refresh(self, scope, capability):
+            if scope[2] == 'r2':
+                raise HTTPException(409, 'authorization_expired')
+            self.calls.append((scope, capability))
+    collect = CloudCollect(Scheduler(), Accounts(), Query())
+    assert collect.private('admin') == {'requested':2, 'skipped':1}
+    assert Scheduler.calls == [(('admin', 'a', 'r1'), 'stamina'), (('admin', 'a', 'r1'), 'roles')]

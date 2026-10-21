@@ -117,13 +117,31 @@ class CloudPublicQuery:
     def provider(self, game):
         return 'public_sources'
 
-    async def poll(self, game):
+    async def poll(self, game, *, force=False, backfill=False):
+        """One public pass for a game; returns which sources did not succeed.
+
+        force (administrator collect) bypasses source caches such as the Endfield
+        official site; backfill reads Bilibili 60 days. An existing Bilibili
+        backoff is respected and reported, never skipped over."""
+        import time
         from fastapi.encoders import jsonable_encoder
         from game_assistant.sources.article_content import retain_article_bodies
         adapter = self.registry.get(game)
+        outcome = dict(bilibili=None, failed=[])
+        if force:
+            adapter.prepare_refresh()
         # The collector is scheduled once per game, never once per user/capability.
         if self.bilibili and game in self.bilibili.sources:
-            await self.bilibili.run(game)
+            uid = self.bilibili.sources[game]
+            before = self.bilibili.store.state(game, uid)
+            if time.time() < before.get('next_retry', 0):
+                outcome['bilibili'] = 'backoff' if before.get('status') == 'error' else 'cooldown'
+            elif backfill:
+                await self.bilibili.run(game, True, history_days=60)
+            else:
+                await self.bilibili.run(game)
+            if outcome['bilibili'] is None:
+                outcome['bilibili'] = 'error' if self.bilibili.store.state(game, uid).get('status') == 'error' else 'ok'
         for cap in (Capability.NEWS, Capability.ANNOUNCEMENT, Capability.EVENTS, Capability.TEAMS):
             if cap not in adapter.capabilities:
                 continue
@@ -137,7 +155,10 @@ class CloudPublicQuery:
                     previous = self.snapshots.get(game, cap.value)
                     payload = retain_article_bodies(payload, json.loads(previous['payload']) if previous else [])
                 self.snapshots.save(game, cap.value, json.dumps(payload, ensure_ascii=False))
+            else:
+                outcome['failed'].append(cap.value)
             self.snapshots.record_poll(game, cap.value, result)
+        return outcome
 
     def read(self, game, capability):
         from game_assistant.sources.public_snapshot import read_public_snapshot
@@ -154,7 +175,7 @@ class CloudPublicQuery:
                 consecutive_failures=0, error=None, error_kind=None)
             payload = json.loads(snapshot['payload']) if snapshot else None
             stale = bool(snapshot and (expired(snapshot['fetched_at'],
-                interval_for(Capability.TEAMS, self.settings), now)
+                max(interval_for(Capability.TEAMS, self.settings), self.settings.cloud_public_poll_seconds), now)
                 or status['state'] in ('error', 'auth_expired')))
             return PublicQueryResult(payload=payload,
                 fetched_at=snapshot['fetched_at'] if snapshot else None,
@@ -163,7 +184,8 @@ class CloudPublicQuery:
                 primary_source='official', version=None, bilibili_status=None)
         if game not in self.sources or capability not in ('news', 'events'):
             raise AccountNotFoundError()
-        data = read_public_snapshot(self.snapshots, game, capability, self.settings, self.bilibili)
+        data = read_public_snapshot(self.snapshots, game, capability, self.settings, self.bilibili,
+                                    poll_seconds=self.settings.cloud_public_poll_seconds)
         return PublicQueryResult(state=data['poll_status']['state'], **data)
 
     async def aclose(self):

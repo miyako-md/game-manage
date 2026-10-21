@@ -10,6 +10,7 @@ from pathlib import Path
 import time
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict, StrictBool
 
 from .endfield_public import EndfieldPublicService, PublicSourceError
 from .identity.dependencies import require_user
@@ -185,3 +186,98 @@ def install_cloud_public_tools(app, settings):
         for route in router.routes:
             allow_cloud_route(app, route.path, route.methods)
     return tools
+
+
+class CollectBody(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    backfill: StrictBool = True
+
+
+class CloudCollect:
+    """Administrator "collect and backfill": every public game now, plus the
+    administrator's own private data. One global cooldown bounds upstream load."""
+    COOLDOWN = 300
+
+    def __init__(self, scheduler, accounts, query):
+        self.scheduler, self.accounts, self.query = scheduler, accounts, query
+        self.last = None
+        self.clock = time.monotonic
+
+    def retry_after(self):
+        if self.last is None:
+            return 0
+        return max(0, int(self.COOLDOWN - (self.clock() - self.last) + 0.999))
+
+    def games(self):
+        return list(self.scheduler.public.sources) if self.scheduler.public else []
+
+    def private(self, principal):
+        from fastapi import HTTPException as RouteError
+        from .accounts.store import AccountNotFoundError
+        from .auth.store import CredentialStoreError
+        requested = skipped = 0
+        for account in self.accounts.list_accounts(principal):
+            if account['state'] != 'active':
+                continue
+            for role in account['roles']:
+                try:
+                    scope = self.accounts.require_scope(principal, account['account_id'], role['role_id'])
+                    for capability in self.query.capabilities(scope):
+                        self.scheduler.request_refresh(scope, capability)
+                        requested += 1
+                except (RouteError, AccountNotFoundError, CredentialStoreError):
+                    # Expired or unverifiable grants are skipped; their status stays visible.
+                    skipped += 1
+        return dict(requested=requested, skipped=skipped)
+
+    def start(self, principal, backfill):
+        games = []
+        for game in self.games():
+            generation = self.scheduler.public_result(game)['generation']
+            receipt = self.scheduler.request_public_refresh(game, backfill)
+            games.append(dict(game_id=game, job_id=receipt.job_id, generation=generation,
+                              state='merged' if receipt.state == 'coalesced' else receipt.state))
+        return dict(games=games, private_refresh=self.private(principal), backfill=backfill,
+                    cooldown_seconds=self.COOLDOWN)
+
+    def status(self):
+        games = []
+        for game in self.games():
+            result = self.scheduler.public_result(game)
+            games.append(dict(game_id=game, queue_state=self.scheduler.public_refresh_state(game),
+                              generation=result['generation'], outcome=result['outcome']))
+        return dict(games=games, retry_after=self.retry_after())
+
+
+def install_cloud_collect_routes(app, scheduler, accounts, query):
+    from fastapi.responses import JSONResponse
+    from .cloud_app import allow_cloud_route
+    collect = CloudCollect(scheduler, accounts, query)
+    app.state.cloud_collect = collect
+
+    def admin(principal=Depends(require_user)):
+        if not principal.is_admin:
+            raise HTTPException(403, 'admin_required')
+        return principal
+
+    router = APIRouter(prefix='/api/admin/collect')
+
+    @router.get('')
+    async def collect_status(principal=Depends(admin)):
+        return collect.status()
+
+    @router.post('')
+    async def collect_now(body: CollectBody | None = None, principal=Depends(admin)):
+        if not scheduler._running:
+            raise HTTPException(503, 'scheduler_unavailable')
+        wait = collect.retry_after()
+        if wait:
+            return JSONResponse({'detail': 'collect_cooldown', 'retry_after': wait},
+                                status_code=429, headers={'Retry-After': str(wait)})
+        collect.last = collect.clock()
+        return collect.start(principal, body.backfill if body else True)
+
+    app.include_router(router)
+    for route in router.routes:
+        allow_cloud_route(app, route.path, route.methods)
+    return collect

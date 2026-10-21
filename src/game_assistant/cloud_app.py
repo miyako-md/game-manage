@@ -242,6 +242,8 @@ def create_cloud_app(settings: Settings, start_scheduler: bool = True) -> FastAP
             scheduler = AccountPollingScheduler(accounts, query, settings, root, public=public, reminders=reminders)
             from .sources.cloud_bilibili_routes import install_cloud_bilibili_collection_routes
             install_cloud_bilibili_collection_routes(app, bili, scheduler)
+            from .cloud_public_tools import install_cloud_collect_routes
+            install_cloud_collect_routes(app, scheduler, accounts, query)
             query.scheduler = scheduler
             for name,value in dict(accounts=accounts,account_runtime=runtime,account_query=query,
                                    private_routes=private,store=snapshots,public_query=public,

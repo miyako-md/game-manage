@@ -145,6 +145,46 @@ def test_endfield_keeps_official_priority_and_adds_bilibili_community_articles(t
         assert result['payload'][1]['decision'] == 'excluded'
 
 
+def test_endfield_intel_and_dateless_posts_reach_news_but_not_the_calendar(tmp_path):
+    from game_assistant.adapters.endfield.adapter import EndfieldAdapter
+    from game_assistant.sources.bilibili import classify_dynamic
+    uid = '1265652806'
+    settings = Settings(db_path=str(tmp_path / 'endfield.db'), bilibili_sources={'endfield': uid})
+    store = SnapshotStore(settings.db_path)
+    store.save('endfield', 'news', json.dumps([{'title': '官网版本说明', 'source': 'official', 'url': 'https://endfield.hypergryph.com/news/42'}]))
+    store.save('endfield', 'events', json.dumps([]))
+    app = create_app(registry=FakeRegistry(EndfieldAdapter(settings)), store=store, settings=settings, start_scheduler=False)
+    now = datetime.now(timezone.utc)
+    rows = []
+    for i, body in enumerate(['后勤备忘 - 独家揭秘! | 祀\n10月4日版本活动', '//危境情报//祀//\n版本更新后开启', '✦ 故影同行✦\n版本剧情图文']):
+        item = post(body, id=str(i + 1), published=now.timestamp())
+        item['modules']['module_author']['mid'] = int(uid)
+        rows.append(classify_dynamic(item, uid, now))
+    assert [r['reason'] for r in rows] == ['intel', 'intel', 'no_date']
+    app.state.bilibili.store.save_rows('endfield', uid, rows)
+    with TestClient(app, base_url='http://127.0.0.1:8010') as client:
+        news = client.get('/api/games/endfield/snapshot/news').json()['payload']
+        assert {r['title'] for r in news if r['source'] == 'bilibili'} == {'后勤备忘 - 独家揭秘! | 祀', '//危境情报//祀//', '✦ 故影同行✦'}
+        events = client.get('/api/games/endfield/snapshot/events').json()['payload']
+        assert not any(str(e.get('source_post_id')) in {'1', '2', '3'} for e in events or [])
+        assert app.state.bilibili.calendar('endfield')['events'] == []
+
+
+def test_wuwa_dateless_activity_digest_is_news_only(tmp_path):
+    from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
+    from game_assistant.sources.bilibili import classify_dynamic
+    settings = Settings(db_path=str(tmp_path / 'wuwa.db'), bilibili_sources={'wuthering_waves': UID})
+    store = SnapshotStore(settings.db_path)
+    app = create_app(registry=FakeRegistry(WutheringWavesAdapter(settings)), store=store, settings=settings, start_scheduler=False)
+    now = datetime.now(timezone.utc)
+    row = classify_dynamic(post('#鸣潮# #鸣潮3.7版本#\n《鸣潮》3.7版本近期活动汇总\n多项活动正在进行中', published=now.timestamp()), UID, now)
+    assert (row['decision'], row['reason']) == ('excluded', 'no_date')
+    app.state.bilibili.store.save_rows('wuthering_waves', UID, [row])
+    assert [r['id'] for r in app.state.bilibili.news('wuthering_waves')] == ['1']
+    assert app.state.bilibili.statuses()[0]['article_count'] == 1
+    assert app.state.bilibili.calendar('wuthering_waves')['events'] == []
+
+
 def test_endfield_notice_with_a_time_that_does_not_exist_keeps_status_and_events_readable(tmp_path):
     from game_assistant.adapters.endfield.adapter import EndfieldAdapter
     from game_assistant.sources.bilibili import classify_dynamic
