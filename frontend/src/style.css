@@ -1,3 +1,4 @@
+@import './game-themes.css';
 /* A warm paper canvas, white cards with a hairline, one blue accent, and a
    soft tone per game (game-manage-ui-v1). Each game brings four colours:
    --game-* is the ink step that reads as text, --game-*-tone the pale panel
