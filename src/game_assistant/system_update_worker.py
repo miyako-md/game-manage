@@ -11,6 +11,7 @@ import argparse
 from contextlib import closing, nullcontext
 from dataclasses import dataclass, field
 import hashlib
+import http.client
 import json
 import math
 import os
@@ -34,6 +35,7 @@ from .system_update_protocol import (ACTIVE_PHASES, TERMINAL_PHASES, LockBusyErr
 
 OFFICIAL_REPO = 'https://github.com/miyako-md/game-manage.git'
 OFFICIAL_REF = 'refs/heads/main'
+OFFICIAL_API_REF = 'https://api.github.com/repos/miyako-md/game-manage/git/ref/heads/'
 SOURCE = 'miyako-md/game-manage'
 SERVICE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.@-]*\.service\Z')
 RENDER_ENTRYPOINTS = ('index.html', 'render.html', 'render-a.html', 'theme-boot.js')
@@ -447,6 +449,37 @@ def cloud_health_host(origins):
 class NoHealthRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
+
+
+def official_branch_head(branch, attempts=3, timeout=20):
+    """The branch head the GitHub REST API reports, or None. Public and unauthenticated."""
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoHealthRedirect())
+    request = urllib.request.Request(OFFICIAL_API_REF + branch, headers={
+        'Accept': 'application/vnd.github+json', 'User-Agent': 'game-manage-updater'})
+    for attempt in range(attempts):
+        try:
+            with opener.open(request, timeout=timeout) as response:
+                raw = response.read(65537)
+            data = json.loads(raw) if len(raw) <= 65536 else None
+            item = data.get('object') if isinstance(data, dict) else None
+            if (isinstance(item, dict) and data.get('ref') == 'refs/heads/' + branch
+                    and item.get('type') == 'commit' and valid_sha(item.get('sha'))):
+                return item['sha'].lower()
+            return None
+        except (OSError, ValueError, http.client.HTTPException):
+            if attempt < attempts - 1: time.sleep(5)
+    return None
+
+
+def operator_only(info, *, directory, root_owned):
+    """An lstat result of a real file/directory that only its (root) owner can replace."""
+    if not (stat.S_ISDIR if directory else stat.S_ISREG)(info.st_mode):
+        return False
+    if getattr(info, 'st_file_attributes', 0) & 0x400:
+        return False
+    if os.name != 'nt' and info.st_mode & 0o022:
+        return False
+    return not root_owned or info.st_uid == 0
 
 
 def health_at(url, commit, timeout=45, *, host=None):
@@ -906,7 +939,7 @@ class Updater:
         if error: job['error_code'] = error
         write_json_atomic(self.journal_path, job)
         public = {key: job[key] for key in ('schema', 'job_id', 'target_sha', 'previous_sha',
-                  'phase', 'updated_at', 'finished_at', 'error_code') if key in job}
+                  'phase', 'updated_at', 'finished_at', 'error_code', 'fetch_source') if key in job}
         self.publish(public)
 
     def recover_interrupted(self):
@@ -955,20 +988,57 @@ class Updater:
             safe_path(self.config.state_dir / 'request.json').unlink()
             return True
 
+    def inbound_bundle(self, target):
+        """The operator's root-only bundle for exactly this target, or None when there is none."""
+        inbound = self.private / 'inbound'
+        try: info = os.lstat(inbound)
+        except FileNotFoundError: return None
+        root_owned = self.config.platform == 'linux'
+        if not operator_only(info, directory=True, root_owned=root_owned): fail('unsafe_update_bundle')
+        bundle = inbound / (target + '.bundle')
+        try: info = os.lstat(bundle)
+        except FileNotFoundError: return None
+        if not operator_only(info, directory=False, root_owned=root_owned) or info.st_nlink != 1:
+            fail('unsafe_update_bundle')
+        return bundle
+
+    def fetch_bundle(self, cache, bundle, target):
+        """Fallback when github.com is unreachable: the API-confirmed branch head from a bundle."""
+        head = official_branch_head(self.config.branch)
+        if head is None: fail('official_head_unavailable')
+        if head != target: fail('official_main_changed')
+        ref = 'refs/heads/' + self.config.branch
+        if self.run(['git', '-C', cache, 'bundle', 'verify', bundle], check=False, timeout=120).returncode:
+            fail('invalid_update_bundle')
+        heads = self.run(['git', '-C', cache, 'bundle', 'list-heads', bundle, ref], check=False, timeout=60)
+        if heads.returncode or heads.stdout.split() != [target, ref]: fail('update_bundle_commit_mismatch')
+        # Git verifies every object against its hash, so the fetched history is the
+        # exact commit the API confirmed; the usual official/ancestry checks follow.
+        self.run(['git', '-C', cache, 'fetch', '--no-tags', '--force', bundle,
+                  ref + ':refs/remotes/official/main'], timeout=180)
+        bundle.unlink()
+
     def prepare(self, current, target):
         c = self.config
         cache = self.private / 'repository.git'
         if not cache.exists(): self.run(['git', 'init', '--bare', cache], timeout=30)
         # Never use the checkout's origin, refspec, hooks or credential helpers.
         # The host's link to GitHub drops intermittently; retry before failing.
+        source = 'github'
         for attempt in range(FETCH_ATTEMPTS):
             try:
                 self.run(['git', '-C', cache, '-c', 'credential.helper=', 'fetch', '--no-tags', '--force',
                           OFFICIAL_REPO, 'refs/heads/' + c.branch + ':refs/remotes/official/main'], timeout=180)
                 break
             except UpdateError:
-                if attempt == FETCH_ATTEMPTS - 1: raise
+                if attempt == FETCH_ATTEMPTS - 1:
+                    bundle = self.inbound_bundle(target)
+                    if bundle is None: raise
+                    self.fetch_bundle(cache, bundle, target)
+                    source = 'bundle'
+                    break
                 time.sleep(FETCH_RETRY_SECONDS)
+        self.current_job['fetch_source'] = source
         official = self.run(['git', '-C', cache, 'rev-parse', 'refs/remotes/official/main'], timeout=30).stdout.strip()
         if official != target: fail('official_main_changed')
         if current == target: fail('already_current')

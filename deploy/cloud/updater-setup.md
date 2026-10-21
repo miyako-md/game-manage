@@ -56,6 +56,33 @@ Linux 必须先由管理员安装助手。支持的布局为：
 
 助手中断时，准备阶段标记失败；停机或激活阶段标记 `recovery_required`，禁止自动重复执行。管理员须先核对私有日志、实际发布链接/Windows活动标记、两个服务状态与备份完整性，再采用既有受控恢复流程。不要仅删除公开 `status.json` 来解除维护状态。
 
+### github.com 不可达时的备用取码
+
+助手向 `github.com` 拉取源码重试 3 次仍失败时，才会检查备用来源。`install_root/.updater/inbound/<目标完整提交号>.bundle` 不存在时，照旧以原拉取错误失败；存在时还须同时满足：
+
+1. `inbound` 目录须为 root 拥有、不是链接、组和其他用户不可写（建议 `0700`）；包文件须为 root 拥有的普通文件、不是链接或硬链接（建议 `0400`）。否则以 `unsafe_update_bundle` 失败。
+2. 无凭据请求 `https://api.github.com/repos/miyako-md/game-manage/git/ref/heads/<分支>`，返回的分支最新提交必须正好等于目标提交，否则以 `official_main_changed`（不一致）或 `official_head_unavailable`（查不到）失败。
+
+助手先用 `git bundle verify` 核对包（失败为 `invalid_update_bundle`），再要求包内 `refs/heads/<分支>` 正好指向目标提交（否则 `update_bundle_commit_mismatch`），然后从包拉取到私有缓存，后续的官方提交与祖先关系检查不变。Git 拉取时按哈希校验全部对象，所以取到的内容就是 API 确认的提交。成功拉取后包被删除；任务的私有日志与 `status.json` 中 `fetch_source` 记录 `github` 或 `bundle`，不含路径。
+
+管理员在可信的本地检出中制作并上传（示例分支 `codex/cloud-qq-public`）：
+
+```sh
+git fetch origin
+git rev-parse origin/codex/cloud-qq-public        # 必须等于目标提交 <SHA>
+git init --bare /tmp/bundle-src.git
+git -C /tmp/bundle-src.git fetch --no-tags "$PWD" refs/remotes/origin/codex/cloud-qq-public:refs/heads/codex/cloud-qq-public
+git -C /tmp/bundle-src.git bundle create /tmp/<SHA>.bundle refs/heads/codex/cloud-qq-public
+git bundle list-heads /tmp/<SHA>.bundle           # 应为 "<SHA> refs/heads/codex/cloud-qq-public"
+scp /tmp/<SHA>.bundle <服务器>:/tmp/
+# 在服务器上以 root 安装：
+sudo install -d -m 0700 -o root -g root /opt/game-manage-cloud/.updater/inbound
+sudo install -m 0400 -o root -g root /tmp/<SHA>.bundle /opt/game-manage-cloud/.updater/inbound/<SHA>.bundle
+rm /tmp/<SHA>.bundle
+```
+
+然后照常在网页发起更新。`install_root` 以实际助手配置为准。
+
 ## 验收边界
 
 仓库测试使用临时 Git 仓库、替代构建命令和隔离数据验证事务，不下载或执行官方最新版，不更新用户安装。Windows 文件锁互斥测试仅在 Windows 的临时文件上运行。另有 `tests/test_system_update_linux_runtime.py`，仅在 Linux、root 且明确设置 `GA_RUN_LINUX_UPDATER_TESTS=1` 时运行：使用临时文件和随机测试服务验证后台持文件描述符子进程的回收、助手生命周期停止、候选 `.pth` 隔离以及 API 用户并发读取状态的权限；不会操作真实 API/QQ 服务或账户。完整 Windows 启停、浏览器运行时权限与操作员首次安装仍需在隔离主机验收后启用。
