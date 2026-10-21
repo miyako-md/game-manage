@@ -243,16 +243,23 @@ watch(()=>state.accounts,()=>{if(routeGame && page.value==='game'){const account
 watch(dataKey, () => { if(page.value === 'overview') readOverview(); else if(page.value === 'game') readSnapshots() })
 watch(() => state.user?.user_id, clearPublicData, { flush: 'sync' })
 watch(page, value => { if (value === 'sessions') dashboard.loadSessions(); if (value === 'calendar') loadCalendar(); if(value === 'overview') readOverview(); if(value === 'game') readSnapshots() })
-let polling = false
-onMounted(() => { globalThis.window?.addEventListener('hashchange',syncRoute); globalThis.window?.addEventListener('keydown',handleKey); navigationMedia?.addEventListener('change',mediaChanged); dashboard.initialize().then(enterRoute); stopTheme = followSystem(); timer = setInterval(async () => {
+let polling = false, lastPoll = Date.now()
+const POLL_INTERVAL = 60000
+async function poll() {
+  // A background tab skips the minute check; it catches up when shown again.
+  if (globalThis.document?.hidden) return
   // initialize invalidates the controller epoch. Let bounded refresh tracking
   // settle first; its snapshot GETs still enforce session ownership and 401.
   now.value = Date.now(); if (!state.user || refreshPending.value || polling) return
-  polling = true
+  polling = true; lastPoll = Date.now()
   try { await dashboard.initialize(); if(page.value === 'overview') await readOverview(); else if(page.value === 'game') await Promise.all([readSnapshots(),loadPublic(selectedGame.value)]); else if(page.value === 'calendar') await loadCalendar() }
   finally { polling = false }
-}, 60000) })
-onBeforeUnmount(() => { globalThis.window?.removeEventListener('hashchange',syncRoute); globalThis.window?.removeEventListener('keydown',handleKey); navigationMedia?.removeEventListener('change',mediaChanged); clearInterval(timer); stopTheme?.(); dashboard.dispose(); clearPublicData() })
+}
+const schedulePoll = () => { clearInterval(timer); timer = setInterval(poll, POLL_INTERVAL) }
+// Shown again after a missed minute: check now and restart the minute from here.
+function visibilityChanged() { if (!globalThis.document?.hidden && Date.now() - lastPoll > POLL_INTERVAL) { schedulePoll(); poll() } }
+onMounted(() => { globalThis.window?.addEventListener('hashchange',syncRoute); globalThis.window?.addEventListener('keydown',handleKey); navigationMedia?.addEventListener('change',mediaChanged); globalThis.document?.addEventListener?.('visibilitychange',visibilityChanged); dashboard.initialize().then(enterRoute); stopTheme = followSystem(); schedulePoll() })
+onBeforeUnmount(() => { globalThis.window?.removeEventListener('hashchange',syncRoute); globalThis.window?.removeEventListener('keydown',handleKey); navigationMedia?.removeEventListener('change',mediaChanged); globalThis.document?.removeEventListener?.('visibilitychange',visibilityChanged); clearInterval(timer); stopTheme?.(); dashboard.dispose(); clearPublicData() })
 </script>
 <template>
   <div ref="workbench" class="workbench cloud-app" :class="{'menu-open':menuOpen}">

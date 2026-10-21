@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { nextTick, reactive } from 'vue'
-import { loadVue, mount, content, nodes, choose } from '../test-utils/vue.js'
+import { loadVue, mount, content, nodes, choose, flushAsyncComponents } from '../test-utils/vue.js'
 const component = name => loadVue(new URL(`./${name}.vue`, import.meta.url))
 const tick = async () => { await new Promise(resolve=>setImmediate(resolve)); await nextTick() }
 async function click(root,label) {
@@ -40,7 +40,7 @@ test('challenge guides are accessible independently of failed battle snapshots',
   assert.equal(nodes(root,'dialog').length,0)
   await click(root,'查看逆境深塔')
   assert.equal(nodes(root,'dialog').length,1)
-  await click(root,'社区攻略')
+  await click(root,'社区攻略');await flushAsyncComponents()
   assert.match(content(root),/260914/)
   assert.match(content(root),/3\.6/)
   assert.doesNotMatch(content(root),/2026-08-17|视频攻略|新手高难副本入门/)
@@ -131,7 +131,7 @@ test('upstream role filters and rarity display still open the local guide dialog
   assert.match(content(root), /筛选 1 位/)
   assert.ok(nodes(root, 'span').some(n => n.props['aria-label'] === '5 星'))
   await click(root, nodes(root, 'button').map(content).find(text => text.includes('今汐')))
-  await click(root, '培养攻略')
+  await click(root, '培养攻略'); await flushAsyncComponents()
   assert.match(content(nodes(root, 'dialog')[0]), /时和岁稔/)
 })
 

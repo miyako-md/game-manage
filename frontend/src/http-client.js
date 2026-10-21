@@ -28,8 +28,10 @@ export class HttpError extends Error {
     if (status === 401 && code === 'auth_expired') this.message = '游戏授权不可用，请到「账号与授权」重新登录'
   }
 }
+// Drops the cached token without a request; the next write fetches a fresh one.
+export function clearCsrf() { csrf = ''; csrfPending = null }
 export async function obtainCsrf(force = false) {
-  if (force) { csrf = ''; csrfPending = null }
+  if (force) clearCsrf()
   if (csrf) return csrf
   if (!csrfPending) {
     const current = epoch

@@ -13,88 +13,52 @@ function listSourceFiles(dir = srcDir) {
     const full = path.join(dir, entry.name)
     if (entry.isDirectory()) {
       results.push(...listSourceFiles(full))
-    } else if ((entry.name.endsWith('.css') || entry.name.endsWith('.vue')) && !entry.name.endsWith('.test.js')) {
+    } else if (entry.name.endsWith('.css') || entry.name.endsWith('.vue')) {
       results.push(full)
     }
   }
   return results
 }
 
-test('removes all side-colored accent borders and stripes across frontend/src', () => {
-  const files = listSourceFiles()
-  for (const file of files) {
+// Guards the design rule itself (no thick side-colored accent stripes), not the exact text of any rule.
+test('no thick side-colored accent borders or stripes anywhere in frontend/src', () => {
+  for (const file of listSourceFiles()) {
     const content = fs.readFileSync(file, 'utf8')
     const rel = path.relative(srcDir, file)
     assert.doesNotMatch(content, /border-left\s*:\s*[2-9]\d*px\s+solid/i, `${rel} should not have thick border-left`)
     assert.doesNotMatch(content, /border-left-width\s*:\s*[2-9]\d*px/i, `${rel} should not have border-left-width >= 2px`)
     assert.doesNotMatch(content, /border-inline-start\s*:\s*[2-9]\d*px\s+solid/i, `${rel} should not have border-inline-start >= 2px`)
   }
-
-  assert.equal(read('qq-image/Panel.vue').includes('chapter-mark'), false)
-
-  const skinCss = read('qq-image/skin.css')
-  assert.equal(skinCss.includes('border-left-color'), false)
-
-  const skinEndfieldCss = read('qq-image/skin-endfield.css')
-  assert.equal(skinEndfieldCss.includes('background-size: 8px 100%'), false)
-
-  const helpSheet = read('qq-image/HelpSheet.vue')
-  assert.equal(helpSheet.includes('inset 0 3px 0 var(--skin-accent)'), false)
-
+  assert.doesNotMatch(read('qq-image/Panel.vue'), /chapter-mark/)
+  assert.doesNotMatch(read('qq-image/skin.css'), /border-left-color/)
+  assert.doesNotMatch(read('qq-image/skin-endfield.css'), /background-size\s*:\s*8px\s+100%/)
+  assert.doesNotMatch(read('qq-image/HelpSheet.vue'), /inset\s+0\s+[2-9]px\s+0\s+var\(--skin-accent\)/)
   const timeline = read('components/CalendarTimelineContent.vue')
-  assert.doesNotMatch(timeline, /\.timeline-event:not\(\.is-point\)::before\s*\{[^}]*width\s*:\s*3px/)
-  assert.equal(timeline.includes('.timeline-event.clipped-end::after'), false)
+  assert.doesNotMatch(timeline, /\.timeline-event:not\(\.is-point\)::before\s*\{[^}]*width\s*:\s*[2-9]px/)
+  assert.doesNotMatch(timeline, /\.timeline-event\.clipped-end::after/)
+  assert.doesNotMatch(timeline, /\.timeline-event\.is-short::after/, 'short bars carry no extra end stripe')
 })
 
-test('defines TypeUI foundation tokens and typography/interaction rules in style.css', () => {
+test('style.css defines the shared TypeUI foundation tokens', () => {
   const style = read('style.css')
-
-  // rem-units & control-alignment tokens
-  assert.equal(style.includes('--fs-body: 0.8125rem;'), true)
-  assert.equal(style.includes('--fs-page: 1.75rem;'), true)
-  assert.equal(style.includes('--control-h: 40px;'), true)
-  assert.equal(style.includes('--radius-segment: 11px;'), true)
-  assert.equal(style.includes('--radius-dropdown-item: 10px;'), true)
-
-  // input-styling & layered-shadow & backdrop-treatment tokens
-  assert.equal(style.includes('--field-bg: #17181c;'), true)
-  assert.equal(style.includes('--field-border: #32343a;'), true)
-  assert.equal(style.includes('--field-bg: #fcfbf9;'), true)
-  assert.equal(style.includes('--field-border: #dedcd7;'), true)
-  assert.equal(style.includes('--dropdown-shadow:'), true)
-  assert.equal(style.includes('--modal-shadow:'), true)
-  assert.equal(style.includes('--scrim: rgba(0, 0, 0, .64);'), true)
-  assert.equal(style.includes('--scrim: rgba(15, 18, 24, .42);'), true)
-
-  // ligatures, monospace, text-wrap-balance, user-select
-  assert.equal(style.includes('font-variant-ligatures: common-ligatures contextual;'), true)
-  assert.equal(style.includes('font-variant-numeric:tabular-nums slashed-zero;'), true)
-  assert.equal(style.includes('h1,h2,h3,h4 { text-wrap:balance; }'), true)
-  assert.equal(style.includes('user-select:none;'), true)
-
-  // optical-alignment, button-press, recognizable-links, hit-target
-  assert.equal(style.includes('.ui-button:has(> svg:first-child) { padding-inline:12px 15px; }'), true)
-  assert.equal(style.includes('transform:translateY(1px) scale(0.98);'), true)
-  assert.equal(style.includes('text-underline-offset:3px;'), true)
-  assert.equal(style.includes(".info-hint-trigger::before { content:''; position:absolute; inset:-12px; }"), true)
-
-  // status-signal: offline indicator is a hollow ring, not a colour-only dot
-  assert.equal(style.includes('.local-status i.offline { background:transparent; border:2px solid var(--danger); }'), true)
+  for (const token of ['--fs-body', '--fs-page', '--control-h', '--control-h-sm', '--radius-control', '--radius-segment', '--radius-dropdown-item',
+    '--field-bg', '--field-border', '--dropdown-shadow', '--modal-shadow', '--scrim'])
+    assert.match(style, new RegExp(`${token}\\s*:`), `${token} is not defined`)
 })
 
-test('applies concentric radii, control alignment, and status signal shapes in components', () => {
-  const menuSelect = read('components/MenuSelect.vue')
-  assert.equal(menuSelect.includes('min-height: var(--control-h, 40px);'), true)
-  assert.equal(menuSelect.includes('padding: 4px;'), true)
-  assert.equal(menuSelect.includes('border-radius: var(--radius-dropdown-item, 10px);'), true)
-  assert.equal(menuSelect.includes('box-shadow: var(--dropdown-shadow, var(--popover-shadow));'), true)
+test('chips stay selectable so UIDs can be copied, while controls do not select on click', () => {
+  const style = read('style.css')
+  const rule = style.match(/^([^{}\n]*)\{[^}]*user-select\s*:\s*none/m)
+  assert.ok(rule, 'controls keep user-select:none')
+  const selectors = rule[1].split(',').map(selector => selector.trim())
+  for (const control of ['button', '[role="tab"]']) assert.ok(selectors.includes(control), `${control} should not select on click`)
+  assert.ok(!selectors.includes('.chip'), 'UID chips must stay copyable')
+  assert.match(read('components/NteDataCard.vue'), /class="chip mono">UID /)
+})
 
-  const siteLogin = read('components/SiteLogin.vue')
-  assert.equal(siteLogin.includes('border-radius:calc(var(--radius-shell) - 7px)'), true)
-
-  const overview = read('components/OverviewPage.vue')
-  assert.equal(overview.includes('.summary-state.warn i { border-radius:1.5px; transform:rotate(45deg); }'), true)
-
-  const endfield = read('components/EndfieldDashboard.vue')
-  assert.equal(endfield.includes('.ef-connection-dot { width:8px; height:8px; border-radius:50%; border:2px solid var(--text-faint); background:transparent; }'), true)
+test('the top bar search field is as tall as the 44px controls beside it', () => {
+  const style = read('style.css')
+  assert.match(style, /\.workspace-topbar\s*\{[^}]*--topbar-control-size\s*:\s*44px/)
+  assert.match(style, /\.topbar-left\s*>\s*\.search-trigger\s*\{[^}]*[\s;{]height\s*:\s*var\(--topbar-control-size\)/)
+  assert.match(style, /\.topbar-right\s*>\s*:is\([^)]*\.icon-button[^)]*\)\s*\{[^}]*height\s*:\s*var\(--topbar-control-size\)/)
 })

@@ -145,7 +145,6 @@ function selectEvent(event, interaction) { if (props.mode!=='image') emit('selec
 .timeline-event.is-short { overflow:visible; padding:4px 0; }
 .is-short .event-summary { position:relative; left:10px; width:min(420px,45cqw); background:color-mix(in srgb,var(--card-bg) 92%,transparent); padding:0 5px; border-radius:3px; }
 .is-short.label-left .event-summary { left:100%; transform:translateX(-100%); }
-.timeline-event.is-short::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 1px; background: var(--game-vivid, var(--game-accent)); opacity: .6; }
 .event-bar-title { display:block; flex:1 1 80px; font-size:12px; font-weight:500; min-width:0; white-space:normal; overflow-wrap:anywhere; line-height:16px; }
 .event-category, .event-status { flex-shrink: 0; font-size: 12px; white-space: nowrap; }
 .event-category { color: var(--text-muted); }
