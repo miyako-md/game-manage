@@ -350,3 +350,18 @@ test('Endfield source footer responds immediately with reduced motion and restor
   assert.equal(footer.style.cssText, '')
   assert.equal(footer.dataset.menuAvoidance, undefined)
 })
+
+test('overview collection progress banner avoids the floating menu when dynamically inserted without double-moving its children', async t => {
+  const { root, controller, flush } = setup(t)
+  controller.update(menuAt(16), true); flush()
+  const status = window.document.createElement('section')
+  status.className = 'ov-collect-status'
+  status.innerHTML = '<ul><li><strong>鸣潮</strong><span>采集中</span></li></ul><p>已同时请求刷新本人账号的 3 项私人数据。</p>'
+  status.getBoundingClientRect = () => box(24, 100, 1392, 68)
+  root.prepend(status)
+  await new Promise(resolve => window.setTimeout(resolve, 0))
+  flush()
+  assert.equal(status.dataset.menuAvoidance, 'clear')
+  assert.ok(parseFloat(status.style.marginLeft) > 200)
+  for (const child of status.querySelectorAll('*')) assert.equal(child.style.width, '')
+})

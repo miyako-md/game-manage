@@ -8,7 +8,7 @@ const CARD = [
   '.game-card > .error-bar', '.game-card > .detail-navigation', '.wuwa-nav', '.endfield-nav', '.endfield-stack > p',
   '.lol-header', '.lol-toolbar', '.coverage-line', '.lol-dashboard > .lol-notice', '.lol-dashboard > .lol-error', '.lol-view > .legacy-note',
   '.es-header', '.esports-panel > .es-note', '.esports-panel > .es-warning', '.es-notices', '.es-tabs', '.es-filter-disclosure', '.es-footer',
-  '.ov-alert', '.inline-warning', '.service-error', '.cloud-content > p', '.cloud-game-heading', '.cloud-calendar-controls',
+  '.ov-collect-status', '.ov-alert', '.inline-warning', '.service-error', '.cloud-content > p', '.cloud-game-heading', '.cloud-calendar-controls',
   '.login-panel', '.connection-note', '.cloud-account-settings > h2', '.cloud-account-settings > p',
   '.bili-panel', '.cloud-owner-note > summary', '.cloud-owner-note > p',
   '.cloud-snapshot-states > summary', '.cloud-snapshot-states > div',

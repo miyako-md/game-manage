@@ -55,11 +55,12 @@ const unsubscribe=subscribeSessionInvalidation(clear);onUnmounted(unsubscribe)
 async function run(action){if(props.imageMode||busy.value)return;const version=generation;busy.value=true;error.value='';try{await action()}catch(e){if(e!==superseded&&version===generation)error.value=e?.message||'操作失败'}finally{if(version===generation)busy.value=false}}
 async function call(path,options,fromInput){const version=generation,input=revision;const data=await requestJson(path,options);if(version!==generation||fromInput&&input!==revision)throw superseded;return data}
 const json=value=>JSON.stringify(value,null,2)
+function parseJson(raw){try{return JSON.parse(raw)}catch{throw new Error('JSON 格式无效，请检查后再保存')}}
 async function read(){const data=await call(base());modelJson.value=json(data.model.version==='unconfigured'?template():data.model);saved.value=data.configurations; if(!a.value)a.value=saved.value[0]?.id||'';if(!b.value)b.value=saved.value[1]?.id||''}
 async function open(){opened.value=true;await run(read)}
-function configuration(){return {game:props.game,character_id:props.characterId,name:name.value,source:'user_configured',observed_at:observedAt.value,items:JSON.parse(itemsJson.value)}}
+function configuration(){return {game:props.game,character_id:props.characterId,name:name.value,source:'user_configured',observed_at:observedAt.value,items:parseJson(itemsJson.value)}}
 async function useEquipped(){await run(async()=>{const data=await call(base()+'/equipped');edited();itemsJson.value=json(data.configuration.items);observedAt.value=data.configuration.observed_at||null;name.value='当前装备副本';result.value=data.assessment})}
-async function saveModel(){await run(async()=>{await call(base()+'/model',{method:'PUT',body:JSON.parse(modelJson.value)});result.value=null;comparison.value=null;await read()})}
+async function saveModel(){await run(async()=>{await call(base()+'/model',{method:'PUT',body:parseJson(modelJson.value)});result.value=null;comparison.value=null;await read()})}
 async function saveConfig(){await run(async()=>{const data=await call(base()+'/configurations',{method:'POST',body:configuration()});await read();b.value=data.id})}
 async function score(){await run(async()=>{result.value=await call(base()+'/score',{method:'POST',body:{configuration:configuration()}},true)})}
 async function compareSaved(){await run(async()=>{comparison.value=await call(base()+'/compare',{method:'POST',body:{a:a.value,b:b.value}},true)})}

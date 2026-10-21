@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
 import { esportsTime, esportsGroupLabel, esportsImage, esportsMonogram, esportsOutcome, ESPORTS_STATUS, officialEsportsUrl } from '../esports.js'
-const props = defineProps({ payload: Object, match: Object })
+const props = defineProps({ payload: Object, match: Object, restored: Boolean })
 const emit = defineEmits(['back', 'select-team'])
 const detail = ref(null)
 const tournament = computed(() => props.payload.tournaments?.find(t => t.id === props.match?.tournament_id))
@@ -14,7 +14,7 @@ const pips = side => {
   const need = props.match?.best_of ? Math.ceil(props.match.best_of / 2) : 0, won = props.match?.['score_' + side]
   return score.value && need ? Array.from({ length: need }, (_, i) => i < won) : []
 }
-watch(() => props.match?.id, async () => { await nextTick(); detail.value?.scrollIntoView?.({ block: 'start' }); detail.value?.focus?.({ preventScroll: true }) }, { immediate: true })
+watch(() => props.match?.id, async (id, prev) => { if (!id || (prev === undefined && props.restored)) return; await nextTick(); detail.value?.scrollIntoView?.({ block: 'start' }); detail.value?.focus?.({ preventScroll: true }) }, { immediate: true })
 </script>
 <template>
   <article class="es-detail" ref="detail" tabindex="-1" :id="'es-' + (match?.id || 'missing')">

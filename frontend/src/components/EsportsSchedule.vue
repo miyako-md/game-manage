@@ -5,7 +5,7 @@ import { vReveal } from '../motion.js'
 import EsportsMatchRow from './EsportsMatchRow.vue'
 import EsportsMatchDetail from './EsportsMatchDetail.vue'
 import HRail from './HRail.vue'
-const props = defineProps({ payload: Object, filters: Object })
+const props = defineProps({ payload: Object, filters: Object, restored: Boolean })
 const emit = defineEmits(['select-team', 'select-match', 'page-change', 'back'])
 const sections = computed(() => esportsSections(props.payload, props.filters))
 const selected = computed(() => props.payload.matches?.find(m => m.id === props.filters.matchId))
@@ -17,7 +17,7 @@ async function page(value) { emit('page-change', value); await nextTick(); resul
 </script>
 <template>
   <section :aria-label="filters.view === 'results' ? '职业赛事赛果' : '职业赛事赛程'">
-    <EsportsMatchDetail v-if="filters.matchId" :payload="payload" :match="selected" @back="emit('back')" @select-team="(id, focus) => emit('select-team', id, focus)" />
+    <EsportsMatchDetail v-if="filters.matchId" :payload="payload" :match="selected" :restored="restored" @back="emit('back')" @select-team="(id, focus) => emit('select-team', id, focus)" />
     <template v-else>
       <p class="es-list-caption">北京时间 · {{ filters.view === 'results' ? '最新赛果在前' : '按比赛状态分组 · 近期赛果在前' }}</p>
       <p v-if="filters.view !== 'results' && noFuture" class="es-inline-notice">当前筛选暂无进行中或待赛记录。</p>

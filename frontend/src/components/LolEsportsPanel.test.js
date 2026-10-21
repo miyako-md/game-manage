@@ -64,3 +64,27 @@ test('web-rendered esports menus keep source choices and reset obsolete detail n
   const teams=nodes(root,'ul').find(n=>n.props['aria-label']==='筛选战队')
   assert.deepEqual(nodes(teams,'li').map(n=>n.props['data-value']),[''])
 })
+
+test('restoring an open match detail on mount does not scroll the page, while actively opening a match does', async t => {
+  const browseState = reactive({ ...createEsportsBrowseState(), matchId: 'm' })
+  const root = mount(t, Panel, { snap: snap(), browseState, 'onBrowse-change': patch => Object.assign(browseState, patch) })
+  const restoredArticle = nodes(root, 'article').find(n => String(n.props.class ?? '').includes('es-detail'))
+  let scrolled = false, focused = false
+  restoredArticle.scrollIntoView = () => { scrolled = true }
+  restoredArticle.focus = () => { focused = true }
+  await flush()
+  assert.equal(scrolled, false)
+  assert.equal(focused, false)
+
+  button(root, '← 返回').props.onClick(); await flush()
+  assert.equal(browseState.matchId, '')
+  const opener = nodes(root, 'button').find(n => n.props['data-open-match'] === 'm')
+  opener.props.onClick()
+  await nextTick()
+  const openedArticle = nodes(root, 'article').find(n => String(n.props.class ?? '').includes('es-detail'))
+  openedArticle.scrollIntoView = () => { scrolled = true }
+  openedArticle.focus = () => { focused = true }
+  await flush()
+  assert.equal(scrolled, true)
+  assert.equal(focused, true)
+})
