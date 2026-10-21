@@ -46,6 +46,32 @@ test('challenge guides are accessible independently of failed battle snapshots',
   assert.doesNotMatch(content(root),/2026-08-17|视频攻略|新手高难副本入门/)
 })
 
+test('tower guides read the automatic check, show the previous period folded, and only maintainers see the check button',async t=>{
+  t.mock.method(Date,'now',()=>Date.parse('2026-11-10T12:00:00+08:00'))
+  const calls=[]
+  let reply={guides:[],checked_at:'2026-11-10T03:00:00+00:00',error:null}
+  t.mock.method(globalThis,'fetch',async(url,options)=>{calls.push({url,method:options?.method||'GET'});return{ok:true,status:200,headers:new Headers(),json:async()=>reply}})
+  const root=mount(t,await component('WuwaChallengeGuides'),{mode:'tower'})
+  await tick();await tick()
+  assert.deepEqual(calls.map(c=>[c.url,c.method]),[['/api/wuwa/guides/tower','GET']])
+  assert.match(content(root),/暂无当期图文攻略/)
+  assert.match(content(root),/上期参考/)
+  assert.ok(nodes(root,'details').some(n=>content(n).includes('261012')))
+  reply={guides:[{id:'9',modes:['tower'],format:'图文攻略',title:'鸣潮逆境深塔261109期推荐阵容',author:'作者甲',scope:'2026-11-09 期深境区',
+    publishedAt:'2026-11-09 12:00',version:'3.8',status:'unreviewed',summary:'合成摘要（自动收录，未人工校对）',lineupImages:[],
+    periodStart:'2026-11-09T04:00:00+08:00',periodEnd:'2026-12-07T04:00:00+08:00',url:'https://www.kurobbs.com/forum/post/9'}],checked_at:'2026-11-10T04:00:00+00:00',error:null}
+  await click(root,'检查更新');await tick()
+  assert.deepEqual(calls.at(-1),{url:'/api/wuwa/guides/tower/check',method:'POST'})
+  assert.match(content(root),/2026-11-09 期深境区/)
+  assert.match(content(root),/待校对/)
+  assert.doesNotMatch(content(root),/上期参考|暂无当期/)
+  t.mock.method(globalThis,'fetch',async()=>({ok:false,status:502,headers:new Headers(),json:async()=>({})}))
+  await click(root,'检查更新');await tick()
+  assert.match(content(root),/检查失败，保留上次结果/)
+  assert.match(content(root),/2026-11-09 期深境区/)
+  assert.equal(nodes(mount(t,await component('WuwaChallengeGuides'),{mode:'hologram'}),'button').filter(n=>content(n)==='检查更新').length,0)
+})
+
 test('challenge boss filtering never fills a missing boss with unrelated guides',async t=>{
   const root=mount(t,await component('WuwaChallengeGuides'),{mode:'hologram',bosses:['海维夏','叹息古龙']})
   choose(root,'筛选首领','海维夏')
@@ -79,7 +105,7 @@ test('empty news keeps source failure visible without requiring a private accoun
 test('tower lineup pictures are inline, switch per source, and recover after an image failure',async t=>{
   const { challengeGuides }=await import('../wuwa-challenge-guides.js')
   const sources=challengeGuides.filter(g=>g.modes.includes('tower')&&g.author==='轩儿Xuaner')
-  assert.equal(sources.length,2)
+  assert.equal(sources.length,3)
   assert.ok(sources.every(g=>g.lineupImages.length===6))
   const props=reactive({guide:sources[0]})
   const root=mount(t,await component('WuwaGuideLineups'),props)
@@ -92,7 +118,7 @@ test('tower lineup pictures are inline, switch per source, and recover after an 
   assert.equal(nodes(root,'img')[0].props.src,sources[0].lineupImages[1])
   props.guide=sources[1];await tick()
   assert.equal(nodes(root,'img')[0].props.src,sources[1].lineupImages[0])
-  assert.match(nodes(root,'img')[0].props.alt,/2026-08-17/)
+  assert.match(nodes(root,'img')[0].props.alt,/2026-09-14/)
 })
 
 test('upstream role filters and rarity display still open the local guide dialog', async t => {

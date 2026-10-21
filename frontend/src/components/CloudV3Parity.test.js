@@ -66,7 +66,8 @@ test('Endfield blueprint create edit delete and export use only the selected Skl
 test('public tools read routes are independent of selected private provider and management is explicit',async t=>{
  configureHttpClient({mode:'cloud'});t.after(()=>configureHttpClient({mode:'local'}));setAccountScope({user_id:'u',account_id:'a',role_id:'r',provider:'hypergryph'})
  const calls=[];t.mock.method(globalThis,'fetch',async(path,options)=>{calls.push([path,options]);return new Response(JSON.stringify(path.endsWith('/csrf')?{csrf_token:'fixture'}:{}))})
- for(const path of ['/api/nte/guides','/api/nte/guides/sources/fixture','/api/wuwa/guides/updates?name=fixture','/api/endfield/map?map_id=fixture','/api/endfield/map/marks/fixture?map_id=fixture']){await requestJson(path);assert.equal(calls.at(-1)[0],'/api/public/'+path.slice(5))}
+ for(const path of ['/api/nte/guides','/api/nte/guides/sources/fixture','/api/wuwa/guides/updates?name=fixture','/api/wuwa/guides/tower','/api/endfield/map?map_id=fixture','/api/endfield/map/marks/fixture?map_id=fixture']){await requestJson(path);assert.equal(calls.at(-1)[0],'/api/public/'+path.slice(5))}
  await requestJson('/api/nte/guides/sources/fixture/refresh',{method:'POST'});assert.equal(calls.at(-1)[0],'/api/admin/nte/guides/sources/fixture/refresh');assert.equal(calls.at(-1)[1].headers['X-CSRF-Token'],'fixture')
- for(const path of ['/api/nte/guides/admin','/api/endfield/map/write','/api/wuwa/guides/updates/remove'])await assert.rejects(requestJson(path,{method:'POST'}),/云端/)
+ await requestJson('/api/wuwa/guides/tower/check',{method:'POST'});assert.equal(calls.at(-1)[0],'/api/admin/wuwa/guides/tower/check')
+ for(const path of ['/api/nte/guides/admin','/api/wuwa/guides/tower','/api/endfield/map/write','/api/wuwa/guides/updates/remove'])await assert.rejects(requestJson(path,{method:'POST'}),/云端/)
 })

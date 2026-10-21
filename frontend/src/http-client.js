@@ -49,11 +49,11 @@ function cloudPath(path, method) {
   if (/^\/api\/admin\/bilibili-source\/login\/(?:status|sessions(?:\/[^/?]+(?:\/(?:qr\/poll|commit|cookie))?)?)$/.test(path)) return path
   if (/^\/api\/admin\/bilibili-source\/(?:status|(?:wuthering_waves|nte|endfield|league_of_legends)\/refresh)$/.test(path)) return path
   if (['GET','POST'].includes(method) && path === '/api/admin/collect') return path
-  if (method === 'GET' && /^\/api\/public\/(?:nte\/guides(?:\/sources\/[^/?]+)?|wuwa\/guides\/updates|endfield\/(?:public|map(?:\/marks\/[^/?]+)?))(?:\?.*)?$/.test(path)) return path
-  if (method === 'POST' && /^\/api\/admin\/(?:nte\/guides\/sources\/[^/?]+\/refresh|wuwa\/guides\/updates(?:\/extract)?|endfield\/public\/refresh)$/.test(path)) return path
+  if (method === 'GET' && /^\/api\/public\/(?:nte\/guides(?:\/sources\/[^/?]+)?|wuwa\/guides\/(?:updates|tower)|endfield\/(?:public|map(?:\/marks\/[^/?]+)?))(?:\?.*)?$/.test(path)) return path
+  if (method === 'POST' && /^\/api\/admin\/(?:nte\/guides\/sources\/[^/?]+\/refresh|wuwa\/guides\/(?:updates(?:\/extract)?|tower\/check)|endfield\/public\/refresh)$/.test(path)) return path
   const pathname = path.split('?')[0]
-  const publicRead = /^\/api\/(?:nte\/guides(?:\/sources\/[^/?]+)?|wuwa\/guides\/updates|endfield\/(?:public|map(?:\/marks\/[^/?]+)?))$/
-  const publicWrite = /^\/api\/(?:nte\/guides\/sources\/[^/?]+\/refresh|wuwa\/guides\/updates(?:\/extract)?|endfield\/public\/refresh)$/
+  const publicRead = /^\/api\/(?:nte\/guides(?:\/sources\/[^/?]+)?|wuwa\/guides\/(?:updates|tower)|endfield\/(?:public|map(?:\/marks\/[^/?]+)?))$/
+  const publicWrite = /^\/api\/(?:nte\/guides\/sources\/[^/?]+\/refresh|wuwa\/guides\/(?:updates(?:\/extract)?|tower\/check)|endfield\/public\/refresh)$/
   if (method === 'GET' && publicRead.test(pathname)) return '/api/public/' + path.slice(5)
   if (method === 'POST' && path === pathname && publicWrite.test(pathname)) return '/api/admin/' + path.slice(5)
   if (scope) {

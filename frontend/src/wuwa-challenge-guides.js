@@ -1,6 +1,33 @@
-// Public community sources checked on 2026-09-26; versions and encounter scopes are not interchangeable.
-export const challengeGuideUpdatedAt = '2026-09-26'
+import { guideSourceUrl } from './wuwa-guides.js'
+
+// Public community sources checked on 2026-10-21; versions and encounter scopes are not interchangeable.
+export const challengeGuideUpdatedAt = '2026-10-21'
 export const challengeGuides = [
+  {
+    "id": "1559169379056631808",
+    "periodStart": "2026-10-12T04:00:00+08:00",
+    "periodEnd": "2026-11-09T04:00:00+08:00",
+    "lineupImages": [
+      "https://prod-alicdn-community.kurobbs.com/forum/3725fdb78d3f4d9f86acc7b844bca14020261012.png",
+      "https://prod-alicdn-community.kurobbs.com/forum/96f3c1fb2ef442d48e4474aeb398cf3e20261012.png",
+      "https://prod-alicdn-community.kurobbs.com/forum/791ec76d5f8943d4906024a5ba94175f20261012.png",
+      "https://prod-alicdn-community.kurobbs.com/forum/5a047ef630ce4d678dc172d04ef6c77a20261012.png",
+      "https://prod-alicdn-community.kurobbs.com/forum/35b402cdd6b9472694f5ec47cc6f99ef20261012.png",
+      "https://prod-alicdn-community.kurobbs.com/forum/2340a72fb8b14b58addb97769d905a2920261012.png"
+],
+    "modes": [
+      "tower"
+    ],
+    "boss": null,
+    "title": "鸣潮逆境深塔261012期推荐阵容",
+    "author": "轩儿Xuaner",
+    "publishedAt": "2026-10-12 11:42",
+    "version": "3.7",
+    "format": "图文攻略",
+    "scope": "2026-10-12 期深境区",
+    "summary": "中塔主推心，爱弥斯/绯雪穿插使用；左4湮灭（弗洛洛或西格莉卡）、右4冷凝（珂莱塔），中1中2偏热熔/导电与异常效应，中3中4吃心的增益。",
+    "url": "https://www.kurobbs.com/forum/post/1559169379056631808"
+  },
   {
     "id": "1549413440713461760",
     "periodStart": "2026-09-14T04:00:00+08:00",
@@ -323,9 +350,27 @@ export const challengeGuides = [
   }
 ]
 
-export function selectChallengeGuides(mode, boss = '', now = Date.now()) {
-  return challengeGuides.filter(g => g.modes.includes(mode) && (!boss || g.boss === boss) &&
+const isTowerGuide = g => g && typeof g === 'object' && typeof g.id === 'string' && Array.isArray(g.modes) &&
+  g.modes.includes('tower') && g.format === '图文攻略' && guideSourceUrl(g.url) && typeof g.title === 'string' &&
+  !Number.isNaN(Date.parse(g.periodStart)) && !Number.isNaN(Date.parse(g.periodEnd))
+
+// Automatically found tower posts only fill periods that no reviewed entry covers.
+export function mergeTowerGuides(remote) {
+  const reviewed = challengeGuides.filter(g => g.modes.includes('tower'))
+  const ids = new Set(reviewed.map(g => g.id)), periods = new Set(reviewed.map(g => g.periodStart).filter(Boolean))
+  return (Array.isArray(remote) ? remote : []).filter(g => isTowerGuide(g) && !ids.has(g.id) && !periods.has(g.periodStart))
+}
+
+export function selectChallengeGuides(mode, boss = '', now = Date.now(), extra = []) {
+  return [...challengeGuides, ...extra].filter(g => g.modes.includes(mode) && (!boss || g.boss === boss) &&
     (mode !== 'tower' || (g.format === '图文攻略' &&
       Date.parse(g.periodStart) <= now && now < Date.parse(g.periodEnd))))
     .slice().sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''))
+}
+
+// Only the most recently ended period, offered as a labelled reference while the current one has no guide.
+export function previousTowerGuides(now = Date.now(), extra = []) {
+  const ended = [...challengeGuides, ...extra].filter(g => g.modes.includes('tower') && g.format === '图文攻略' && Date.parse(g.periodEnd) <= now)
+  const last = Math.max(...ended.map(g => Date.parse(g.periodEnd)))
+  return ended.filter(g => Date.parse(g.periodEnd) === last)
 }
