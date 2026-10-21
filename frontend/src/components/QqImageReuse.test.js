@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { nextTick } from 'vue'
 import { loadVue, mount, content, nodes } from '../test-utils/vue.js'
 import { challengeReport } from '../endfield-challenges.js'
 
@@ -93,4 +94,19 @@ test('Endfield overview keeps the service level order and counts the whole roste
   assert.deepEqual(overviewNames(t, panels), operators.slice(0, 6).map(op => op.name))
   const stats = Object.fromEntries(overviewStats(t, panels))
   assert.equal(stats['六星干员'], '4'); assert.equal(stats['五星干员'], '5'); assert.equal(stats['已记录干员'], '9')
+})
+
+test('overview sheet draws its fallback when a picture did not arrive, never the alt text', async t => {
+  const { configure } = await import('../qq-image/models.js')
+  const url = 'https://web.hycdn.cn/fixture/akekuri.png'
+  configure([], { [url]: true })
+  const root = mount(t, Overview, { input: { command: '我的', snapshot: { kind: 'game_snapshot', game: 'all', as_of: '2026-10-15T04:00:00Z',
+    display_data: { notices: [], panels: [['endfield', 'skland', 'account', { base: { name: '很长的合成昵称 · 仅供布局预览' }, operators: [{ id: 'op', name: '秋栗', level: 90, rarity: 6, avatar_url: url }] }]]
+      .map(([game, provider, capability, payload]) => ({ game, provider, capability, snapshot: { payload, fetched_at: null, state: 'ok', stale: false } })) } } } })
+  const images = () => nodes(root, 'img').filter(img => ['ao-avatar-img', 'ao-role-img'].includes(img.props.class))
+  assert.equal(images().length, 2)
+  for (const img of images()) img.props.onError()
+  await nextTick()
+  assert.equal(images().length, 0)
+  assert.equal(nodes(root, 'svg').filter(svg => ['ao-avatar-svg', 'ao-role-fallback'].includes(svg.props.class)).length, 2)
 })

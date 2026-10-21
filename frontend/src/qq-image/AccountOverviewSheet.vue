@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { asset, display, roleIdentity, viewModel } from './models.js'
 import wuwaIcons from '../wuwa-icon-catalog.js'
 import nteIcons from '../nte-icon-catalog.js'
@@ -9,6 +9,11 @@ import { newestFirst } from '../role-order.js'
 
 const props = defineProps({ input: Object })
 const model = computed(() => viewModel(props.input))
+// A picture that did not arrive shows the drawn fallback, not its alt text (a long
+// nickname in the 64px avatar ring broke the layout audit and the whole image).
+const failedImages = ref(new Set())
+const shown = url => !!url && !failedImages.value.has(url)
+const imageFailed = url => { failedImages.value = new Set([...failedImages.value, url]) }
 
 const GAME_LABELS = {
   wuthering_waves: '鸣潮',
@@ -532,7 +537,7 @@ const notices = computed(() => props.input?.snapshot?.display_data?.notices || [
       <header class="ao-capsule-banner">
         <div class="ao-identity-pill">
           <div class="ao-avatar-ring">
-            <img v-if="block.avatarUrl" :src="block.avatarUrl" :alt="block.nickname" class="ao-avatar-img" />
+            <img v-if="shown(block.avatarUrl)" :src="block.avatarUrl" :alt="block.nickname" class="ao-avatar-img" @error="imageFailed(block.avatarUrl)" />
             <svg v-else class="ao-avatar-svg" viewBox="0 0 64 64" aria-hidden="true">
               <defs>
                 <linearGradient id="ao-crest-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -608,7 +613,7 @@ const notices = computed(() => props.input?.snapshot?.display_data?.notices || [
             :class="role.isGold ? 'is-rarity-gold' : 'is-rarity-purple'"
           >
             <div class="ao-role-portrait">
-              <img v-if="role.image" :src="role.image" :alt="role.name" class="ao-role-img" />
+              <img v-if="shown(role.image)" :src="role.image" :alt="role.name" class="ao-role-img" @error="imageFailed(role.image)" />
               <svg v-else class="ao-role-fallback" viewBox="0 0 120 120" aria-hidden="true">
                 <circle cx="60" cy="52" r="32" fill="rgba(255,255,255,0.04)" stroke="rgba(214,188,138,0.22)" stroke-width="1.2" />
                 <text x="60" y="64" text-anchor="middle" fill="rgba(240,218,172,0.34)" font-size="34" font-weight="800">{{ role.name.slice(0, 1) }}</text>
