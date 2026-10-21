@@ -164,18 +164,18 @@ the HTTP request never starts a second render concurrently.
         self._prewarm = None
 
     async def render(self, scope, result, *, budget_seconds):
-        if budget_seconds <= 0:
-            logger.warning('QQ render fallback: qq_render_budget_exhausted')
-            return None
-        if self.pending >= self.queue_limit:
-            logger.warning('QQ render fallback: qq_render_queue_full')
-            return None
-        queued = time.monotonic()
-        expires = queued + min(budget_seconds, 10)
         timing = RENDER_TIMING.get()
         def fallback(code):
             logger.warning('QQ render fallback: %s', code)
             if timing is not None:timing['result'] = code
+        if budget_seconds <= 0:
+            fallback('qq_render_budget_exhausted')
+            return None
+        if self.pending >= self.queue_limit:
+            fallback('qq_render_queue_full')
+            return None
+        queued = time.monotonic()
+        expires = queued + min(budget_seconds, 10)
         self.pending += 1
         async def work():
             try:

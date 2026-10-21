@@ -182,3 +182,21 @@ async def test_query_reply_records_one_timing_line_without_user_data(caplog):
     lines = [record.getMessage() for record in caplog.records if record.getMessage().startswith('QQ render timing: ')]
     assert len(lines) == 1 and 'PRIVATE' not in caplog.text and '早雾' not in caplog.text
     assert RENDER_TIMING.get() is None
+
+
+async def test_queue_fallbacks_record_their_code_in_the_reply_timing():
+    class Renderer:
+        async def render_summary_async(self, *args, **kwargs):
+            raise RenderingUnavailable('qq_browser_not_ready')
+    queue = RenderQueue(Renderer())
+    try:
+        for budget, code in ((0, 'qq_render_budget_exhausted'), (1, 'qq_browser_not_ready')):
+            timing = {}
+            token = RENDER_TIMING.set(timing)
+            try:
+                assert await queue.render(SCOPE, QueryResult({}, None, 'ok', None), budget_seconds=budget) is None
+            finally:
+                RENDER_TIMING.reset(token)
+            assert timing['result'] == code
+    finally:
+        await queue.aclose()
