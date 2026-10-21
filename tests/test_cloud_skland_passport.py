@@ -20,6 +20,7 @@ class Client:
     expired = False
     fail = False
     calls = 0
+    challenges = []
     entered = None
     release = None
 
@@ -51,6 +52,12 @@ class Client:
     async def tool(self, kind, cred, token, device_id=''):
         return {'chars': [{'id': 'c1', 'name': '干员'}]}
 
+    async def challenge(self, kind, cred, token, role, server, user, device='', **kwargs):
+        type(self).challenges.append((kind, cred))
+        return {'war': {'seasons': [{'id': 's1', 'name': '同步赛季', 'stars': 0}]},
+                'monument': {'indieHardGroups': []},
+                'crisis': {'status': {'highest': 0}, 'history': {'records': []}}}[kind]
+
 
 class Passport:
     async def __aenter__(self):
@@ -71,6 +78,7 @@ def cloud(tmp_path, monkeypatch):
     Client.roles = [('role', '1'), ('other', '2')]
     Client.expired = Client.fail = False
     Client.calls = 0
+    Client.challenges = []
     Client.entered = Client.release = None
     monkeypatch.setattr(hypergryph, 'HypergryphClient', Passport)
     monkeypatch.setattr(skland_client, 'SklandClient', Client)
@@ -441,6 +449,43 @@ async def test_scheduler_and_qq_use_same_verified_snapshot_and_revoke_blocks_it(
     response = qq.query(identity,'roles','endfield')
     assert 'Player' not in response['text'] and Client.calls == 1
     await runtime.aclose()
+
+async def test_challenge_poll_renews_once_and_qq_reads_only_the_snapshot(cloud, tmp_path):
+    from types import SimpleNamespace
+    from game_assistant.accounts.runtime import AccountRuntime
+    from game_assistant.accounts.query import AccountQuery
+    from game_assistant.config import Settings
+    from game_assistant.scheduler import AccountPollingScheduler
+    from game_assistant.snapshots import SnapshotStore
+    from game_assistant.qq.models import QqIdentity
+    from game_assistant.qq.query_routes import QqQueryService
+    db, store, accounts, login = cloud
+    hg = parent(accounts)
+    sk = await connect(login, hg)
+    session = store.load_grant('a', sk['grant_id'])
+    store.save_grant('a', sk['grant_id'], {**session,'cred':'old'}, sk['version'])
+    Client.expired = True
+    runtime = AccountRuntime(accounts, Settings(), tmp_path/'runtime', login=login)
+    snapshots = SnapshotStore(str(tmp_path/'snapshots.db'))
+    query = AccountQuery(accounts,runtime,snapshots)
+    scheduler = AccountPollingScheduler(accounts,query,Settings(),tmp_path)
+    scope = accounts.require_scope(P, sk['account_id'],sk['role_id'])
+    assert query.capabilities(scope) == ['account','combat']
+    assert (await scheduler.poll_once(scope,'combat')).ok
+    # The expired cred is exchanged once through the passport, then 3 reads use the new cred.
+    assert Client.calls == 2 and Client.challenges == [(kind,'new-cred') for kind in ('war','monument','crisis')]
+    stored = snapshots.get_scoped(scope,'combat')['payload']
+    assert '同步赛季' in stored and 'cred' not in stored and 'sign-token' not in stored
+    qq = QqQueryService(SimpleNamespace(resolve_qq_identity=lambda identity:P),query,None)
+    identity = QqIdentity('app','group','group','sender')
+    response = qq.query(identity,'combat','endfield')
+    assert '同步赛季' in response['text'] and '最高值：0' in response['text'] and 'secret' not in response['text']
+    assert Client.calls == 2 and len(Client.challenges) == 3  # QQ read starts no upstream request.
+    accounts.revoke(P,hg['account_id'])
+    response = qq.query(identity,'combat','endfield')
+    assert '同步赛季' not in response['text'] and Client.calls == 2 and len(Client.challenges) == 3
+    await runtime.aclose()
+
 
 async def test_concurrent_passport_click_does_not_exchange_twice(cloud):
     db, store, accounts, login = cloud

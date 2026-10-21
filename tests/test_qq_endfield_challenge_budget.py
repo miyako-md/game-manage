@@ -24,10 +24,9 @@ def stress_challenges(*, all_categories=False):
 
 
 def query_card(tmp_path, values):
-    query,scope,grant,bundle,scoped=setup(tmp_path)
-    scoped._service._challenge_cache.update({(kind,None,None,None):deepcopy(value) for kind,value in values.items()})
+    query,scope,grant=setup(values=deepcopy(values))
     context={};reply=service(query).query(IDENTITY,'combat','endfield',image_context=context)
-    assert query.refreshes==query.reads==[] and not bundle.private_root.exists()
+    assert query.refreshes==[] and query.reads==[(scope,'combat')]
     return context['card'],reply['text']
 
 

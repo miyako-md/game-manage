@@ -240,19 +240,18 @@ class QqQueryService:
 
     def _endfield_challenge_document(self,selected,context):
         if context is not None:context['shared_notices']=[]
-        from game_assistant.endfield_challenges import CHALLENGE_KINDS, build_challenge_report
+        from game_assistant.endfield_challenges import challenge_reports
         from .endfield_presentation import challenge_document
         selected=[item for item in selected if item[0]['provider']=='skland']
         if not selected:
-            return view.message('endfield','终末地 · 挑战','挑战需要本人森空岛档案授权；请先在网站授权并查看挑战分类。')
+            return view.message('endfield','终末地 · 挑战','挑战需要本人森空岛档案授权；请先在网站授权。')
         row,scope=selected[0]
         self._capture_scope(context,scope)
-        reader=getattr(getattr(self.query_service,'private',None),'cached_skland_challenge',None)
-        reports=[]
-        for kind in CHALLENGE_KINDS:
-            cached=reader(scope,kind) if reader is not None else None
-            report=build_challenge_report(cached,kind=kind)
-            reports.append(report)
+        # The scheduler's same-grant combat snapshot; a failed latest poll marks every kind stale.
+        cached=self.query_service.read(scope,'combat') if 'combat' in self.query_service.capabilities(scope) else None
+        reports=challenge_reports(cached.payload if cached else None,stale=bool(cached and cached.state in ('error','auth_expired')))
+        for report in reports:
+            kind=report['kind']
             snapshot=QueryResult(report,report['fetched_at'],
                 'error' if report['stale'] else 'ok' if report['available'] else 'never',None)
             self._capture_snapshot(context,scope,'challenge:'+kind,snapshot)

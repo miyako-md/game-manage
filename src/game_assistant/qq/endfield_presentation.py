@@ -140,7 +140,7 @@ def challenge_document(reports):
         state=('当前分类不支持' if report['supported'] is False else
                '最近读取失败，显示旧观测' if report['available'] and report['stale'] else
                '已采集观测；非实时状态' if report['available'] else
-               '最近读取失败，尚无成功观测' if report['stale'] else '尚未采集；请在网站查看此挑战分类')
+               '最近读取失败，尚无成功观测' if report['stale'] else '尚未采集；后台定时采集后显示')
         summary=report['summary']
         fields=[view.field('状态',state),view.time_field('本分类抓取时间',report['fetched_at']),
                 view.field('已采集记录',summary['listed_count'])]

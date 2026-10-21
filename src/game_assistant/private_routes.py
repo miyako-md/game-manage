@@ -107,22 +107,6 @@ class PrivateRoutes:
             return None
         return result
 
-    def cached_skland_challenge(self,scope,kind):
-        """Read only a live, already-created service's default challenge cache."""
-        previous=self._skland.get(scope)
-        if previous is None:
-            return None
-        info=self.accounts.describe(scope)
-        if (info['game']!='endfield' or info['provider']!='skland'
-                or (previous[0],previous[1])!=(info['version'],info['grant_id'])):
-            return None
-        result=previous[2].cached_challenge(scope,kind)
-        current=self.accounts.describe(scope)
-        if (self._skland.get(scope) is not previous
-                or (current['version'],current['grant_id'])!=(info['version'],info['grant_id'])):
-            return None
-        return result
-
     def invalidate(self,user_id,grant_id):
         for scope,value in list(self._skland.items()):
             if scope.user_id==user_id and value[1]==grant_id:
