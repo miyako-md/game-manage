@@ -249,6 +249,14 @@ test('the 6★ rail follows the roster filters, has no headings of its own and o
   assert.doesNotMatch(content(root), /6★ 干员/)
 })
 
+test('elite phases step from the track on the website but from the skin neutral grey in images, the top phase in the game colour', t => {
+  const four = { report: { ...rich.report, training: { ...rich.report.training, summary: { listed_count: 4, phase_counts: { 0: 1, 1: 1, 2: 1, 3: 1 } } } } }
+  const colours = root => nodes(nodes(root, 'div').find(node => node.props.role === 'img' && cls(node, 'stack-bar')), 'i').map(node => node.props.style['--series'])
+  assert.ok(colours(mount(t, Reports, { payload: four, view: 'operators' })).every(colour => colour.includes('var(--track)')))
+  const image = colours(mount(t, Reports, { payload: four, view: 'operators', imageMode: true }))
+  assert.deepEqual(image, ['color-mix(in srgb, var(--text) 0%, var(--ef-neutral))', 'color-mix(in srgb, var(--text) 23%, var(--ef-neutral))', 'color-mix(in srgb, var(--text) 45%, var(--ef-neutral))', 'var(--ef-vivid)'])
+})
+
 test('rarity and phase distributions come from the source counts, and a lone tier stays a plain tag', t => {
   const root = mount(t, Reports, { payload: rich, view: 'operators' })
   const ring = nodes(root, 'figure').find(node => node.props['aria-label'] === '干员稀有度分布')

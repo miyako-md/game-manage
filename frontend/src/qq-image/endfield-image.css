@@ -219,3 +219,22 @@
 .reuse.lab-sheet #render-content .ef-roster-card > .ef-note {
   margin-bottom: 14px;
 }
+
+/* Flat bar fills: the web gradient and the lower-bound hatching are decoration that inflates a lossless PNG.
+   Lower bounds keep their ≥ mark and the paler fill. */
+.lab-sheet :is(.cloud-endfield,.reuse-content,#render-content) .endfield-gacha .pull-fill{background:var(--eg-bar-end)}
+.lab-sheet :is(.cloud-endfield,.reuse-content,#render-content) .endfield-gacha .pull-row.lower .pull-fill{background:var(--eg-bar)}
+
+/* Ship: name above the two meters, so an unknown trust note gets a full line instead of a one-character column. */
+.reuse.lab-sheet #render-content .ef-resident.compact .resident-copy {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.reuse.lab-sheet #render-content .ef-resident.compact .resident-meter {
+  flex-wrap: wrap;
+}
+
+.reuse.lab-sheet #render-content .ef-resident.compact .unknown-meter {
+  flex-basis: 100%;
+}

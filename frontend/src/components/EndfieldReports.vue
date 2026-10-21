@@ -68,9 +68,12 @@ const trainingMetrics = computed(() => [
 const RARITY_COLORS = ['var(--ef-vivid)', 'var(--chart-2)', 'var(--ef-grey)', 'var(--ef-grey-2)']
 const rarityChart = computed(() => rarityParts(training.value.summary?.rarity_counts).map((part, index) => ({ ...part, color: RARITY_COLORS[Math.min(index, RARITY_COLORS.length - 1)] })))
 // Elite phases are ordinal, so one hue steps from the track colour up to the full game colour.
+// On the dark image skin a yellow mixed into the translucent track reads olive, so images step
+// through the skin's neutral greys instead and only the top phase takes the game colour.
 const phaseChart = computed(() => {
-  const parts = phaseParts(training.value.summary?.phase_counts)
-  return parts.map((part, index) => ({ ...part, color: `color-mix(in srgb, var(--ef-vivid) ${parts.length > 1 ? Math.round(22 + 78 * index / (parts.length - 1)) : 100}%, var(--track))` }))
+  const parts = phaseParts(training.value.summary?.phase_counts), last = parts.length - 1
+  if (props.imageMode) return parts.map((part, index) => ({ ...part, color: index === last ? 'var(--ef-vivid)' : `color-mix(in srgb, var(--text) ${last > 1 ? Math.round(45 * index / (last - 1)) : 0}%, var(--ef-neutral))` }))
+  return parts.map((part, index) => ({ ...part, color: `color-mix(in srgb, var(--ef-vivid) ${parts.length > 1 ? Math.round(22 + 78 * index / last) : 100}%, var(--track))` }))
 })
 const phaseColor = value => phaseChart.value.find(part => part.key === String(value))?.color || 'var(--track)'
 const counts = computed(() => [
@@ -235,7 +238,7 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
 <style scoped>
 /* Flat white cards on a hairline; the game's pale tone is the one colour fill (--ef-tone, ink --ef-ink).
    Bot images set only --game-accent, so every game colour here has a static fallback. */
-.endfield-reports { --ef-vivid:var(--game-vivid,var(--game-endfield-vivid)); --ef-tone:var(--game-tone,var(--game-endfield-tone)); --ef-ink:var(--game-accent,var(--game-endfield)); --ef-grey:color-mix(in srgb,var(--text-faint) 34%,var(--card-bg)); --ef-grey-2:var(--border-strong); --accent:var(--ef-ink); --accent-soft:var(--ef-tone);
+.endfield-reports { --ef-neutral:var(--track); --ef-vivid:var(--game-vivid,var(--game-endfield-vivid)); --ef-tone:var(--game-tone,var(--game-endfield-tone)); --ef-ink:var(--game-accent,var(--game-endfield)); --ef-grey:color-mix(in srgb,var(--text-faint) 34%,var(--card-bg)); --ef-grey-2:var(--border-strong); --accent:var(--ef-ink); --accent-soft:var(--ef-tone);
   display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px; min-width:0; }
 .endfield-reports > * { grid-column:1 / -1; min-width:0; }
 .ef-contents { grid-column:1 / -1; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px; min-width:0; }
