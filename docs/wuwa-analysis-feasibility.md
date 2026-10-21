@@ -11,7 +11,7 @@
 2. 导入 WutheringWavesUID 风格的 `{info:{uid,...},list:[...]}` JSON；也兼容可验证归属的标准列表包装。没有记录凭据时，页面保留可用的导入入口，不显示假数据。
 3. 返回窗口之外的历史只能从旧导出记录回补。记录时间早并不等于覆盖完整；重复导入去重时仍需保留同一秒抽到同种物品的多次记录。
 
-参考 [WutheringWavesUID 查询](https://github.com/kvcfdd/WutheringWavesUID/blob/1d693a2df0f940824cb34e102cec1cf3b381e70f/WutheringWavesUID/utils/api/requests.py#L646) 和 [导入模型](https://github.com/kvcfdd/WutheringWavesUID/blob/1d693a2df0f940824cb34e102cec1cf3b381e70f/WutheringWavesUID/wutheringwaves_gachalog/model.py)。该版已区分 1—9 类卡池，包括新手、感恩定向和新旅唤取，不能照搬只支持四池的分析器。
+参考 [WutheringWavesUID 查询](https://github.com/Celec7/WutheringWavesUID/blob/1d693a2df0f940824cb34e102cec1cf3b381e70f/WutheringWavesUID/utils/api/requests.py#L646) 和 [导入模型](https://github.com/Celec7/WutheringWavesUID/blob/1d693a2df0f940824cb34e102cec1cf3b381e70f/WutheringWavesUID/wutheringwaves_gachalog/model.py)。该版已区分 1—9 类卡池，包括新手、感恩定向和新旅唤取，不能照搬只支持四池的分析器。
 
 后续保底分析可做，但必须额外确认：卡池规则版本、是否共享保底、最后一次相关五星及其前后记录是否连续、当期 UP 名单与定向规则。已观察到的“距上一条五星记录多少抽”不必然等于准确保底；缺记录时应显示无法判定。出金率可按“已导入范围”统计，不能冒充账号终身概率。
 
@@ -23,7 +23,7 @@
 | --- | --- | --- | --- |
 | [FrequencyManager](https://github.com/Voruzhu/FrequencyManager) | `f585e47` / 2026-08-30 | TypeScript；`shared/calc/optimizer.ts`、伤害计算模块、rotationEngine；支持配装、敌人抗性、防御与流程条件 | 根 LICENSE 为 MIT。优先候选，建议提取纯计算层，不把整个 Electron/React 应用塞进当前 Vue 项目；仍需角色/武器/套装数据映射和公式回归 |
 | [EchoScoringSystem](https://github.com/KokoaChino/EchoScoringSystem) | `ab3e062` / 2025-12-23 | Java/SpringCloud + Vue；声骸副词条、角色权重、评分与配置管理 | 根 LICENSE 为 MIT。适合参考评分模型与公式并移植为独立模块；整套微服务对本地工具过重，且角色数据覆盖需重验 |
-| [WutheringWavesUID（指定仓库）](https://github.com/kvcfdd/WutheringWavesUID) | `1d693a2` / 2025-11-23 | Python；`utils/damage`、逐角色 damage 脚本、calc_score_script、装备替换比较 | GPL-3.0；技术栈接近，但依赖角色静态数据和机器人上下文，不能仅复制公式就声称支持当前版本全部角色；后续若直接纳入代码要先确定分发方式和许可证处理 |
+| [WutheringWavesUID（指定仓库，原仓库已删，此为同提交镜像）](https://github.com/Celec7/WutheringWavesUID) | `1d693a2` / 2025-11-23 | Python；`utils/damage`、逐角色 damage 脚本、calc_score_script、装备替换比较 | GPL-3.0；技术栈接近，但依赖角色静态数据和机器人上下文，不能仅复制公式就声称支持当前版本全部角色；后续若直接纳入代码要先确定分发方式和许可证处理 |
 | [Echo Value Calculator](https://github.com/AstyuteChick/Echo-Value-Calculator) | `cc22ef3` / 2026-09-10 | Python `evc_engine.py`；角色/队伍权重、充能预算、单件及整套分数 | 自定义 EVC License v1.0，限制公开部署、分发等。适合作为算法对照或个人单独使用候选，不能视为 MIT 一样直接打包复用 |
 | [wuwa-toolkit](https://github.com/MinhBN-dev/wuwa-toolkit) | `776c172` / 2026-08-10 | FastAPI + React + PostgreSQL；EVC 评分、声骸库、记录导入、套装 | README 明示 EVC 派生，未找到独立 LICENSE 文件；其抽卡服务仅国际服且卡池范围与参考 UID 不同。架构可借鉴，暂不作为直接移植首选 |
 

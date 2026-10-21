@@ -46,7 +46,7 @@ B站动态源的登录位于各移动游戏页底部的「B站官方动态源」
 
 根据以下公开源码实现登录协议，未引入机器人框架、模板或图像资源：
 
-- WutheringWavesUID `1d693a2df0f940824cb34e102cec1cf3b381e70f`：[登录](https://github.com/kvcfdd/WutheringWavesUID/blob/1d693a2df0f940824cb34e102cec1cf3b381e70f/WutheringWavesUID/wutheringwaves_login/login.py)、[HTTP 与令牌](https://github.com/kvcfdd/WutheringWavesUID/blob/1d693a2df0f940824cb34e102cec1cf3b381e70f/WutheringWavesUID/utils/api/requests.py)。
+- WutheringWavesUID `1d693a2df0f940824cb34e102cec1cf3b381e70f`：[登录](https://github.com/Celec7/WutheringWavesUID/blob/1d693a2df0f940824cb34e102cec1cf3b381e70f/WutheringWavesUID/wutheringwaves_login/login.py)、[HTTP 与令牌](https://github.com/Celec7/WutheringWavesUID/blob/1d693a2df0f940824cb34e102cec1cf3b381e70f/WutheringWavesUID/utils/api/requests.py)。原仓库 kvcfdd/tyql688 已删除，链接为同一提交的归档镜像。
 - NTEUID `ba7790e13e39f9a825090853498848b51a06c3c9`：[老虎 SDK](https://github.com/tyql688/NTEUID/blob/ba7790e13e39f9a825090853498848b51a06c3c9/NTEUID/utils/sdk/laohu.py)、[塔吉多 SDK](https://github.com/tyql688/NTEUID/blob/ba7790e13e39f9a825090853498848b51a06c3c9/NTEUID/utils/sdk/tajiduo.py)。
 - EndUID `7781451d69cabab5b61c56657bdbdfce89df6ed3`：[接口与登录](https://github.com/Loping151/EndUID/blob/7781451d69cabab5b61c56657bdbdfce89df6ed3/EndUID/utils/api/requests.py)；寻访授权链路另参考 bhaoo/endfield-gacha `72c526d`。终末地协议尚未经真实账号验证。
 
