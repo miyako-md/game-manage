@@ -8,6 +8,22 @@ const snap = (items = entries) => ({ payload: { schema_version: 1, entries: item
 const button = (root, label) => nodes(root, 'button').find(n => n.props['aria-label'] === label)
 const cards = root => nodes(root, 'li').filter(n => n.props.class?.includes('role-card'))
 
+test('website cards show quality as the shared rarity tag on the picture; images keep the inline rank', t => {
+  const tags = root => nodes(root, 'span').filter(n => n.props.class === 'role-rarity')
+  const ranks = root => nodes(root, 'span').filter(n => String(n.props.class).split(' ').includes('rank'))
+  const web = mount(t, Panel, { snap: snap([...entries, { ...entries[1], id: '9', name: '未定品质', quality: null }]), accountId: 'a' })
+  assert.equal(tags(web).length, 6)
+  assert.ok(tags(web).every(n => n.parent.props.class === 'role-art'))
+  assert.deepEqual(tags(web).filter(n => n.props['data-tier'] === 'top').map(content), ['S'])
+  assert.ok(tags(web).some(n => content(n) === '未提供' && n.props['aria-label'] === '品质 未提供'))
+  assert.equal(ranks(web).length, 0)
+  assert.equal(nodes(web, 'section')[0].props['data-skin'], 'nte')
+  const image = mount(t, Panel, { snap: snap(), imageMode: true })
+  assert.equal(tags(image).length, 0)
+  assert.equal(ranks(image).length, entries.length)
+  assert.equal(nodes(image, 'section')[0].props['data-skin'], undefined)
+})
+
 test('wide single-role detail requires explicit mode and never follows a one-result search', async t => {
   const root=mount(t,Panel,{snap:snap(),accountId:'a'})
   nodes(root,'input').find(n=>n.props['aria-label']==='搜索角色').props.onInput({target:{value:'角色1'}})

@@ -15,6 +15,7 @@ import BarChart from './BarChart.vue'
 import DonutChart from './DonutChart.vue'
 
 import { nteRoleIcon } from '../nte-icons.js'
+import { skinOf } from '../game-themes.js'
 
 const props = defineProps({ snap: { type: Object, default: null }, accountId: { type: [String,Object], default: '' }, focusCharacterId:{type:String,default:''}, imageMode:{type:Boolean,default:false}, detailMode:{type:Boolean,default:false}, guideCharacterId:{type:String,default:''}, initialGuideBrowser:Boolean, canMaintain:{type:Boolean,default:true} })
 const openedKey=ref(null),detailTab=ref('panel'),browseGuides=ref(props.initialGuideBrowser)
@@ -71,7 +72,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
 </script>
 
 <template>
-  <section class="cap-card nte-roles-panel" :class="{ 'role-detail-view': detailMode, 'is-image': imageMode }">
+  <section class="cap-card nte-roles-panel" :class="{ 'role-detail-view': detailMode, 'is-image': imageMode }" :data-skin="imageMode ? undefined : skinOf('nte')">
     <div class="cap-title">
       角色练度
       <button v-if="!imageMode && !detailMode" type="button" class="ui-button small-button" @click="browseGuides=true">浏览全部攻略</button>
@@ -129,6 +130,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
             <div class="role-art">
               <img v-if="safeUrl(role.icon_url) && !failedImages.has(safeUrl(role.icon_url))" :key="safeUrl(role.icon_url)" :src="safeUrl(role.icon_url)" :alt="role.name || '角色'" :loading="imageMode ? 'eager' : 'lazy'" class="avatar" @error="imageFailed" />
               <NteIcon v-else :src="nteRoleIcon(role.id) || nteRoleIcon(role.name)" :name="role.name || '角色'" size="xl" />
+              <span v-if="!imageMode" class="role-rarity" :data-tier="role.quality === 'S' ? 'top' : undefined" :aria-label="`品质 ${display(role.quality)}`">{{ display(role.quality) }}</span>
               <div v-if="!imageMode" class="role-actions">
                 <button type="button" class="icon-button favorite" :aria-label="`${isFavorite(role) ? '取消收藏' : '收藏'}${role.name || '角色'}`" :aria-pressed="isFavorite(role)" :disabled="!canPersist || !roleId(role)" :title="favoriteTitle(role)" @click="toggleFavorite(role)"><AppIcon name="star" :size="15" /></button>
                 <button type="button" class="icon-button" :aria-label="`对比${role.name || '角色'}`" :aria-pressed="isCompared(role)" :disabled="selected.length >= 4 && !isCompared(role)" :title="isCompared(role) ? '移出对比' : '加入对比'" @click="toggleCompare(role)"><AppIcon :name="isCompared(role) ? 'close' : 'plus'" :size="15" /></button>
@@ -136,7 +138,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
             </div>
             <div class="role-heading">
               <button v-if="!imageMode && !detailMode" type="button" class="role-open" :aria-label="`查看${role.name || '角色'}面板`" @click="openRole(role)">{{ display(role.name) }}</button><strong v-else :title="role.name">{{ display(role.name) }}</strong>
-              <span class="role-sub"><span class="rank" :class="`rank-${role.quality}`">{{ display(role.quality) }}</span><span>{{ display(role.element) }}</span></span>
+              <span class="role-sub"><span v-if="imageMode" class="rank" :class="`rank-${role.quality}`">{{ display(role.quality) }}</span><span>{{ display(role.element) }}</span></span>
             </div>
             <span class="level">Lv{{ display(role.level) }}</span>
             <button v-if="!imageMode" type="button" class="ui-button small-button guide-link" :aria-label="`查看${role.name || '角色'}攻略`" :disabled="!roleId(role)" @click="openRole(role,'guide')">攻略</button>
@@ -190,16 +192,16 @@ input[type=checkbox] { margin: 0; accent-color: var(--accent); }
 .comparison-scroll tbody th { color: var(--text-muted); font-size: 13px; font-weight: 400; }
 .comparison-scroll .group-row th { padding-top: 10px; color: var(--text); font-size: 12px; font-weight: 500; }
 
-/* Role cards (mockup .role-card): a white card with 6px of frame, a tone panel with the
-   portrait at its bottom right and the level as a white tag on it, then the name and one
-   muted line. Favourite and compare sit on the panel; 攻略 and the details are below. */
-.nte-roles-panel:not(.is-image):not(.role-detail-view) .role-art{height:112px}
-.role-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; align-items: start; }
+/* Role cards (mockup .role-card): a white card with its frame, a tone panel with the
+   portrait at its bottom right, the quality as the shared rarity tag top left and the level
+   as a white tag bottom left, then the name and one muted line. Grid, frame and panel read
+   the shared role-card tokens. Favourite and compare sit on the panel; 攻略 and the details are below. */
+.role-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--role-card-min)), 1fr)); gap: var(--role-card-gap); align-items: start; }
 .role-detail-view .role-grid { grid-template-columns: 1fr; }
-.role-card { min-width: 0; padding: 6px; border: 1px solid var(--card-border); border-radius: 22px; background: var(--card-bg); box-shadow: var(--card-shadow); }
-.role-card.compared { border-color: var(--game-vivid); box-shadow: 0 0 0 1px var(--game-vivid); }
+.role-card { min-width: 0; padding: var(--role-card-frame); border: 1px solid var(--card-border); border-radius: var(--role-card-radius); background: var(--card-bg); box-shadow: var(--card-shadow); }
+.role-card.compared { border-color: var(--role-accent, var(--game-vivid)); box-shadow: 0 0 0 1px var(--role-accent, var(--game-vivid)); }
 .role-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "art art" "heading action"; align-items: center; }
-.role-art { grid-area: art; position: relative; height: 176px; overflow: hidden; border-radius: 16px; background: var(--game-tone); isolation: isolate; }
+.role-art { grid-area: art; position: relative; height: var(--role-art-h); overflow: hidden; border-radius: var(--role-art-radius); background: var(--game-tone); isolation: isolate; }
 .avatar { position: absolute; right: 0; bottom: 0; width: 100%; height: 100%; object-fit: contain; object-position: right bottom; }
 .role-art > .nte-icon[data-size] { --size: 100%; position: absolute; right: 0; bottom: 0; place-items: end end; padding: 0 22px 10px 0; border-radius: 0; background: none; }
 .role-art :deep(.icon-fallback) { font-size: 72px; }
@@ -250,6 +252,8 @@ input[type=checkbox] { margin: 0; accent-color: var(--accent); }
 .is-image:not(.role-detail-view) .role-card > .chip-list { grid-area: 2 / 2; align-self: start; margin: 4px 0 0; }
 .is-image.role-detail-view .role-top { grid-template-columns: 92px minmax(0, 1fr); grid-template-areas: "art heading"; }
 .is-image.role-detail-view .role-art { height: 92px; }
+/* Phones: two cards a row, like the other games' role grids. */
+@media (max-width: 767px) { .nte-roles-panel:not(.is-image):not(.role-detail-view) .role-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
 @media (max-width: 560px) {
   .toolbar input[type=search] { flex-basis: 100%; }
   .toolbar .menu-select { flex: 1 1 calc(50% - 8px); min-width: 0; }
