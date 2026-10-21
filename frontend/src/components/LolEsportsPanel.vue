@@ -12,7 +12,7 @@ import EsportsPlayers from './EsportsPlayers.vue'
 const props = defineProps({ snap: Object, browseState: { type: Object, default: createEsportsBrowseState } })
 const emit = defineEmits(['snapshot', 'browse-change'])
 const filtersOpen = ref(false)
-const local = ref(props.snap), browse = ref({ ...createEsportsBrowseState(), ...props.browseState }), loading = ref(false), error = ref(''), note = ref('')
+const local = ref(props.snap), browse = ref({ ...createEsportsBrowseState(), ...props.browseState }), restored = ref(Boolean(props.browseState?.matchId)), loading = ref(false), error = ref(''), note = ref('')
 let controller, generation = 0, disposed = false, navigation = 0
 watch(() => props.snap, value => { local.value = value })
 watch(() => props.browseState, value => { browse.value = { ...createEsportsBrowseState(), ...value } }, { deep: true })
@@ -27,7 +27,7 @@ const coverage = computed(() => tournaments.value.map(t => ({ ...t, meta: payloa
 // Matches per day for the week either side of today; the chart only appears where it has something to show.
 const density = computed(() => matchView.value ? esportsDensity(familyMatches.value) : [])
 const hasDensity = computed(() => density.value.some(day => day.value))
-function change(patch) { navigation++; browse.value = { ...browse.value, ...patch }; emit('browse-change', patch) }
+function change(patch) { navigation++; restored.value = false; browse.value = { ...browse.value, ...patch }; emit('browse-change', patch) }
 function filter(patch) { change({ ...patch, page: 1, matchId: '', teamId: '', playerId: '', returnTo: [] }) }
 async function go(patch, focusId) {
   const { returnTo, ...previous } = browse.value
@@ -92,7 +92,7 @@ onBeforeUnmount(() => { disposed = true; generation++; controller?.abort() })
         </div></div></aside>
         <main class="es-main">
           <div class="es-context cap-card" :class="{ 'has-density': hasDensity }"><div class="es-context-head"><strong>{{ ESPORTS_FAMILIES[browse.family] || '全部赛事' }}</strong><span>{{ payload.season_year || '' }} · {{ familyMatches.length }} 场 / {{ filteredTeams.length }} 队已收录</span></div><div v-if="hasDensity" class="es-density"><span class="es-eyebrow">前后一周每天的比赛场数 · {{ density[0].label }} 至 {{ density.at(-1).label }}</span><BarChart :items="density.map(day => ({ label: String(day.day), value: day.value }))" label="前后一周每天的比赛场数" unit=" 场" :highlight="7" :height="64" /></div><details><summary>来源与覆盖</summary><p class="es-note">腾讯官方公开资料 · 当前已收录范围</p><p v-for="item in coverage" :key="item.id" class="es-note"><strong>{{ item.name }}</strong><br>{{ esportsGroupLabel(item.meta) }}</p><p v-if="!coverage.length" class="es-note">暂无赛事覆盖资料。</p></details></div>
-          <EsportsSchedule v-if="matchView" :payload="payload" :filters="browse" @select-team="showTeam" @select-match="showMatch" @page-change="page => change({ page })" @back="back" />
+          <EsportsSchedule v-if="matchView" :payload="payload" :filters="browse" :restored="restored" @select-team="showTeam" @select-match="showMatch" @page-change="page => change({ page })" @back="back" />
           <EsportsTeams v-else-if="browse.view === 'teams'" :payload="payload" :filters="browse" @select-team="showTeam" @select-player="showPlayer" @select-match="showMatch" @back="back" />
           <EsportsPlayers v-else :payload="payload" :filters="browse" @select-team="showTeam" @select-player="showPlayer" @back="back" />
         </main>

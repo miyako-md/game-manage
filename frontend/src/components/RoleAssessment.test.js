@@ -258,3 +258,17 @@ test('bot images omit an unconfigured or unscorable assessment until a score exi
  for(const status of ['unconfigured','unscorable'])assert.doesNotMatch(content(mount(t,Assessment,{game:'nte',characterId:'c1',imageMode:true,initialAssessment:{status,reason:'NO_MODEL'}})),/个人权重评分/)
  assert.match(content(mount(t,Assessment,{game:'nte',characterId:'c1',imageMode:false})),/个人权重评分/)
 })
+
+test('malformed advanced JSON shows a fixed Chinese error message instead of a raw V8 SyntaxError',async t=>{
+ const { root, calls, click, field, settle } = editor(t)
+ await click(open)
+ const before = calls.length
+ field('textarea', '权重及公式配置 JSON').props.onInput({ target: { value: '{bad' } }); await settle()
+ await click('保存权重模型')
+ assert.match(content(root), /JSON 格式无效，请检查后再保存/)
+ assert.equal(calls.length, before)
+ field('textarea', '装备输入 JSON').props.onInput({ target: { value: '[bad' } }); await settle()
+ await click('评价当前输入')
+ assert.match(content(root), /JSON 格式无效，请检查后再保存/)
+ assert.equal(calls.length, before)
+})
