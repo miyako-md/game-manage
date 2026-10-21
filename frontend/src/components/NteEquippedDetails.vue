@@ -48,10 +48,11 @@ const pieces = suit => GROUPS.reduce((n, g) => n + rows(suit[g.key]).length, 0)
 .nte-drive-group{margin-top:10px}
 .nte-drive-group-title{display:flex;align-items:baseline;gap:8px}
 .nte-drive-group-title span{font-size:12px;font-variant-numeric:tabular-nums}
-.nte-drives{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:10px}
+.nte-drives{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:10px}
 .nte-drive{min-width:0;padding:12px 14px;border-radius:var(--radius-well);background:var(--card-bg);box-shadow:inset 0 0 0 1px var(--overlay-2)}
 .nte-drive-name{margin:0 0 4px;color:var(--text);font-size:14px;font-weight:600;line-height:20px}
 .nte-drive-kind{margin:6px 0 0!important;color:var(--text-muted);font-size:12px}
+.nte-drive dl{margin:0}
 .nte-drive dl>div{padding:2px 0;border-bottom:1px solid var(--border)}
 .nte-drive dt{color:var(--text-muted)}
 .nte-drive dd{color:var(--text);font-weight:500;font-variant-numeric:tabular-nums}
