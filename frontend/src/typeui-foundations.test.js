@@ -36,13 +36,14 @@ test('no thick side-colored accent borders or stripes anywhere in frontend/src',
   const timeline = read('components/CalendarTimelineContent.vue')
   assert.doesNotMatch(timeline, /\.timeline-event:not\(\.is-point\)::before\s*\{[^}]*width\s*:\s*[2-9]px/)
   assert.doesNotMatch(timeline, /\.timeline-event\.clipped-end::after/)
+  assert.doesNotMatch(timeline, /\.timeline-event\.is-short::after/, 'short bars carry no extra end stripe')
 })
 
 test('style.css defines the shared TypeUI foundation tokens', () => {
   const style = read('style.css')
   for (const token of ['--fs-body', '--fs-page', '--control-h', '--control-h-sm', '--radius-control', '--radius-segment', '--radius-dropdown-item',
     '--field-bg', '--field-border', '--dropdown-shadow', '--modal-shadow', '--scrim'])
-    assert.match(style, new RegExp(`${token}\s*:`), `${token} is not defined`)
+    assert.match(style, new RegExp(`${token}\\s*:`), `${token} is not defined`)
 })
 
 test('chips stay selectable so UIDs can be copied, while controls do not select on click', () => {
