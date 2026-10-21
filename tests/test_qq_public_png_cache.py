@@ -1,6 +1,7 @@
 from io import BytesIO
 from pathlib import Path
 import os
+import time
 
 from PIL import Image
 import pytest
@@ -43,3 +44,17 @@ def test_disk_cache_rejects_linked_directories(tmp_path):
     try:link.symlink_to(target,target_is_directory=True)
     except OSError:pytest.skip('symlink creation unavailable')
     with pytest.raises(ValueError,match='link_rejected'):PublicPngCache(link)
+
+
+def test_disk_cache_reads_renew_expiry_and_eviction_order(tmp_path):
+    assert PublicPngCache(tmp_path/'default').entries==1024
+    cache=PublicPngCache(tmp_path/'cache',entries=2,ttl=100)
+    first,second,third=('qqasset_'+str(i)*64 for i in range(3))
+    cache.write(first,png());cache.write(second,png())
+    old=cache.directory/(first+'.png');os.utime(old,(0,0));os.utime(cache.directory/(second+'.png'),(1,1))
+    assert cache.read(first) is None, 'expired by the last use'
+    os.utime(old,(old.stat().st_atime,time.time()-50))
+    assert cache.read(first)==png() and old.stat().st_mtime>time.time()-5
+    cache.write(third,png())
+    # The entry just read stays; the one not used since it was written is evicted.
+    assert {path.stem for path in cache.directory.glob('qqasset_*.png')}=={first,third}

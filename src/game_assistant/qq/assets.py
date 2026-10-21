@@ -44,6 +44,11 @@ MAX_PORTRAIT_EDGE = 512
 MAX_PORTRAIT_BYTES = 512 * 512 * 4 + 4096
 MAX_ARTWORK_EDGE = 1080
 MAX_ARTWORK_BYTES = MAX_ARTWORK_EDGE * MAX_ARTWORK_EDGE * 4 + 4096
+# A missing or invalid public image stays so; a network failure may clear up soon.
+FAILURE_SECONDS = 30
+DETERMINISTIC_FAILURE_SECONDS = 600
+DETERMINISTIC_FAILURES = frozenset(('qq_asset_http_not_found', 'qq_asset_content_type', 'qq_asset_invalid_image',
+                                    'qq_asset_pixels_or_animation', 'qq_asset_size_limit', 'qq_asset_sanitized_size_limit'))
 
 
 def safe_public_url(value):
@@ -186,7 +191,10 @@ async def _download(value, *, timeout_seconds=3, dns_resolver='system', artwork=
             if len(header) > 16384:
                 raise ValueError('qq_asset_headers_limit')
             lines = header[:-4].split(b'\r\n')
-            if not re.fullmatch(b'HTTP/1[.][01] 200(?: [^\r\n]*)?', lines[0]) or len(lines) > 64:
+            status = re.fullmatch(b'HTTP/1[.][01] ([0-9]{3})(?: [^\r\n]*)?', lines[0])
+            if status and status[1] in (b'404', b'410'):
+                raise ValueError('qq_asset_http_not_found')
+            if not status or status[1] != b'200' or len(lines) > 64:
                 raise ValueError('qq_asset_http_status')
             headers = {}
             for line in lines[1:]:
@@ -209,7 +217,8 @@ async def _download(value, *, timeout_seconds=3, dns_resolver='system', artwork=
 
 class PublicAssetCache:
     def __init__(self, *, cache_entries=128, cache_bytes=16*1024*1024, cache_ttl=3600,
-                 concurrency=6, request_timeout=3, artwork_request_timeout=5, dns_resolver='system', prefetch_tasks=80, disk_directory=None):
+                 concurrency=6, request_timeout=3, artwork_request_timeout=5, dns_resolver='system', prefetch_tasks=80, disk_directory=None,
+                 background_seconds=30):
         if dns_resolver not in ('system', 'cloudflare'):
             raise ValueError('qq_asset_dns_resolver_invalid')
         self.dns_resolver = dns_resolver
@@ -226,6 +235,9 @@ class PublicAssetCache:
         self._semaphore = asyncio.Semaphore(max(1, min(concurrency, 8)))
         self._bytes = 0
         self.prefetch_tasks=max(1,min(int(prefetch_tasks),256))
+        # Downloads a reply stopped waiting for finish within this window, then give up quietly.
+        self.background_seconds=max(.001,min(background_seconds,60))
+        self._background=set()
         self._catalog = CATALOG
         self._portrait_sources = frozenset(CATALOG['games'].get('endfield', {}).get('portrait', {}).values())
         self._portrait_refs = set()
@@ -341,65 +353,91 @@ class PublicAssetCache:
             return item[2] if item else 'missing'
 
     async def _fetch(self, ref, deadline):
+        """One bounded download; returns a status code for the caller's counts."""
         try:
             async with self._semaphore:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
-                    return
+                    return 'expired'
                 options = {'dns_resolver': self.dns_resolver} if self.dns_resolver != 'system' else {}
                 if ref in self._artwork_refs:options['artwork']=True
                 request_timeout=self.artwork_request_timeout if ref in self._artwork_refs else self.request_timeout
                 raw = await _download(self._sources[ref], timeout_seconds=min(remaining, request_timeout), **options)
-                if time.monotonic() < deadline:
-                    self._store(ref, sanitize_image(raw, portrait=ref in self._portrait_refs, artwork=ref in self._artwork_refs))
+                # Decoding and resizing a large picture must not stall the event loop.
+                png = await asyncio.to_thread(sanitize_image, raw, portrait=ref in self._portrait_refs, artwork=ref in self._artwork_refs)
+                self._store(ref, png)
+                return 'ok'
         except (ValueError, OSError, TimeoutError, UnicodeError, asyncio.IncompleteReadError,
-                asyncio.LimitOverrunError):
+                asyncio.LimitOverrunError) as error:
+            code = error.args[0] if isinstance(error, ValueError) and error.args else None
             with self._lock:
-                self._failures[ref] = time.monotonic() + 30
+                self._failures[ref] = time.monotonic() + (DETERMINISTIC_FAILURE_SECONDS if code in DETERMINISTIC_FAILURES else FAILURE_SECONDS)
                 while len(self._failures) > 256:
                     self._failures.popitem(last=False)
+            return 'failed'
+        except Exception:
+            # Unexpected: not remembered as a failure, so the next reply retries it.
+            return 'error'
         finally:
             self._inflight.pop(ref, None)
 
+    def _finished_in_background(self, task):
+        if task not in self._background:return
+        self._background.discard(task)
+        if not task.cancelled() and task.result() == 'error':
+            logger.warning('qq_asset_prefetch_failed')
+
     async def prefetch(self, refs, *, budget_seconds=1.5):
-        """Bounded caller-deadline fetch; all outstanding owned sockets cancel on timeout.
+        """Wait up to the caller's budget; downloads still running then finish in the background.
 
         Input is opaque refs already registered by the safe projection. Cached
         refs consume no sockets; misses are coalesced across concurrent replies.
         Scan at most 512 document refs; cached early rows do not prevent later
         rows being filled on the next reply. At most prefetch_tasks (default
-        80, hard bound 256) tasks and eight sockets can exist for this cache.
+        80, hard bound 256) tasks and eight sockets can exist for this cache;
+        each download keeps its own request timeout and every task ends within
+        background_seconds, so a slow reply's pictures serve the next one.
+        Returns counts only: hit (cached), miss (downloads waited for), failed
+        (failed now, or a remembered failure) and timeout (still downloading).
         """
+        stats = {'hit': 0, 'miss': 0, 'failed': 0, 'timeout': 0}
         if budget_seconds <= 0:
-            return
-        deadline = time.monotonic() + min(budget_seconds, 5)
-        tasks, owned = [], []
+            return stats
+        now = time.monotonic()
+        deadline = now + min(budget_seconds, 5)
+        tasks = []
         for ref in dict.fromkeys(ref for ref in islice(refs, 512) if isinstance(ref, str)):
             with self._lock:
                 self._expire()
-                if ref not in self._sources or self.get_png(ref) is not None or ref in self._failures:
+                if ref not in self._sources:
                     continue
+                if self.get_png(ref) is not None:
+                    stats['hit'] += 1;continue
+                if ref in self._failures:
+                    stats['failed'] += 1;continue
             task = self._inflight.get(ref)
             if task is None:
                 if len(self._inflight) >= self.prefetch_tasks:
                     break
-                task = asyncio.create_task(self._fetch(ref, deadline))
+                task = asyncio.create_task(self._fetch(ref, now + self.background_seconds))
+                task.add_done_callback(self._finished_in_background)
                 self._inflight[ref] = task
-                owned.append(task)
             tasks.append(task)
-        try:
-            if tasks:
-                await asyncio.wait(tasks, timeout=max(0, deadline - time.monotonic()))
-        finally:
-            for task in owned:
-                if not task.done():
-                    task.cancel()
-            if owned:
-                results = await asyncio.gather(*owned, return_exceptions=True)
-                if any(isinstance(result, Exception) for result in results):
-                    logger.warning('qq_asset_prefetch_failed')
+        stats['miss'] = len(tasks)
+        if not tasks:
+            return stats
+        done, pending = await asyncio.wait(tasks, timeout=max(0, deadline - time.monotonic()))
+        # Not cancelled: they complete within their own timeouts for the next reply.
+        self._background.update(pending)
+        results = ['cancelled' if task.cancelled() else task.result() for task in done]
+        stats['failed'] += sum(result != 'ok' for result in results)
+        stats['timeout'] = len(pending)
+        if 'error' in results:
+            logger.warning('qq_asset_prefetch_failed')
+        return stats
 
     async def aclose(self):
+        self._background.clear()
         tasks = list(self._inflight.values())
         for task in tasks:
             task.cancel()
