@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import GameIcon from './GameIcon.vue'
 import ArtworkImage from './ArtworkImage.vue'
@@ -18,11 +18,16 @@ import { dailyTasks, deadlineDays, gachaDigests } from '../overview-data.js'
 import { gameHref, sectionsFor } from '../search-index.js'
 import { vGlide, vParallax, vPop, vReveal } from '../motion.js'
 import { vRefreshFeedback } from '../refresh-feedback.js'
+import { COLLECT_LABELS, createCollectController } from '../cloud-collect.js'
 
 const props = defineProps({ games: { type: Array, default: () => [] }, snapshots: { type: Object, default: () => ({}) },
   accounts: { type: Object, default: () => ({}) }, readErrors: { type: Object, default: () => ({}) }, publicErrors: { type:Object, default:()=>({}) }, refreshErrors: { type: Object, default: () => ({}) },
-  refreshing: { type: Object, default: () => ({}) }, collection: { type: Array, default: () => [] }, now: { type: Number, required: true }, loading: Boolean, refreshLabel: {type:String,default:'刷新数据'} })
+  refreshing: { type: Object, default: () => ({}) }, collection: { type: Array, default: () => [] }, now: { type: Number, required: true }, loading: Boolean, refreshLabel: {type:String,default:'刷新数据'}, isAdmin: Boolean })
 const emit = defineEmits(['navigate', 'refresh'])
+// Administrator only: collect every public source now, then re-read the overview once all games finish.
+const collect = createCollectController({ onDone: () => emit('refresh') })
+const collecting = computed(() => collect.state.busy)
+onBeforeUnmount(() => collect.dispose())
 const newsFilter = ref('')
 const sourceFilter = ref('')
 const newsGameOptions = computed(() => [{ value: '', label: '全部游戏' }, ...props.games.map(g => ({ value: g.game_id, label: g.display_name }))])
@@ -126,10 +131,17 @@ function quickLinks(card) {
       </div>
       <div class="ov-actions">
         <button class="ui-button ov-refresh" :disabled="loading || anyRefreshing || !games.length" :aria-busy="anyRefreshing || undefined" @click="emit('refresh')"><AppIcon v-refresh-feedback="anyRefreshing" name="refresh" :size="15" data-icon-motion="off" /><span :class="{ 't-shimmer': anyRefreshing }">{{ anyRefreshing ? '刷新中…' : refreshLabel }}</span></button>
+        <button v-if="isAdmin" class="ui-button soft ov-collect" :disabled="collecting" :aria-busy="collecting || undefined" title="立即采集全部游戏的公告、资讯和活动，并回补近 60 天B站动态" @click="collect.start()"><AppIcon name="download" :size="15" /><span :class="{ 't-shimmer': collecting }">{{ collecting ? '采集中…' : '采集与回补' }}</span></button>
         <button class="ui-button soft" @click="emit('navigate', 'calendar')"><AppIcon name="calendar" :size="15" />活动日历</button>
       </div>
     </header>
 
+    <section v-if="isAdmin && (collect.state.games.length || collect.state.error || collect.state.message)" class="ov-collect-status" aria-label="采集与回补进度">
+      <p v-if="collect.state.error" role="alert">{{ collect.state.error }}</p>
+      <ul v-if="collect.state.games.length"><li v-for="game in collect.state.games" :key="game.game_id" :data-progress="game.progress"><strong>{{ game.name }}</strong><span>{{ COLLECT_LABELS[game.progress] }}</span></li></ul>
+      <p v-if="collect.state.privateRequested">已同时请求刷新本人账号的 {{ collect.state.privateRequested }} 项私人数据。</p>
+      <p v-if="collect.state.message" role="status">{{ collect.state.message }}</p>
+    </section>
     <p v-if="fullGames.length" class="ov-alert" role="status"><AppIcon name="clock" :size="16" />{{ fullGames.map(g => g.display_name).join('、') }}体力已达 90%</p>
     <div v-for="game in notices" :key="game.game_id" class="inline-warning" role="status"><strong>{{ game.display_name }}</strong> · {{ friendlyDataError(refreshErrors[game.game_id] || readErrors[game.game_id],accounts[game.game_id]?.state) }}</div>
     <template v-for="game in games" :key="`public-${game.game_id}`"><p v-for="issue in publicErrors[game.game_id] || []" :key="issue.capability" class="inline-warning" role="status">{{ game.display_name }} · {{ capabilityLabel(issue.capability) }}：{{ issue.message }}<span v-if="issue.retained">正在显示已有资料。</span></p></template>
@@ -264,6 +276,12 @@ function quickLinks(card) {
 .ov-actions { display:flex; flex-wrap:wrap; gap:10px; }
 .ov-alert { display:flex; align-items:center; gap:8px; margin:-8px 0 18px; padding:10px 14px; border:1px solid var(--attention-border); border-radius:var(--radius-well); background:var(--attention-bg); color:var(--attention-text); font-size:13px; }
 .inline-warning { margin:0 0 16px; }
+.ov-collect-status { display:grid; gap:6px; margin:-8px 0 18px; padding:10px 14px; border:1px solid var(--border); border-radius:var(--radius-well); font-size:13px; color:var(--text-muted); }
+.ov-collect-status ul { display:flex; flex-wrap:wrap; gap:4px 18px; }
+.ov-collect-status li { display:inline-flex; gap:6px; }
+.ov-collect-status strong { color:var(--text); font-weight:500; }
+.ov-collect-status li[data-progress=failed] span,.ov-collect-status [role=alert] { color:var(--danger); }
+.ov-collect-status p { margin:0; }
 
 /* Row one: the hero beside today's progress. */
 .ov-top { display:grid; grid-template-columns:minmax(0, 1.95fr) minmax(290px, 1fr); gap:20px; align-items:stretch; }

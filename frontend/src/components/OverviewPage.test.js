@@ -108,3 +108,35 @@ test('expired daily completion keeps its old count with an explicit unconfirmed 
   assert.match(content(tasks), /待更新，当前周期未确认.*100\/100/)
   assert.equal(byClass(tasks, 'task')[0].props.class.includes('done'), false)
 })
+
+test('only administrators see 采集与回补; its progress ends by re-reading the overview', async t => {
+  const { configureHttpClient } = await import('../http-client.js')
+  const { COLLECT_POLL_MS } = await import('../cloud-collect.js')
+  const button = root => nodes(root, 'button').find(n => /采集与回补|采集中/.test(content(n)))
+  assert.equal(button(mount(t, Overview, { games: [wuwa], now })), undefined)
+  assert.equal(button(mount(t, Overview, { games: [wuwa], now, isAdmin: false })), undefined)
+  configureHttpClient({ mode: 'cloud' }); t.after(() => configureHttpClient({ mode: 'local' }))
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
+  let finished = false
+  t.mock.method(globalThis, 'fetch', async (path, options) => new Response(JSON.stringify(
+    path.endsWith('/csrf') ? { csrf_token: 'fixture' }
+      : options.method === 'POST' ? { games: [{ game_id: 'wuthering_waves', state: 'queued', job_id: 'a', generation: 0 }], private_refresh: { requested: 2, skipped: 0 } }
+      : { games: [{ game_id: 'wuthering_waves', queue_state: finished ? 'idle' : 'running', generation: finished ? 1 : 0, outcome: finished ? { state: 'failed', bilibili: 'ok', failed: ['announcement'] } : null }] })))
+  let refreshes = 0
+  const root = mount(t, Overview, { games: [], now, isAdmin: true, onRefresh: () => refreshes++ })
+  assert.equal(button(root).props.disabled, false, 'collection is global, not tied to the admin having game accounts')
+  await button(root).props.onClick()
+  for (let i = 0; i < 4; i++) { await new Promise(resolve => setImmediate(resolve)); await nextTick() }
+  assert.equal(button(root).props.disabled, true)
+  assert.match(content(root), /鸣潮 已排队/)
+  assert.match(content(root), /2 项私人数据/)
+  t.mock.timers.tick(COLLECT_POLL_MS)
+  for (let i = 0; i < 4; i++) { await new Promise(resolve => setImmediate(resolve)); await nextTick() }
+  assert.match(content(root), /鸣潮 采集中/)
+  finished = true
+  t.mock.timers.tick(COLLECT_POLL_MS)
+  for (let i = 0; i < 4; i++) { await new Promise(resolve => setImmediate(resolve)); await nextTick() }
+  assert.match(content(root), /鸣潮 部分来源失败/)
+  assert.equal(refreshes, 1)
+  assert.equal(button(root).props.disabled, false)
+})
