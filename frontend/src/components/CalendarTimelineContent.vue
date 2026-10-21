@@ -129,9 +129,8 @@ function selectEvent(event, interaction) { if (props.mode!=='image') emit('selec
 .grid-backdrop .today-column { background: color-mix(in srgb, var(--accent) 3%, transparent); }
 .today-line { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--accent-fill); z-index: 2; pointer-events: none; }
 .event-lane { min-height:34px; padding-bottom:2px; position:relative; }
-/* Bars: the game's pale tone with its line colour down the left edge; the elapsed part is deeper. */
-.timeline-event { position:relative; top:0; min-height:32px; min-width:0; border:0; box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--game-vivid, var(--game-accent)) 26%, transparent); border-radius:8px; color:var(--text); background:var(--game-tone, var(--control-track)); padding:4px 10px 4px 13px; display:block; text-align:left; overflow:hidden; transition:filter var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
-.timeline-event:not(.is-point)::before { content: ''; position: absolute; inset: 5px auto 5px 4px; width: 3px; border-radius: 3px; background: var(--game-vivid, var(--game-accent)); }
+/* Bars: the game's pale tone with a uniform hairline; the elapsed part is deeper. */
+.timeline-event { position:relative; top:0; min-height:32px; min-width:0; border:0; box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--game-vivid, var(--game-accent)) 26%, transparent); border-radius:8px; color:var(--text); background:var(--game-tone, var(--control-track)); padding:4px 10px; display:block; text-align:left; overflow:hidden; transition:filter var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
 @media (hover: hover) and (pointer: fine) { .timeline-event:hover { box-shadow: inset 0 0 0 1px var(--game-vivid, var(--game-accent)); } }
 .timeline-event:not(.is-point):active { transform: translateY(1px); }
 .timeline-event.is-ended { opacity: .7; }
@@ -152,7 +151,6 @@ function selectEvent(event, interaction) { if (props.mode!=='image') emit('selec
 .event-category { color: var(--text-muted); }
 .event-status { color: var(--game-accent); }
 .timeline-event.clipped-start { border-top-left-radius: 0; border-bottom-left-radius: 0; }
-.timeline-event.clipped-start::before { background: repeating-linear-gradient(to bottom, var(--game-vivid, var(--game-accent)) 0 3px, transparent 3px 6px); }
 .timeline-event.clipped-end { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .timeline-event.clipped-end::after { content: ''; position: absolute; inset: 0 0 0 auto; width: 2px; background: repeating-linear-gradient(to bottom, var(--game-vivid, var(--game-accent)) 0 3px, transparent 3px 6px); }
 .timeline-event.is-selected { outline: 2px solid var(--accent); outline-offset: 2px; z-index: 2; }
@@ -217,7 +215,7 @@ function selectEvent(event, interaction) { if (props.mode!=='image') emit('selec
 .group-category { display:block; margin-top:7px; color:var(--game-accent); font-size:12px; font-weight:600; line-height:1.5; }
 .calendar-content:not(.image-mode) .event-lane { min-height:80px; padding-bottom:8px; }
 .calendar-content:not(.image-mode) .timeline-event:not(.is-point) { height:72px; min-height:72px; padding:10px 13px; color:#fff; background:color-mix(in srgb,var(--game-accent) 28%,#18212b); }
-.calendar-content:not(.image-mode) .timeline-event:not(.is-point)::before { inset:0; width:auto; border-radius:inherit; background:linear-gradient(90deg,rgba(7,13,22,.78) 0%,rgba(7,13,22,.58) 28%,rgba(7,13,22,.18) 60%,rgba(7,13,22,.04) 100%); z-index:1; }
+.calendar-content:not(.image-mode) .timeline-event:not(.is-point)::before { content:''; position:absolute; inset:0; width:auto; border-radius:inherit; background:linear-gradient(90deg,rgba(7,13,22,.78) 0%,rgba(7,13,22,.58) 28%,rgba(7,13,22,.18) 60%,rgba(7,13,22,.04) 100%); z-index:1; pointer-events:none; }
 .calendar-content:not(.image-mode) .timeline-event:not(.is-point) .event-artwork { object-position:center 38%; }
 .calendar-content:not(.image-mode) .timeline-event:not(.is-point) .event-summary { width:max-content; max-width:min(300px,calc(100% - 14px)); z-index:2; text-shadow:0 1px 3px #000; }
 .calendar-content:not(.image-mode) .timeline-event:not(.is-point) .event-heading { gap:5px; }

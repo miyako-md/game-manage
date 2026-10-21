@@ -406,7 +406,7 @@ onUnmounted(() => { destroyed = true; mapController?.abort(); ++statusSeq; ++pri
     <p v-if="fallbackNote" class="cap-card hint ef-fallback-note" role="note">{{ fallbackNote }}</p>
 
     <div v-if="profileSections.includes(section)" class="endfield-stack">
-      <section class="cap-card ef-connection" :class="{ 'is-connected': connected }"><div class="cap-title"><span class="ef-connection-dot" :class="{ connected }"></span>{{ merged ? '终末地游戏档案' : cloud && passport && !profileSource ? '鹰角通行证寻访' : '森空岛游戏档案' }}<span v-if="connected && connectionSource" class="badge">{{ connectionSource }}</span><span v-if="card?.stale" class="badge badge-stale">待更新</span></div>
+      <section class="cap-card ef-connection" :class="{ 'is-connected': connected }"><div class="cap-title"><span class="ef-connection-dot" :class="{ connected }" aria-hidden="true"></span>{{ merged ? '终末地游戏档案' : cloud && passport && !profileSource ? '鹰角通行证寻访' : '森空岛游戏档案' }}<span v-if="connected && connectionSource" class="badge">{{ connectionSource }}</span><span v-if="card?.stale" class="badge badge-stale">待更新</span></div>
         <p v-if="statusBusy" class="hint" role="status">正在读取连接状态…</p>
         <p v-if="statusError" class="error" role="alert">{{ statusError }}</p>
         <template v-if="!cloud && !statusBusy && !connected">
@@ -518,11 +518,11 @@ p.empty.cap-card { padding:24px; }
 
 /* Forms: white fields on a hairline, like the shared toolbar inputs. */
 .field-grid { display:grid; gap:10px; max-width:600px; }
-.field-grid label, .role-bar label, .map-filters label { display:grid; gap:5px; color:var(--text-muted); font-size:12px; }
-.field-grid input, .field-grid textarea, .map-filters input, .tool-search input { box-sizing:border-box; width:100%; min-height:38px; border:1px solid var(--border); border-radius:var(--radius-control); padding:7px 14px; background:var(--card-bg); color:var(--text); font-size:13px; }
+.field-grid label, .role-bar label, .map-filters label { display:grid; gap:5px; color:var(--text-muted); font-size:var(--fs-meta,12px); }
+.field-grid input, .field-grid textarea, .map-filters input, .tool-search input { box-sizing:border-box; width:100%; min-height:var(--control-h,40px); border:1px solid var(--field-border,var(--border)); border-radius:var(--radius-control); padding:7px 14px; background:var(--field-bg,var(--card-bg)); color:var(--text); font-size:var(--fs-body,0.8125rem); }
 .role-bar :deep(.menu-select), .map-filters :deep(.menu-select) { width:100%; min-width:0; }
-.role-bar :deep(.menu-select-trigger), .map-filters :deep(.menu-select-trigger) { min-height:38px; }
-.field-grid :is(input,textarea):focus-visible, .map-filters input:focus-visible, .tool-search input:focus-visible { border-color:var(--game-accent,var(--game-endfield)); outline:0; box-shadow:var(--ring); }
+.role-bar :deep(.menu-select-trigger), .map-filters :deep(.menu-select-trigger) { min-height:var(--control-h,40px); }
+.field-grid :is(input,textarea):focus-visible, .map-filters input:focus-visible, .tool-search input:focus-visible { background:var(--card-bg); border-color:var(--game-accent,var(--game-endfield)); outline:0; box-shadow:var(--ring); }
 .field-grid textarea { resize:vertical; }
 .field-grid .ui-button { justify-self:start; }
 .role-bar, .map-filters, .actions { display:flex; gap:8px; align-items:end; flex-wrap:wrap; }
@@ -533,8 +533,8 @@ p.empty.cap-card { padding:24px; }
 /* Connection: a roomy invitation until a role is connected, then a slim strip with the role switcher. */
 .ef-connection { display:grid; gap:12px; align-content:start; padding:22px 26px; }
 .ef-connection > .cap-title { justify-content:flex-start; gap:8px 10px; margin:0; }
-.ef-connection-dot { width:8px; height:8px; border-radius:50%; background:var(--text-faint); }
-.ef-connection-dot.connected { background:var(--game-vivid); }
+.ef-connection-dot { width:8px; height:8px; border-radius:50%; border:2px solid var(--text-faint); background:transparent; }
+.ef-connection-dot.connected { border:0; background:var(--game-vivid); }
 .ef-connection:not(.is-connected) { padding:28px 30px; }
 .ef-connection:not(.is-connected) > * { max-width:min(540px,100%); }
 .ef-connection:not(.is-connected) > .cap-title { font-size:20px; line-height:28px; }

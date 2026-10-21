@@ -324,22 +324,27 @@
   color: var(--stale-text);
 }
 .wuwa-note {
+  max-width: 68ch;
   margin-top: 12px;
   color: var(--text-muted);
   font-size: 13px;
+  text-wrap: pretty;
 }
 .wuwa-description {
+  max-width: 68ch;
   color: var(--text-body);
   font-size: 13px;
   line-height: 1.7;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 .wuwa-error {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 10px;
+  max-width: 68ch;
   margin: 8px 0;
   padding: 10px 14px;
   background: var(--danger-bg);
@@ -347,14 +352,17 @@
   border-radius: var(--radius-well);
   font-size: 13px;
   overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 .wuwa-notice {
+  max-width: 68ch;
   margin: 8px 0;
   padding: 10px 14px;
   background: var(--surface-soft);
   border-radius: var(--radius-well);
   color: var(--text-body);
   font-size: 13px;
+  text-wrap: pretty;
 }
 .wuwa-notice > p + p {
   margin-top: 2px;
@@ -1875,13 +1883,16 @@ button.wuwa-role:not(:disabled):active {
   margin: 0;
 }
 .wuwa-import-body :is(input:not([type='checkbox'], [type='file']), select) {
-  min-height: 34px;
+  min-height: var(--control-h-sm, 36px);
   padding: 4px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--field-border, var(--border));
   border-radius: var(--radius-control);
-  background: var(--card-bg);
+  background: var(--field-bg, var(--card-bg));
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--fs-body, 0.8125rem);
+}
+.wuwa-import-body :is(input:not([type='checkbox'], [type='file']), select):focus-visible {
+  background: var(--card-bg);
 }
 .wuwa-import-body input[type='file'] {
   max-width: 100%;

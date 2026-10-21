@@ -420,20 +420,20 @@ h3 { font-size: 15px; font-weight: 600; }
 .connected, .active { color: var(--success); background: var(--success-bg); }
 .expired, .revoked { color: var(--danger); background: var(--danger-bg); }
 .configured { color: var(--stale-text); background: var(--stale-bg); }
-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--card-bg); box-shadow: var(--btn-shadow); color: var(--text); padding: 6px 14px; font-size: 13px; font-weight: 500; line-height: 20px; cursor: pointer; transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
+button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--control-h, 40px); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--card-bg); box-shadow: var(--btn-shadow); color: var(--text); padding: 6px 14px; font-size: var(--fs-body, 0.8125rem); font-weight: 500; line-height: 20px; cursor: pointer; transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out); }
 @media (hover: hover) and (pointer: fine) { button:not(:disabled):hover { background: var(--button-hover-bg); color: var(--text); } }
-button:not(:disabled):active { transform: translateY(1px); }
+button:not(:disabled):active { transform: translateY(1px) scale(0.98); }
 .text-button, .text-button:not(:disabled):hover { background: transparent; border-color: transparent; box-shadow: none; }
 button:disabled { opacity: .5; cursor: not-allowed; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .text-button { border: 0; color: var(--accent); min-height: 0; padding: 4px 6px; white-space: nowrap; }
 @media (hover: hover) and (pointer: fine) { .text-button:not(:disabled):hover { color: var(--accent-strong); } }
-.account-actions .text-button { min-height: 36px; padding: 6px 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); box-shadow: none; }
+.account-actions .text-button { min-height: var(--control-h-sm, 36px); padding: 6px 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); box-shadow: none; }
 @media (hover: hover) and (pointer: fine) { .account-actions .text-button:not(:disabled):hover { background: var(--panel-bg); border-color: var(--border-strong); } }
 .logout { color: var(--text-muted); }
 .primary { color: var(--accent-ink); background: var(--accent-fill); border-color: var(--accent-fill); box-shadow: none; }
 @media (hover: hover) and (pointer: fine) { .primary:not(:disabled):hover { color: var(--accent-ink); background: var(--accent-hover); } }
-.primary:not(:disabled):active { transform: translateY(1px); }
+.primary:not(:disabled):active { transform: translateY(1px) scale(0.98); }
 .login-form { margin-top: 18px; padding: 18px; display: flex; flex-direction: column; align-items: stretch; gap: 10px; max-width: 600px; border: 1px solid var(--border); border-radius: var(--radius-tile); background: var(--panel-bg); }
 .channel-selector { margin: 0; padding: 0; border: 0; min-width: 0; }
 .channel-selector legend { font-size: 13px; font-weight: 500; margin-bottom: 8px; }
@@ -442,11 +442,11 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .channel-options button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--card-bg); }
 .binding-guide { font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
 .binding-guide ol { margin: 8px 0; padding-left: 20px; }
-.binding-guide a { color: var(--accent); text-decoration: underline; }
+.binding-guide a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 label { font-size: 13px; font-weight: 500; margin-top: 4px; }
-input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--border); border-radius: var(--radius-control); padding: 10px 13px; font: inherit; color: var(--text); background: var(--card-bg); box-shadow: none; }
+input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--field-border, var(--border)); border-radius: var(--radius-control); padding: 10px 13px; font: inherit; color: var(--text); background: var(--field-bg, var(--card-bg)); box-shadow: none; }
 input::placeholder { color: var(--text-faint); }
-input:focus-visible { border-color: var(--accent); outline: none; box-shadow: var(--ring); }
+input:focus-visible { background: var(--card-bg); border-color: var(--accent); outline: none; box-shadow: var(--ring); }
 input[readonly] { background: var(--panel-bg); }
 .session-row, .sms-row { display: flex; align-items: center; gap: 12px; }
 .session-row { flex-wrap: wrap; }

@@ -124,7 +124,7 @@ onBeforeUnmount(() => { clearInterval(timer); clearInterval(clockTimer); stopFol
       </nav>
       <div class="sidebar-label"><span>我的游戏</span></div>
       <nav v-glide.hover class="game-nav" :class="{ 'game-theme': route.page === 'game' }" :style="gameVars(route.game)" aria-label="游戏档案" @click="sidebarNavigate"><a v-for="game in state.games" :key="game.game_id" :href="`#/game/${encodeURIComponent(game.game_id)}`" :class="{ active: route.page === 'game' && route.game === game.game_id }" :aria-current="route.page === 'game' && route.game === game.game_id ? 'page' : undefined"><GameIcon class="nav-game-mark" :game-id="game.game_id" :name="game.display_name" :style="{ '--mark-tone': gameStyle(game.game_id).tone }" /><span>{{ game.display_name }}</span><AppIcon class="nav-arrow" name="arrow" :size="14" /></a></nav>
-      <div v-if="state.loadError || state.serviceError || state.notify?.enabled" class="sidebar-bottom"><p v-if="state.loadError || state.serviceError" class="local-status"><i class="offline"></i>本地服务连接异常</p><p v-if="state.notify?.enabled">微信提醒已开启</p></div>
+      <div v-if="state.loadError || state.serviceError || state.notify?.enabled" class="sidebar-bottom"><p v-if="state.loadError || state.serviceError" class="local-status"><i class="offline" aria-hidden="true"></i>本地服务连接异常</p><p v-if="state.notify?.enabled">微信提醒已开启</p></div>
     </aside>
     <nav class="mobile-tabbar" aria-label="常用页面">
       <a href="#/" :class="{ active: route.page === 'overview' }" :aria-current="route.page === 'overview' ? 'page' : undefined"><AppIcon name="grid" :size="19" /><span>总览</span></a>
