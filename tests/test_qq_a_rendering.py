@@ -103,7 +103,7 @@ async def test_real_a_house_cover_sits_beside_its_name():
     if not executable or not font:pytest.skip('Set isolated Chromium/font paths for native acceptance')
     houses={'schema_version':1,'owned_count':1,'total':2,'entries':[
         {'id':'bigword_house_1','name':'合成公寓','owned':True,'resident_ids':['1019'],'furniture':[{'id':'f','name':'椅子','owned':True}]},
-        {'id':'bigword_house_2','name':'合成空馆','owned':False,'resident_ids':[],'furniture':[]}]}
+        {'id':'bigword_house_2','name':'合成空馆','owned':None,'resident_ids':[],'furniture':[]}]}
     snap=game_snapshot([game_panel('nte','tajiduo','realestate',QueryResult(houses,NOW.isoformat(),'ok',True))],NOW,title='异环 · 房产',command='异环 房产')
     renderer=BrowserRenderer(template='a',executable_path=executable,font_path=font,dist_path=os.environ.get('QQ_RENDER_TEST_DIST',''))
     # The same per-render state _render_a prepares; the DOM is read before disposal.
