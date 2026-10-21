@@ -118,6 +118,31 @@ test('minute session check defers during an accepted refresh and resumes after s
   assert.equal(identityReads, 2, 'normal session checks resume on the next minute')
   assert.equal(postReads, 3)
 })
+test('the minute check pauses in a background tab, catches up once shown after a missed minute, and never reads CSRF', async t => {
+  t.mock.timers.enable({ apis: ['setInterval', 'Date'] })
+  configureHttpClient({ mode: 'cloud' }); t.after(() => configureHttpClient({ mode: 'local' }))
+  const listeners = new Set(), previous = globalThis.document, show = hidden => { doc.hidden = hidden; listeners.forEach(fn => fn()) }
+  const doc = { hidden: false, addEventListener: (type, fn) => type === 'visibilitychange' && listeners.add(fn), removeEventListener: (type, fn) => type === 'visibilitychange' && listeners.delete(fn) }
+  globalThis.document = doc
+  const calls = [], settle = async () => { for (let i = 0; i < 4; i++) await tick() }
+  t.mock.method(globalThis, 'fetch', async path => { calls.push(path); return new Response(JSON.stringify(path === '/api/identity/me' ? { user_id: 'A', is_admin: false } : path === '/api/accounts' ? { accounts: [] } : { state: 'never', payload: null })) })
+  mount(t, CloudApp); await settle()
+  // After-hooks run in order: the unmount registered by mount() first, then these.
+  t.after(() => { globalThis.document = previous; assert.equal(listeners.size, 0, 'unmount removes the visibility listener') })
+  assert.equal(listeners.size, 1)
+  calls.length = 0; t.mock.timers.tick(60000); await settle()
+  assert.ok(calls.includes('/api/identity/me'), 'a visible tab keeps the minute session check')
+  assert.ok(!calls.some(path => path.endsWith('/csrf')), 'the minute check never asks for a CSRF token')
+  calls.length = 0; show(true); t.mock.timers.tick(120000); await settle()
+  assert.deepEqual(calls, [], 'a background tab makes no requests')
+  show(false); await settle()
+  assert.ok(calls.includes('/api/identity/me'), 'shown again after a missed minute, it checks at once')
+  calls.length = 0; t.mock.timers.tick(59000); await settle()
+  assert.deepEqual(calls, [], 'the next minute counts from the catch-up')
+  t.mock.timers.tick(1000); await settle(); assert.ok(calls.includes('/api/identity/me'))
+  calls.length = 0; t.mock.timers.tick(10000); show(true); show(false); await settle()
+  assert.deepEqual(calls, [], 'a short switch away does not trigger an extra check')
+})
 test('refresh UI converges without the minute timer and public never state is explicit', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] })
   configureHttpClient({ mode: 'cloud' }); t.after(() => configureHttpClient({ mode: 'local' }))
