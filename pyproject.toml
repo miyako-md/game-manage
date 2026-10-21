@@ -41,5 +41,5 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-game_assistant = ["character-search-catalog.json", "build-info.json"]
+game_assistant = ["character-search-catalog.json", "build-info.json", "assessment-defaults-wuwa.json"]
 "game_assistant.qq" = ["role_guides.json"]
