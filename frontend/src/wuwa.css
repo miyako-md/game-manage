@@ -1363,6 +1363,44 @@ button.wuwa-role:not(:disabled):active {
   background: var(--card-bg);
   color: var(--text);
 }
+/* Beside the ring: full floors and the days left, as two small tiles. */
+.tower-metrics {
+  flex: 0 1 136px;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.tower-metrics .wuwa-stat {
+  padding: 10px 12px;
+}
+.tower-metrics dd.is-label {
+  font-size: 15px;
+  line-height: 22px;
+}
+/* The deepest team, then the other zones' totals, as white chips on the tone. */
+.tower-team {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
+}
+.tower-team > .k {
+  color: var(--wuwa-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+.tower-team > .wuwa-meta {
+  color: var(--wuwa-ink);
+}
+.tower-team .chip,
+.tower-zones .chip {
+  background: var(--card-bg);
+  color: var(--text-body);
+}
+.tower-team .chip {
+  max-width: 100%;
+  white-space: normal;
+}
 .combat-count {
   display: flex;
   align-items: baseline;
@@ -1465,6 +1503,31 @@ button.wuwa-role:not(:disabled):active {
   font-variant-numeric: tabular-nums;
 }
 
+.slash-zone-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+/* Each half's team under a challenge: three avatars a half, a hairline between. */
+.slash-teams {
+  display: flex;
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 6px;
+}
+.slash-team {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.slash-team + .slash-team {
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
 /* Dialog records: the tower zones, boss tiles and slash challenges. */
 .wuwa-tower-bar,
 .wuwa-history-bar {

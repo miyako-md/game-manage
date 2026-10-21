@@ -82,6 +82,65 @@ export function towerTotals(areas) {
   }
 }
 
+const roster = entry => rows(entry?.role_list || entry?.roles)
+const isFull = (got, cap) => known(got) && known(cap) && cap > 0 && got >= cap
+
+/** The deep zone (难度 3) of a tower's difficulty list. */
+export const deepZone = difficulties => rows(difficulties).find(zone => String(zone.difficulty) === '3')
+
+/**
+ * Floors of a tower zone: how many are listed and how many are at full stars, or null when
+ * it lists none. A floor is full when its own stars reach its cap, or its area is full; when
+ * any floor cannot be told either way the full count is unknown (null), never a guess.
+ */
+export function towerFloors(zone) {
+  const areas = rows(zone?.tower_area_list)
+  let total = 0, full = 0, unknown = false
+  for (const area of areas) {
+    for (const floor of rows(area.floor_list)) {
+      total++
+      if (isFull(floor.star, floor.max_star) || isFull(area.star, area.max_star)) full++
+      else if (!known(floor.star) || !known(floor.max_star)) unknown = true
+    }
+  }
+  return total ? { full: unknown ? null : full, total } : null
+}
+
+/**
+ * The team of the deepest floor that names one: the last area, then the highest floor
+ * number, as { area, floor, roles } with at most `limit` roles; null when no floor has a team.
+ */
+export function towerTeam(zone, limit = 3) {
+  let best = null
+  rows(zone?.tower_area_list).forEach((area, a) => rows(area.floor_list).forEach((floor, i) => {
+    const roles = roster(floor)
+    const number = Number(floor.floor ?? floor.floor_index)
+    const depth = [a, Number.isFinite(number) ? number : i]
+    if (roles.length && (!best || depth[0] > best.depth[0] || (depth[0] === best.depth[0] && depth[1] >= best.depth[1])))
+      best = { depth, area: area.area_name || `区域 ${a + 1}`, floor: floor.floor ?? floor.floor_index ?? null, roles: roles.slice(0, limit) }
+  }))
+  return best && { area: best.area, floor: best.floor, roles: best.roles }
+}
+
+/** Star totals of every zone but the deep one, in source order; zones without earned stars are left out. */
+export function otherZoneStars(difficulties) {
+  return rows(difficulties)
+    .filter(zone => String(zone.difficulty) !== '3')
+    .map(zone => ({ name: zone.difficulty_name || `分区 ${zone.difficulty ?? '未知'}`, ...towerTotals(zone.tower_area_list) }))
+    .filter(zone => zone.got != null)
+}
+
+// Slash ranks from best to worst; a rank outside this list is unknown and never compared.
+const RANKS = ['SSS', 'SS', 'S', 'A', 'B', 'C', 'D']
+
+/** The best rank among a zone's challenges (SSS > SS > S > A > B > C > D); null when none is known. */
+export function bestRank(challenges) {
+  const found = rows(challenges)
+    .map(challenge => RANKS.indexOf(typeof challenge.rank === 'string' ? challenge.rank.trim().toUpperCase() : ''))
+    .filter(index => index >= 0)
+  return found.length ? RANKS[Math.min(...found)] : null
+}
+
 /**
  * Sources of an income report as donut parts, largest first; a source without a number
  * reads as unknown. Beyond `limit` rows the smaller known sources fold into 其他, whose

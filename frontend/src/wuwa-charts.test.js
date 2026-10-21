@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { attributeSplit, daysUntil, endLabel, expProgress, historySubject, levelBands, levelSeries, pityGauge, poolPulls, rarityTotals, recentGold, rosterSummary, seasonStars, sourceShares, towerTotals } from './wuwa-charts.js'
+import { attributeSplit, bestRank, daysUntil, otherZoneStars, towerFloors, towerTeam, endLabel, expProgress, historySubject, levelBands, levelSeries, pityGauge, poolPulls, rarityTotals, recentGold, rosterSummary, seasonStars, sourceShares, towerTotals } from './wuwa-charts.js'
 
 test('experience keeps unknown sides unknown and clamps only the percentage', () => {
   assert.equal(expProgress(null), null)
@@ -145,4 +145,44 @@ test('season stars add the deep zone areas and skip seasons without a total', ()
   const items = [season('2026-10-12T04:00:00+08:00', [12, 12, 6]), season('2026-09-14T04:00:00+08:00', [10, 9]), season('2026-08-17T04:00:00+08:00', []), { season: '2026-07-20T04:00:00+08:00', payload: {} }]
   assert.deepEqual(seasonStars(items), [{ label: '09-14', value: 19 }, { label: '10-12', value: 30 }])
   assert.deepEqual(seasonStars(null), [])
+})
+
+test('tower floors count full floors only when every floor can be told, an area at full stars making its floors full', () => {
+  const floor = (star, max_star, roles) => ({ star, max_star, role_list: roles })
+  assert.equal(towerFloors(null), null)
+  assert.equal(towerFloors({ tower_area_list: [{ star: 3, max_star: 12, floor_list: [] }] }), null)
+  assert.deepEqual(towerFloors({ tower_area_list: [
+    { star: 9, max_star: 12, floor_list: [floor(3, 3), floor(2, 3), floor(3, 3)] }, { floor_list: [floor(0, 3)] },
+  ] }), { full: 2, total: 4 })
+  assert.deepEqual(towerFloors({ tower_area_list: [{ star: 6, max_star: 6, floor_list: [floor(null, null), floor(3, null)] }] }), { full: 2, total: 2 })
+  assert.deepEqual(towerFloors({ tower_area_list: [{ star: 5, max_star: 6, floor_list: [floor(3, 3), floor(2, null)] }] }), { full: null, total: 2 }, 'an unknown floor is not a zero')
+})
+
+test('the tower team is the deepest floor that names one, capped at three roles', () => {
+  const roles = ids => ids.map(role_id => ({ role_id }))
+  const zone = { tower_area_list: [
+    { area_name: '甲塔', floor_list: [{ floor: 1, role_list: roles([1]) }, { floor: 4, role_list: roles([4, 5, 6, 7]) }] },
+    { area_name: '乙塔', floor_list: [{ floor: 2, roles: roles([8]) }, { floor: 3, role_list: [] }] },
+  ] }
+  assert.deepEqual(towerTeam(zone), { area: '乙塔', floor: 2, roles: roles([8]) })
+  assert.deepEqual(towerTeam({ tower_area_list: [zone.tower_area_list[0]] }), { area: '甲塔', floor: 4, roles: roles([4, 5, 6]) })
+  assert.equal(towerTeam({ tower_area_list: [{ floor_list: [{ floor: 1 }] }] }), null)
+  assert.equal(towerTeam(null), null)
+})
+
+test('other tower zones total their stars and leave out the deep zone and zones without earned stars', () => {
+  assert.deepEqual(otherZoneStars([
+    { difficulty: 3, difficulty_name: '深境区', tower_area_list: [{ star: 1, max_star: 3 }] },
+    { difficulty: 4, difficulty_name: '超载区', tower_area_list: [{ star: 10, max_star: 12 }, { star: 8, max_star: 12 }] },
+    { difficulty: 2, tower_area_list: [{ star: 4 }] },
+    { difficulty: 1, difficulty_name: '稳定区', tower_area_list: [{ star: null, max_star: 12 }] },
+  ]), [{ name: '超载区', got: 18, cap: 24 }, { name: '分区 2', got: 4, cap: null }])
+  assert.deepEqual(otherZoneStars(null), [])
+})
+
+test('the best slash rank follows SSS > SS > S > A > B > C and ignores unknown ranks', () => {
+  assert.equal(bestRank([{ rank: 'A' }, { rank: 'ss' }, { rank: 'S' }]), 'SS')
+  assert.equal(bestRank([{ rank: 'B' }, { rank: null }, { rank: '?' }, { rank: 5 }]), 'B')
+  assert.equal(bestRank([{ rank: null }, {}]), null)
+  assert.equal(bestRank(null), null)
 })

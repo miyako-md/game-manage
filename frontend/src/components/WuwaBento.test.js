@@ -80,26 +80,58 @@ test('the roster strip counts every recorded role and stays out of the bot image
 })
 
 test('the combat cards chart the deep zone, list a boss once with its best record and show each slash challenge', async t => {
-  const root = mount(t, await component('WuwaCombat'), { snap: snap({
-    tower: { data: { season_end_at: '2099-01-01T00:00:00+08:00', difficulty_list: [{ difficulty: 3, tower_area_list: [
-      { area_name: '甲塔', star: 10, max_star: 12 }, { area_name: '乙塔', star: 6, max_star: 12 },
-    ] }] } },
+  const Combat = await component('WuwaCombat')
+  const floor = (n, star, roles) => ({ floor: n, star, max_star: 3, role_list: roles.map(role_id => ({ role_id, role_name: `角色${role_id}` })) })
+  const combat = snap({
+    tower: { data: { season_end_at: '2099-01-01T00:00:00+08:00', difficulty_list: [
+      { difficulty: 3, tower_area_list: [
+        { area_name: '甲塔', star: 10, max_star: 12, floor_list: [floor(1, 3, [1]), floor(2, 3, []), floor(3, 3, []), floor(4, 1, [])] },
+        { area_name: '乙塔', star: 6, max_star: 12, floor_list: [floor(1, 3, [2]), floor(2, 3, [3, 4, 5, 6]), floor(3, 0, []), floor(4, 0, [])] },
+      ] },
+      { difficulty: 4, difficulty_name: '超载区', tower_area_list: [{ star: 10, max_star: 12 }, { star: 8, max_star: 12 }] },
+    ] } },
     hologram: { data: { challenge_info: { a: [
       { boss_name: '首领甲', difficulty: 1, pass_time: '01:00' }, { boss_name: '首领甲', difficulty: 5, pass_time: '02:30' },
     ] } } },
     slash: { data: { difficulty_list: [{ difficulty_name: '深潜', all_score: 100, max_score: 400, challenge_list: [
-      { challenge_name: '虚兽巢', score: 60, rank: 'S' },
+      { challenge_name: '虚兽巢', score: 60, rank: 'S', half_list: [
+        { half_name: '上半场', score: 30, role_list: [{ role_id: 7, role_name: '角色7' }, { role_id: 8 }, { role_id: 9 }, { role_id: 10 }] },
+        { half_name: '下半场', score: 30, role_list: [] },
+      ] },
+      { challenge_name: '潮汐门', score: 40, rank: 'SS' }, { challenge_name: '未评', score: 0, rank: null },
     ] }] } },
-  }) })
+  })
+  const root = mount(t, Combat, { snap: combat })
   const ring = meters(root).find(n => n.props['aria-label'] === '深境区总星数')
   assert.deepEqual([ring.props['aria-valuenow'], ring.props['aria-valuemax']], [16, 24])
   assert.match(content(root), /甲塔 10 \/ 12/)
-  assert.match(content(root), /天后结束/)
+  assert.match(content(byClass(root, 'tower-metrics')[0]), /满星层数 5 \/ 8 层 本期剩余 \d+ 天后结束/)
+  assert.match(content(byClass(root, 'tower-team')[0]), /本期队伍 乙塔 · 第 2 层 角色3 角色4 角色5$/, 'the deepest team, three roles at most')
+  assert.match(content(byClass(root, 'tower-zones')[0]), /超载区 18 \/ 24 星/)
   assert.equal(nodes(byClass(root, 'boss-list')[0], 'li').length, 1)
   assert.match(content(root), /首领甲 难度 5 · 通关时间 02:30/)
-  assert.match(content(root), /深潜 100 \/ 400/)
+  assert.match(content(root), /深潜 最高评级 SS 100 \/ 400/)
   assert.match(content(root), /虚兽巢 60 评级 S/)
+  const teams = byClass(root, 'slash-team')
+  assert.deepEqual(teams.map(team => [team.props['aria-label'], nodes(team, 'li').length]), [['上半场', 3]], 'a half without a team draws nothing')
+  assert.match(content(teams[0]), /角色7/)
   assert.equal(byClass(root, 'is-hero').length, 1)
+  // The bot image embeds the whole record below each card: the card keeps its old summary.
+  const image = mount(t, Combat, { snap: combat, imageMode: true })
+  for (const name of ['tower-metrics', 'tower-team', 'tower-zones', 'slash-teams']) assert.equal(byClass(image, name).length, 0, name)
+  assert.doesNotMatch(content(image), /最高评级/)
+  assert.match(content(byClass(image, 'combat-tower')[0]), /天后结束/)
+})
+
+test('an unknown floor count stays unknown and a zone without floors or a team adds nothing', async t => {
+  const root = mount(t, await component('WuwaCombat'), { snap: snap({ tower: { data: { season_end_at: '2099-01-01T00:00:00+08:00', difficulty_list: [
+    { difficulty: 3, tower_area_list: [{ area_name: '甲塔', star: 5, max_star: 12, floor_list: [{ floor: 1, star: 3, max_star: 3 }, { floor: 2, star: 2 }] }] },
+    { difficulty: 1, difficulty_name: '稳定区', tower_area_list: [{ star: null, max_star: 12 }] },
+  ] } } }) })
+  assert.match(content(byClass(root, 'tower-metrics')[0]), /满星层数 未知 \/ 2 层/)
+  assert.equal(byClass(root, 'tower-team').length, 0)
+  assert.equal(byClass(root, 'tower-zones').length, 0)
+  assert.doesNotMatch(content(root), /最高评级/)
 })
 
 test('activity cards draw a ring per pair and the time-limited one leads with its countdown', async t => {
