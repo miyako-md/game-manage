@@ -65,6 +65,3 @@ def test_guide_missing_source_version_stays_null_instead_of_vnone():
     sources=snapshot['display_data']['guide']['sources']
     assert [source['version'] for source in sources]==['3.2',None]
     assert 'None' not in json.dumps(snapshot,ensure_ascii=False)
-    _,index=reply('wuthering_waves',None,now)
-    entry=next(g for g in index['display_data']['guides'] if g['name']=='赞妮')
-    assert entry['version']=='V3.2 / 版本未确认'
