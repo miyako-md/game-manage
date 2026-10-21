@@ -67,7 +67,7 @@ async function remove(id){await run(async()=>{await call(base()+'/configurations
 function load(row){name.value=row.data.name;itemsJson.value=json(row.data.items);observedAt.value=row.data.observed_at||null;edited()}
 </script>
 <template>
- <section v-if="!imageMode || initialAssessment" class="personal-assessment">
+ <section v-if="!imageMode || initialAssessment?.status === 'scored'" class="personal-assessment">
   <h4>个人权重评分</h4>
   <button v-if="!imageMode && !opened" type="button" :disabled="!characterId" @click="open">配置权重与 A/B 对比</button>
   <div v-if="!imageMode && opened" class="assessment-editor">

@@ -252,3 +252,9 @@ test('NTE web menus retain unknown source stats, disabled quality and explicit u
   assert.equal(items[0].nte.substats[0].canonical_id, 'source-only')
   assert.equal(items[0].nte.substats[0].unit, 'ratio')
 })
+
+test('bot images omit an unconfigured or unscorable assessment until a score exists',async t=>{
+ const Assessment=await loadVue(new URL('./RoleAssessment.vue',import.meta.url))
+ for(const status of ['unconfigured','unscorable'])assert.doesNotMatch(content(mount(t,Assessment,{game:'nte',characterId:'c1',imageMode:true,initialAssessment:{status,reason:'NO_MODEL'}})),/个人权重评分/)
+ assert.match(content(mount(t,Assessment,{game:'nte',characterId:'c1',imageMode:false})),/个人权重评分/)
+})
