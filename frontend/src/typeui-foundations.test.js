@@ -30,8 +30,7 @@ test('removes all side-colored accent borders and stripes across frontend/src', 
     assert.doesNotMatch(content, /border-inline-start\s*:\s*[2-9]\d*px\s+solid/i, `${rel} should not have border-inline-start >= 2px`)
   }
 
-  const labCss = read('qq-image/lab.css')
-  assert.match(labCss, /\.chapter-mark\s*\{\s*display\s*:\s*none\s*;\s*\}/)
+  assert.equal(read('qq-image/Panel.vue').includes('chapter-mark'), false)
 
   const skinCss = read('qq-image/skin.css')
   assert.equal(skinCss.includes('border-left-color'), false)
@@ -44,6 +43,7 @@ test('removes all side-colored accent borders and stripes across frontend/src', 
 
   const timeline = read('components/CalendarTimelineContent.vue')
   assert.doesNotMatch(timeline, /\.timeline-event:not\(\.is-point\)::before\s*\{[^}]*width\s*:\s*3px/)
+  assert.equal(timeline.includes('.timeline-event.clipped-end::after'), false)
 })
 
 test('defines TypeUI foundation tokens and typography/interaction rules in style.css', () => {

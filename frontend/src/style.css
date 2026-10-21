@@ -171,7 +171,7 @@ code,pre,kbd,.mono { font-family:var(--font-mono); font-variant-ligatures:none; 
 .page-heading h1 { font-size:var(--fs-page); line-height:36px; font-weight:600; letter-spacing:-.03em; color:var(--text); }
 .page-meta { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; color:var(--text-muted); font-size:var(--fs-body); }
 .empty-page { padding:34px 16px; color:var(--text-muted); text-align:center; font-size:var(--fs-strong); text-wrap:pretty; }.empty-page button { margin-top:15px; }
-.inline-warning { max-width:68ch; color:var(--stale-text); font-size:var(--fs-body); background:var(--stale-bg); border:1px solid color-mix(in srgb, var(--stale-text) 22%, transparent); border-radius:var(--radius-well); padding:10px 14px; margin-top:12px; overflow-wrap:anywhere; text-wrap:pretty; animation:t-rise var(--duration-medium) var(--ease-smooth-out) backwards; }
+.inline-warning { color:var(--stale-text); font-size:var(--fs-body); background:var(--stale-bg); border:1px solid color-mix(in srgb, var(--stale-text) 22%, transparent); border-radius:var(--radius-well); padding:10px 14px; margin-top:12px; overflow-wrap:anywhere; text-wrap:pretty; animation:t-rise var(--duration-medium) var(--ease-smooth-out) backwards; }
 .spinning { animation:spin 1.5s linear infinite; }@keyframes spin { to { transform:rotate(360deg); } }
 /* Sidebar content. The shared floating-navigation surface owns docking and the mobile drawer. */
 .workspace-sidebar { display:flex; flex-direction:column; min-width:0; padding:12px 14px 16px; overflow-y:auto; overscroll-behavior:contain; }

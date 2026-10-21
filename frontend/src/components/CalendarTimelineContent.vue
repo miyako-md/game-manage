@@ -152,7 +152,6 @@ function selectEvent(event, interaction) { if (props.mode!=='image') emit('selec
 .event-status { color: var(--game-accent); }
 .timeline-event.clipped-start { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .timeline-event.clipped-end { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.timeline-event.clipped-end::after { content: ''; position: absolute; inset: 0 0 0 auto; width: 2px; background: repeating-linear-gradient(to bottom, var(--game-vivid, var(--game-accent)) 0 3px, transparent 3px 6px); }
 .timeline-event.is-selected { outline: 2px solid var(--accent); outline-offset: 2px; z-index: 2; }
 .timeline-event.is-point { width: 16px; transform: translateX(-50%); padding: 0; background: transparent; border: 0; box-shadow: none; overflow: visible; justify-content: center; }
 .point-diamond { position:absolute; left:3px; top:16px; display:block; height:10px; width:10px; border-radius:2px; background:var(--game-vivid, var(--game-accent)); transform:translateY(-50%) rotate(45deg); border:2px solid var(--card-bg); box-shadow:0 0 0 1px var(--game-vivid, var(--game-accent)); }

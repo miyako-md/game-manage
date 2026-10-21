@@ -188,10 +188,6 @@ input {
   border-radius: var(--radius) var(--radius) 0 0;
 }
 
-.chapter-mark {
-  display: none;
-}
-
 .block-content {
   padding: 20px 22px;
   display: grid;
