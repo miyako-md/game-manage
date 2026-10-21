@@ -13,6 +13,9 @@ import './shared-charts.css'
 import './endfield-image.css'
 import './guide-image.css'
 import './skin.css'
+import './skin-wuwa.css'
+import './skin-nte.css'
+import './skin-endfield.css'
 
 let app=null
 const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve))

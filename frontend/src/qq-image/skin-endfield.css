@@ -1,0 +1,45 @@
+/* QQ endfield skin: per-game rules on top of skin.css (loaded after it). */
+/* ---- 终末地 · 工业警示: hazard stripe, yellow bar, English kicker ---------- */
+.reuse.lab-sheet[data-skin="endfield"]:not(.is-account-overview) {
+  background:
+    repeating-linear-gradient(-45deg, #ffd100 0 10px, #141619 10px 20px) left top / 8px 100% no-repeat,
+    var(--skin-bg);
+}
+
+.reuse.lab-sheet[data-skin="endfield"] .head-dossier {
+  border-left: 4px solid var(--skin-accent);
+  border-top: 1px solid var(--skin-line);
+}
+
+.reuse.lab-sheet[data-skin="endfield"] .head-dossier .head-main::before {
+  content: 'ARKNIGHTS: ENDFIELD';
+  display: block;
+  margin-top: 10px;
+  color: var(--skin-accent);
+  font-size: var(--qq-small);
+  letter-spacing: .18em;
+}
+
+.reuse.lab-sheet[data-skin="endfield"]:has(.render-snapshot-panel[data-capability="roles"]) .head-dossier .head-main::before {
+  content: 'OPERATORS';
+}
+
+.reuse.lab-sheet[data-skin="endfield"]:has(.render-snapshot-panel[data-capability="operator_detail"]) .head-dossier .head-main::before {
+  content: 'OPERATOR FILE';
+}
+
+/* Numbered ticks before each Endfield block title: 01 / 02 / ... */
+.reuse.lab-sheet[data-skin="endfield"] #render-content {
+  counter-reset: ef-block;
+}
+
+.reuse.lab-sheet[data-skin="endfield"] #render-content .endfield-reports h2::before {
+  counter-increment: ef-block;
+  content: counter(ef-block, decimal-leading-zero) ' / ';
+  color: var(--skin-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.reuse.lab-sheet[data-skin="endfield"] .head-dossier h1 {
+  margin-top: 2px;
+}

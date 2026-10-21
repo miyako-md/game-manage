@@ -1,0 +1,20 @@
+/* QQ wuwa skin: per-game rules on top of skin.css (loaded after it). */
+/* ---- 鸣潮 · 黑曜石: the overview's gold spine and centred title ----------- */
+.reuse.lab-sheet[data-skin="wuwa"]:not(.is-account-overview) .head-dossier {
+  border-left: 1px solid var(--skin-line);
+  border-top: 2px solid var(--skin-line-strong);
+  text-align: center;
+}
+
+.reuse.lab-sheet[data-skin="wuwa"]:not(.is-account-overview) .head-dossier h1::before,
+.reuse.lab-sheet[data-skin="wuwa"]:not(.is-account-overview) .head-dossier h1::after {
+  content: '◇';
+  margin: 0 16px;
+  color: var(--skin-accent);
+  font-size: 24px;
+  vertical-align: middle;
+}
+
+.reuse.lab-sheet[data-skin="wuwa"]:not(.is-account-overview) .head-dossier .head-meta {
+  justify-content: center;
+}

@@ -151,9 +151,13 @@ test('QQ skins: the sheet and each overview game block carry data-skin, and skin
  assert.match(read('LabRoot.vue'),/:data-skin="skin"/)
  assert.match(read('mount.js'),/dataset\.theme=skinOf\(snapshot\.game\)\?'dark':'light'/)
  assert.match(read('mount.js'),/import '\.\/reuse\.css'[\s\S]*import '\.\/skin\.css'/)
- const skin=read('skin.css')
- for(const key of ['wuwa','nte','endfield'])assert.ok(skin.includes(`[data-skin="${key}"]`),key)
- assert.doesNotMatch(skin,/url\(|@font-face/)
+ assert.match(read('mount.js'),/import '\.\/skin\.css'\s+import '\.\/skin-wuwa\.css'\s+import '\.\/skin-nte\.css'\s+import '\.\/skin-endfield\.css'/)
+ for(const key of ['wuwa','nte','endfield']){
+  const skin=read(`skin-${key}.css`)
+  assert.ok(skin.includes(`[data-skin="${key}"]`),key)
+  for(const other of ['wuwa','nte','endfield'].filter(k=>k!==key))assert.ok(!skin.includes(`[data-skin="${other}"]`),`${key} file stays per game`)
+ }
+ for(const file of ['skin.css','skin-wuwa.css','skin-nte.css','skin-endfield.css'])assert.doesNotMatch(read(file),/url\(|@font-face/,file)
 })
 
 test('QQ overview blocks take their own game skin inside the obsidian shell (D3)',async t=>{

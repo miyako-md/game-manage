@@ -1,0 +1,16 @@
+/* QQ nte skin: per-game rules on top of skin.css (loaded after it). */
+/* ---- 异环 · 霓虹夜城: purple/cyan rules (the overview keeps its glow) ------ */
+.reuse.lab-sheet[data-skin="nte"] .head-dossier {
+  border-left: 1px solid var(--skin-line);
+  /* D9: soft glows and the fine grid are dithered by Chromium and pushed a roster
+     page past 512 KiB, so the neon cue is a hard-edged purple-to-cyan top rule. */
+  background:
+    linear-gradient(90deg, var(--skin-accent), var(--skin-accent-2)) left top / 100% 3px no-repeat,
+    var(--skin-surface);
+}
+
+.reuse.lab-sheet[data-skin="nte"] .head-dossier h1 {
+  display: inline-block;
+  padding-bottom: 10px;
+  background: linear-gradient(90deg, var(--skin-accent), var(--skin-accent-2)) left bottom / 100% 2px no-repeat;
+}
