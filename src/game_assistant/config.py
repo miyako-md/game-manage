@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     cloud_credentials_key_path: str = ''
     cloud_data_root: str = 'data/cloud'
     cloud_private_poll_seconds: int = Field(default=900, ge=60, le=86400)
+    # 终末地挑战（森空岛，每轮 1 次签名刷新 + 3 个接口）单独设置，便于限流时放宽。
+    cloud_endfield_challenge_poll_seconds: int = Field(default=900, ge=300, le=86400)
     # 公共来源（B站动态、库街区/塔吉多公告、终末地官网、配队推荐）每 6 小时采集一次。
     cloud_public_poll_seconds: int = Field(default=21600, ge=60, le=86400)
     cloud_poll_concurrency: int = Field(default=4, ge=1, le=16)
@@ -111,6 +113,12 @@ class Settings(BaseSettings):
     nte_events: list[dict] = []
 
     model_config = {"env_prefix": "GA_"}
+
+    def private_poll_seconds(self, game: str, capability) -> int:
+        """Cloud per-account polling interval; also the basis of snapshot staleness."""
+        if (game, getattr(capability, 'value', capability)) == ('endfield', 'combat'):
+            return self.cloud_endfield_challenge_poll_seconds
+        return self.cloud_private_poll_seconds
 
     @classmethod
     def load(cls, path: str = "config.toml") -> "Settings":

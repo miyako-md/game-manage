@@ -266,7 +266,7 @@ class AccountPollingScheduler:
             except Exception:
                 # Exception messages can contain credentials or private snapshot data.
                 logger.error('scoped_refresh_failed')
-                self._due[key] = self.clock() + self.settings.cloud_private_poll_seconds
+                self._due[key] = self.clock() + self.settings.private_poll_seconds(info['game'], capability)
         return self._queue(key, refresh)
 
     def _failed(self, scope, capability, version):
@@ -283,8 +283,8 @@ class AccountPollingScheduler:
                 status['state'] == 'auth_expired' and not self.query.snapshots.get_poll_status_scoped(
                     scope, capability, grant_version=version)):
             return self.clock()
-        delay = self.settings.cloud_private_poll_seconds if status['state'] == 'ok' else min(
-            3600, 60 * 2 ** min(max(0, status['consecutive_failures'] - 1), 6))
+        delay = self.settings.private_poll_seconds(self.accounts.describe(scope)['game'], capability) if (
+            status['state'] == 'ok') else min(3600, 60 * 2 ** min(max(0, status['consecutive_failures'] - 1), 6))
         try:
             elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(status['last_attempt_at'])).total_seconds()
         except (ValueError, TypeError):
@@ -319,18 +319,30 @@ class AccountPollingScheduler:
                 if current['version'] != version or result.error_kind == 'account_changed':
                     return FetchResult(ok=False, error_kind='account_changed')
                 # No await between current grant check and synchronous snapshot commit.
+                failed_kinds = []
+                if result.ok and current['game'] == 'endfield' and capability == 'combat':
+                    from game_assistant.endfield_challenges import challenge_reports, merge_challenge_snapshot
+                    failed_kinds = [r['kind'] for r in challenge_reports(result.payload) if r['stale']]
+                    previous = self.query.snapshots.get_scoped(scope, capability, grant_version=version,
+                        minimum_version=self.accounts.snapshot_generation(scope, version))
+                    result.payload = merge_challenge_snapshot(json.loads(previous['payload']) if previous else None,
+                                                              result.payload)
                 if result.ok:
                     self.query.snapshots.save_scoped(scope, capability, _serialize(result.payload), version)
                 # Never persist arbitrary exception/upstream messages from adapters.
                 if not result.ok:
                     result.error = '授权已失效，请重新授权' if result.error_kind == 'auth_expired' else '数据源暂时不可用，保留上次数据'
                 status = self.query.snapshots.record_poll_scoped(scope, capability, result, version)
+                if not result.ok or failed_kinds:
+                    # Counts only; never scope identifiers or upstream messages.
+                    logger.warning('scoped_poll_failed game=%s capability=%s state=%s error_code=%s failed_kinds=%s',
+                                current['game'], capability, status['state'], result.error_code, ','.join(failed_kinds) or '-')
                 if self.reminders:
                     try:
                         self.reminders.handle_poll(scope, capability, result, version)
                     except Exception:
                         logger.warning('Scoped reminder evaluation failed')
-                delay = self.settings.cloud_private_poll_seconds if result.ok else min(
+                delay = self.settings.private_poll_seconds(current['game'], capability) if result.ok else min(
                     3600, 60 * 2 ** min(status['consecutive_failures'] - 1, 6))
                 self._due[key] = self.clock() + max(30, delay)
                 if result.ok and current['game'] == 'wuthering_waves' and capability in ('roles', 'combat') and self.query.private:
