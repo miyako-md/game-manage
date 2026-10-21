@@ -17,6 +17,19 @@ test('wuwa image roster is a read-only complete web roster with zero and unknown
  assert.equal(nodes(root,'article').filter(n=>String(n.props.class).includes('wuwa-role ')).length,2)
 })
 
+test('wuwa website roster shows rarity as one tag on the picture while the image keeps stars beside the name',t=>{
+ const rows=[{role_id:'a',name:'合成五星',level:2,star_level:5},{role_id:'b',name:'合成四星',level:1,star_level:4},{role_id:'c',name:'合成未知',level:0,star_level:null}]
+ const tags=root=>nodes(root,'span').filter(n=>n.props.class==='role-rarity'), stars=root=>nodes(root,'span').filter(n=>String(n.props.class).split(' ').includes('stars'))
+ const web=mount(t,Roles,{snap:snap(rows)})
+ assert.deepEqual(tags(web).map(n=>[content(n),n.props['data-tier'],n.props['aria-label']]),[['★★★★★','top','5 星'],['★★★★',undefined,'4 星'],['未知 星',undefined,'未知 星']])
+ assert.ok(tags(web).every(n=>n.parent.props.class==='wuwa-role-art'))
+ assert.equal(stars(web).length,0)
+ assert.equal(nodes(web,'section')[0].props['data-skin'],'wuwa')
+ const image=mount(t,Roles,{imageMode:true,snap:snap(rows)})
+ assert.equal(tags(image).length,0);assert.equal(stars(image).length,2);assert.match(content(image),/未知 星/)
+ assert.equal(nodes(image,'section')[0].props['data-skin'],undefined)
+})
+
 test('dashboard uses actual web capability cards without replacing zero or omitting first and last rows',t=>{
  const root=mount(t,Render,{snapshot:input([
   panel('nte','stamina',{schema_version:1,current:0,maximum:null,city_current:null,city_maximum:100,daily_activity:0,weekly_remaining:null}),

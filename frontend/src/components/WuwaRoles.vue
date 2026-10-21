@@ -15,6 +15,7 @@ import { normalizeSearch, searchCharacters } from '../character-search.js'
 import WuwaGuideBrowser from './WuwaGuideBrowser.vue'
 import { characterIcon } from '../wuwa-icons.js'
 import { roleArtwork } from '../game-visuals.js'
+import { skinOf } from '../game-themes.js'
 const props = defineProps({
   snap: { default: null },
   accountKey: { type: String, default: '' },
@@ -71,7 +72,8 @@ const searchMatches = computed(() => new Map(searchCharacters('wuthering_waves',
 const summary = computed(() => rosterSummary(roles.value))
 const attributes = computed(() => attributeSplit(roles.value).map((part, i) => ({ ...part, color: `var(--chart-${i + 1})` })))
 const bands = computed(() => levelBands(roles.value))
-// Rarity as stars: 5★ in the game gold, 4★ in the purple series (same as the gacha split).
+// Rarity as stars: on the website one tag on the picture (5★ filled with the game ink); bot images keep
+// 5★ in the game gold and 4★ in the purple series beside the name (same as the gacha split).
 async function open(role) {
   if (props.imageMode) return
   selected.value = role
@@ -98,7 +100,7 @@ function close() {
 }
 </script>
 <template>
-  <section class="wuwa-board">
+  <section class="wuwa-board" :data-skin="imageMode ? undefined : skinOf('wuthering_waves')">
     <header class="wuwa-board-head">
       <h2>角色档案</h2>
       <WuwaStatus :snap="snap" />
@@ -196,17 +198,25 @@ function close() {
           /><span v-else class="wuwa-avatar-placeholder" aria-hidden="true">{{
             (r.name || '?').slice(0, 1)
           }}</span
+          ><span
+            v-if="!imageMode"
+            class="role-rarity"
+            :data-tier="starCount(r.star_level) >= 5 ? 'top' : undefined"
+            role="img"
+            :aria-label="`${value(r.star_level)} 星`"
+            >{{ starCount(r.star_level) ? '★'.repeat(starCount(r.star_level)) : `${value(r.star_level)} 星` }}</span
           ><span class="wuwa-role-level">Lv.{{ value(r.level) }}</span></span
         ><span class="wuwa-role-body"
           ><strong>{{ r.name || r.role_id }}</strong
-          ><span
-            v-if="starCount(r.star_level)"
-            class="stars"
-            :class="{ 'is-four': starCount(r.star_level) === 4 }"
-            role="img"
-            :aria-label="`${r.star_level} 星`"
-            >{{ '★'.repeat(starCount(r.star_level)) }}</span
-          ><span v-else class="wuwa-meta">{{ value(r.star_level) }} 星</span
+          ><template v-if="imageMode"
+            ><span
+              v-if="starCount(r.star_level)"
+              class="stars"
+              :class="{ 'is-four': starCount(r.star_level) === 4 }"
+              role="img"
+              :aria-label="`${r.star_level} 星`"
+              >{{ '★'.repeat(starCount(r.star_level)) }}</span
+            ><span v-else class="wuwa-meta">{{ value(r.star_level) }} 星</span></template
           ><span class="wuwa-role-sub" title="属性 · 武器类型 · 共鸣链 · 技能总等级"
             ><template v-if="r.attribute">{{ r.attribute }} · </template
             >{{ value(r.weapon) }} · {{ value(r.chain) }} 链 · 技能

@@ -898,19 +898,21 @@
 /* A role is the mockup's .role-card: a white card with 6px of rim, the picture
    on the sand tone anchored bottom right and the level as a white tag bottom
    left, then the name with its rarity and one muted line. Role pictures are
-   square avatars, so they fill the panel's height like the mockup's icon art. */
+   square avatars, so they fill the panel's height like the mockup's icon art. Grid, frame
+   and panel read the shared role-card tokens (game-themes.css); rarity is the shared
+   .role-rarity tag on the panel (style.css), bot images keep the stars beside the name. */
 .wuwa-role-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 224px), 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--role-card-min)), 1fr));
+  gap: var(--role-card-gap);
 }
 .wuwa-role {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 6px;
+  padding: var(--role-card-frame);
   border: 1px solid var(--card-border);
-  border-radius: 22px;
+  border-radius: var(--role-card-radius);
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
   color: var(--text-body);
@@ -919,11 +921,11 @@
   transition: border-color var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick) var(--ease-smooth-out);
 }
 button.wuwa-role[aria-pressed='true'] {
-  border-color: var(--wuwa-ink);
+  border-color: var(--role-accent, var(--wuwa-ink));
 }
 /* The global focus ring squares a focused button to 6px; the card keeps its own corners. */
 button.wuwa-role:focus-visible {
-  border-radius: 22px;
+  border-radius: var(--role-card-radius);
   outline-offset: 2px;
 }
 button.wuwa-role:not(:disabled):active {
@@ -937,10 +939,10 @@ button.wuwa-role:not(:disabled):active {
 .wuwa-role-art {
   position: relative;
   display: block;
-  height: 196px;
+  height: var(--role-art-h);
   overflow: hidden;
   isolation: isolate;
-  border-radius: 16px;
+  border-radius: var(--role-art-radius);
   background: var(--wuwa-tone);
 }
 .wuwa-role-art img,
@@ -1011,18 +1013,10 @@ button.wuwa-role:not(:disabled):active {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-@media (max-width: 1250px) {
-  .wuwa-role-grid {
-    gap: 16px;
-  }
-}
 @media (max-width: 767px) {
   .wuwa-role-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
-  }
-  .wuwa-role-art {
-    height: 178px;
   }
   .wuwa-role-body {
     padding: 11px 8px 9px;

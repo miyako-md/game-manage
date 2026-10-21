@@ -94,6 +94,12 @@
   --nav-game-active-bg: var(--accent-soft);
   --ring: 0 0 0 3px color-mix(in srgb, var(--game-accent) 25%, transparent);
 }
+/* Website role cards share the L1 structure tokens (game-themes.css) and one rarity tag at the
+   art panel's top left. The top tier fills with the game ink; in dark mode the role module's
+   data-skin lends its skin accent to the tag and the selected outline, light keeps --game-*. */
+:root:not([data-theme="light"]) :is(.wuwa-board, .nte-roles-panel, .endfield-reports)[data-skin] { --role-accent: var(--skin-accent); --role-on-accent: var(--skin-on-accent); }
+.role-rarity { position:absolute; z-index:2; top:10px; left:10px; padding:3px 7px; border-radius:var(--radius-chip); background:var(--card-bg); color:var(--text-body); font-size:12px; font-weight:600; line-height:16px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.role-rarity[data-tier="top"] { background:var(--role-accent, var(--game-accent, var(--text))); color:var(--role-on-accent, var(--card-bg)); }
 * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
 html { scroll-padding-top: 24px; }
 body { margin: 0; min-width: 0; font-size: 14px; line-height: 1.6; color: var(--text); background: var(--bg); font-feature-settings: "tnum" 1; }
