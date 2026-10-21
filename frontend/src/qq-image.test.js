@@ -1,4 +1,5 @@
 import test from 'node:test'
+import {readFileSync} from 'node:fs'
 import assert from 'node:assert/strict'
 import {imageCalendarWindows} from './qq-image/image-calendar.js'
 import {guideAtoms,guideLines} from './qq-image/guide-presentation.js'
@@ -142,4 +143,24 @@ test('a bare guide reply is a plain notice, not an index image',()=>{
  const model=viewModel(input)
  assert.deepEqual(model.panels.map(p=>p.type),['text'])
  assert.match(model.panels[0].text,/鸣潮 攻略 角色名.*网站攻略页/)
+})
+
+test('QQ skins: the sheet and each overview game block carry data-skin, and skinned images start from dark tokens',t=>{
+ const read=name=>readFileSync(new URL('./qq-image/'+name,import.meta.url),'utf8')
+ assert.match(read('LabRoot.vue'),/skinOf\(props\.input\?\.snapshot\?\.game\)\|\|\(isAccountOverview\.value\?'wuwa':null\)/)
+ assert.match(read('LabRoot.vue'),/:data-skin="skin"/)
+ assert.match(read('mount.js'),/dataset\.theme=skinOf\(snapshot\.game\)\?'dark':'light'/)
+ assert.match(read('mount.js'),/import '\.\/reuse\.css'[\s\S]*import '\.\/skin\.css'/)
+ const skin=read('skin.css')
+ for(const key of ['wuwa','nte','endfield'])assert.ok(skin.includes(`[data-skin="${key}"]`),key)
+ assert.doesNotMatch(skin,/url\(|@font-face/)
+})
+
+test('QQ overview blocks take their own game skin inside the obsidian shell (D3)',async t=>{
+ const Sheet=await loadVue(new URL('./qq-image/AccountOverviewSheet.vue',import.meta.url))
+ const panel=(game,provider,payload)=>({game,provider,capability:'account',snapshot:{payload,fetched_at:'2026-10-21T00:00:00Z'}})
+ const input={snapshot:{kind:'game_snapshot',game:'all',title:'我的',display_data:{panels:[panel('wuthering_waves','kuro',{nickname:'甲'}),panel('nte','tajiduo',{nickname:'乙'}),panel('endfield','skland',{base:{name:'丙'}})]}},command:'总览',origin:''}
+ configure([input],{})
+ const root=mount(t,Sheet,{input})
+ assert.deepEqual(nodes(root,'section').filter(n=>String(n.props.class).includes('ao-game-block')).map(n=>n.props['data-skin']),['wuwa','nte','endfield'])
 })

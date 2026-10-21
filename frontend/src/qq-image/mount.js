@@ -2,6 +2,7 @@ import {createApp,nextTick} from 'vue'
 import LabRoot from './LabRoot.vue'
 import {configure} from './models.js'
 import {auditLayout} from './layout-audit.js'
+import {skinOf} from '../game-themes.js'
 import '../style.css'
 import '../wuwa.css'
 import '../render.css'
@@ -11,6 +12,7 @@ import './reuse.css'
 import './shared-charts.css'
 import './endfield-image.css'
 import './guide-image.css'
+import './skin.css'
 
 let app=null
 const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve))
@@ -25,8 +27,9 @@ window.mountLongRender=async request=>{
  window.__LONG_RENDER_STATE__={...state,state:'loading'}
  try{
   await window.disposeLongRender()
-  document.documentElement.dataset.theme='light'
   const snapshot=request.snapshot
+  // A skinned game image starts from the website's validated dark tokens; the skin then overrides the surfaces.
+  document.documentElement.dataset.theme=skinOf(snapshot.game)?'dark':'light'
   let command=snapshot.next_command
   if(snapshot.kind==='wuwa_role')command='鸣潮 角色 '+(snapshot.display_data.detail.role?.role_name||'详情')
   if(snapshot.kind==='nte_role')command='异环 角色'+(snapshot.display_data.snapshot.display_mode==='detail'?' '+(snapshot.display_data.snapshot.payload.entries?.[0]?.name||'详情'):'')

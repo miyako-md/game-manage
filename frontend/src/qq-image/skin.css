@@ -1,0 +1,236 @@
+/* QQ game skins (M4 prototype). LabRoot sets data-skin on the sheet; the values
+   live in game-themes.css. Pages that reuse website components get the skin by
+   overriding the reuse.css local variables (and the Endfield sub-image inherits
+   them through endfield-image.css); the obsidian overview reads the same tokens
+   in lab.css. Decoration is CSS only: no new images or fonts. */
+
+/* ---- Reused website components on a dark skin ---------------------------- */
+.reuse.lab-sheet[data-skin]:not(.is-account-overview) {
+  --paper: var(--skin-bg);
+  --surface: var(--skin-surface);
+  --ink: var(--skin-ink);
+  --muted: var(--skin-muted);
+  --line: rgba(var(--skin-tint-rgb), .2);
+  --soft: rgba(var(--skin-tint-rgb), .09);
+  --accent: var(--skin-accent);
+  --ring-track: rgba(255, 255, 255, .1);
+  --radius: var(--skin-radius-card);
+  /* The website components' shape steps follow the skin (Endfield is square-cut). */
+  --radius-card: var(--skin-radius-card);
+  --radius-tile: var(--skin-radius-tile);
+  --radius-well: var(--skin-radius-tile);
+  --radius-chip: var(--skin-radius-chip);
+  /* Solid, not --skin-bg-grad: Chromium dithers long gradients and the noise
+     cost a roster page ~95 KiB of PNG (D9: decoration goes before resolution). */
+  background: var(--skin-bg);
+}
+
+/* The website panels re-derive their colours from --game-* (inline gameVars);
+   in a skinned image the skin's accent wins over the website palette. */
+.reuse.lab-sheet[data-skin]:not(.is-account-overview),
+.reuse.lab-sheet[data-skin]:not(.is-account-overview) .game-theme {
+  --game-accent: var(--skin-accent) !important;
+  --game-vivid: var(--skin-accent) !important;
+  --game-vivid-2: var(--skin-accent-2) !important;
+  --game-tone: rgba(var(--skin-tint-rgb), .14) !important;
+  --accent-soft: rgba(var(--skin-tint-rgb), .14);
+}
+
+.reuse.lab-sheet[data-skin] .head-dossier {
+  background: var(--skin-surface);
+  border-color: var(--skin-line);
+  border-radius: var(--skin-radius-card);
+  box-shadow: var(--skin-glow);
+}
+
+.reuse.lab-sheet[data-skin] #render-content :is(.cap-card, .wuwa-panel, .ef-card, .profile-account) {
+  border-radius: var(--skin-radius-card);
+  box-shadow: none;
+}
+
+.reuse.lab-sheet[data-skin] .command {
+  border-radius: var(--skin-radius-chip);
+}
+
+/* ---- 鸣潮 · 黑曜石: the overview's gold spine and centred title ----------- */
+.reuse.lab-sheet[data-skin="wuwa"]:not(.is-account-overview) .head-dossier {
+  border-left: 1px solid var(--skin-line);
+  border-top: 2px solid var(--skin-line-strong);
+  text-align: center;
+}
+
+.reuse.lab-sheet[data-skin="wuwa"]:not(.is-account-overview) .head-dossier h1::before,
+.reuse.lab-sheet[data-skin="wuwa"]:not(.is-account-overview) .head-dossier h1::after {
+  content: '◇';
+  margin: 0 16px;
+  color: var(--skin-accent);
+  font-size: 24px;
+  vertical-align: middle;
+}
+
+.reuse.lab-sheet[data-skin="wuwa"]:not(.is-account-overview) .head-dossier .head-meta {
+  justify-content: center;
+}
+
+/* ---- 异环 · 霓虹夜城: purple/cyan rules (the overview keeps its glow) ------ */
+.reuse.lab-sheet[data-skin="nte"] .head-dossier {
+  border-left: 1px solid var(--skin-line);
+  /* D9: soft glows and the fine grid are dithered by Chromium and pushed a roster
+     page past 512 KiB, so the neon cue is a hard-edged purple-to-cyan top rule. */
+  background:
+    linear-gradient(90deg, var(--skin-accent), var(--skin-accent-2)) left top / 100% 3px no-repeat,
+    var(--skin-surface);
+}
+
+.reuse.lab-sheet[data-skin="nte"] .head-dossier h1 {
+  display: inline-block;
+  padding-bottom: 10px;
+  background: linear-gradient(90deg, var(--skin-accent), var(--skin-accent-2)) left bottom / 100% 2px no-repeat;
+}
+
+/* ---- 终末地 · 工业警示: hazard stripe, yellow bar, English kicker ---------- */
+.reuse.lab-sheet[data-skin="endfield"]:not(.is-account-overview) {
+  background:
+    repeating-linear-gradient(-45deg, #ffd100 0 10px, #141619 10px 20px) left top / 8px 100% no-repeat,
+    var(--skin-bg);
+}
+
+.reuse.lab-sheet[data-skin="endfield"] .head-dossier {
+  border-left: 4px solid var(--skin-accent);
+  border-top: 1px solid var(--skin-line);
+}
+
+.reuse.lab-sheet[data-skin="endfield"] .head-dossier .head-main::before {
+  content: 'ARKNIGHTS: ENDFIELD';
+  display: block;
+  margin-top: 10px;
+  color: var(--skin-accent);
+  font-size: var(--qq-small);
+  letter-spacing: .18em;
+}
+
+.reuse.lab-sheet[data-skin="endfield"]:has(.render-snapshot-panel[data-capability="roles"]) .head-dossier .head-main::before {
+  content: 'OPERATORS';
+}
+
+.reuse.lab-sheet[data-skin="endfield"]:has(.render-snapshot-panel[data-capability="operator_detail"]) .head-dossier .head-main::before {
+  content: 'OPERATOR FILE';
+}
+
+/* Numbered ticks before each Endfield block title: 01 / 02 / ... */
+.reuse.lab-sheet[data-skin="endfield"] #render-content {
+  counter-reset: ef-block;
+}
+
+.reuse.lab-sheet[data-skin="endfield"] #render-content .endfield-reports h2::before {
+  counter-increment: ef-block;
+  content: counter(ef-block, decimal-leading-zero) ' / ';
+  color: var(--skin-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.reuse.lab-sheet[data-skin="endfield"] .head-dossier h1 {
+  margin-top: 2px;
+}
+
+/* ---- Obsidian overview with a non-Wuwa shell ------------------------------ */
+/* Shell shades (only on the sheet itself, so a game block in the multi-game
+   overview never takes them: D3). */
+.lab-sheet.is-account-overview[data-skin="nte"],
+.lab-sheet.is-account-overview[data-skin="endfield"] {
+  --ao-title-ink: var(--skin-ink);
+  --ao-banner: var(--skin-surface);
+  --ao-pill: rgba(var(--skin-tint-rgb), .06);
+  --ao-deep: rgba(0, 0, 0, .28);
+  --ao-soft-ink: var(--skin-ink);
+  --ao-well: rgba(0, 0, 0, .3);
+  --ao-label: var(--skin-muted);
+  --ao-panel: var(--skin-surface);
+  --ao-card: var(--skin-surface);
+  --ao-portrait: radial-gradient(circle at 50% 35%, rgba(var(--skin-tint-rgb), .18) 0%, rgba(0, 0, 0, .25) 100%);
+}
+
+/* Accent shades follow every element's own skin (sheet or game block). */
+.is-account-overview[data-skin="nte"],
+.is-account-overview [data-skin="nte"],
+.is-account-overview[data-skin="endfield"],
+.is-account-overview [data-skin="endfield"] {
+  --ao-ring: linear-gradient(135deg, var(--skin-accent) 0%, var(--skin-accent-2) 100%);
+  --ao-accent-text: var(--skin-accent);
+  --ao-badge-line: rgba(var(--skin-tint-rgb), .4);
+}
+
+.is-account-overview [data-skin="nte"] .ao-star-emblem path,
+.is-account-overview [data-skin="endfield"] .ao-star-emblem path {
+  fill: var(--skin-accent);
+}
+
+.lab-sheet.is-account-overview[data-skin="nte"] {
+  background-image:
+    radial-gradient(circle at 100% 0%, rgba(199, 155, 255, .24) 0%, rgba(199, 155, 255, 0) 460px),
+    radial-gradient(circle at 76% 0%, rgba(79, 227, 224, .14) 0%, rgba(79, 227, 224, 0) 320px),
+    var(--skin-bg-grad) !important;
+  background-repeat: no-repeat !important;
+  background-position: top left !important;
+}
+
+.lab-sheet.is-account-overview[data-skin="endfield"] {
+  background-image:
+    repeating-linear-gradient(-45deg, #ffd100 0 10px, #141619 10px 20px),
+    var(--skin-bg-grad) !important;
+  background-size: 8px 100%, auto !important;
+  background-repeat: no-repeat !important;
+  background-position: left top, center !important;
+}
+
+.lab-sheet.is-account-overview[data-skin="endfield"] .ao-capsule-banner {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .42);
+  border-left-width: 4px;
+}
+
+.lab-sheet.is-account-overview[data-skin="nte"] .ao-capsule-banner {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .42), var(--skin-glow);
+}
+
+/* Titles: left-aligned instead of the centred ◇ divider. */
+.lab-sheet.is-account-overview:is([data-skin="nte"], [data-skin="endfield"]) :is(.ao-head-line, .ao-diamond) {
+  display: none;
+}
+
+.lab-sheet.is-account-overview[data-skin="nte"] .ao-section-title {
+  padding-bottom: 8px;
+  background: linear-gradient(90deg, var(--skin-accent), var(--skin-accent-2)) left bottom / 100% 2px no-repeat;
+}
+
+.lab-sheet.is-account-overview[data-skin="endfield"] .ao-game-block {
+  counter-reset: ef-section;
+}
+
+.lab-sheet.is-account-overview[data-skin="endfield"] .ao-section-title {
+  padding-left: 14px;
+  border-left: 4px solid var(--skin-accent);
+  align-items: baseline;
+}
+
+.lab-sheet.is-account-overview[data-skin="endfield"] .ao-section-title::before {
+  counter-increment: ef-section;
+  content: counter(ef-section, decimal-leading-zero) ' /';
+  color: var(--skin-accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .04em;
+}
+
+.lab-sheet.is-account-overview[data-skin="endfield"] .ao-section-title::after {
+  color: var(--skin-muted);
+  font-size: var(--qq-small);
+  font-weight: 400;
+  letter-spacing: .18em;
+}
+
+.lab-sheet.is-account-overview[data-skin="endfield"] .ao-game-block > .ao-section:nth-child(2) .ao-section-title::after {
+  content: 'PROFILE';
+}
+
+.lab-sheet.is-account-overview[data-skin="endfield"] .ao-game-block > .ao-section:nth-child(3) .ao-section-title::after {
+  content: 'OPERATORS';
+}
