@@ -23,7 +23,7 @@ export default defineConfig({
     input: { main: fileURLToPath(new URL('./index.html', import.meta.url)), render: fileURLToPath(new URL('./render.html', import.meta.url)), renderA:fileURLToPath(new URL('./render-a.html',import.meta.url)) },
     // Vue changes only with a dependency bump, so it gets its own long-lived chunk instead of riding in
     // whichever app chunk Rolldown shares first. Game pages keep the automatic split.
-    output: { codeSplitting: { groups: [{ name: 'vendor-vue', test: /node_modules[\/](@vue|vue)[\/]/ }] } },
+    output: { codeSplitting: { groups: [{ name: 'vendor-vue', test: /node_modules[\\/](@vue|vue)[\\/]/ }] } },
   } },
   define: { __LOCAL_GAME_ICONS__: JSON.stringify(localGameIcons) },
   // Vite 8 默认只绑 IPv6 [::1]，浏览器 localhost 走 IPv4 会拒连——固定 IPv4 回环。
