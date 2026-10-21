@@ -133,3 +133,15 @@ test('the team image filters by the roster the server attaches, ahead of the rol
   // 安魂曲 is a known but unowned role; a name with no known role is kept.
   assert.deepEqual(names(mount(t, wrapped([{ name: '安魂曲' }]), {})), ['娜娜莉配队', '合成配队'])
 })
+
+test('bot images leave out explicitly unowned property and vehicles, keep unknown ownership, and the website keeps all', t => {
+  const payload = { owned_count: 1, total: 3, entries: [{ id: 'a', name: '已有公寓', owned: true }, { id: 'b', name: '未有别墅', owned: false }, { id: 'c', name: '状态未知屋', owned: null }] }
+  for (const capability of ['realestate', 'vehicles']) {
+    const image = content(mount(t, NteAssetsPanel, { capability, snap: snap(payload), imageMode: true }))
+    assert.match(image, /已有公寓/); assert.match(image, /状态未知屋/); assert.doesNotMatch(image, /未有别墅/)
+    assert.match(image, /1[\s\S]*\/ 3/)
+    assert.match(content(card(t, capability, payload)), /未有别墅/)
+  }
+  const none = content(mount(t, NteAssetsPanel, { capability: 'vehicles', snap: snap({ owned_count: 0, total: 1, entries: [{ id: 'b', name: '未有车', owned: false }] }), imageMode: true }))
+  assert.match(none, /暂无已拥有的条目/); assert.doesNotMatch(none, /未有车/)
+})

@@ -51,6 +51,8 @@ const renderRoleCatalog=inject('renderRoleCatalog',{})
 // The image keeps one entry per team name and, when an owned roster is supplied, only teams naming an owned role.
 const entries = computed(() => props.imageMode && props.capability === 'teams'
   ? imageTeams(list(data.value.entries), list(data.value.owned_role_names).length ? list(data.value.owned_role_names) : props.roles.map(role => role.name), list(renderRoleCatalog.nte).map(role => role.name))
+  // Bot images list only what the player has; explicitly unowned property and vehicles are left out, unknown stays.
+  : props.imageMode ? list(data.value.entries).filter(entry => entry?.owned !== false)
   : list(data.value.entries))
 const roleMap = computed(() => new Map([...(renderRoleCatalog.nte||[]),...props.roles].map(role => [String(role.id), role])))
 const roleName = id => roleMap.value.get(String(id))?.name || (props.imageMode?'名称未提供':`角色 ${id}`)
@@ -101,7 +103,7 @@ watch(() => props.capability, () => { search.value = ''; ownership.value = 'all'
         <MenuSelect v-if="capability !== 'teams'" v-model="ownership" label="拥有状态" align="end" :options="ownershipOptions" />
         <span class="count" role="status">显示 {{ filtered.length }} / {{ entries.length }} 条</span>
       </div>
-      <p v-if="!entries.length" class="empty">{{ capability === 'teams' ? '暂无官方配队推荐' : '暂无资产明细' }}</p>
+      <p v-if="!entries.length" class="empty">{{ capability === 'teams' ? '暂无官方配队推荐' : imageMode && list(data.entries).length ? '暂无已拥有的条目' : '暂无资产明细' }}</p>
       <p v-else-if="!filtered.length" class="empty" role="status">没有符合筛选条件的条目</p>
       <div v-else class="asset-list" :class="capability === 'teams' ? 'team-list' : capability === 'vehicles' ? 'vehicle-grid' : 'asset-grid'">
         <details v-for="(entry, index) in filtered" :key="`${entry.id}-${index}`" class="asset t-item" :style="{ '--i': Math.min(index, 11) }" :open="!folded.has(foldKey(entry))" @toggle="onFold($event, foldKey(entry))">

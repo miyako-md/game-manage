@@ -480,7 +480,8 @@ def asset_requests(node):
                         yield from visit(payload,current,'artwork' if cap in ('news','events','recent_events') else 'icon')
                         if current=='nte' and cap in ('realestate','vehicles') and isinstance(payload,dict):
                             for entry in payload.get('entries',[]):
-                                if not isinstance(entry,dict):continue
+                                # The image leaves explicitly unowned entries out, so their artwork is not fetched.
+                                if not isinstance(entry,dict) or entry.get('owned') is False:continue
                                 entity=str(entry.get('id',''))
                                 # Exact public path contracts shared with nte-artwork.js.
                                 if cap=='realestate' and re.fullmatch(r'bigword_[a-z]+_\d+',entity):

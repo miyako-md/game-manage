@@ -212,6 +212,17 @@ async def test_newly_available_public_artwork_changes_the_browser_cache_key(monk
     assert renderer.cache_key(scope,result)!=before
 
 
+def test_nte_asset_artwork_is_prefetched_only_for_entries_the_image_shows():
+    base='https://webstatic.tajiduo.com/bbs/yh-game-records-web-source/'
+    for cap,ids,path in (('realestate',('bigword_a_1','bigword_b_2','bigword_c_3'),'realestate/detail/'),
+                         ('vehicles',('vehicle001','vehicle002','vehicle003'),'verhicle/wide/')):
+        entries=[{'id':ids[0],'owned':True},{'id':ids[1],'owned':False},{'id':ids[2],'owned':None}]
+        panel=shared.game_panel('nte','tajiduo',cap,row({'schema_version':1,'entries':entries}))
+        urls={url for url,_ in shared.asset_requests(shared.game_snapshot([panel],NOW))}
+        assert base+path+ids[0]+'.png' in urls and base+path+ids[2]+'.png' in urls
+        assert base+path+ids[1]+'.png' not in urls
+
+
 def test_endfield_portraits_are_for_roster_cards_and_mounted_loadouts_and_follow_visible_icons():
     portrait=CATALOG['games']['endfield']['portrait']['佩丽卡']
     icon=CATALOG['games']['endfield']['role']['佩丽卡']
