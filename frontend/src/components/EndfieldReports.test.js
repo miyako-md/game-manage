@@ -26,7 +26,7 @@ test('roster filters without losing source totals and exposes an on-demand detai
   nodes(root,'button').find(node=>content(node)==='查看配装').props.onClick();assert.deepEqual(seen,['a'])
 })
 
-test('website operators are portrait role cards with the shared rarity tag while images keep the compact tile',t=>{
+test('operators are portrait role cards with the shared rarity tag on the website and in images',t=>{
   const cards=root=>nodes(root,'article').filter(node=>String(node.props.class).includes('ef-operator'))
   const art=card=>nodes(card,'span').find(node=>String(node.props.class).split(' ').includes('endfield-artwork'))
   const web=mount(t,Reports,{payload,view:'operators'})
@@ -35,9 +35,8 @@ test('website operators are portrait role cards with the shared rarity tag while
   assert.deepEqual(cards(web).map(card=>nodes(card,'small').map(node=>[node.props.class,content(node),node.props['data-tier']])[0]),[['role-rarity','6★','top'],['role-rarity','5★',undefined]])
   assert.equal(nodes(web,'div')[0].props['data-skin'],'endfield')
   const image=mount(t,Reports,{payload,view:'operators',imageMode:true})
-  assert.ok(cards(image).every(card=>!art(card).props.class.split(' ').includes('is-portrait')))
-  assert.deepEqual(cards(image).map(card=>nodes(card,'small')[0].props.class),['ef-tier','ef-tier'])
-  assert.equal(nodes(image,'span').filter(node=>node.props.class==='role-rarity').length,0)
+  assert.ok(cards(image).every(card=>art(card).props.class.split(' ').includes('is-portrait')))
+  assert.deepEqual(cards(image).map(card=>nodes(card,'small').map(node=>[node.props.class,content(node),node.props['data-tier']])[0]),[['role-rarity','6★','top'],['role-rarity','5★',undefined]])
   assert.equal(nodes(image,'div')[0].props['data-skin'],undefined)
 })
 

@@ -182,3 +182,61 @@
 .reuse.lab-sheet #render-content .ef-totals li {
   padding: 10px 0 12px;
 }
+
+/* Operator roster: the website's portrait role card, five a row at the QQ art height (a 30-operator
+   roster stays near 500 KiB). reuse.css still sizes the former compact avatar tile (96px, overflowing
+   tier tag), so those avatar rules are undone here. */
+.reuse.lab-sheet #render-content .ef-roster {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.reuse.lab-sheet.reading #render-content .ef-roster {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.reuse.lab-sheet #render-content .ef-operator .ef-avatar {
+  width: auto !important;
+  height: var(--role-art-h-qq) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.reuse.lab-sheet #render-content .ef-operator .role-rarity {
+  top: 8px;
+  left: 8px;
+  padding: 1px 8px;
+  font-size: var(--qq-small) !important;
+  line-height: 1.4 !important;
+}
+
+.reuse.lab-sheet #render-content .ef-operator .ef-operator-level {
+  margin: 0 0 8px 8px;
+  padding: 1px 8px;
+  font-size: var(--qq-small) !important;
+  line-height: 1.4 !important;
+}
+
+.reuse.lab-sheet #render-content .ef-operator .ef-operator-level span {
+  margin-left: 6px;
+  font-size: var(--qq-small) !important;
+}
+
+.reuse.lab-sheet #render-content .ef-operator h3 {
+  padding: 10px 8px 0;
+  font-size: 22px !important;
+}
+
+.reuse.lab-sheet #render-content .ef-operator :is(.ef-profession, .ef-phase) {
+  padding: 2px 8px 0;
+  font-size: var(--qq-small) !important;
+  line-height: 1.45 !important;
+}
+
+.reuse.lab-sheet #render-content .ef-operator .ef-phase {
+  padding-bottom: 8px;
+}
+
+.reuse.lab-sheet #render-content .ef-roster-card > .ef-note {
+  margin-bottom: 14px;
+}

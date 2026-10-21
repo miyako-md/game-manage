@@ -212,12 +212,14 @@ async def test_newly_available_public_artwork_changes_the_browser_cache_key(monk
     assert renderer.cache_key(scope,result)!=before
 
 
-def test_endfield_portraits_are_reserved_for_mounted_loadouts_and_follow_visible_icons():
+def test_endfield_portraits_are_for_roster_cards_and_mounted_loadouts_and_follow_visible_icons():
     portrait=CATALOG['games']['endfield']['portrait']['佩丽卡']
     icon=CATALOG['games']['endfield']['role']['佩丽卡']
     roster=shared.game_panel('endfield','skland','roles',row({'operators':[{'name':'佩丽卡'}]}))
-    assert (icon,'icon') in list(shared.asset_requests(shared.game_snapshot([roster],NOW)))
-    assert (portrait,'portrait') not in list(shared.asset_requests(shared.game_snapshot([roster],NOW)))
+    requests=list(shared.asset_requests(shared.game_snapshot([roster],NOW)))
+    assert requests.index((icon,'icon'))<requests.index((portrait,'portrait'))
+    ship=shared.game_panel('endfield','skland','ship',row({'operators':[{'name':'佩丽卡'}]}))
+    assert (portrait,'portrait') not in list(shared.asset_requests(shared.game_snapshot([ship],NOW)))
     detail=shared.game_panel('endfield','skland','operator_detail',row({'operator_detail':{'name':'佩丽卡'}}))
     requests=list(shared.asset_requests(shared.game_snapshot([detail],NOW)))
     assert requests.index((icon,'icon'))<requests.index((portrait,'portrait'))

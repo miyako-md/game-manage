@@ -169,7 +169,7 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
           <p v-if="!selected.length" class="ef-empty">{{ operators.length ? '没有匹配的干员，可调整筛选。' : '尚无干员资料。' }}</p>
           <div v-else class="ef-roster"><article v-for="(operator,index) in selected" :key="operator.id || index" class="ef-operator" :class="rarityBadge(operator.rarity)">
             <div class="ef-operator-top">
-              <div class="ef-avatar"><EndfieldArtwork role :portrait="!imageMode" :operator-id="operator.char_id || operator.id" :src="operator.avatar_url" :name="operator.name || '干员'" /><small :class="imageMode ? 'ef-tier' : 'role-rarity'" :data-tier="!imageMode && Number(operator.rarity) >= 6 ? 'top' : undefined">{{ display(operator.rarity) }}★</small></div>
+              <div class="ef-avatar"><EndfieldArtwork role portrait :operator-id="operator.char_id || operator.id" :src="operator.avatar_url" :name="operator.name || '干员'" /><small class="role-rarity" :data-tier="Number(operator.rarity) >= 6 ? 'top' : undefined">{{ display(operator.rarity) }}★</small></div>
               <div class="ef-operator-copy"><h3>{{ display(operator.name) }}</h3><p class="ef-operator-level">Lv. {{ display(operator.level) }} <span>潜能 {{ display(operator.potential) }}</span></p></div>
             </div>
             <p class="ef-phase"><i class="ef-phase-dot" :style="{ '--tone': phaseColor(operator.evolve_phase ?? operator.phase) }" aria-hidden="true"></i>精英阶段 {{ display(operator.evolve_phase ?? operator.phase) }}</p>
@@ -335,7 +335,6 @@ button.ef-count:active { transform:translateY(1px); }
 .ef-filters :deep(.menu-select-trigger) { min-height:38px; }
 .ef-filters input:focus-visible { border-color:var(--ef-ink); outline:0; box-shadow:var(--ring); }
 .ef-roster { display:grid; grid-template-columns:repeat(auto-fill,minmax(208px,1fr)); gap:12px; }
-/* Compact tile: bot images show the whole roster, so it stays short there. */
 .ef-operator { position:relative; display:grid; gap:10px; align-content:start; min-width:0; padding:14px; border-radius:var(--radius-tile); background:var(--surface-soft); overflow:hidden; }
 .ef-operator.top { background:var(--ef-tone); }
 .ef-operator-top { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; gap:12px; }
@@ -345,28 +344,25 @@ button.ef-count:active { transform:translateY(1px); }
 .ef-operator h3 { font-size:15px; line-height:22px; font-weight:600; letter-spacing:-.01em; overflow-wrap:anywhere; }
 .ef-operator .ef-operator-level { margin-top:2px; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
 .ef-operator-level span { margin-left:4px; color:var(--text-muted); font-size:12px; font-weight:400; }
-.ef-tier { position:absolute; left:50%; bottom:0; transform:translateX(-50%); padding:0 9px; border-radius:var(--radius-chip); background:var(--card-bg); color:var(--text-body); font-size:12px; font-weight:500; line-height:20px; white-space:nowrap; box-shadow:inset 0 0 0 1px var(--border-strong),0 0 0 2px var(--surface-soft); }
-.ef-operator.high .ef-tier { background:var(--ef-tone); color:var(--ef-ink); box-shadow:0 0 0 2px var(--surface-soft); }
-.ef-operator.top .ef-tier { background:var(--ef-ink); color:var(--accent-ink); box-shadow:0 0 0 2px var(--ef-tone); }
 .ef-phase { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; }
 .ef-phase-dot { flex:0 0 auto; width:10px; height:10px; border-radius:3px; background:var(--tone,var(--track)); }
 .ef-profession { margin-top:-4px; }
 .ef-operator .ui-button { justify-self:stretch; margin-top:2px; }
-/* On the website each operator is the same role card as the other games (shared role-card tokens): a white frame,
-   the portrait on the game tone with the rarity as the shared tag top left and the level as a white tag, then the text. */
-.endfield-reports:not(.is-image) .ef-roster { grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--role-card-min)),1fr)); gap:var(--role-card-gap); }
-.endfield-reports:not(.is-image) .ef-operator { grid-template-columns:minmax(0,1fr); gap:0; padding:var(--role-card-frame); border:1px solid var(--card-border); border-radius:var(--role-card-radius); background:var(--card-bg); box-shadow:var(--card-shadow); }
-.endfield-reports:not(.is-image) .ef-operator-top, .endfield-reports:not(.is-image) .ef-operator-copy { display:contents; }
-.endfield-reports:not(.is-image) .ef-avatar { grid-area:1 / 1; justify-self:stretch; height:var(--role-art-h); padding:0; border-radius:var(--role-art-radius); background:var(--ef-tone); overflow:hidden; isolation:isolate; }
+/* Each operator is the same role card as the other games (shared role-card tokens), on the website and in bot images:
+   a white frame, the portrait on the game tone with the rarity as the shared tag top left and the level as a white tag, then the text. */
+.endfield-reports .ef-roster { grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--role-card-min)),1fr)); gap:var(--role-card-gap); }
+.endfield-reports .ef-operator { grid-template-columns:minmax(0,1fr); gap:0; padding:var(--role-card-frame); border:1px solid var(--card-border); border-radius:var(--role-card-radius); background:var(--card-bg); box-shadow:var(--card-shadow); }
+.endfield-reports .ef-operator-top, .endfield-reports .ef-operator-copy { display:contents; }
+.endfield-reports .ef-avatar { grid-area:1 / 1; justify-self:stretch; height:var(--role-art-h); padding:0; border-radius:var(--role-art-radius); background:var(--ef-tone); overflow:hidden; isolation:isolate; }
 /* Portraits are cut at their own side edges, so they fill the panel's width and show from the head down. */
-.endfield-reports:not(.is-image) .ef-operator-top .endfield-artwork { position:absolute; inset:0; width:100%; height:100%; border-radius:0; background:transparent; }
-.endfield-reports:not(.is-image) .ef-operator-top .endfield-artwork :deep(img) { object-fit:cover; object-position:center top; }
-.endfield-reports:not(.is-image) .ef-operator .ef-operator-level { grid-area:1 / 1; z-index:1; align-self:end; justify-self:start; margin:0 0 11px 11px; padding:3px 8px; border-radius:var(--radius-chip); background:var(--card-bg); color:var(--ef-ink); font-size:12px; line-height:16px; font-weight:500; white-space:nowrap; }
-.endfield-reports:not(.is-image) .ef-operator-level span { margin-left:6px; color:var(--text-muted); }
-.endfield-reports:not(.is-image) .ef-operator h3 { grid-area:2 / 1; padding:12px 10px 0; font-size:14px; line-height:20px; }
-.endfield-reports:not(.is-image) .ef-profession { grid-area:3 / 1; margin-top:0; padding:2px 10px 0; font-size:12px; line-height:18px; }
-.endfield-reports:not(.is-image) .ef-phase { grid-area:4 / 1; padding:4px 10px 0; font-size:12px; line-height:18px; }
-.endfield-reports:not(.is-image) .ef-operator .ui-button { grid-area:5 / 1; margin:12px 4px 4px; }
+.endfield-reports .ef-operator-top .endfield-artwork { position:absolute; inset:0; width:100%; height:100%; border-radius:0; background:transparent; }
+.endfield-reports .ef-operator-top .endfield-artwork :deep(img) { object-fit:cover; object-position:center top; }
+.endfield-reports .ef-operator .ef-operator-level { grid-area:1 / 1; z-index:1; align-self:end; justify-self:start; margin:0 0 11px 11px; padding:3px 8px; border-radius:var(--radius-chip); background:var(--card-bg); color:var(--ef-ink); font-size:12px; line-height:16px; font-weight:500; white-space:nowrap; }
+.endfield-reports .ef-operator-level span { margin-left:6px; color:var(--text-muted); }
+.endfield-reports .ef-operator h3 { grid-area:2 / 1; padding:12px 10px 0; font-size:14px; line-height:20px; }
+.endfield-reports .ef-profession { grid-area:3 / 1; margin-top:0; padding:2px 10px 0; font-size:12px; line-height:18px; }
+.endfield-reports .ef-phase { grid-area:4 / 1; padding:4px 10px 0; font-size:12px; line-height:18px; }
+.endfield-reports .ef-operator .ui-button { grid-area:5 / 1; margin:12px 4px 4px; }
 .ef-detail { scroll-margin-top:80px; }
 .ef-detail:focus { outline:none; }
 .ef-detail > header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }

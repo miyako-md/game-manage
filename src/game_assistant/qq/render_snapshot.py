@@ -439,12 +439,13 @@ def asset_requests(node):
                         report=payload.get('report') or {}
                         training=report.get('training') or {}
                         operators=training.get('items',payload.get('operators',[]))
-                        def roster():
+                        def roster(portraits=False):
                             for operator in operators if isinstance(operators,list) else []:
                                 if isinstance(operator,dict):
-                                    yield from visit({key:operator[key] for key in ('id','char_id','name','avatar_url','icon_url') if key in operator},current)
+                                    yield from visit({key:operator[key] for key in ('id','char_id','name','avatar_url','icon_url') if key in operator},current,include_portrait=portraits)
                         if cap in ('roles','training'):
-                            yield from roster()
+                            # The roster image draws portrait role cards; icons stay first in the queue as their fallback.
+                            yield from roster(True)
                         elif cap=='operator_detail':
                             yield from visit(payload.get('operator_detail'),current,include_portrait=True)
                         elif cap in ('honor','record'):
