@@ -36,11 +36,12 @@ async function request(check = false, postId = null) {
     if (!response.ok) throw new Error('request failed')
     const data = await response.json()
     if (current !== generation || owner !== identity()) return
-    if (String(data.character_id) !== query.character_id || data.name !== query.name || data.attribute !== query.attribute || !Array.isArray(data.candidates))
+    // The service may answer from the same role ID stored under another name/attribute spelling.
+    if (String(data.character_id) !== query.character_id || !Array.isArray(data.candidates))
       throw new Error('response mismatch')
     result.value = data
     const guide = data.active_guide
-    if (guide && String(guide.id) === query.character_id && guide.name === query.name && guide.attribute === query.attribute && Array.isArray(guide.sections) && Array.isArray(guide.sources)) emit('guide',guide)
+    if (guide && String(guide.id) === query.character_id && Array.isArray(guide.sections) && Array.isArray(guide.sources)) emit('guide',guide)
   } catch (e) {
     if (current === generation && e.name !== 'AbortError') error.value = '检查失败，保留上次结果，请稍后重试。'
   } finally {
@@ -59,6 +60,9 @@ onBeforeUnmount(cancel)
     </header>
     <p class="wuwa-meta" v-if="result?.checked_at">上次成功检查：{{ date(result.checked_at) }}（北京时间） · {{ uncollected }} 篇未收录来源</p>
     <p class="wuwa-meta" v-else>尚未成功检查，等待公共来源采集。</p>
+    <p class="wuwa-meta" v-if="result?.background?.running">后台检查进行中，结果会自动写入。</p>
+    <p class="wuwa-meta" v-else-if="result?.background?.last_run_at">后台检查于 {{ date(result.background.last_run_at) }}（北京时间）</p>
+    <p role="status" v-if="result?.busy" class="wuwa-meta">后台检查进行中，本次未重新检查，显示已有结果。</p>
     <p role="status" v-if="error || result?.error" class="guide-check-error">{{ error || result.error }}</p>
     <p role="status" v-if="result?.extraction_error" class="guide-check-error">{{ result.extraction_error }}</p>
     <p v-if="result?.active_guide" class="wuwa-meta">{{ result.active_guide.sections.every(s => s.status === 'reviewed') ? '已生成并核对五项培养建议' : '已生成提炼结果，未核查项目单独标注' }} · {{ result.active_guide.sources[0]?.author }}</p>
