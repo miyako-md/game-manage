@@ -162,7 +162,7 @@ def test_wuwa_role_without_static_entry_shows_the_live_draft_marked_for_review(r
     guide=guide_of(snapshot)
     assert guide['freshness']['mark']=='自动提炼·待校对' and snapshot['title'].endswith('心 · 自动提炼·待校对')
     assert guide['freshness']['lines']==['攻略检查于 2026-10-22 05:31','原帖至少 10 张图，可在网站攻略页「查看原帖」查看']
-    assert guide['id']=='1311' and guide['asset_hints']==[] and len(guide['sections'])==5
+    assert guide['id']=='1311' and guide['asset_hints'] and len(guide['sections'])==5  # role image at least
     assert guide['sections'][4]['title']=='技能加点优先级' and guide['sections'][4]['text']==''
     assert all('待核对' in s['note'] for s in guide['sections'])
     assert not PRIVATE_KEYS&keys_of(guide)
@@ -280,3 +280,25 @@ async def test_real_guide_freshness_renders_clean_images(case,tmp_path,roster):
             if image.page>=image.total_pages:break
             page+=1
     finally:await renderer.aclose()
+
+
+def test_live_wuwa_text_gets_the_icon_hints_the_static_export_would_give():
+    from game_assistant.qq.guides import _wuwa_hints, catalog
+    # Every static guide: the Python hints cover what the page's tokenizer exported for the same text.
+    for row in catalog()['guides']['wuthering_waves']:
+        guide={'id':row['id'],'image':row.get('image'),'sections':row['sections']}
+        assert set(row['asset_hints'])<=set(_wuwa_hints(guide)),row['name']
+
+def test_live_draft_carries_its_role_image_and_icon_hints(roster):
+    draft=live('1311','心','导电',NEW_POST)
+    for section in draft['sections']:
+        if section['key']=='weapons':section['text']='首选玉阙玄华，四星可考虑今州守望。'
+        if section['key']=='echo_stats':section['text']='副词条先满足共鸣效率，再按双暴。'
+    _,snapshot=reply('wuthering_waves','心',NOW,sources=GuideSources(FakeWuwa({'1311':check('1311','心','导电',[candidate(NEW_POST)],draft)})))
+    guide=guide_of(snapshot)
+    from game_assistant.qq.public_asset_catalog import CATALOG
+    icons=CATALOG['games']['wuthering_waves']
+    assert guide['image']==icons['role']['心']
+    assert {icons['weapon']['玉阙玄华'],icons['weapon']['今州守望'],icons['stat']['共鸣效率']}<=set(guide['asset_hints'])
+    requested={url for url,_ in asset_requests(snapshot)}
+    assert set(guide['asset_hints'])<=requested

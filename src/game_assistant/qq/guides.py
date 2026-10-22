@@ -12,6 +12,9 @@ DRAFT_MARK='自动提炼·待校对'
 WUWA_TITLES={'weapons':'武器推荐','teams':'配队推荐','echo_sets':'声骸配装','echo_stats':'声骸词条','skill_priority':'技能加点优先级'}
 # The extractor keeps at most this many image references of a post.
 WUWA_IMAGE_LIMIT=10
+# Section → public icon buckets, as tokenizeGuide (wuwa-icons.js) matches them.
+WUWA_ICON_BUCKETS={'weapons':('weapon',),'teams':('role',),'echo_sets':('set','echo'),'echo_stats':('stat',)}
+WUWA_HINT_LIMIT=48
 CACHE_ERRORS=(AttributeError,KeyError,TypeError,ValueError,sqlite3.Error)
 
 @lru_cache(maxsize=1)
@@ -81,6 +84,27 @@ def _checked(value):
     text=view.format_time(value)
     return None if text=='未知' else text
 
+def _wuwa_hints(guide):
+    """Icon URLs the page's tokenizer can show for live text: a superset by name, never by position.
+
+    Static entries carry hints exported with the catalog; live extractions get them here from the
+    public icon catalog and the exported aliases, so their QQ image matches the website.
+    """
+    from .public_asset_catalog import CATALOG
+    icons=CATALOG['games']['wuthering_waves'];aliases=(catalog().get('wuwa_guide_aliases') or {}).get('sections',{})
+    urls=[guide.get('image')]
+    for section in guide['sections']:
+        key,text=section.get('key'),section.get('text') or ''
+        if key=='skill_priority':
+            prefix=str(guide['id'])+'::'
+            urls+=[url for name,url in icons.get('skill',{}).items() if name.startswith(prefix)]
+            continue
+        for bucket in WUWA_ICON_BUCKETS.get(key,()):
+            entries=icons.get(bucket,{})
+            urls+=[url for name,url in entries.items() if not name.isdigit() and name in text]
+            urls+=[entries[name] for alias,name in (aliases.get(key) or {}).items() if alias in text and name in entries]
+    return [url for url in dict.fromkeys(urls) if url and safe_public_url(url)][:WUWA_HINT_LIMIT]
+
 def _wuwa_overlay(row,state,*,draft):
     """Static base (or the live draft) plus the freshness lines of one cached check."""
     live=state.get('active_guide')
@@ -90,6 +114,12 @@ def _wuwa_overlay(row,state,*,draft):
         # Same replacement rule as the website: only a fully reviewed extraction replaces the catalog.
         shown=_live_row(row,live)
     guide=_guide(shown)
+    if shown is not row:
+        from .public_asset_catalog import CATALOG
+        roles=CATALOG['games']['wuthering_waves'].get('role',{})
+        guide['image']=row.get('image') or roles.get(str(row['id'])) or roles.get(row['name'])
+        if not guide['image']:guide.pop('image')
+        guide['asset_hints']=_wuwa_hints(guide)
     checked=_checked(state.get('checked_at'))
     lines=[]
     # A preferred post newer than the shown guide stays 待核查 until reviewed (same rule as the admin card).

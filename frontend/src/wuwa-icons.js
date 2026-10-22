@@ -41,6 +41,9 @@ const aliases = {
   echo_stats: { 效率: '共鸣效率', 攻击百分比: '攻击', 固定攻击: '攻击', 防御百分比: '防御', 固定防御: '防御', 生命百分比: '生命', 固定生命: '生命', 暴伤: '暴击伤害', 治疗: '治疗效果加成' },
 }
 
+// QQ computes icon hints for live guide text with the same aliases (exported into role_guides.json).
+export const guideAliases = { sections: aliases, skills: skillAliases }
+
 // Tokenize only for presentation: preserve every original character and connector.
 // Never infer ranks, teams, stats or skill order from icon catalog order.
 export function tokenizeGuide(text, sectionKey, characterId) {

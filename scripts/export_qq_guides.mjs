@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process'
 import wuwa from '../frontend/src/wuwa-guides-catalog.js'
 import wwIcons from '../frontend/src/wuwa-icon-catalog.js'
 import endfield from '../frontend/src/endfield-icon-catalog.js'
-import {tokenizeGuide,characterIcon} from '../frontend/src/wuwa-icons.js'
+import {tokenizeGuide,characterIcon,guideAliases} from '../frontend/src/wuwa-icons.js'
 import {tokenizeNteGuide,nteRoleIcon} from '../frontend/src/nte-icons.js'
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..')
 const catalog=JSON.parse(execFileSync(process.env.PYTHON||'python',['-c','import json;from game_assistant.nte_guides_catalog import guide_catalog;print(json.dumps(guide_catalog(),ensure_ascii=False))'],{cwd:root,encoding:'utf8',env:{...process.env,PYTHONPATH:path.join(root,'src'),PYTHONIOENCODING:'utf-8'}}))
@@ -23,7 +23,7 @@ for(const [game,rows] of Object.entries(guides))for(const g of rows){
  g.asset_hints=[...urls].filter(Boolean)
 }
 const endfieldRole=Object.values(endfield.roles).find(r=>r.name==='伊冯')
-const output={version:1,guides,endfield_role:endfieldRole?{name:endfieldRole.name,avatar_url:endfieldRole.icon}:null}
+const output={version:1,guides,endfield_role:endfieldRole?{name:endfieldRole.name,avatar_url:endfieldRole.icon}:null,wuwa_guide_aliases:guideAliases}
 const target=path.join(root,'src/game_assistant/qq/role_guides.json'),text=JSON.stringify(output,null,2)+'\n'
 // --check (CI): the committed JSON must equal a fresh export of the reviewed catalogs.
 const check=process.argv.includes('--check')
