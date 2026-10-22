@@ -45,6 +45,10 @@ jobs:
       - name: Build dashboard
         working-directory: frontend
         run: npm run build
+      - name: Check the exported QQ guide catalogue
+        env:
+          PYTHON: ${{ github.workspace }}\.venv\Scripts\python.exe
+        run: node scripts/export_qq_guides.mjs --check
   browser-render:
     runs-on: ubuntu-24.04
     steps:

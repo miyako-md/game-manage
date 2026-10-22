@@ -15,7 +15,7 @@ import httpx
 
 from .nte_guides import TextBlocks
 from .nte_ocr import IMAGE_URL_RE
-from .wuwa_guide_updates import HEADERS, MAX_BYTES, parse_candidate, plain
+from .wuwa_guide_updates import HEADERS, MAX_BYTES, error_code, parse_candidate, plain
 from .wuwa_reviewed_guides import REVIEWED
 
 POST_URL = 'https://api.kurobbs.com/forum/getPostDetail'
@@ -173,17 +173,18 @@ class GuideExtractor:
             conn.commit()
 
     def active(self, query):
+        key = getattr(query, 'key', query)
         with closing(sqlite3.connect(self.path)) as conn:
-            row = conn.execute('SELECT payload FROM guide_active WHERE key=?', (query.key,)).fetchone()
+            row = conn.execute('SELECT payload FROM guide_active WHERE key=?', (key,)).fetchone()
         if row:
             try:
                 value = json.loads(row[0])
                 if isinstance(value,dict) and isinstance(value.get('guide'),dict): return value
                 # A first-ever failure has no guide to keep, but the page still has to see its error.
-                if isinstance(value,dict) and isinstance(value.get('error'),str): return {'guide':None, 'error':value['error']}
+                if isinstance(value,dict) and isinstance(value.get('error'),str): return {'guide':None, 'error':value['error'], 'error_code':value.get('error_code')}
             except ValueError:
                 pass
-        return {'guide':None, 'error':None}
+        return {'guide':None, 'error':None, 'error_code':None}
 
     def save(self, query, value):
         with closing(sqlite3.connect(self.path)) as conn:
@@ -238,9 +239,9 @@ class GuideExtractor:
                              'fingerprint':fingerprint,'ruleVersion':RULE_VERSION,
                              'images':source['images'][:MAX_IMAGES],
                              'extractionNote':ocr_error or ('部分配图未读取，提炼可能不完整。' if missing or len(source['images'])>MAX_IMAGES else None)}
-                    value = {'guide':guide,'error':None}
-            except (httpx.HTTPError, SourceError, ValueError, TypeError, TimeoutError):
-                value = {**previous,'error':'原帖提炼失败，保留上次培养建议，请稍后重试。'}
+                    value = {'guide':guide,'error':None,'error_code':None}
+            except (httpx.HTTPError, SourceError, ValueError, TypeError, TimeoutError) as error:
+                value = {**previous,'error':'原帖提炼失败，保留上次培养建议，请稍后重试。','error_code':error_code(error)}
             self.save(query,value)
             return value
 

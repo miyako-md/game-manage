@@ -17,6 +17,8 @@ esports_seconds = 900
 esports_profiles_seconds = 86400
 bilibili_history_days = 60
 bilibili_poll_seconds = 600
+# 每日攻略检查只在云端运行（北京时间 HH:MM，默认 05:30）；本机版本不使用此项，保持注释。
+# cloud_guide_check_time = "05:30"
 
 # 社区凭据自动加密保存；留空使用数据库旁的 assistant.credentials.json。
 auth_store_path = ""

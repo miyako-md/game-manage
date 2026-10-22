@@ -95,7 +95,7 @@ async def test_first_failure_without_a_previous_guide_stays_visible_until_a_succ
     extractor = GuideExtractor(tmp_path / 'guides.db')
     failed = await extractor.extract(QUERY,POST_ID)
     assert failed['guide'] is None and failed['error']
-    assert GuideExtractor(tmp_path / 'guides.db').active(QUERY) == {'guide':None,'error':failed['error']}
+    assert GuideExtractor(tmp_path / 'guides.db').active(QUERY) == {'guide':None,'error':failed['error'],'error_code':'http:503'}
     extractor.attempts.clear()
     source.respond(200,json=raw(body=[{'contentType':1,'content':'武器推荐：玉阙玄华。'}]))
     fixed = await extractor.extract(QUERY,POST_ID)

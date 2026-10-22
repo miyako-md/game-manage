@@ -440,3 +440,83 @@ async def test_failed_poll_logs_short_codes_but_never_messages(tmp_path, caplog)
     await polling.poll_once(scope,'combat')
     assert caplog.records[-1].getMessage().endswith('failed_codes=exception:TimeoutError')
     assert 'RAW' not in caplog.text and scope.account_id not in caplog.text
+
+
+class Guides:
+    """GuideJob stand-in: due until one run has finished."""
+    def __init__(self):
+        self.running, self.runs, self.times, self.gate, self.finished = False, 0, [], asyncio.Event(), False
+
+    def due(self, check_time):
+        self.times.append(check_time)
+        return not self.finished
+
+    async def run(self):
+        self.running, self.runs = True, self.runs + 1
+        try:
+            await self.gate.wait()
+            self.finished = True
+        finally:
+            self.running = False
+
+
+class Tools:
+    def __init__(self):
+        self.guides = Guides()
+
+
+async def test_daily_guide_job_is_queued_by_tick_and_merges_admin_checks(tmp_path):
+    from fastapi import HTTPException
+    accounts, scope, store, query = await query_fixture(tmp_path)
+    tools = Tools()
+    polling = scheduler(tmp_path, accounts, query, public_tools=tools)
+    with pytest.raises(HTTPException) as error:
+        polling.request_guide_check()
+    assert error.value.status_code == 503 and error.value.detail == 'scheduler_unavailable'
+    polling.start(periodic=False)
+    await polling.tick()  # manual ticks never start the daily walk
+    assert polling.guide_state() == 'idle' and tools.guides.times == []
+    polling._daily = True  # as in periodic mode, without the 5 s loop
+    await polling.tick()
+    assert polling.guide_state() == 'queued' and tools.guides.times == ['05:30']
+    await asyncio.sleep(0)
+    assert polling.guide_state() == 'running'
+    assert polling.request_guide_check().state == 'coalesced'
+    await polling.tick()  # queued/running work is never duplicated
+    tools.guides.gate.set()
+    await polling.drain()
+    assert tools.guides.runs == 1 and polling.guide_state() == 'idle'
+    polling._due.pop(('guides', 'daily'))
+    await polling.tick()  # the slot has run: nothing new
+    assert polling.guide_state() == 'idle' and tools.guides.runs == 1
+    assert polling.request_guide_check().state == 'queued'  # the administrator may run it again
+    await polling.drain()
+    assert tools.guides.runs == 2
+    await polling.shutdown()
+
+
+async def test_shutdown_cancels_a_running_guide_job_and_the_slot_uses_its_own_provider(tmp_path):
+    accounts, scope, store, query = await query_fixture(tmp_path)
+    tools = Tools()
+    settings = Settings(cloud_guide_check_time='06:15')
+    polling = AccountPollingScheduler(accounts, query, settings, tmp_path, public_tools=tools)
+    polling.start(periodic=False)
+    polling._daily = True
+    await polling.tick()
+    await asyncio.sleep(0)
+    assert tools.guides.running and tools.guides.times == ['06:15']
+    assert polling._providers['kurobbs_public']._value == 0 and polling._global._value == settings.cloud_poll_concurrency
+    task = polling._pending[('guides', 'daily')][1]
+    await polling.shutdown()
+    assert task.cancelled() and not tools.guides.running and not tools.guides.finished
+
+
+async def test_without_public_tools_no_guide_job_is_scheduled(tmp_path):
+    accounts, scope, store, query = await query_fixture(tmp_path)
+    polling = scheduler(tmp_path, accounts, query)
+    polling.start(periodic=False)
+    polling._daily = True
+    await polling.tick()
+    assert ('guides', 'daily') not in polling._pending and polling.guide_state() == 'idle'
+    await polling.drain()
+    await polling.shutdown()

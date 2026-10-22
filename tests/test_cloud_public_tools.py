@@ -303,3 +303,62 @@ def test_public_cache_files_roundtrip_backup(tmp_path):
     for name in ('public.nte-guides.sqlite3', 'public.wuwa-guides.sqlite3'):
         with sqlite3.connect(tmp_path / 'restored/data' / name) as db:
             assert db.execute('SELECT value FROM synthetic').fetchone()[0] == 'preserved'
+
+
+def register_alice(app, client, admin):
+    invite = app.state.identity.create_invite(admin)
+    assert write(client, '/api/identity/register', {'username': 'alice',
+        'password': 'Password-alice-123', 'invite': invite}).status_code == 200
+
+
+def test_guide_admin_routes_require_admin_and_csrf(cloud):
+    app, client, admin, upstream = cloud
+    assert client.get('/api/admin/guides').status_code == 401
+    register_alice(app, client, admin)
+    assert client.get('/api/admin/guides').status_code == 403
+    assert write(client, '/api/admin/guides/check', {}).status_code == 403
+    login(client)
+    assert client.post('/api/admin/guides/check', json={}).status_code == 403  # no CSRF token
+    data = client.get('/api/admin/guides').json()
+    assert set(data) == {'job', 'wuthering_waves', 'tower', 'nte'}
+    # Without a running scheduler nothing is scheduled; reads stay cache-only.
+    assert data['job'] == {'state': 'idle', 'last_run': None, 'next_run_at': None, 'retry_after': 0}
+    response = write(client, '/api/admin/guides/check', {})
+    assert response.status_code == 503 and response.json() == {'detail': 'scheduler_unavailable'}
+    assert not upstream.calls
+
+
+def test_guide_check_queues_merges_and_cools_down(cloud):
+    import asyncio
+    app, client, admin, upstream = cloud
+    tools = app.state.cloud_public_tools
+    assert app.state.scheduler.guides is tools.guides and tools.scheduler is app.state.scheduler
+    gate = []
+    async def run():
+        tools.guides.running = True
+        gate.append(asyncio.Event())
+        try:
+            await gate[-1].wait()
+        finally:
+            tools.guides.running = False
+    tools.guides.run = run
+    client.portal.call(lambda: app.state.scheduler.start(periodic=False))
+    login(client)
+    response = write(client, '/api/admin/guides/check', {})
+    assert response.status_code == 202 and response.json() == {'state': 'queued', 'retry_after': 600}
+    status = client.get('/api/admin/guides').json()['job']
+    assert status['state'] == 'running' and 595 <= status['retry_after'] <= 600 and status['next_run_at']
+    response = write(client, '/api/admin/guides/check', {})
+    assert response.status_code == 429 and response.json()['detail'] == 'guide_check_cooldown'
+    assert 595 <= int(response.headers['Retry-After']) <= 600
+    assert response.json()['retry_after'] == int(response.headers['Retry-After'])
+    tools.guide_check_last = None  # cooldown over while the run is still going: merged
+    assert write(client, '/api/admin/guides/check', {}).json() == {'state': 'merged', 'retry_after': 600}
+    # The page button answers at once from the cache instead of waiting behind the job.
+    query = {'character_id': '1', 'name': '测试', 'attribute': ''}
+    busy = write(client, '/api/admin/wuwa/guides/updates', query)
+    assert busy.status_code == 200 and busy.json()['busy'] is True
+    assert busy.json()['background'] == {'running': True, 'last_run_at': None}
+    assert client.get('/api/public/wuwa/guides/updates', params=query).json()['background']['running'] is True
+    assert not upstream.calls
+    client.portal.call(lambda: gate[-1].set())

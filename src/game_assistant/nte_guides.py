@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from .nte_guides_catalog import SOURCES
+from .wuwa_guide_updates import error_code
 
 MAX_BYTES = 2 * 1024 * 1024
 MAX_AGE = 86400
@@ -87,7 +88,7 @@ class GuideService:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.locks = {key: asyncio.Lock() for key in SOURCES}
-        self.last_attempt, self.errors = {}, {}
+        self.last_attempt, self.errors, self.error_codes = {}, {}, {}
         with closing(sqlite3.connect(self.path)) as conn:
             conn.execute('CREATE TABLE IF NOT EXISTS guide_posts (id INTEGER PRIMARY KEY, payload TEXT NOT NULL)')
             conn.commit()
@@ -116,6 +117,14 @@ class GuideService:
         return {**value, 'stale': age > MAX_AGE or bool(error), 'error': error,
                 'summary_changed': value['fingerprint'] != SOURCES[post_id]['fingerprint'], 'refresh_deferred': deferred}
 
+    def status(self, post_id):
+        """Cache-only freshness for the administrator and QQ; None until the post was fetched once."""
+        cached = self.cached(post_id) if post_id in SOURCES else None
+        if not cached: return None
+        value = self.present(cached, post_id)
+        return {'fetched_at': cached['fetched_at'], 'summary_changed': value['summary_changed'],
+                'stale': value['stale'], 'error': bool(value['error'])}
+
     async def read(self, post_id, force=False):
         if post_id not in SOURCES: raise GuideSourceError('未收录的攻略来源')
         async with self.locks[post_id]:
@@ -138,12 +147,13 @@ class GuideService:
                 value = parse_post(json.loads(body), post_id)
                 value['fetched_at'] = datetime.now(timezone.utc).isoformat()
                 self.save(post_id, value)
-                self.errors.pop(post_id, None)
+                self.errors.pop(post_id, None); self.error_codes.pop(post_id, None)
                 return self.present(value, post_id)
-            except (httpx.HTTPError, GuideSourceError, ValueError, TypeError, RecursionError):
+            except (httpx.HTTPError, GuideSourceError, ValueError, TypeError, RecursionError) as error:
                 self.errors[post_id] = '原帖暂时无法读取；保留上次成功资料，请稍后重试。'
+                self.error_codes[post_id] = error_code(error)
                 if cached:
-                    cached = {**cached, 'source_error': self.errors[post_id]}
+                    cached = {**cached, 'source_error': self.errors[post_id], 'error_code': self.error_codes[post_id]}
                     self.save(post_id, cached)
                     return self.present(cached, post_id)
                 raise GuideSourceError('原帖暂时无法读取，请稍后重试或打开来源链接') from None

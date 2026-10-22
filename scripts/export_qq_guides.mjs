@@ -24,5 +24,9 @@ for(const [game,rows] of Object.entries(guides))for(const g of rows){
 }
 const endfieldRole=Object.values(endfield.roles).find(r=>r.name==='伊冯')
 const output={version:1,guides,endfield_role:endfieldRole?{name:endfieldRole.name,avatar_url:endfieldRole.icon}:null}
-await fs.writeFile(path.join(root,'src/game_assistant/qq/role_guides.json'),JSON.stringify(output,null,2)+'\n')
-console.log(JSON.stringify({public_guides:Object.fromEntries(Object.entries(guides).map(([game,rows])=>[game,rows.length])),endfield_guide_collected:false}))
+const target=path.join(root,'src/game_assistant/qq/role_guides.json'),text=JSON.stringify(output,null,2)+'\n'
+// --check (CI): the committed JSON must equal a fresh export of the reviewed catalogs.
+const check=process.argv.includes('--check')
+if(!check)await fs.writeFile(target,text)
+else if((await fs.readFile(target,'utf8')).replaceAll('\r\n','\n')!==text){console.error('role_guides.json is stale; run node scripts/export_qq_guides.mjs and review.');process.exit(1)}
+console.log(JSON.stringify({public_guides:Object.fromEntries(Object.entries(guides).map(([game,rows])=>[game,rows.length])),endfield_guide_collected:false,checked:check}))

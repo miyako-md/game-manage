@@ -85,3 +85,17 @@ def test_endfield_challenge_interval_is_separate_and_bounded(tmp_path):
     cfg = tmp_path / "config.toml"
     cfg.write_text("cloud_endfield_challenge_poll_seconds = 1800\n", encoding="utf-8")
     assert Settings.load(str(cfg)).cloud_endfield_challenge_poll_seconds == 1800
+
+
+def test_guide_check_time_is_a_validated_beijing_hh_mm(tmp_path):
+    import pytest
+    from pydantic import ValidationError
+    assert Settings.load(str(tmp_path / "missing.toml")).cloud_guide_check_time == "05:30"
+    for value in ("00:00", "23:59", "04:15"):
+        assert Settings(cloud_guide_check_time=value).cloud_guide_check_time == value
+    for value in ("24:00", "5:30", "05:60", "05:30:00", "abc", "", "０５:３０", "٠٥:٣٠"):
+        with pytest.raises(ValidationError):
+            Settings(cloud_guide_check_time=value)
+    cfg = tmp_path / "config.toml"
+    cfg.write_text('cloud_guide_check_time = "06:00"\n', encoding="utf-8")
+    assert Settings.load(str(cfg)).cloud_guide_check_time == "06:00"
