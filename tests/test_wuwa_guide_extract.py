@@ -118,3 +118,10 @@ async def test_changed_source_never_reuses_reviewed_summary(tmp_path):
     changed = await service.extract(QUERY,POST_ID,force=True)
     assert changed['guide']['sections'][0]['status'] == 'extracted'
     assert '已核对的' not in changed['guide']['sections'][0]['text']
+
+
+def test_tag_and_account_rows_are_not_paragraphs():
+    from game_assistant.wuwa_guide_extract import noise
+    assert noise('布兰特培养|布兰特一图流|布兰特材料|声骸|技能|配队|武器')
+    assert noise('关注作者获取更多攻略') and noise('UID：123')
+    assert not noise('鸣潮角色 | V2.5布兰特培养攻略一图流') and not noise('配队推荐：布兰特／露帕／长离')

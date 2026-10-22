@@ -52,6 +52,11 @@ def safe_image(value):
     return None
 
 
+def noise(text):
+    """Account prompts and tag/navigation rows ("培养|一图流|材料|…") are not advice."""
+    return bool(re.search(r'UID|账号|关注|点赞|转发', text, re.I)) or len(re.findall(r'[|｜]', text)) >= 3
+
+
 def parse_source(raw, post_id, query):
     data = raw.get('data') if isinstance(raw, dict) and raw.get('code') == 200 else None
     detail = data.get('postDetail') if isinstance(data, dict) else None
@@ -71,7 +76,7 @@ def parse_source(raw, post_id, query):
                 images.append({'page': len(images) + 1, 'url': safe_image(block.get('url'))})
             elif block.get('contentType') == 1:
                 text = plain(block.get('content')).strip()
-                if text and not re.search(r'UID|账号|关注|点赞|转发', text, re.I):
+                if text and not noise(text):
                     paragraphs.append({'position':len(paragraphs) + 1, 'text':text.lstrip('🌙 ').strip()})
     else:
         html = detail.get('postH5Content')
@@ -80,7 +85,7 @@ def parse_source(raw, post_id, query):
         parser = TextBlocks(); parser.feed(html)
         for line in ''.join(parser.parts).splitlines():
             text = line.strip()
-            if text and not re.search(r'UID|账号|关注|点赞|转发', text, re.I):
+            if text and not noise(text):
                 paragraphs.append({'position':len(paragraphs) + 1, 'text':text})
         images = [{'page':i, 'url':safe_image(m.group(1))} for i,m in enumerate(IMAGE_URL_RE.finditer(html),1)]
     if sum(len(p['text']) for p in paragraphs) > 200000 or len(images) > 40 or not (paragraphs or images):
@@ -143,9 +148,9 @@ def recognize(images):
         import io
         engine = load_ocr_engine()
     except (ImportError, OcrUnavailableError):
-        return [], '图文识别组件未安装，可安装项目的 ocr 可选依赖。'
+        return [], '原帖配图未自动识别，请查看原图。'
     except Exception:
-        return [], '图文识别组件暂时不可用，保留明确正文。'
+        return [], '原帖配图暂时无法识别，保留明确正文。'
     pages, errors = [], []
     for page, blob in images:
         try:
