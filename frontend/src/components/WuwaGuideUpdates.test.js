@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { nextTick, reactive } from 'vue'
+import { computed, defineComponent, h, nextTick, provide, reactive } from 'vue'
+import { configureHttpClient } from '../http-client.js'
 import { loadVue, mount, content, nodes } from '../test-utils/vue.js'
 
 const tick = async () => { await new Promise(resolve => setImmediate(resolve)); await nextTick() }
@@ -78,4 +79,23 @@ test('switching roles ignores late responses and known sources are distinguished
   finish({ ok: true, json: async () => result([{ ...entry, title: 'LATE_XIN' }]) })
   await tick()
   assert.doesNotMatch(content(root), /LATE_XIN|轩儿Xuaner/)
+})
+
+test('the cloud shows the check to administrators only and reads through the public route', async t => {
+  configureHttpClient({ mode: 'cloud' }); t.after(() => configureHttpClient({ mode: 'local' }))
+  const calls = []
+  t.mock.method(globalThis, 'fetch', async url => { calls.push(String(url)); return { ok: true, json: async () => result([entry]) } })
+  const Guide = await loadVue(new URL('./WuwaGuide.vue', import.meta.url))
+  const host = isAdmin => defineComponent({ setup() {
+    provide('cloudPermissions', computed(() => ({ isAdmin })))
+    return () => h(Guide, { characterId: '1311', characterName: '心', attribute: '导电' })
+  } })
+  const admin = mount(t, host(true), {})
+  await tick()
+  assert.ok(nodes(admin, 'button').some(n => content(n) === '检查更新'))
+  assert.ok(calls.some(url => url.startsWith('/api/public/wuwa/guides/updates?')))
+  const member = mount(t, host(false), {})
+  await tick()
+  assert.match(content(member), /社区攻略更新/)
+  assert.ok(!nodes(member, 'button').some(n => content(n) === '检查更新'))
 })

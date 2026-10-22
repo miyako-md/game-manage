@@ -1,6 +1,4 @@
 <script setup>
-import { isCloudMode } from '../http-client.js'
-const cloudMode = isCloudMode()
 import { computed, ref, watch } from 'vue'
 import { displayWuwaGuide, getWuwaGuide, guideSections, guideSourceUrl, guideUpdatedAt, guideVersion } from '../wuwa-guides.js'
 import { characterIcon, namedIcon } from '../wuwa-icons.js'
@@ -31,7 +29,7 @@ function receiveGuide(value) {
       </div>
       <span v-if="guide" class="guide-version">{{ guide.attribute }}</span>
     </header>
-    <WuwaGuideUpdates v-if="!cloudMode" :character-id="characterId" :name="original?.name || characterName" :attribute="original?.attribute || attribute" :sources="guide?.sources || []" @guide="receiveGuide" />
+    <WuwaGuideUpdates :character-id="characterId" :name="original?.name || characterName" :attribute="original?.attribute || attribute" :sources="guide?.sources || []" @guide="receiveGuide" />
     <template v-if="guide">
       <details class="guide-sources" data-render-collapsed><summary>资料详情</summary><p class="wuwa-meta">{{ guide.reviewedAt ? `资料核查于 ${guide.reviewedAt}` : guide.fetchedAt ? '原帖自动提炼，尚未人工核查' : `资料核查于 ${guideUpdatedAt}` }} · {{ reviewedCount }}/5 项已核对原帖</p><p v-if="guide.extractionNote" class="guide-note">{{ guide.extractionNote }}</p></details>
       <div class="guide-grid">
