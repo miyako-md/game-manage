@@ -254,3 +254,14 @@ test('an unchanged merged scope does not cancel either source request', async t 
   answers.get('/api/accounts/s/roles/sr/endfield/skland/card')(json({ source: 'skland' }))
   assert.deepEqual(await Promise.all(pending), [{ data: { source: 'hypergryph' } }, { data: { source: 'skland' } }])
 })
+
+test('cloud admin guide status and check use only their exact routes and methods', async t => {
+  configureHttpClient({ mode: 'cloud' }); t.after(() => configureHttpClient({ mode: 'local' }))
+  const calls = []
+  t.mock.method(globalThis, 'fetch', async (path, options) => { calls.push([path, options.method, options.headers['X-CSRF-Token']]); return path.endsWith('/csrf') ? json({ csrf_token: 'fixture' }) : json({ state: 'queued' }) })
+  await requestJson('/api/admin/guides')
+  await requestJson('/api/admin/guides/check', { method: 'POST' })
+  assert.deepEqual(calls.filter(([path]) => !path.endsWith('/csrf')), [['/api/admin/guides', 'GET', undefined], ['/api/admin/guides/check', 'POST', 'fixture']])
+  for (const [path, method] of [['/api/admin/guides', 'POST'], ['/api/admin/guides/check', 'GET'], ['/api/admin/guides?x=1', 'GET'], ['/api/admin/guides/other', 'POST']])
+    await assert.rejects(requestJson(path, { method }), /尚未提供云端接口/)
+})

@@ -51,7 +51,23 @@ Public role guides use the project's existing 46 Wuwa and 23 NTE guide entries
 and their reviewed role/equipment/skill icons. `攻略`, `鸣潮 攻略`,
 `异环 角色攻略 角色名` and the other game prefixes are public reads; they do not
 resolve bindings or collect private account data. Missing Endfield guide content
-remains explicitly unavailable while retaining its public role context.
+remains explicitly unavailable while retaining its public role context; the reply
+names 猫冬MT「终末地攻略合集」 on Bilibili as a search hint, without a link.
+
+On the cloud (cloud accounts enabled) the static catalog stays the base and the QQ
+reply reads the website's guide caches synchronously on every request (no upstream
+request, nothing cached in the process): `GuideUpdates.cached_by_id` for WuWa and
+`GuideService.status`/`cached` for the two NTE posts. A WuWa entry shows the
+catalog content unless the stored extraction has all five sections reviewed (the
+website rule), plus 「库街区有新攻略帖，待核查（检查于 …）」 when the preferred new post
+is not among the shown sources. A WuWa role without a catalog entry, resolved by
+name through `guide_jobs.guide_roster()`, shows its stored extraction with the
+header mark 「自动提炼·待校对」. NTE adds 「原帖有更新，摘要待复核」 when the post
+fingerprint changed. Pages show 「攻略检查于 …」 when the time is known and the
+source image count with a pointer to the website; original images are never sent.
+These lines travel in the whitelisted `guide.freshness` field (`mark`, at most four
+`lines` of 120 characters). Without the services (cloud accounts disabled) the
+reply is exactly the static catalog reply.
 
 The existing public asset cache has a bounded disk tier at `qq-public-assets`
 beside the cloud data directory: at most 512 sanitized PNGs, 128 MiB and seven

@@ -87,6 +87,7 @@ test('public Bilibili authorization entry is visible only for the website admini
       nodes(root,'button').find(n=>content(n)==='账号与授权').props.onClick();await tick()
       assert.equal(content(root).includes('管理员 · B 站公共源授权'),is_admin)
       assert.equal(content(root).includes('管理员 · QQ 群设置'),is_admin)
+      assert.equal(content(root).includes('管理员 · 攻略更新'),is_admin)
     })
   }
 })

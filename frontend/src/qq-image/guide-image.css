@@ -10,6 +10,11 @@
   border-radius: 18px;
 }
 
+/* A role without a portrait (an automatic WuWa draft for a new role) keeps its title full width. */
+.guide-role-context:not(:has(> img, > .endfield-artwork)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .guide-role-context > img,
 .guide-role-context > .endfield-artwork {
   width: 96px;

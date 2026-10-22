@@ -53,8 +53,10 @@ class QueryBody(BaseModel):
 
 
 class QqQueryService:
-    def __init__(self, bindings, query, public, *, dashboard_url='', urls_approved=False, render_queue=None,asset_cache=None,clock=None):
+    def __init__(self, bindings, query, public, *, dashboard_url='', urls_approved=False, render_queue=None,asset_cache=None,clock=None,guides=None):
         self.bindings,self.query_service,self.public=bindings,query,public
+        # Optional cache-only guide services (GuideSources); None keeps the static catalog reply.
+        self.guides=guides
         self.dashboard_url,self.urls_approved=dashboard_url,urls_approved
         self.render_queue=render_queue
         self.asset_cache=asset_cache
@@ -399,7 +401,7 @@ class QqQueryService:
             return reply(card)
         if command=='guide':
             from .guides import reply as guide_reply
-            card,snapshot=guide_reply(game,role_name,self.clock(),page)
+            card,snapshot=guide_reply(game,role_name,self.clock(),page,sources=self.guides)
             if context is not None:context['render_snapshot']=snapshot
             self._capture_snapshot(context,None,'guides',QueryResult(snapshot['display_data'],None,'ok',None))
             return reply(card)
@@ -698,8 +700,12 @@ def install_qq_query_routes(app, *, app_id, dashboard_url='', urls_approved=Fals
     render_queue=RenderQueue(BrowserRenderer(font_path=settings.qq_image_font_path,max_bytes=settings.qq_image_max_bytes,asset_cache=asset_cache,
         enabled=settings.qq_browser_render_enabled,dist_path=settings.qq_browser_render_dist_path,
         executable_path=settings.qq_browser_render_executable_path,template='a')) if settings.qq_images_enabled else None
+    # The same guide service instances the website uses; absent when cloud accounts are disabled.
+    from .guides import GuideSources
+    wuwa,nte=getattr(app.state,'wuwa_guide_updates',None),getattr(app.state,'nte_guides',None)
+    guides=GuideSources(wuwa,nte) if wuwa is not None or nte is not None else None
     service=QqQueryService(app.state.qq_bindings,getattr(app.state,'account_query',None),
-                           getattr(app.state,'public_query',None),dashboard_url=dashboard_url,urls_approved=urls_approved,render_queue=render_queue,asset_cache=asset_cache)
+                           getattr(app.state,'public_query',None),dashboard_url=dashboard_url,urls_approved=urls_approved,render_queue=render_queue,asset_cache=asset_cache,guides=guides)
     app.state.qq_query=service
     async def query(body:QueryBody,request:Request):
         if not getattr(request.state,'service_principal',False):raise HTTPException(401,'service_auth_required')

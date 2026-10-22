@@ -99,3 +99,39 @@ test('the cloud shows the check to administrators only and reads through the pub
   assert.match(content(member), /社区攻略更新/)
   assert.ok(!nodes(member, 'button').some(n => content(n) === '检查更新'))
 })
+
+test('the background job state is shown and a busy check keeps the cached result without an error', async t => {
+  const calls = []
+  let background = { running: true, last_run_at: null }
+  t.mock.method(globalThis, 'fetch', async (_, options) => {
+    calls.push(options.method || 'GET')
+    return { ok: true, json: async () => options.method === 'POST' ? { ...result([entry]), background, busy: true } : { ...result([entry]), background } }
+  })
+  const Component = await loadVue(new URL('./WuwaGuideUpdates.vue', import.meta.url))
+  const root = mount(t, Component, { characterId: '1311', name: '心', attribute: '导电' })
+  await tick()
+  assert.match(content(root), /后台检查进行中，结果会自动写入/)
+  nodes(root, 'button').find(n => content(n) === '检查更新').props.onClick()
+  await tick()
+  assert.deepEqual(calls, ['GET', 'POST'])
+  assert.match(content(root), /本次未重新检查，显示已有结果/)
+  assert.match(content(root), /轩儿Xuaner/)
+  assert.doesNotMatch(content(root), /检查失败/)
+  background = { running: false, last_run_at: '2026-10-21T21:40:00+00:00' }
+  const idle = mount(t, Component, { characterId: '1311', name: '心', attribute: '导电' })
+  await tick()
+  assert.match(content(idle), /后台检查于 2026\/10\/22 05:40:00（北京时间）/)
+  assert.doesNotMatch(content(idle), /后台检查进行中/)
+})
+
+test('a cached check stored under another spelling of the same role ID is still shown', async t => {
+  const guide = { id: '1311', name: '心', attribute: '', sourceId: entry.id, sources: [{ ...entry }], sections: [{ key: 'weapons', text: '示例武器', status: 'extracted', sourceId: entry.id }] }
+  t.mock.method(globalThis, 'fetch', async () => ({ ok: true, json: async () => ({ ...result([entry]), attribute: '', active_guide: guide }) }))
+  const Component = await loadVue(new URL('./WuwaGuideUpdates.vue', import.meta.url))
+  const seen = []
+  const root = mount(t, Component, { characterId: '1311', name: '心', attribute: '导电', onGuide: value => seen.push(value) })
+  await tick()
+  assert.match(content(root), /轩儿Xuaner/)
+  assert.equal(seen.length, 1)
+  assert.doesNotMatch(content(root), /检查失败/)
+})

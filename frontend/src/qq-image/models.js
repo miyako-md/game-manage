@@ -251,13 +251,15 @@ export function viewModel(c){
  else if(s.kind==='wuwa_gacha')result.panels=[note('鸣潮抽卡档案',d.archive.coverage?.message||'尚未导入抽卡记录，请在云端看板导入。'),metricPanel('记录覆盖',[metric('记录数',d.archive.total)],[kv('覆盖状态',d.archive.coverage?.complete===true?'完整':'尚未确认完整')])]
  else if(s.kind==='game_snapshot')result.panels=d.panels.flatMap(gamePanel).concat((d.notices||[]).map(n=>note('说明',n)))
  else if(s.kind==='guide'){
-  const g=d.guide,version=v=>v?'V'+v:'版本未确认';result.hero={name:g.name+' · 攻略',image:asset(g.image|| (s.game==='nte'?nteRoleIcon(g.id||g.name):wuwaIcons.characters[String(g.id)]?.icon)),meta:[g.attribute||g.element,g.role,g.sources?.map(s=>version(s.version)).join(' / '),g.status==='original_only'?'仅原图索引':'已整理的社区建议'].filter(Boolean)}
+  const g=d.guide,version=v=>v?'V'+v:'版本未确认';result.hero={name:g.name+' · 攻略',image:asset(g.image|| (s.game==='nte'?nteRoleIcon(g.id||g.name):wuwaIcons.characters[String(g.id)]?.icon)),meta:[g.attribute||g.element,g.role,g.sources?.map(s=>version(s.version)).join(' / '),g.freshness?.mark||(g.status==='original_only'?'仅原图索引':'已整理的社区建议')].filter(Boolean)}
   result.panels=g.sections.map(sec=>({title:sec.title,type:'guide_visual',game:s.game,characterId:g.id,roleName:g.name,sectionKey:sec.key,text:sec.text||sec.items?.join('\n')||'暂无已核验文字摘要，请查看来源原图。',caption:sec.note,source:g.sources?.find(s=>String(s.id)===String(sec.sourceId))?.title||g.sources?.[0]?.title}))
+  // Cache-only freshness (new post 待核查, summary 待复核, check time) leads the page.
+  if(g.freshness?.lines?.length)result.panels.unshift({title:'攻略状态',type:'textlines',lines:g.freshness.lines.map(text=>({text}))})
   result.panels.push({title:'攻略来源',type:'textlines',lines:g.sources.map(src=>({name:src.title,text:`${src.author}　${version(src.version)}\n${src.url}`})),caption:'社区建议的原始版本可能早于当前版本；适用性请按装备和版本判断。'})
  }else if(s.game==='endfield'&&/攻略/.test(c.command)){
   const publicRole=Object.values(endfieldIcons.roles).find(r=>r.name==='伊冯')
   const role=endfieldOperators.find(r=>r.name==='伊冯')||endfieldOperators[0]||(publicRole?{name:publicRole.name,avatar_url:publicRole.icon}:null)
-  result.panels=[{title:'攻略收录状态',type:'guide_context',role,text:'当前项目尚未收录可核验的终末地角色攻略。',caption:'角色资料与装备图标已可复用；攻略内容待收录。',command:role?'终末地 角色 '+role.name:''}]
+  result.panels=[{title:'攻略收录状态',type:'guide_context',role,text:d.notices?.[0]||'暂未收录可核验的终末地角色攻略；可在 B 站搜索 猫冬MT「终末地攻略合集」。',caption:'角色资料与装备图标已可复用；攻略内容待收录。',command:role?'终末地 角色 '+role.name:''}]
  }else{
   result.panels=(d.sections||[]).map(sec=>({title:sec.title,type:'textlines',lines:(sec.items||[]).map(x=>({text:x}))}))
   if(!result.panels.length)result.panels=[note(d.title||s.title,(d.notices||[]).join('\n')||'暂无说明')]
