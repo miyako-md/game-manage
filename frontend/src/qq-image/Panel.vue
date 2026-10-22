@@ -57,7 +57,7 @@ const ringStyle=p=>({'--pct':(p??0)+'%'})
      <div v-else class="event-unplaced"><span class="tag">{{e.status}}</span><p>{{e.time||'日期尚未确认，暂不定位时间条。'}}</p></div>
     </article>
    </div>
-   <div v-else-if="panel.type==='guide_visual'" class="guide-visual"><div v-for="(line,i) in guideLines(panel)" :key="i" class="guide-source-line"><WuwaGuideVisual v-if="panel.game==='wuthering_waves'" :text="line" :section-key="panel.sectionKey" :character-id="panel.characterId" image-mode /><NteGuideVisual v-else :text="line" :section-key="panel.sectionKey" :role-name="panel.roleName" image-mode /></div></div>
+   <div v-else-if="panel.type==='guide_visual'" class="guide-visual"><div v-for="(line,i) in guideLines(panel)" :key="i" class="guide-source-line"><span v-if="panel.plain" class="guide-plain">{{line}}</span><WuwaGuideVisual v-else-if="panel.game==='wuthering_waves'" :text="line" :section-key="panel.sectionKey" :character-id="panel.characterId" image-mode /><NteGuideVisual v-else :text="line" :section-key="panel.sectionKey" :role-name="panel.roleName" image-mode /></div></div>
    <div v-else-if="panel.type==='guide_context'" class="guide-empty"><p>{{panel.text}}</p><div v-if="panel.role" class="guide-role-context"><EndfieldArtwork :src="panel.role.avatar_url" :name="panel.role.name" role /><div><h3>{{panel.role.name}}</h3><p>角色资料已收录</p><p>查看本人面板：{{panel.command}}</p></div></div></div>
    <div v-else-if="panel.type==='textlines'" class="text-lines"><article v-for="line in panel.lines"><h3 v-if="line.name">{{line.name}}</h3><p>{{line.text}}</p></article></div>
    <p v-else class="prose">{{panel.text}}</p>

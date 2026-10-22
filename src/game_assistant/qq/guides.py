@@ -71,6 +71,9 @@ def _live_row(base,live):
     sources=[{key:s.get(key) for key in ('id','title','author','version','url')} for s in live['sources'] if isinstance(s,dict)]
     return {**base,'sources':sources,'sections':sections}
 
+def _reviewed(live):
+    return isinstance(live,dict) and isinstance(live.get('sections'),list) and len(live['sections'])==5 and all(isinstance(s,dict) and s.get('status')=='reviewed' for s in live['sections'])
+
 def _usable(live,character_id):
     return isinstance(live,dict) and str(live.get('id'))==str(character_id) and isinstance(live.get('sections'),list) and isinstance(live.get('sources'),list)
 
@@ -83,7 +86,7 @@ def _wuwa_overlay(row,state,*,draft):
     live=state.get('active_guide')
     shown=row
     if draft:shown=_live_row(row,live)
-    elif _usable(live,row['id']) and len(live['sections'])==5 and all(isinstance(s,dict) and s.get('status')=='reviewed' for s in live['sections']):
+    elif _usable(live,row['id']) and _reviewed(live):
         # Same replacement rule as the website: only a fully reviewed extraction replaces the catalog.
         shown=_live_row(row,live)
     guide=_guide(shown)
@@ -115,7 +118,7 @@ def _draft(name,sources):
     role=matches[0];state=sources.wuwa_state(role.get('character_id'))
     if state is None or not _usable(state.get('active_guide'),role.get('character_id')):return None
     base={'id':str(role['character_id']),'name':str(role['name']),'game':'wuthering_waves','attribute':str(role.get('attribute') or '')}
-    return _wuwa_overlay(base,state,draft=True)
+    return (*_wuwa_overlay(base,state,draft=True),_reviewed(state['active_guide']))
 
 def reply(game,name,now,page=1,sources=None):
     command=(view.GAME_NAMES[game]+' ' if game else '')+'攻略'+(' '+name if name else '')
@@ -135,7 +138,8 @@ def reply(game,name,now,page=1,sources=None):
             guide,lines=overlay or (_guide(row),[])
         elif not found and game=='wuthering_waves':
             overlay=_draft(name,sources)
-            if overlay:guide,lines=overlay;mark=DRAFT_MARK
+            # A fully reviewed extraction (e.g. a registered fingerprint) is not a draft.
+            if overlay:guide,lines,reviewed=overlay;mark=None if reviewed else DRAFT_MARK
         if len(found)==1 or overlay:
             if lines or mark:guide['freshness']={'mark':mark,'lines':lines}
             heading=title+' · '+guide['name']+(' · '+mark if mark else '')

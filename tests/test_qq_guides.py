@@ -169,6 +169,13 @@ def test_wuwa_role_without_static_entry_shows_the_live_draft_marked_for_review(r
     text=card_to_text(card)
     assert '自动提炼·待校对' in text and '未经人工核对' in text
 
+def test_wuwa_role_without_static_entry_and_a_reviewed_extraction_is_not_marked_as_draft(roster):
+    reviewed=live('1311','心','导电',NEW_POST,status='reviewed')
+    card,snapshot=reply('wuthering_waves','心',NOW,sources=GuideSources(FakeWuwa({'1311':check('1311','心','导电',[candidate(NEW_POST)],reviewed)})))
+    guide=guide_of(snapshot)
+    assert guide['freshness']['mark'] is None and not snapshot['title'].endswith('待校对')
+    assert '未经人工核对' not in card_to_text(card)
+
 def test_new_role_draft_needs_a_roster_entry_and_a_stored_extraction(roster):
     for rows in ({},{'1311':check('1311','心','导电',[candidate(NEW_POST)])}):
         _,snapshot=reply('wuthering_waves','心',NOW,sources=GuideSources(FakeWuwa(rows)))

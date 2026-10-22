@@ -151,6 +151,10 @@ test('guide freshness leads the page and an automatic draft carries its mark ins
  assert.equal(model.panels.at(-1).title,'攻略来源')
  const plain=viewModel({command:'鸣潮 攻略 示例',snapshot:{kind:'guide',game:'wuthering_waves',as_of:'2026-10-22T08:00:00+08:00',display_data:{guide:base}}})
  assert.ok(plain.hero.meta.includes('已整理的社区建议'));assert.ok(!plain.panels.some(p=>p.title==='攻略状态'))
+ // Without icon hints (a live extraction) the sections read as text instead of placeholder chips.
+ assert.ok(plain.panels.filter(p=>p.type==='guide_visual').every(p=>p.plain===true))
+ const hinted=viewModel({command:'鸣潮 攻略 示例',snapshot:{kind:'guide',game:'wuthering_waves',as_of:'2026-10-22T08:00:00+08:00',display_data:{guide:{...base,asset_hints:['https://example.invalid/i.png']}}}})
+ assert.ok(hinted.panels.filter(p=>p.type==='guide_visual').every(p=>p.plain===false))
 })
 test('the Endfield guide notice shows the snapshot text with the source name and no link',()=>{
  configure([],{})

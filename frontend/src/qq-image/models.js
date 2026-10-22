@@ -252,7 +252,7 @@ export function viewModel(c){
  else if(s.kind==='game_snapshot')result.panels=d.panels.flatMap(gamePanel).concat((d.notices||[]).map(n=>note('说明',n)))
  else if(s.kind==='guide'){
   const g=d.guide,version=v=>v?'V'+v:'版本未确认';result.hero={name:g.name+' · 攻略',image:asset(g.image|| (s.game==='nte'?nteRoleIcon(g.id||g.name):wuwaIcons.characters[String(g.id)]?.icon)),meta:[g.attribute||g.element,g.role,g.sources?.map(s=>version(s.version)).join(' / '),g.freshness?.mark||(g.status==='original_only'?'仅原图索引':'已整理的社区建议')].filter(Boolean)}
-  result.panels=g.sections.map(sec=>({title:sec.title,type:'guide_visual',game:s.game,characterId:g.id,roleName:g.name,sectionKey:sec.key,text:sec.text||sec.items?.join('\n')||'暂无已核验文字摘要，请查看来源原图。',caption:sec.note,source:g.sources?.find(s=>String(s.id)===String(sec.sourceId))?.title||g.sources?.[0]?.title}))
+  result.panels=g.sections.map(sec=>({title:sec.title,type:'guide_visual',game:s.game,characterId:g.id,roleName:g.name,sectionKey:sec.key,text:sec.text||sec.items?.join('\n')||'暂无已核验文字摘要，请查看来源原图。',caption:sec.note,plain:s.game==='wuthering_waves'&&!g.asset_hints?.length,source:g.sources?.find(s=>String(s.id)===String(sec.sourceId))?.title||g.sources?.[0]?.title}))
   // Cache-only freshness (new post 待核查, summary 待复核, check time) leads the page.
   if(g.freshness?.lines?.length)result.panels.unshift({title:'攻略状态',type:'textlines',lines:g.freshness.lines.map(text=>({text}))})
   result.panels.push({title:'攻略来源',type:'textlines',lines:g.sources.map(src=>({name:src.title,text:`${src.author}　${version(src.version)}\n${src.url}`})),caption:'社区建议的原始版本可能早于当前版本；适用性请按装备和版本判断。'})

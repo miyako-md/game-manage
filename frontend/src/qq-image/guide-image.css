@@ -50,10 +50,16 @@
   gap: 10px 12px;
 }
 
-.lab-sheet .guide-visual :is(.guide-connector, .plain-token) {
+.lab-sheet .guide-visual :is(.guide-connector, .plain-token, .guide-plain) {
   font-size: 20px;
   line-height: 1.65;
   color: var(--ink);
+}
+
+/* A guide without icon hints (a live extraction) reads as plain text, not placeholder chips. */
+.lab-sheet .guide-visual .guide-plain {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .lab-sheet .guide-visual :is(.guide-entity, .visual-token) {
