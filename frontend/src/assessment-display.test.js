@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { attributionLabel, echoBadges, gradeLabel, isDefaultScore } from './assessment-display.js'
+import { attributionLabel, echoBadges, gradeLabel, isDefaultScore, isNoDefault, scoreLine } from './assessment-display.js'
 
 test('grades read upper case and only the six known grades are shown', () => {
   assert.deepEqual(['c', 'b', 'a', 's', 'ss', 'sss', 'SS'].map(gradeLabel), ['C', 'B', 'A', 'S', 'SS', 'SSS', 'SS'])
@@ -25,4 +25,14 @@ test('echo badges follow the source position, skip unscorable items and a differ
   assert.deepEqual([...badges].map(([echo, badge]) => [echoes.indexOf(echo), badge]), [[0, { value: '30.05', grade: 'SSS' }], [2, { value: '30.05', grade: 'A' }]])
   assert.equal(echoBadges({ origin: 'user_configured', item_results: [item('echo:0:7', { grade: null, max_value: null })] }, echoes).size, 0)
   assert.equal(echoBadges(null, echoes).size, 0)
+})
+
+test('the header line shows a total only for a scored set and always names a default unofficial', () => {
+  const base = { origin: 'builtin_default', attribution: 'gpl_snapshot', max_value: 250 }
+  assert.deepEqual(scoreLine({ ...base, status: 'scored', value: '146.82', grade: 'b' }), { total: '总分 146.82 / 250 · B', source: '非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）' })
+  assert.deepEqual(scoreLine({ ...base, status: 'unscorable', value: null, partial: true }), { total: '', source: '非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）' })
+  assert.deepEqual(scoreLine({ origin: 'user_configured', status: 'scored', value: '3.00', max_value: null }), { total: '评分 3.00', source: '个人权重' })
+  assert.deepEqual(scoreLine(null), { total: '', source: '' })
+  assert.equal(isNoDefault({ status: 'unconfigured', model_version: 'unconfigured' }), true)
+  assert.equal(isNoDefault({ status: 'unconfigured', model_version: 'mine' }), false)
 })

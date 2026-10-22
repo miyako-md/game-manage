@@ -5,8 +5,9 @@ import { list, starCount, value } from '../wuwa-display.js'
 import WuwaFields from './WuwaFields.vue'
 import WuwaIcon from './WuwaIcon.vue'
 import RoleAssessment from './RoleAssessment.vue'
-import { attributionLabel, echoBadges } from '../assessment-display.js'
+import { echoBadges, isNoDefault, scoreLine } from '../assessment-display.js'
 // liveAssessment: the detail on screen is the account's current one, so the website reads its equipped score.
+// The score lives in the echo section (header total and source, a badge per echo), never as a block of its own.
 const props = defineProps({ data: { type: Object, default: () => ({}) }, imageMode:{type:Boolean,default:false}, liveAssessment:{type:Boolean,default:false} })
 provide('wuwaImageMode', computed(() => props.imageMode))
 const attributes = computed(() => Array.isArray(props.data.role_attribute_list)
@@ -17,9 +18,12 @@ const unlockedChains = computed(
 )
 const echoes = computed(() => list(props.data.phantom_data?.equip_phantom_list))
 // Per-echo badges (R1 slot): images carry the projected assessment, the website the one RoleAssessment read.
-const liveScore = ref(null)
-const score = computed(() => props.imageMode ? props.data.assessment : props.liveAssessment ? liveScore.value : null)
+const liveScore = ref(null), editor = ref(null), editorState = ref({ loading: false, error: '', opened: false })
+const live = computed(() => props.liveAssessment && !props.imageMode)
+const score = computed(() => props.imageMode ? props.data.assessment : live.value ? liveScore.value : null)
 const badges = computed(() => echoBadges(score.value, props.data.phantom_data?.equip_phantom_list))
+const line = computed(() => scoreLine(score.value))
+const toggleEditor = () => editorState.value.opened ? editor.value?.close() : editor.value?.open()
 // Image layout (R1): the cached detail has no full-length art, so the portrait is the
 // outfit picture, else the role icon; skills and chains each fill one row.
 const portrait = computed(() => safeUrl(props.data.role_skin?.skin_icon) || safeUrl(props.data.role?.role_icon_url))
@@ -39,7 +43,8 @@ const isAttributeList = (v) =>
 </script>
 <template>
   <div class="wuwa-role-detail">
-    <RoleAssessment game="wuthering_waves" :character-id="String(data.role?.role_id || '')" :image-mode="imageMode" :initial-assessment="data.assessment" :auto-load="liveAssessment" @assessment="liveScore = $event" />
+    <!-- History entries keep the stand-alone editor block; the live detail and images embed the score below. -->
+    <RoleAssessment v-if="!imageMode && !liveAssessment" game="wuthering_waves" :character-id="String(data.role?.role_id || '')" />
     <section class="wuwa-detail-section wuwa-detail-basics">
       <figure v-if="imageMode" class="wuwa-portrait">
         <img v-if="portrait" :src="portrait" :alt="data.role?.role_name || '角色'" />
@@ -200,8 +205,14 @@ const isAttributeList = (v) =>
       <h3 class="wuwa-subhead">
         装备声骸<span class="wuwa-meta"
           >总 COST {{ value(data.phantom_data?.cost) }}</span
-        ><span v-if="badges.size" class="wuwa-meta wuwa-echo-source"
-          >非官方 · {{ attributionLabel(score) || '默认评分' }}</span
+        ><b v-if="line.total" class="wuwa-echo-total">{{ line.total }}</b
+        ><span v-if="(line.total || badges.size) && line.source" class="wuwa-meta wuwa-echo-source"
+          >{{ line.source }}</span
+        ><template v-if="live"
+          ><span v-if="editorState.loading" class="wuwa-meta wuwa-echo-status" role="status">正在读取评分…</span
+          ><span v-else-if="editorState.error" class="wuwa-meta wuwa-echo-status wuwa-warning" role="alert">评分读取失败：{{ editorState.error }}</span
+          ><span v-else-if="isNoDefault(score)" class="wuwa-meta wuwa-echo-status">暂无默认权重</span
+          ><button type="button" class="ui-button small-button wuwa-echo-weights" :aria-expanded="editorState.opened" :disabled="!data.role?.role_id" @click="toggleEditor">{{ editorState.opened ? '收起权重设置' : '权重设置' }}</button></template
         >
       </h3>
       <div v-if="echoes.length" class="wuwa-tiles wuwa-echoes">
@@ -248,6 +259,7 @@ const isAttributeList = (v) =>
         </article>
       </div>
       <p v-else class="wuwa-muted">暂无装备声骸数据</p>
+      <RoleAssessment v-if="live" ref="editor" class="wuwa-echo-editor" embedded auto-load game="wuthering_waves" :character-id="String(data.role?.role_id || '')" @assessment="liveScore = $event" @state="editorState = $event" />
       <WuwaFields
         :data="data.phantom_data"
         :exclude="['cost', 'equip_phantom_list']"
@@ -310,5 +322,7 @@ const isAttributeList = (v) =>
 .wuwa-echo-score{display:inline-flex;flex:none;align-items:baseline;gap:6px;margin:0 0 0 auto;font-variant-numeric:tabular-nums}
 .wuwa-echo-score b{color:var(--text);font-size:15px;font-weight:600}
 .wuwa-echo-score span{padding:0 8px;border-radius:var(--radius-chip);background:var(--wuwa-tone);color:var(--wuwa-ink);font-size:12px;font-weight:600;line-height:20px}
-.wuwa-echo-source{margin-left:8px}
+.wuwa-echo-total{color:var(--wuwa-ink);font-weight:600;font-variant-numeric:tabular-nums}
+.wuwa-echo-weights{margin-left:auto}
+.wuwa-echo-editor{margin-top:12px}
 </style>

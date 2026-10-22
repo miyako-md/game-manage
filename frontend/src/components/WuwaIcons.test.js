@@ -88,44 +88,115 @@ test('broken icons fall back to a name marker and retry when the source changes'
   assert.equal(nodes(root, 'img').length, 1)
 })
 
-// M8 (R1 slot): each scored echo shows its default score and grade; an unscorable echo shows none.
+// M8: the score is part of the echo section (header total and source, a badge per echo), never a block of its own.
 const scoredDetail = () => ({
   role: { role_id: 1205, role_name: '角色甲' },
   phantom_data: { cost: 11, equip_phantom_list: [
     { cost: 4, phantom_prop: { name: '声骸甲' } }, null, { cost: 3, phantom_prop: { name: '声骸乙' } }, { phantom_prop: { name: '声骸丙' } },
   ] },
 })
-const defaultAssessment = attribution => ({ status: 'unscorable', partial: true, partial_known_total: '70.10', origin: 'builtin_default', unofficial: true, attribution, max_value: 250, item_results: [
+const echoItems = () => [
   { item_id: 'echo:0:unknown', status: 'scored', value: '38.52', grade: 'ss', max_value: 50, cost: 4 },
   { item_id: 'echo:2:unknown', status: 'scored', value: '31.58', grade: 'a', max_value: 50, cost: 3 },
-  { item_id: 'echo:3:unknown', status: 'unscorable', value: null, grade: null, max_value: null, cost: null },
-] })
+  { item_id: 'echo:3:unknown', status: 'unscorable', reason: 'UNKNOWN_COST', value: null, grade: null, max_value: null, cost: null },
+]
+const defaultAssessment = (attribution, scored = true) => ({ status: scored ? 'scored' : 'unscorable', value: scored ? '146.82' : null, grade: scored ? 'b' : null, max_value: 250,
+  partial: !scored, partial_known_total: scored ? null : '70.10', origin: 'builtin_default', unofficial: true, attribution, source: 'builtin_default', model_version: 'builtin-1', item_results: echoItems() })
+const noDefault = { status: 'unconfigured', value: null, reason: 'NO_WEIGHTS', model_version: 'unconfigured', source: 'user_configured', origin: null, item_results: [], partial: null }
 const badgeTexts = root => nodes(root, 'p').filter(n => n.props.class === 'wuwa-echo-score').map(content)
+const echoHeader = root => content(nodes(nodes(root, 'section').find(n => String(n.props.class).includes('wuwa-detail-echoes')), 'h3')[0]).trim()
+const blocks = root => nodes(root, 'section').filter(n => String(n.props.class ?? '').includes('personal-assessment'))
+const ok = body => ({ ok: true, status: 200, json: async () => body })
+const reply = assessment => ok({ configuration: { items: [] }, assessment })
+const settle = async () => { for (let i = 0; i < 6; i++) await nextTick() }
 
-test('image echoes carry their score and grade with the unofficial attribution; an unscorable echo has no badge', async t => {
+test('image: the total, grade and unofficial source sit in the echo header, each scored echo has a badge, and no score block exists', async t => {
   const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
-  const root = mount(t, Detail, { imageMode: true, data: { ...scoredDetail(), assessment: defaultAssessment('gpl_snapshot') } })
-  assert.deepEqual(badgeTexts(root), ['38.52 SS', '31.58 A'])
-  const tiles = nodes(root, 'article').filter(n => /声骸/.test(content(n)))
-  assert.deepEqual(tiles.map(n => badgeTexts(n).length), [1, 1, 0])
-  assert.match(content(root), /装备声骸 总 COST 11 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）/)
-  assert.doesNotMatch(content(root), /默认评分/, 'the block itself stays hidden until the total is scored')
-  assert.match(content(mount(t, Detail, { imageMode: true, data: { ...scoredDetail(), assessment: defaultAssessment('self_made') } })), /非官方 · 自制权重/)
-  for (const assessment of [undefined, { ...defaultAssessment('gpl_snapshot'), origin: 'user_configured', attribution: null }]) {
-    const plain = mount(t, Detail, { imageMode: true, data: { ...scoredDetail(), assessment } })
-    assert.deepEqual(badgeTexts(plain), []); assert.doesNotMatch(content(plain), /非官方/)
+  const fetch = t.mock.method(globalThis, 'fetch', async () => { throw new Error('no request in images') })
+  const image = data => mount(t, Detail, { imageMode: true, data: { ...scoredDetail(), ...data } })
+  const scored = image({ assessment: defaultAssessment('gpl_snapshot') })
+  assert.equal(echoHeader(scored), '装备声骸 总 COST 11 总分 146.82 / 250 · B 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）')
+  assert.deepEqual(badgeTexts(scored), ['38.52 SS', '31.58 A'])
+  const tiles = nodes(scored, 'article').filter(n => /声骸/.test(content(n)))
+  assert.deepEqual(tiles.map(n => badgeTexts(n).length), [1, 1, 0], 'the unscorable echo has no badge')
+  assert.deepEqual(blocks(scored), []); assert.doesNotMatch(content(scored), /默认评分|装备 1：|权重设置/)
+  assert.match(echoHeader(image({ assessment: defaultAssessment('self_made') })), /总分 146.82 \/ 250 · B 非官方 · 自制权重$/)
+  const partial = image({ assessment: defaultAssessment('gpl_snapshot', false) })
+  assert.equal(echoHeader(partial), '装备声骸 总 COST 11 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）')
+  assert.deepEqual(badgeTexts(partial), ['38.52 SS', '31.58 A'])
+  for (const assessment of [undefined, noDefault, { ...noDefault, status: 'unscorable', reason: 'NO_EQUIPMENT', model_version: 'builtin-1', origin: 'builtin_default' }]) {
+    const plain = image({ assessment })
+    assert.equal(echoHeader(plain), '装备声骸 总 COST 11'); assert.deepEqual(badgeTexts(plain), []); assert.deepEqual(blocks(plain), [])
   }
+  // A personal model replaces the default wholly: its score is shown as personal, never as unofficial.
+  const own = image({ assessment: { ...defaultAssessment(null), origin: 'user_configured', unofficial: null, source: 'user_configured' } })
+  assert.equal(echoHeader(own), '装备声骸 总 COST 11 总分 146.82 / 250 · B 个人权重')
+  const weights = image({ assessment: { status: 'scored', value: '3.00', origin: 'user_configured', source: 'user_configured', max_value: null, grade: null, item_results: [] } })
+  assert.equal(echoHeader(weights), '装备声骸 总 COST 11 评分 3.00 个人权重')
+  await settle(); assert.equal(fetch.mock.callCount(), 0)
 })
 
-test('the live website detail badges its echoes from the equipped score it reads; a history entry reads nothing', async t => {
+function liveDetail(t, { equipped = () => reply(defaultAssessment('gpl_snapshot')), model = { game: 'wuthering_waves', character_id: '1205', version: 'mine', source: 'user_configured', wuwa_weights: { attack_flat: '1' } } } = {}) {
+  const calls = []
+  t.mock.method(globalThis, 'fetch', async (path, options = {}) => {
+    const key = `${options.method || 'GET'} ${path.replace(/^\/api\/assessment\/[^/]+\/[^/]+/, '')}`
+    calls.push(key)
+    if (key === 'GET /equipped') return equipped()
+    if (key === 'DELETE /model') return ok({ deleted: true })
+    return ok({ model, configurations: [] })
+  })
+  return { calls, root: null }
+}
+const press = async (root, label) => { await nodes(root, 'button').find(n => content(n) === label).props.onClick(); await settle() }
+
+test('website: the live detail reads the equipped score on mount and shows it in the echo header, with no result panel', async t => {
   const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
-  const fetch = t.mock.method(globalThis, 'fetch', async () => ({ ok: true, status: 200, json: async () => ({ configuration: { items: [] }, assessment: defaultAssessment('gpl_snapshot') }) }))
-  const history = mount(t, Detail, { data: scoredDetail() })
-  for (let i = 0; i < 4; i++) await nextTick()
-  assert.equal(fetch.mock.callCount(), 0); assert.deepEqual(badgeTexts(history), [])
-  const live = mount(t, Detail, { liveAssessment: true, data: scoredDetail() })
-  for (let i = 0; i < 6; i++) await nextTick()
-  assert.equal(fetch.mock.callCount(), 1)
-  assert.match(fetch.mock.calls[0].arguments[0], /\/api\/assessment\/wuthering_waves\/1205\/equipped$/)
-  assert.deepEqual(badgeTexts(live), ['38.52 SS', '31.58 A'])
+  const { calls } = liveDetail(t)
+  const root = mount(t, Detail, { liveAssessment: true, data: scoredDetail() })
+  await settle()
+  assert.deepEqual(calls, ['GET /equipped'])
+  assert.equal(echoHeader(root), '装备声骸 总 COST 11 总分 146.82 / 250 · B 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0） 权重设置')
+  assert.deepEqual(badgeTexts(root), ['38.52 SS', '31.58 A'])
+  assert.deepEqual(blocks(root), []); assert.doesNotMatch(content(root), /默认评分|个人权重评分|装备 1：/)
+})
+
+test('website: 权重设置 opens the editor below the echoes; 恢复默认 deletes the personal model, closes it and reads the score again', async t => {
+  const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
+  const { calls } = liveDetail(t)
+  const root = mount(t, Detail, { liveAssessment: true, data: scoredDetail() })
+  await settle(); await press(root, '权重设置')
+  const [editor] = blocks(root)
+  assert.ok(nodes(nodes(root, 'section').find(n => String(n.props.class).includes('wuwa-detail-echoes')), 'section').includes(editor), 'the editor opens inside the echo section')
+  assert.match(content(editor), /个人权重设置.*保存权重模型.*恢复默认/)
+  assert.ok(nodes(root, 'button').some(n => content(n) === '收起权重设置' && n.props['aria-expanded'] === true))
+  assert.match(echoHeader(root), /总分 146.82/, 'the header keeps the equipped score while the editor is open')
+  await press(root, '恢复默认')
+  assert.deepEqual(calls, ['GET /equipped', 'GET ', 'DELETE /model', 'GET /equipped'])
+  assert.deepEqual(blocks(root), []); assert.match(echoHeader(root), /总分 146.82 \/ 250 · B 非官方/)
+  await press(root, '权重设置'); await press(root, '收起'); assert.deepEqual(blocks(root), [])
+})
+
+test('website: loading, a read failure and a character without default weights show compactly in the echo header', async t => {
+  const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
+  let answer = null
+  liveDetail(t, { equipped: () => answer ? answer() : new Promise(() => {}) })
+  const loading = mount(t, Detail, { liveAssessment: true, data: scoredDetail() })
+  await settle(); assert.match(echoHeader(loading), /正在读取评分… 权重设置$/)
+  answer = () => ({ ok: false, status: 503, json: async () => ({ detail: 'unavailable' }) })
+  const failed = mount(t, Detail, { liveAssessment: true, data: scoredDetail() })
+  await settle(); assert.match(echoHeader(failed), /评分读取失败：/)
+  assert.ok(nodes(failed, 'span').some(n => n.props.role === 'alert'))
+  answer = () => reply(noDefault)
+  const none = mount(t, Detail, { liveAssessment: true, data: scoredDetail() })
+  await settle(); assert.equal(echoHeader(none), '装备声骸 总 COST 11 暂无默认权重 权重设置')
+})
+
+test('history entries keep the stand-alone editor block and request nothing', async t => {
+  const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
+  const { calls } = liveDetail(t)
+  const root = mount(t, Detail, { data: scoredDetail() })
+  await settle()
+  assert.deepEqual(calls, []); assert.deepEqual(badgeTexts(root), [])
+  assert.equal(echoHeader(root), '装备声骸 总 COST 11')
+  assert.match(content(blocks(root)[0]), /个人权重评分 配置权重与 A\/B 对比/)
 })
