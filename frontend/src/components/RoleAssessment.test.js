@@ -352,10 +352,10 @@ test('an equipped read of the previous character never lands on the next one', a
 })
 
 test('the editor starts from the default model as a personal copy, without a restore button', async t => {
-  const { root, click, settle } = autoLoaded(t, { model: { game: 'wuthering_waves', character_id: '1205', version: 'default-v1', source: 'builtin_default', wuwa_weights: { crit_rate: '2' } } })
+  const { root, click, settle } = autoLoaded(t, { model: { game: 'wuthering_waves', character_id: '1205', version: 'default-v1', source: 'builtin_default', attribution: 'gpl_snapshot', wuwa_weights: { crit_rate: '2' } } })
   await settle(); await click(open)
   const model = JSON.parse(nodes(root, 'textarea').find(node => node.props['aria-label'] === '权重及公式配置 JSON').props.value)
-  assert.equal(model.source, 'user_configured'); assert.equal(model.version, 'default-v1'); assert.deepEqual(model.wuwa_weights, { crit_rate: '2' })
+  assert.equal(model.source, 'user_configured'); assert.equal(model.attribution, null, 'a personal model carries no default attribution'); assert.equal(model.version, 'default-v1'); assert.deepEqual(model.wuwa_weights, { crit_rate: '2' })
   assert.ok(!nodes(root, 'button').some(node => content(node) === '恢复默认'))
 })
 

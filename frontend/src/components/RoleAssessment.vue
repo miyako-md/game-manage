@@ -4,16 +4,17 @@ import { computed, ref, watch } from 'vue'
 import { requestJson, getAccountScope, isCloudMode, subscribeSessionInvalidation } from '../http-client.js'
 import { attributionLabel, gradeLabel, isDefaultScore } from '../assessment-display.js'
 import { onUnmounted } from 'vue'
-// autoLoad: the website shows the score of the equipped echoes without a click (the live role detail only, never history entries).
-const props=defineProps({game:{type:String,required:true},characterId:{type:String,default:''},scopeKey:{type:[String,Object],default:''},imageMode:{type:Boolean,default:false},initialAssessment:{type:Object,default:null},autoLoad:{type:Boolean,default:false}})
-const emit=defineEmits(['assessment'])
+// autoLoad: the website reads the score of the equipped echoes without a click (the live role detail only, never history entries).
+// embedded: the host shows the score in its own layout; this component is then only the editor, shown once the host opens it.
+const props=defineProps({game:{type:String,required:true},characterId:{type:String,default:''},scopeKey:{type:[String,Object],default:''},imageMode:{type:Boolean,default:false},initialAssessment:{type:Object,default:null},autoLoad:{type:Boolean,default:false},embedded:{type:Boolean,default:false}})
+const emit=defineEmits(['assessment','state'])
 const opened=ref(false),busy=ref(false),error=ref(''),modelJson=ref(''),itemsJson=ref('[]'),name=ref('配置 A'),saved=ref([]),a=ref(''),b=ref(''),result=ref(null),comparison=ref(null),observedAt=ref(null)
 // generation: the character, game or session on screen. revision: the model and equipment input. A response lands only while the one it answers is still current.
 let generation=0,revision=0,loads=0
 // The equipped score read on mount has its own loading state, so it never holds the editor's busy flag.
 const equipped=ref(null),loading=ref(false),loadError=ref(''),userModel=ref(false)
 const superseded=new DOMException('输入已变化','AbortError')
-const reasons={NO_MODEL:'请先配置评分模型',NO_WEIGHTS:'请先填写偏好权重',NO_EQUIPMENT:'没有可评分的装备输入',UNKNOWN_STAT_COMPLETENESS:'尚未核对完整词条列表',NO_POSITIVE_ELIGIBLE_WEIGHTS:'请配置有效副词条的正权重',MISSING_EXPLICIT_NTE_INPUT:'请补充装备类型、品质、面积及完整词条输入',UNKNOWN_QUALITY:'装备品质未提供或未配置品质因子',UNKNOWN_AREA:'驱动面积未提供或无效',UNKNOWN_SUBSTATS:'副词条列表及完整性未确认',UNKNOWN_STAT:'词条尚未映射或未提供数值',UNKNOWN_VALUE:'词条数值未提供',INVALID_VALUE:'词条数值格式无效',UNIT_MISMATCH:'词条单位与模型不一致',UNKNOWN_UNIT:'词条单位未提供',INELIGIBLE_SUBSTAT:'词条不适用于已声明的装备类型',UNKNOWN_MAINSTAT:'卡带主词条未提供或未声明',UNKNOWN_MAIN_VALUE:'主词条值未提供',UNKNOWN_MAIN_REFERENCE:'主词条参考值未配置',REFERENCE_CONTEXT_MISMATCH:'主词条与参考上下文不一致',CONFLICTING_OBSERVATION:'同一观察记录出现不同词条值',AMBIGUOUS_DUPLICATE_STAT:'主副词条身份重复或不明确',AMBIGUOUS_DUPLICATE_SUBSTAT:'副词条身份重复或不明确',DUPLICATE_ITEM:'装备标识重复',BOTH_CONFIGURATIONS_REQUIRE_SCORE:'双方都可评分后才能计算差值',ZERO_BASELINE:'A 的精确分数为零，百分比无法计算',NO_STAT_VALUES:'未提供可验证的词条值'}
+const reasons={UNKNOWN_COST:'声骸 COST 未提供或无法识别',NO_MODEL:'请先配置评分模型',NO_WEIGHTS:'请先填写偏好权重',NO_EQUIPMENT:'没有可评分的装备输入',UNKNOWN_STAT_COMPLETENESS:'尚未核对完整词条列表',NO_POSITIVE_ELIGIBLE_WEIGHTS:'请配置有效副词条的正权重',MISSING_EXPLICIT_NTE_INPUT:'请补充装备类型、品质、面积及完整词条输入',UNKNOWN_QUALITY:'装备品质未提供或未配置品质因子',UNKNOWN_AREA:'驱动面积未提供或无效',UNKNOWN_SUBSTATS:'副词条列表及完整性未确认',UNKNOWN_STAT:'词条尚未映射或未提供数值',UNKNOWN_VALUE:'词条数值未提供',INVALID_VALUE:'词条数值格式无效',UNIT_MISMATCH:'词条单位与模型不一致',UNKNOWN_UNIT:'词条单位未提供',INELIGIBLE_SUBSTAT:'词条不适用于已声明的装备类型',UNKNOWN_MAINSTAT:'卡带主词条未提供或未声明',UNKNOWN_MAIN_VALUE:'主词条值未提供',UNKNOWN_MAIN_REFERENCE:'主词条参考值未配置',REFERENCE_CONTEXT_MISMATCH:'主词条与参考上下文不一致',CONFLICTING_OBSERVATION:'同一观察记录出现不同词条值',AMBIGUOUS_DUPLICATE_STAT:'主副词条身份重复或不明确',AMBIGUOUS_DUPLICATE_SUBSTAT:'副词条身份重复或不明确',DUPLICATE_ITEM:'装备标识重复',BOTH_CONFIGURATIONS_REQUIRE_SCORE:'双方都可评分后才能计算差值',ZERO_BASELINE:'A 的精确分数为零，百分比无法计算',NO_STAT_VALUES:'未提供可验证的词条值'}
 const reason=code=>code?(reasons[code]||'输入资料不足或不一致，请核对') : ''
 // Once the editor is open the result is the one of its input; before that, the equipped score.
 const visibleScore=computed(()=>props.imageMode?props.initialAssessment:opened.value?result.value:equipped.value)
@@ -43,6 +44,7 @@ async function loadEquipped(){
 }
 watch(()=>[props.game,props.characterId,props.imageMode,props.scopeKey,props.autoLoad],()=>{clear();loadEquipped()},{flush:'sync'})
 watch(equipped,value=>emit('assessment',value))
+watch(()=>({loading:loading.value,error:loadError.value,opened:opened.value}),value=>emit('state',value))
 // The comparison names no configuration, so it belongs to the A/B pair it was computed for.
 watch([a,b],()=>{comparison.value=null},{flush:'sync'})
 const wuwaStats={attack_flat:'攻击平值',attack_ratio:'攻击百分比',health_flat:'生命平值',health_ratio:'生命百分比',defense_flat:'防御平值',defense_ratio:'防御百分比',crit_rate:'暴击率',crit_damage:'暴击伤害',energy_regen:'共鸣效率',basic_damage:'普攻伤害加成',heavy_damage:'重击伤害加成',skill_damage:'共鸣技能伤害加成',liberation_damage:'共鸣解放伤害加成',aero_damage:'气动伤害加成',glacio_damage:'冷凝伤害加成',fusion_damage:'热熔伤害加成',electro_damage:'导电伤害加成',spectro_damage:'衍射伤害加成',havoc_damage:'湮灭伤害加成',healing_bonus:'治疗效果加成'}
@@ -76,11 +78,13 @@ async function call(path,options,fromInput){const version=generation,input=revis
 const json=value=>JSON.stringify(value,null,2)
 function parseJson(raw){try{return JSON.parse(raw)}catch{throw new Error('JSON 格式无效，请检查后再保存')}}
 // The default model is the template of a new personal model; saving it makes it the user's own.
-async function read(){const data=await call(base()),model=data.model;userModel.value=model.source==='user_configured'&&model.version!=='unconfigured';modelJson.value=json(model.version==='unconfigured'?template():{...model,source:'user_configured'});saved.value=data.configurations; if(!a.value)a.value=saved.value[0]?.id||'';if(!b.value)b.value=saved.value[1]?.id||''}
+async function read(){const data=await call(base()),model=data.model;userModel.value=model.source==='user_configured'&&model.version!=='unconfigured';modelJson.value=json(model.version==='unconfigured'?template():{...model,source:'user_configured',attribution:null});saved.value=data.configurations; if(!a.value)a.value=saved.value[0]?.id||'';if(!b.value)b.value=saved.value[1]?.id||''}
 async function open(){opened.value=true;await run(read)}
+function close(){opened.value=false;error.value=''}
+defineExpose({open,close})
 function configuration(){return {game:props.game,character_id:props.characterId,name:name.value,source:'user_configured',observed_at:observedAt.value,items:parseJson(itemsJson.value)}}
 async function useEquipped(){await run(async()=>{const data=await call(base()+'/equipped');edited();itemsJson.value=json(data.configuration.items);observedAt.value=data.configuration.observed_at||null;name.value='当前装备副本';result.value=data.assessment})}
-async function saveModel(){await run(async()=>{await call(base()+'/model',{method:'PUT',body:parseJson(modelJson.value)});result.value=null;comparison.value=null;await read()})}
+async function saveModel(){await run(async()=>{await call(base()+'/model',{method:'PUT',body:parseJson(modelJson.value)});result.value=null;comparison.value=null;await read();loadEquipped()})}
 // Deleting the personal model brings the default back: close the editor and read the equipped score again.
 async function restoreDefault(){await run(async()=>{await call(base()+'/model',{method:'DELETE'});edited();userModel.value=false;opened.value=false;loadEquipped()})}
 async function saveConfig(){await run(async()=>{const data=await call(base()+'/configurations',{method:'POST',body:configuration()});await read();b.value=data.id})}
@@ -90,10 +94,11 @@ async function remove(id){await run(async()=>{await call(base()+'/configurations
 function load(row){name.value=row.data.name;itemsJson.value=json(row.data.items);observedAt.value=row.data.observed_at||null;edited()}
 </script>
 <template>
- <section v-if="!imageMode || initialAssessment?.status === 'scored'" class="personal-assessment">
-  <h4>{{ isDefaultScore(visibleScore) ? '默认评分 · 非官方' : '个人权重评分' }}</h4>
-  <p v-if="!imageMode && !opened && loading" role="status">正在读取当前装备评分…</p>
-  <p v-if="!imageMode && !opened && loadError" role="alert">{{ loadError }}</p>
+ <section v-if="embedded ? !imageMode && opened : !imageMode || initialAssessment?.status === 'scored'" class="personal-assessment">
+  <h4 v-if="embedded">个人权重设置 <button type="button" @click="close">收起</button></h4>
+  <h4 v-else>{{ isDefaultScore(visibleScore) ? '默认评分 · 非官方' : '个人权重评分' }}</h4>
+  <p v-if="!embedded && !imageMode && !opened && loading" role="status">正在读取当前装备评分…</p>
+  <p v-if="!embedded && !imageMode && !opened && loadError" role="alert">{{ loadError }}</p>
   <button v-if="!imageMode && !opened" type="button" :disabled="!characterId" @click="open">配置权重与 A/B 对比</button>
   <div v-if="!imageMode && opened" class="assessment-editor">
    <p role="alert" v-if="error">{{ error }}</p>
