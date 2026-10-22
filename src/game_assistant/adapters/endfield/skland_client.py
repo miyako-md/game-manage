@@ -2,6 +2,7 @@
 import hashlib
 import hmac
 import json
+import logging
 import re
 import time
 from urllib.parse import urlencode
@@ -9,6 +10,8 @@ from urllib.parse import urlencode
 import httpx
 
 from game_assistant.adapters.endfield.endpoints import USER_AGENT as BROWSER_USER_AGENT
+
+logger = logging.getLogger(__name__)
 
 HOST = "https://zonai.skland.com"
 CRED_BY_CODE = "/api/v1/user/auth/generate_cred_by_code"
@@ -55,6 +58,25 @@ def business_code(value) -> str:
     if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_.-]{1,16}", value):
         return value
     return "none" if value is None else "other"
+
+
+def _type_name(value) -> str:
+    return "null" if value is None else type(value).__name__[:16]
+
+
+# (kind, failure code) already described in the log; one line per process is enough.
+_logged_shapes: set[tuple[str, str]] = set()
+
+
+def _shape_failure(kind: str, data: dict, key: str) -> SklandError:
+    """Failure for an unexpected challenge payload; logs top-level key names and value types once."""
+    code = "parse:missing" if key not in data else f"parse:{_type_name(data[key])}"
+    if (kind, code) not in _logged_shapes:
+        _logged_shapes.add((kind, code))
+        keys = [(name if re.fullmatch(r"[A-Za-z0-9_]{1,32}", name) else "?") + ":" + _type_name(value)
+                for name, value in list(data.items())[:12]]
+        logger.warning("skland_challenge_shape kind=%s code=%s keys=%s", kind, code, ",".join(keys) or "-")
+    return SklandError("森空岛挑战记录格式已变化", code=code)
 
 
 def sign_request(token: str, path: str, query_or_body: str = "", *, timestamp: int | None = None,
@@ -210,8 +232,11 @@ class SklandClient:
             params["recordId"] = record_id
         data = await self._request("GET", path, cred, token, params=params, device_id=device_id)
         payload = data.get(key)
+        if kind == "crisis" and not contract_id and key in data and payload is None:
+            # No contract in progress: the default query answers null (EndUID treats it as "no current data").
+            return {}
         if not isinstance(payload, dict):
-            raise SklandError("森空岛挑战记录格式已变化", code="parse:shape")
+            raise _shape_failure(kind, data, key)
         return payload
 
     async def tool(self, kind: str, cred: str, token: str, device_id: str = "") -> dict:

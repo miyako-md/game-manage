@@ -13,7 +13,7 @@ from game_assistant.api import create_app
 from game_assistant.auth.store import CredentialStore, CredentialStoreError
 from game_assistant.adapters.endfield.hypergryph import EXPIRED_MESSAGE, EndfieldError
 from game_assistant.adapters.endfield.skland_client import PASSPORT_REJECTED, SklandClient, SklandError, sign_request
-from game_assistant.adapters.endfield.skland_parse import parse_card
+from game_assistant.adapters.endfield.skland_parse import parse_card, parse_challenge
 from game_assistant.config import Settings
 from game_assistant.endfield_skland import (
     PASSPORT_CHANGED, PASSPORT_EXPIRED, EndfieldSklandService, credential_path,
@@ -762,7 +762,9 @@ def test_local_route_passport_reader_includes_channel_and_server(tmp_path):
     (httpx.Response(200, text="SECRET-<html>"), "parse:JSONDecodeError"),
     (httpx.Response(200, json=["SECRET"]), "parse:envelope"),
     (httpx.Response(200, json={"code": 0, "data": "SECRET"}), "parse:data"),
-    (httpx.Response(200, json={"code": 0, "data": {"other": 1}}), "parse:shape"),
+    (httpx.Response(200, json={"code": 0, "data": {"other": 1}}), "parse:missing"),
+    (httpx.Response(200, json={"code": 0, "data": {"crisisContract": ["SECRET"]}}), "parse:list"),
+    (httpx.Response(200, json={"code": 0, "data": {"crisisContract": "SECRET"}}), "parse:str"),
     (httpx.Response(503, text="SECRET-BODY"), "http:503"),
 ])
 async def test_failures_carry_a_short_code_without_response_text(response, code):
@@ -771,6 +773,36 @@ async def test_failures_carry_a_short_code_without_response_text(response, code)
         await client.challenge("crisis", "SECRET-CRED", "SECRET-TOKEN", "role", "1", "user")
     assert error.value.code == code and "SECRET" not in str(error.value)
     assert error.value.status == (503 if code == "http:503" else None)
+
+
+async def test_crisis_default_null_is_an_empty_observation_but_a_named_contract_is_not():
+    response = httpx.Response(200, json={"code": 0, "data": {"crisisContract": None}})
+    client = SklandClient(httpx.MockTransport(lambda request: response))
+    data = await client.challenge("crisis", "SECRET-CRED", "SECRET-TOKEN", "role", "1", "user")
+    assert data == {}
+    parsed = parse_challenge("crisis", data)
+    assert parsed["records"] == [] and parsed["summary"]["highest"] is None
+    with pytest.raises(SklandError) as error:
+        await client.challenge("crisis", "SECRET-CRED", "SECRET-TOKEN", "role", "1", "user", contract_id="c1")
+    assert error.value.code == "parse:null"
+    with pytest.raises(SklandError) as error:
+        await client.challenge("war", "SECRET-CRED", "SECRET-TOKEN", "role", "1", "user")
+    assert error.value.code == "parse:missing"
+
+
+async def test_unexpected_challenge_shape_logs_key_names_and_types_once(caplog, monkeypatch):
+    from game_assistant.adapters.endfield import skland_client
+    monkeypatch.setattr(skland_client, "_logged_shapes", set())
+    data = {"crisisContracts": [{"id": "SECRET-ID"}], "SECRET value key!": "SECRET-VALUE", "count": 7}
+    client = SklandClient(httpx.MockTransport(lambda request: httpx.Response(200, json={"code": 0, "data": data})))
+    caplog.set_level("WARNING", logger="game_assistant.adapters.endfield.skland_client")
+    for _ in range(2):
+        with pytest.raises(SklandError) as error:
+            await client.challenge("crisis", "SECRET-CRED", "SECRET-TOKEN", "role", "1", "user")
+        assert error.value.code == "parse:missing"
+    lines = [record.getMessage() for record in caplog.records if "skland_challenge_shape" in record.getMessage()]
+    assert lines == ["skland_challenge_shape kind=crisis code=parse:missing keys=crisisContracts:list,?:str,count:int"]
+    assert "SECRET" not in caplog.text
 
 
 async def test_transport_failure_and_missing_token_codes():

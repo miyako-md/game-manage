@@ -348,6 +348,20 @@ async def test_failed_rotation_and_late_result_keep_authorization_boundary(tmp_p
     await runtime.aclose()
 
 
+async def test_skland_combat_crisis_without_a_current_contract_is_an_empty_observation(tmp_path, monkeypatch):
+    from game_assistant.models import Capability
+    from game_assistant.qq.endfield_presentation import challenge_document
+    runtime, adapter = await combat_runtime(tmp_path, monkeypatch)
+    monkeypatch.setitem(ChallengeClient.data, 'crisis', {})  # what the client returns for crisisContract: null
+    fetched = await adapter.fetch(Capability.COMBAT)
+    assert fetched.ok and fetched.error_code is None and fetched.failure_codes is None
+    crisis = fetched.payload['reports'][2]
+    assert crisis['available'] and not crisis['stale'] and crisis['records'] == []
+    assert crisis['summary'] == {'listed_count': 0, 'highest': None, 'challenge_count': None}
+    assert '当前快照没有挑战记录' in str(challenge_document(fetched.payload['reports']))
+    await runtime.aclose()
+
+
 async def test_skland_combat_reports_a_short_code_per_failed_kind(tmp_path, monkeypatch):
     from game_assistant.adapters.endfield import skland_parse
     from game_assistant.adapters.endfield.skland_client import SklandError
