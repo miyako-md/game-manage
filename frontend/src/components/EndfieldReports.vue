@@ -13,6 +13,7 @@ import EndfieldArtwork from './EndfieldArtwork.vue'
 import EndfieldShipResident from './EndfieldShipResident.vue'
 import EndfieldLoadout from './EndfieldLoadout.vue'
 import { skinOf } from '../game-themes.js'
+import { ENDFIELD_GUIDE_LINKS, ENDFIELD_GUIDE_NOTE } from '../endfield-guide-links.js'
 const props = defineProps({ payload: Object, imageMode:Boolean, view: { type: String, default: 'overview' }, fetchedAt: String, stale: Boolean,
   operatorDetail: Object, operatorDetailId: String, operatorBusy: Boolean, operatorError: String, operatorStale: Boolean, operatorFetchedAt: String })
 const emit = defineEmits(['inspect', 'navigate', 'close-detail'])
@@ -182,6 +183,10 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
             <button v-if="!imageMode" type="button" class="ui-button small-button" :disabled="operatorBusy && operatorDetailId === String(operator.id) || !operator.id" :aria-expanded="operatorDetailId === String(operator.id)" @click="inspect(operator.id,$event)">查看配装</button>
           </article></div>
         </section>
+        <section v-if="!imageMode" v-reveal class="ef-card ef-guides" aria-label="外部攻略"><header><div><h2>外部攻略</h2></div><span class="ef-note">{{ ENDFIELD_GUIDE_NOTE }}</span></header>
+          <p class="ef-note">本站暂未收录可核验的终末地角色攻略。</p>
+          <ul><li v-for="link in ENDFIELD_GUIDE_LINKS" :key="link.url"><a :href="link.url" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">{{ link.label }} ↗</a></li></ul>
+        </section>
       </div>
       <section v-if="operatorDetailId" ref="detailPanel" class="ef-detail" tabindex="-1" aria-label="干员配装详情"><div v-if="!imageMode" class="ef-detail-toolbar"><button type="button" class="text-link" @click="emit('close-detail')">← 返回全员练度</button><span v-if="operatorStale" class="badge badge-stale">配装待更新</span></div><header><div><h2>干员配装<span v-if="!detail"> · {{ detailName }}</span></h2></div><button v-if="!imageMode" type="button" class="ui-button" :disabled="operatorBusy" @click="emit('inspect',operatorDetailId)">重新读取配装</button></header>
         <p v-if="operatorBusy" class="ef-empty" role="status">正在读取干员配装…</p><p v-if="operatorError" class="ef-error" role="alert">{{ operatorError }}</p>
@@ -252,6 +257,9 @@ const detailName = computed(() => detail.value?.name || operators.value.find(ite
 .ef-sub { color:var(--text-faint); font-size:12px; font-weight:400; letter-spacing:0; }
 .k { display:block; color:var(--text-muted); font-size:12px; line-height:18px; font-weight:500; }
 .ef-note { font-size:13px; color:var(--text-muted); line-height:1.7; }
+.ef-guides ul { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }
+.ef-guides a { color:var(--accent); text-decoration:none; overflow-wrap:anywhere; }
+.ef-guides a:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
 .ef-empty { color:var(--text-muted); font-size:13px; padding:14px 0; line-height:1.7; }
 .ef-empty.ef-card { padding:24px; }
 .ef-section-intro { padding:14px 20px; }

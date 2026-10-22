@@ -396,3 +396,15 @@ test('honor image is an icon wall of names without per-medal category, level or 
   assert.equal(nodes(web, 'article').filter(node => cls(node, 'ef-medal')).length, 2)
   assert.match(content(web), /获得于/)
 })
+
+test('the operator page links the two external guides with the copyright note, never in images',t=>{
+  const root=mount(t,Reports,{payload,view:'operators'})
+  const links=nodes(root,'a').filter(node=>/bilibili\.com/.test(node.props.href))
+  assert.deepEqual(links.map(node=>node.props.href),['https://space.bilibili.com/91489061','https://www.bilibili.com/video/BV1bszwBHEWK/'])
+  assert.deepEqual(links.map(node=>content(node)),['猫冬MT · 终末地攻略合集（B 站） ↗','靡弦 · 全角色一图流（B 站） ↗'])
+  assert.ok(links.every(node=>node.props.rel==='noopener noreferrer'&&node.props.target==='_blank'&&node.props.referrerpolicy==='no-referrer'))
+  assert.match(content(root),/外部攻略/);assert.match(content(root),/外部链接，内容版权归作者/)
+  const image=mount(t,Reports,{payload,view:'operators',imageMode:true})
+  assert.doesNotMatch(content(image),/外部攻略|bilibili/)
+  assert.doesNotMatch(content(mount(t,Reports,{payload,view:'overview'})),/外部攻略/)
+})
