@@ -20,7 +20,7 @@
       },
       {
         "path": "src/game_assistant/wuwa_guide_updates.py",
-        "sha256": "146f3bb058b95d6d2fc824b407d6fe35388d282d4c324fbbf63098e525b74ea2"
+        "sha256": "b57423fd44b7e1c7b36cb5b2143c66830538e295e68466e61befa4782d3d758f"
       }
     ],
     "alias_policy": "Existing icon aliases; NTE guide zero aliases; Wuwa guide-title confirmed wind protagonist aliases only.",
