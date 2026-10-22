@@ -51,6 +51,7 @@ function cloudPath(path, method) {
   if (/^\/api\/admin\/bilibili-source\/login\/(?:status|sessions(?:\/[^/?]+(?:\/(?:qr\/poll|commit|cookie))?)?)$/.test(path)) return path
   if (/^\/api\/admin\/bilibili-source\/(?:status|(?:wuthering_waves|nte|endfield|league_of_legends)\/refresh)$/.test(path)) return path
   if (['GET','POST'].includes(method) && path === '/api/admin/collect') return path
+  if ((method === 'GET' && path === '/api/admin/guides') || (method === 'POST' && path === '/api/admin/guides/check')) return path
   if (method === 'GET' && /^\/api\/public\/(?:nte\/guides(?:\/sources\/[^/?]+)?|wuwa\/guides\/(?:updates|tower)|endfield\/(?:public|map(?:\/marks\/[^/?]+)?))(?:\?.*)?$/.test(path)) return path
   if (method === 'POST' && /^\/api\/admin\/(?:nte\/guides\/sources\/[^/?]+\/refresh|wuwa\/guides\/(?:updates(?:\/extract)?|tower\/check)|endfield\/public\/refresh)$/.test(path)) return path
   const pathname = path.split('?')[0]
