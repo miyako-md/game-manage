@@ -157,7 +157,7 @@ async def test_run_pauses_extracts_only_changed_posts_within_the_budget(job, mon
     respx.post(POST_URL).mock(side_effect=upstream.detail)
     caplog.set_level(logging.INFO, 'game_assistant.guide_jobs')
     assert await job.run() == 'ok'
-    assert upstream.searches == NAMES
+    assert upstream.searches == NAMES[1:] + NAMES[:1]  # roles without a static guide first
     assert job.pauses == [3] * (len(NAMES) - 1)
     # 甲乙's post is its static source; 8 of the other 9 new posts are read, the last one waits.
     assert upstream.details == [str(100 + i) for i in range(1, 9)]
@@ -188,14 +188,14 @@ async def test_rate_limit_or_refusal_stops_the_run_and_skips_the_tower(job, monk
     monkeypatch.setattr(job.tower, 'due', lambda value=None: True)
     caplog.set_level(logging.INFO, 'game_assistant.guide_jobs')
     assert await job.run() == 'stopped'
-    assert upstream.searches == NAMES[:3]
+    assert upstream.searches == NAMES[1:3]  # the static 甲乙 comes last and is never reached
     assert respx.calls.call_count == len(upstream.searches) + len(upstream.details)  # no tower search
     assert nte.call_count == 0  # fresh NTE caches are read without a request
     last = job.status()['job']['last_run']
     assert last['outcome'] == 'stopped' and last['stop_code'] == f'http:{status}'
     messages = [r.getMessage() for r in caplog.records]
     assert messages.count(f'guide_job_stopped code=http:{status}') == 1
-    assert any(m.startswith('guide_job_finished outcome=stopped checked=2') for m in messages)
+    assert any(m.startswith('guide_job_finished outcome=stopped checked=1') for m in messages)
     assert 'DO_NOT_EXPOSE' not in caplog.text and '戊己' not in caplog.text
     failed = job.status()['wuthering_waves']['failed']
     assert failed == [{'character_id': '9002', 'name': '戊己', 'error_code': f'http:{status}'}]
@@ -208,7 +208,7 @@ async def test_extraction_refusal_also_stops_and_is_listed(job, monkeypatch):
     respx.post(SEARCH_URL).mock(side_effect=upstream.search)
     respx.post(POST_URL).mock(side_effect=upstream.detail)
     assert await job.run() == 'stopped'
-    assert upstream.searches == NAMES[:2] and upstream.details == ['101']
+    assert upstream.searches == ['丙丁'] and upstream.details == ['101']  # the first role without a static guide
     status = job.status()
     assert status['job']['last_run']['stop_code'] == 'http:429'
     assert status['wuthering_waves']['extraction_failed'] == [{'character_id': '9001', 'name': '丙丁'}]

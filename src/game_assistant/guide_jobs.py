@@ -172,7 +172,8 @@ class GuideJob:
         return outcome
 
     async def _wuwa(self, counts):
-        for index, role in enumerate(guide_roster()):
+        # Roles without a static guide first: their extraction is shown at once, so they get the budget.
+        for index, role in enumerate(sorted(guide_roster(), key=lambda r: r['static'])):
             if index:
                 await self.sleep(self.pause)
             query = Search(character_id=role['character_id'], name=role['name'], attribute=role['attribute'])
