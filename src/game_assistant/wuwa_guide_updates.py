@@ -18,6 +18,29 @@ HEADERS = {'source': 'h5', 'version': '3.0.0', 'countryCode': 'CN',
            'devCode': '9asdpjhjklgfhjko90876532134', 'Origin': 'https://www.kurobbs.com',
            'Referer': 'https://www.kurobbs.com/', 'User-Agent': 'Mozilla/5.0'}
 MAX_BYTES = 2 * 1024 * 1024
+PREFERRED_AUTHOR = '10525366'
+# Upstream refusals that end a background run at once instead of retrying the next role.
+STOP_CODES = ('http:403', 'http:429')
+
+
+def error_code(error):
+    """A short fixed code for logs and the administrator; upstream text never leaves here."""
+    if isinstance(error, httpx.HTTPStatusError):
+        return f'http:{error.response.status_code}'
+    if isinstance(error, (TimeoutError, httpx.TimeoutException)):
+        return 'timeout'
+    if isinstance(error, httpx.HTTPError):
+        return f'transport:{type(error).__name__}'
+    if isinstance(error, json.JSONDecodeError):
+        return 'parse:json'
+    name = type(error).__name__
+    return 'parse:' + ('source' if name.endswith('SourceError') else name.removesuffix('Error').lower() or 'value')
+
+
+def preferred_candidate(candidates):
+    """The established guide author first, else the newest article; videos never."""
+    articles = [p for p in candidates or () if isinstance(p, dict) and p.get('kind') == 'article']
+    return next((p for p in articles if p.get('author_id') == PREFERRED_AUTHOR), articles[0] if articles else None)
 
 
 class Search(BaseModel):
@@ -93,25 +116,48 @@ class GuideUpdates:
         from .wuwa_guide_extract import GuideExtractor
         self.extractor = GuideExtractor(self.path)
         self.auto_extract = auto_extract
+        # The cloud daily job registers itself here (see guide_jobs.GuideJob).
+        self.runner = None
         with closing(sqlite3.connect(self.path)) as conn:
             conn.execute('CREATE TABLE IF NOT EXISTS guide_checks (key TEXT PRIMARY KEY, payload TEXT NOT NULL)')
             conn.commit()
 
-    def cached(self, query):
+    def stored(self, character_id, key=None):
+        """The exact key's check, else the latest check stored for the same character id."""
+        if not re.fullmatch(r'\d{1,12}', str(character_id)):
+            return None
         with closing(sqlite3.connect(self.path)) as conn:
-            row = conn.execute('SELECT payload FROM guide_checks WHERE key=?', (query.key,)).fetchone()
-        if row:
+            rows = conn.execute('SELECT key, payload FROM guide_checks WHERE key=? OR key LIKE ?',
+                                (key, json.dumps([str(character_id)])[:-1] + ',%')).fetchall()
+        found = []
+        for row_key, payload in rows:
             try:
-                value = json.loads(row[0])
-                if isinstance(value, dict) and isinstance(value.get('candidates'), list):
-                    return self.with_guide(query,value)
-            except (ValueError, TypeError):
-                pass
-        return self.with_guide(query,{**query.model_dump(), 'candidates': [], 'checked_at': None,
-                'attempted_at': None, 'error': None, 'limited': False})
+                value = json.loads(payload)
+            except ValueError:
+                continue
+            if isinstance(value, dict) and isinstance(value.get('candidates'), list):
+                found.append((row_key == key, value.get('attempted_at') or value.get('checked_at') or '', row_key, value))
+        if not found:
+            return None
+        _, _, row_key, value = max(found, key=lambda item: item[:2])
+        return row_key, {'error_code': None, **value}
 
-    def with_guide(self,query,value):
-        active = self.extractor.active(query)
+    def cached(self, query):
+        stored = self.stored(query.character_id, query.key)
+        if stored:
+            return self.with_guide(*stored)
+        return self.with_guide(query.key,{**query.model_dump(), 'candidates': [], 'checked_at': None,
+                'attempted_at': None, 'error': None, 'error_code': None, 'limited': False})
+
+    def cached_by_id(self, character_id):
+        stored = self.stored(character_id)
+        return self.with_guide(*stored) if stored else None
+
+    def background(self):
+        return self.runner.background() if self.runner else {'running': False, 'last_run_at': None}
+
+    def with_guide(self,key,value):
+        active = self.extractor.active(key)
         return {**value,'active_guide':active['guide'],'extraction_error':active['error']}
 
     async def extract(self,query,post_id,force=True):
@@ -127,13 +173,16 @@ class GuideUpdates:
                          (query.key, json.dumps(value, ensure_ascii=False)))
             conn.commit()
 
-    async def check(self, query):
+    async def check(self, query, extract='always', known=()):
+        """extract: 'always' re-reads the preferred post (the page button); 'changed' only when it is
+        neither the active guide's source nor one of the known (static) sources; 'never' skips it."""
         async with self.lock:
             previous = self.cached(query)
             attempt = previous.get('attempted_at')
             if attempt and time.time() - datetime.fromisoformat(attempt).timestamp() < 30:
                 return {**previous, 'deferred': True}
             attempted = datetime.now(timezone.utc).isoformat()
+            extracted = False
             try:
                 candidates, limited = {}, False
                 async with asyncio.timeout(35), httpx.AsyncClient(timeout=15, headers=HEADERS, follow_redirects=False) as client:
@@ -161,17 +210,22 @@ class GuideUpdates:
                             break
                 value = {**query.model_dump(), 'candidates': sorted(candidates.values(), key=lambda p: p['published_at'] or '', reverse=True),
                          'checked_at': datetime.now(timezone.utc).isoformat(), 'attempted_at': attempted,
-                         'error': None, 'limited': limited}
-            except (httpx.HTTPError, ValueError, TypeError, TimeoutError):
-                value = {**previous, 'attempted_at': attempted, 'error': '社区搜索暂时不可用，保留上次结果，请稍后重试。'}
+                         'error': None, 'error_code': None, 'limited': limited}
+            except (httpx.HTTPError, ValueError, TypeError, TimeoutError) as error:
+                value = {**previous, **query.model_dump(), 'attempted_at': attempted, 'error': '社区搜索暂时不可用，保留上次结果，请稍后重试。',
+                         'error_code': error_code(error)}
+            for derived in ('active_guide', 'extraction_error'):
+                value.pop(derived, None)
             self.save(query, value)
-            if not value.get('error') and self.auto_extract:
-                articles = [p for p in value['candidates'] if p['kind']=='article']
-                if articles:
-                    # Prefer the established guide author, then the newest matching article.
-                    preferred = next((p for p in articles if p['author_id']=='10525366'),articles[0])
+            preferred = preferred_candidate(value['candidates']) if not value.get('error') and self.auto_extract else None
+            if preferred and extract != 'never':
+                guide = self.extractor.active(query)['guide'] or {}
+                if extract == 'always' or preferred['id'] not in {guide.get('sourceId'), *known}:
                     await self.extractor.extract(query,preferred['id'],force=True)
-            return self.with_guide(query,value)
+                    extracted = True
+            result = self.with_guide(query.key,value)
+            # Transient: tells the daily job that this check spent extraction budget.
+            return {**result, 'extracted': True} if extracted else result
 
 
 def install_wuwa_guide_updates(app, settings):
@@ -181,11 +235,11 @@ def install_wuwa_guide_updates(app, settings):
 
     @router.get('')
     async def cached(query: Search = Depends()):
-        return service.cached(query)
+        return {**service.cached(query), 'background': service.background()}
 
     @router.post('')
     async def check(query: Search):
-        return await service.check(query)
+        return {**await service.check(query), 'background': service.background()}
 
     @router.post('/extract')
     async def extract(selection: Selection):

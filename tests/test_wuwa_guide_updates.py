@@ -142,3 +142,115 @@ async def test_first_extraction_failure_reaches_the_page_and_a_later_success_cle
     fixed = await service.extract(query,'1555005846752059392')
     assert fixed['active_guide']['sections'][0]['text'] == '武器推荐：玉阙玄华。'
     assert fixed['extraction_error'] is None
+
+
+def test_preferred_candidate_is_the_established_author_then_the_newest_article():
+    from game_assistant.wuwa_guide_updates import preferred_candidate
+    video = {'id': '1', 'kind': 'video', 'author_id': '10525366'}
+    newest = {'id': '2', 'kind': 'article', 'author_id': '1'}
+    author = {'id': '3', 'kind': 'article', 'author_id': '10525366'}
+    assert preferred_candidate([video, newest, author]) is author
+    assert preferred_candidate([video, newest]) is newest
+    assert preferred_candidate([video]) is None and preferred_candidate([]) is None
+
+
+def detail_response(post_id='1555005846752059392'):
+    return {'code':200,'data':{'postDetail':{'id':post_id,'postTitle':'V3.7心培养攻略','gameId':3,'postType':1,
+            'postContent':[{'contentType':1,'content':'武器推荐：玉阙玄华。'}]}}}
+
+
+@respx.mock
+async def test_extract_policy_reads_only_changed_posts_unless_asked(tmp_path, monkeypatch):
+    import time
+    from game_assistant.wuwa_guide_extract import POST_URL
+    respx.post(SEARCH_URL).respond(200,json={'code':200,'data':{'postList':[post()],'hasNext':False}})
+    detail = respx.post(POST_URL).respond(200,json=detail_response())
+    service = GuideUpdates(tmp_path/'guides.db')
+    query = Search(character_id='1311',name='心',attribute='导电')
+    now = [time.time()]
+    monkeypatch.setattr('game_assistant.wuwa_guide_updates.time.time', lambda: now[0])
+    async def check(**kwargs):
+        now[0] += 31
+        service.extractor.attempts.clear()
+        return await service.check(query, **kwargs)
+    result = await check(extract='never')
+    assert detail.call_count == 0 and 'extracted' not in result and result['candidates']
+    result = await check(extract='changed', known={'1555005846752059392'})  # a static source is not news
+    assert detail.call_count == 0 and 'extracted' not in result
+    result = await check(extract='changed')
+    assert detail.call_count == 1 and result['extracted'] and result['active_guide']['sourceId'] == '1555005846752059392'
+    result = await check(extract='changed')  # already the active guide's source
+    assert detail.call_count == 1 and 'extracted' not in result
+    assert (await check())['extracted'] and detail.call_count == 2  # the page button keeps re-reading
+
+
+@respx.mock
+@pytest.mark.parametrize('response,code', [
+    (httpx.Response(429, text='DO_NOT_EXPOSE'), 'http:429'),
+    (httpx.Response(403, text='DO_NOT_EXPOSE'), 'http:403'),
+    (httpx.ConnectError('DO_NOT_EXPOSE'), 'transport:ConnectError'),
+    (httpx.ReadTimeout('DO_NOT_EXPOSE'), 'timeout'),
+    (httpx.Response(200, text='DO_NOT_EXPOSE{'), 'parse:json'),
+    (httpx.Response(200, json={'code': 500, 'msg': 'DO_NOT_EXPOSE'}), 'parse:value'),
+])
+async def test_failures_keep_the_message_and_record_only_a_short_code(tmp_path, response, code):
+    route = respx.post(SEARCH_URL)
+    if isinstance(response, Exception):
+        route.mock(side_effect=response)
+    else:
+        route.mock(return_value=response)
+    service = GuideUpdates(tmp_path / 'guides.db', auto_extract=False)
+    query = Search(character_id='1311', name='心', attribute='导电')
+    result = await service.check(query)
+    assert result['error'] == '社区搜索暂时不可用，保留上次结果，请稍后重试。'
+    assert result['error_code'] == code and 'DO_NOT_EXPOSE' not in str(result)
+    assert service.cached(query)['error_code'] == code
+    assert service.cached_by_id('1311')['error_code'] == code
+
+
+@respx.mock
+async def test_extraction_failure_code_is_stored_but_not_shown_as_text(tmp_path):
+    from game_assistant.wuwa_guide_extract import POST_URL
+    respx.post(SEARCH_URL).respond(200,json={'code':200,'data':{'postList':[post()],'hasNext':False}})
+    respx.post(POST_URL).respond(429,text='DO_NOT_EXPOSE')
+    service = GuideUpdates(tmp_path/'guides.db')
+    query = Search(character_id='1311',name='心',attribute='导电')
+    result = await service.check(query, extract='changed')
+    assert result['extracted'] and result['extraction_error'] == '原帖提炼失败，保留上次培养建议，请稍后重试。'
+    assert service.extractor.active(query)['error_code'] == 'http:429'
+    assert 'DO_NOT_EXPOSE' not in str(result)
+
+
+def test_cached_falls_back_to_the_same_character_id(tmp_path):
+    service = GuideUpdates(tmp_path / 'guides.db', auto_extract=False)
+    def row(name, attribute, checked, candidates=()):
+        return {'character_id': '1311', 'name': name, 'attribute': attribute, 'candidates': list(candidates),
+                'checked_at': checked, 'attempted_at': checked, 'error': None, 'limited': False}
+    web = Search(character_id='1311', name='心', attribute='导电')
+    job = Search(character_id='1311', name='心', attribute='')
+    assert service.cached_by_id('1311') is None and service.cached_by_id('1/') is None
+    assert service.cached(web)['checked_at'] is None and service.cached(web)['error_code'] is None
+    service.save(job, row('心', '', '2026-10-20T00:00:00+00:00', [{'id': '1', 'kind': 'article'}]))
+    service.extractor.save(job, {'guide': {'sourceId': '1', 'sections': []}, 'error': None, 'error_code': None})
+    fallback = service.cached(web)
+    assert fallback['candidates'][0]['id'] == '1' and fallback['active_guide']['sourceId'] == '1'
+    assert fallback['error_code'] is None
+    by_id = service.cached_by_id('1311')
+    assert set(by_id) >= {'character_id', 'name', 'attribute', 'candidates', 'checked_at', 'attempted_at', 'error',
+                          'error_code', 'limited', 'active_guide', 'extraction_error'}
+    # The exact key wins even when another form of the key was checked later.
+    service.save(web, row('心', '导电', '2026-10-19T00:00:00+00:00'))
+    assert service.cached(web)['candidates'] == [] and service.cached(web)['active_guide'] is None
+    assert service.cached_by_id('1311')['attribute'] == ''  # the latest check by id
+    assert service.cached_by_id('13') is None  # an id prefix is not the same character
+
+
+async def test_local_routes_report_an_idle_background(tmp_path):
+    from game_assistant.api import create_app
+    from game_assistant.config import Settings
+    settings = Settings(db_path=str(tmp_path / 'app.db'), auth_store_path=str(tmp_path / 'auth.json'),
+                        auth_allowed_origins=['http://testserver'], bilibili_sources={})
+    app = create_app(settings=settings, start_scheduler=False)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
+        data = (await client.get('/api/wuwa/guides/updates', params={'character_id': '1311', 'name': '心'})).json()
+    assert data['background'] == {'running': False, 'last_run_at': None}

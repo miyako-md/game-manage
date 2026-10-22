@@ -13,7 +13,7 @@ import httpx
 from fastapi import APIRouter
 
 from .wuwa_guide_extract import POST_URL, SourceError, safe_image
-from .wuwa_guide_updates import HEADERS, MAX_BYTES, SEARCH_URL, plain
+from .wuwa_guide_updates import HEADERS, MAX_BYTES, SEARCH_URL, error_code, plain
 
 logger = logging.getLogger(__name__)
 KEYWORD = '逆境深塔推荐阵容'
@@ -135,6 +135,12 @@ class TowerGuides:
         except Exception:
             logger.warning('Wuwa tower guide check failed')
 
+    def cancel(self):
+        """Shutdown: a read-started check must not outlive the services it writes to."""
+        if self.task is not None and not self.task.done():
+            self.task.cancel()
+        self.task = None
+
     async def check(self):
         async with self.lock:
             previous = self.cached()
@@ -173,9 +179,10 @@ class TowerGuides:
                         except (httpx.HTTPError, SourceError, ValueError, TypeError):
                             pass
                 guides = [kept[start] for start in sorted(kept, reverse=True)[:KEEP_PERIODS]]
-                value = {'guides': guides, 'checked_at': attempted, 'attempted_at': attempted, 'error': None}
-            except (httpx.HTTPError, SourceError, ValueError, TypeError, TimeoutError):
-                value = {**previous, 'attempted_at': attempted, 'error': '社区搜索暂时不可用，保留上次结果，请稍后重试。'}
+                value = {'guides': guides, 'checked_at': attempted, 'attempted_at': attempted, 'error': None, 'error_code': None}
+            except (httpx.HTTPError, SourceError, ValueError, TypeError, TimeoutError) as error:
+                value = {**previous, 'attempted_at': attempted, 'error': '社区搜索暂时不可用，保留上次结果，请稍后重试。',
+                         'error_code': error_code(error)}
             self.save(value)
             return value
 

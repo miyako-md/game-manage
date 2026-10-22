@@ -117,6 +117,28 @@ async def test_due_read_starts_one_background_check(tmp_path):
     assert service.read()['checked_at'] and service.task.done()
 
 
+async def test_read_started_check_is_cancelled_on_shutdown_and_failures_keep_a_code(tmp_path):
+    import asyncio
+    gate = asyncio.Event()
+    service = TowerGuides(tmp_path / 'g.db', clock=clock())
+    async def check():
+        await gate.wait()
+    service.check = check
+    service.read()
+    task = service.task
+    await asyncio.sleep(0)
+    service.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert service.task is None
+    service.cancel()  # idempotent without a task
+    del service.check
+    with respx.mock:
+        respx.post(SEARCH_URL).respond(429, text='DO_NOT_EXPOSE')
+        failed = await service.check()
+    assert failed['error'] and failed['error_code'] == 'http:429' and 'DO_NOT_EXPOSE' not in str(failed)
+
+
 async def test_local_routes_read_cache_and_check(tmp_path, monkeypatch):
     import httpx
     from game_assistant.api import create_app

@@ -90,6 +90,25 @@ async def test_cache_survives_restart_failure_retains_timestamp_and_unknown_id_n
 
 
 @respx.mock
+async def test_status_is_cache_only_and_unknown_until_first_fetch(tmp_path):
+    from game_assistant.nte_guides_catalog import SOURCES
+    route = respx.get(URL, params={'postId':495234}).respond(200, json=post())
+    service = GuideService(tmp_path / 'guides.sqlite3')
+    assert service.status(495234) is None and service.status(123) is None
+    first = await service.read(495234)
+    assert service.status(495234) == {'fetched_at': first['fetched_at'], 'summary_changed': True,
+                                      'stale': False, 'error': False}
+    service.last_attempt.clear()
+    route.respond(503, text='private-token')
+    await service.read(495234, force=True)
+    status = GuideService(tmp_path / 'guides.sqlite3').status(495234)
+    assert status['error'] and status['stale'] and status['fetched_at'] == first['fetched_at']
+    assert service.error_codes[495234] == 'http:503' and service.cached(495234)['error_code'] == 'http:503'
+    assert route.call_count == 2 and 'private-token' not in str(status)
+    assert SOURCES[495234]['fingerprint'] != first['fingerprint']
+
+
+@respx.mock
 async def test_refresh_detects_content_change_and_never_sends_authentication(tmp_path):
     route = respx.get(URL, params={'postId':495234}).respond(200, json=post())
     service = GuideService(tmp_path / 'guides.sqlite3')
