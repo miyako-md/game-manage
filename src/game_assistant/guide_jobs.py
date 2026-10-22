@@ -32,7 +32,10 @@ def _roster():
     # The exact id/name/attribute strings the web page sends for static entries.
     rows = [dict(character_id=str(g['id']), name=g['name'], attribute=g.get('attribute') or '', static=True) for g in static]
     seen = {row['character_id'] for row in rows}
-    rows += [dict(character_id=str(cid), name=value['name'], attribute='', static=False)
+    # Default-weight names spell the Rover forms "漂泊者·<attribute>"; the search needs them apart.
+    rows += [dict(character_id=str(cid), static=False,
+                  **dict(zip(('name', 'attribute'), value['name'].split('·', 1)
+                             if value['name'].startswith('漂泊者·') else (value['name'], ''))))
              for cid, value in defaults.items() if str(cid) not in seen]
     sources = {str(g['id']): frozenset({str(s['id']) for s in g.get('sources', []) if s.get('id')}
                                        | {str(s['sourceId']) for s in g.get('sections', []) if s.get('sourceId')})

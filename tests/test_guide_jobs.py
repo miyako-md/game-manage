@@ -90,8 +90,11 @@ def test_roster_is_static_entries_then_default_weight_roles():
         (g['id'], g['name'], g['attribute']) for g in static]
     assert all(r['static'] for r in rows[:len(static)])
     extra = rows[len(static):]
-    assert extra and all(not r['static'] and r['attribute'] == '' for r in extra)
+    assert extra and all(not r['static'] for r in extra)
     assert {'character_id': '1311', 'name': '心', 'attribute': '', 'static': False} in extra
+    # Rover forms are searched as 漂泊者 + attribute, the only form the title filter accepts.
+    assert {'character_id': '1501', 'name': '漂泊者', 'attribute': '衍射', 'static': False} in extra
+    assert all(r['attribute'] == '' for r in extra if r['name'] != '漂泊者')
     assert len({r['character_id'] for r in rows}) == len(rows)
     for row in rows:  # every entry is a valid search key
         Search(character_id=row['character_id'], name=row['name'], attribute=row['attribute'])

@@ -46,19 +46,12 @@ class GuideSources:
         return {**status,'image_count':len(images) if isinstance(images,list) else None}
 
 def _preferred(candidates):
-    try:from game_assistant.wuwa_guide_updates import preferred_candidate
-    except ImportError:preferred_candidate=None
-    rows=[c for c in candidates if isinstance(c,dict)] if isinstance(candidates,list) else []
-    if preferred_candidate is not None:return preferred_candidate(rows)
-    # Same pick rule as the automatic extraction until the shared helper exists.
-    articles=[c for c in rows if c.get('kind')=='article']
-    return next((c for c in articles if c.get('author_id')=='10525366'),articles[0] if articles else None)
+    from game_assistant.wuwa_guide_updates import preferred_candidate
+    return preferred_candidate([c for c in candidates if isinstance(c,dict)] if isinstance(candidates,list) else [])
 
 def _roster():
-    try:from game_assistant.guide_jobs import guide_roster
-    except ImportError:return []
-    try:return [r for r in guide_roster() if isinstance(r,dict)]
-    except CACHE_ERRORS:return []
+    from game_assistant.guide_jobs import guide_roster
+    return guide_roster()
 
 def _guide(row):
     fields=('id','name','game','attribute','element','role','status','image','aliases')

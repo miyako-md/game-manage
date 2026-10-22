@@ -70,8 +70,6 @@ def test_guide_missing_source_version_stays_null_instead_of_vnone():
 # --- Cache-only overlay of the shared guide services (fakes with the contract shapes) ---
 import os
 import sqlite3
-import sys
-import types
 from pathlib import Path
 from game_assistant.qq.cards import card_to_text
 from game_assistant.qq.guides import GuideSources
@@ -113,10 +111,9 @@ class FakeNte:
 
 @pytest.fixture
 def roster(monkeypatch):
-    module=types.ModuleType('game_assistant.guide_jobs')
-    module.guide_roster=lambda:[{'character_id':'1102','name':'散华','attribute':'冷凝','static':True},
-                                {'character_id':'1311','name':'心','attribute':'','static':False}]
-    monkeypatch.setitem(sys.modules,'game_assistant.guide_jobs',module)
+    monkeypatch.setattr('game_assistant.guide_jobs.guide_roster',lambda:[
+        {'character_id':'1102','name':'散华','attribute':'冷凝','static':True},
+        {'character_id':'1311','name':'心','attribute':'','static':False}])
 
 def guide_of(snapshot):
     assert snapshot['kind']=='guide' and validate_snapshot(snapshot)==snapshot
@@ -177,12 +174,6 @@ def test_new_role_draft_needs_a_roster_entry_and_a_stored_extraction(roster):
         _,snapshot=reply('wuthering_waves','心',NOW,sources=GuideSources(FakeWuwa(rows)))
         assert snapshot['kind']=='notice' and '尚未收录' in json.dumps(snapshot,ensure_ascii=False)
     assert reply('wuthering_waves','心',NOW)[1]['kind']=='notice'
-
-def test_new_role_without_the_roster_module_keeps_todays_notice(monkeypatch):
-    monkeypatch.setitem(sys.modules,'game_assistant.guide_jobs',None)
-    rows={'1311':check('1311','心','导电',[candidate(NEW_POST)],live('1311','心','导电',NEW_POST))}
-    _,snapshot=reply('wuthering_waves','心',NOW,sources=GuideSources(FakeWuwa(rows)))
-    assert snapshot['kind']=='notice'
 
 def test_nte_guide_overlays_summary_change_check_time_and_source_images():
     status={491439:{'fetched_at':'2026-10-21T22:00:00+00:00','summary_changed':True,'stale':False,'error':False}}
