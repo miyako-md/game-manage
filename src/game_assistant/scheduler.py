@@ -11,6 +11,7 @@ from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
 
 logger = logging.getLogger(__name__)
+GUIDE_KEY = ('guides', 'daily')
 
 INTERVAL_ATTRS = {
     Capability.STAMINA: "stamina_seconds",
@@ -169,9 +170,12 @@ class _SchedulerLease:
 
 class AccountPollingScheduler:
     """One event-loop scheduler; queueing never waits for upstream requests."""
-    def __init__(self, accounts, query, settings, root, *, public=None, reminders=None):
+    def __init__(self, accounts, query, settings, root, *, public=None, reminders=None, public_tools=None):
         import time
         self.accounts, self.query, self.settings, self.public = accounts, query, settings, public
+        # CloudPublicTools: its GuideJob reuses the guide services behind the admin buttons.
+        self.guides = getattr(public_tools, 'guides', None)
+        self._daily = False
         self.reminders = reminders
         self.lease = _SchedulerLease(root)
         self._global = asyncio.Semaphore(settings.cloud_poll_concurrency)
@@ -192,6 +196,8 @@ class AccountPollingScheduler:
             return
         self.lease.acquire()
         self._running = True
+        # The daily guide walk follows periodic scheduling only; a manual tick never starts it.
+        self._daily = periodic
         self.accounts._listeners.append(self._invalidate)
         if periodic:
             self._loop = asyncio.create_task(self._run())
@@ -423,6 +429,30 @@ class AccountPollingScheduler:
             self._public_results[game] = dict(generation=previous + 1,
                 outcome={**outcome, 'finished_at': datetime.now(timezone.utc).isoformat()})
 
+    def guide_state(self):
+        item = self._pending.get(GUIDE_KEY)
+        if not item or item[1].done():
+            return 'idle'
+        return 'running' if self.guides and self.guides.running else 'queued'
+
+    def request_guide_check(self):
+        """Administrator "check now": shares the daily key, so a queued or running run is merged."""
+        from fastapi import HTTPException
+        if not self.guides or not self._running:
+            raise HTTPException(503, 'scheduler_unavailable')
+        return self._queue(GUIDE_KEY, self._run_guides)
+
+    async def _run_guides(self):
+        # Own provider slot: the community search never waits behind account polling, nor blocks it.
+        provider = self._providers.setdefault('kurobbs_public', asyncio.Semaphore(1))
+        try:
+            async with provider:
+                await self.guides.run()
+        except Exception:
+            logger.warning('guide_job_failed')
+        finally:
+            self._due[GUIDE_KEY] = self.clock() + 60
+
     async def tick(self):
         from game_assistant.accounts.models import AccountScope
         from game_assistant.accounts.store import AccountNotFoundError
@@ -450,6 +480,9 @@ class AccountPollingScheduler:
                 key = ('public', game)
                 if self.clock() >= self._due.get(key, 0):
                     self._queue(key, lambda game=game: self._poll_public(game))
+        if (self.guides and self._daily and GUIDE_KEY not in self._pending and self.clock() >= self._due.get(GUIDE_KEY, 0)
+                and self.guides.due(self.settings.cloud_guide_check_time)):
+            self._queue(GUIDE_KEY, self._run_guides)
 
     async def _run(self):
         while True:

@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, StrictBool
 
 from .endfield_public import EndfieldPublicService, PublicSourceError
+from .guide_jobs import GuideJob
 from .identity.dependencies import require_user
 from .nte_guides import GuideService, GuideSourceError
 from .nte_guides_catalog import SOURCES, guide_catalog
@@ -55,6 +56,7 @@ class CloudEndfieldPublicService(EndfieldPublicService):
 class CloudPublicTools:
     TIMEOUT = 45
     FALLBACK_TIMEOUT = 1
+    GUIDE_COOLDOWN = 600
 
     def __init__(self, settings):
         path = Path(settings.db_path)
@@ -63,6 +65,12 @@ class CloudPublicTools:
         self.wuwa_tower = TowerGuides(path.with_suffix('.wuwa-guides.sqlite3'))
         self.endfield = CloudEndfieldPublicService(path)
         self.maintenance_attempts = {}
+        # Daily guide job on the same service instances; cloud_app attaches the scheduler.
+        self.guides = GuideJob(self.wuwa, self.wuwa_tower, self.nte)
+        self.check_time = settings.cloud_guide_check_time
+        self.scheduler = None
+        self.guide_check_last = None
+        self.clock = time.monotonic
 
     def maintenance(self, kind):
         now = time.monotonic()
@@ -110,11 +118,25 @@ class CloudPublicTools:
                 return self.nte.present(cached, post_id)
             raise HTTPException(502, '原帖暂时无法读取，请稍后重试') from None
 
+    def guide_retry_after(self):
+        if self.guide_check_last is None:
+            return 0
+        return max(0, int(self.GUIDE_COOLDOWN - (self.clock() - self.guide_check_last) + 0.999))
+
+    def guide_status(self):
+        scheduler = self.scheduler
+        running = bool(scheduler and scheduler._running)
+        return self.guides.status(state=scheduler.guide_state() if scheduler else 'idle',
+                                  next_run_at=self.guides.next_run_at(self.check_time) if running else None,
+                                  retry_after=self.guide_retry_after())
+
     def close(self):
+        self.wuwa_tower.cancel()
         self.endfield.close()
 
 
 def install_cloud_public_tools(app, settings):
+    from fastapi.responses import JSONResponse
     from .cloud_app import allow_cloud_route
     tools = CloudPublicTools(settings)
     app.state.cloud_public_tools = tools
@@ -147,12 +169,16 @@ def install_cloud_public_tools(app, settings):
 
     @readers.get('/wuwa/guides/updates')
     async def wuwa_cached(query: Search = Depends()):
-        return tools.wuwa.cached(query)
+        return {**tools.wuwa.cached(query), 'background': tools.wuwa.background()}
 
     @writers.post('/wuwa/guides/updates')
     async def wuwa_check(query: Search):
+        background = tools.wuwa.background()
+        if background['running']:
+            # The daily job holds the search lock for minutes: answer now instead of waiting 45 s.
+            return {**tools.wuwa.cached(query), 'background': background, 'busy': True}
         tools.maintenance('wuwa-check')
-        return await tools.bounded(lambda: tools.wuwa.check(query))
+        return {**await tools.bounded(lambda: tools.wuwa.check(query)), 'background': tools.wuwa.background()}
 
     @writers.post('/wuwa/guides/updates/extract')
     async def wuwa_extract(selection: Selection):
@@ -168,6 +194,23 @@ def install_cloud_public_tools(app, settings):
     async def wuwa_tower_check():
         tools.maintenance('wuwa-tower')
         return await tools.bounded(tools.wuwa_tower.check)
+
+    @writers.get('/guides')
+    async def guides_status():
+        return tools.guide_status()
+
+    @writers.post('/guides/check')
+    async def guides_check():
+        if not tools.scheduler or not tools.scheduler._running:
+            raise HTTPException(503, 'scheduler_unavailable')
+        wait = tools.guide_retry_after()
+        if wait:
+            return JSONResponse({'detail': 'guide_check_cooldown', 'retry_after': wait},
+                                status_code=429, headers={'Retry-After': str(wait)})
+        receipt = tools.scheduler.request_guide_check()
+        tools.guide_check_last = tools.clock()
+        return JSONResponse({'state': 'merged' if receipt.state == 'coalesced' else receipt.state,
+                             'retry_after': tools.GUIDE_COOLDOWN}, status_code=202)
 
     @readers.get('/endfield/public')
     async def endfield_public():

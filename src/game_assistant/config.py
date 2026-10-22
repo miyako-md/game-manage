@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     cloud_endfield_challenge_poll_seconds: int = Field(default=900, ge=300, le=86400)
     # 公共来源（B站动态、库街区/塔吉多公告、终末地官网、配队推荐）每 6 小时采集一次。
     cloud_public_poll_seconds: int = Field(default=21600, ge=60, le=86400)
+    # 每日攻略检查（鸣潮全角色、深塔、异环原帖）的北京时间 HH:MM；深塔周一 04:00 换期之后。
+    cloud_guide_check_time: str = Field(default='05:30', pattern=r'^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')
     cloud_poll_concurrency: int = Field(default=4, ge=1, le=16)
     cloud_provider_concurrency: int = Field(default=1, ge=1, le=4)
     cloud_upstream_timeout_seconds: int = Field(default=120, ge=5, le=600)
