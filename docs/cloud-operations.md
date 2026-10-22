@@ -32,6 +32,10 @@ python -c 'import os; f=os.open("/etc/game-manage-cloud/grants.key",os.O_WRONLY|
 
 采集频率（2026-10-21 起）：公共来源，即 B 站官方动态、库街区/塔吉多公告、终末地官网资讯和异环配队推荐，由 `cloud_public_poll_seconds` 控制，默认 21600 秒（每 6 小时一次）；终末地官网另有 6 小时缓存，网页读取不会额外访问官网。私人数据（体力等）仍按 `cloud_private_poll_seconds`（900 秒），不受影响。资讯和日历的“已过期”判断按 2 倍采集周期计，6 小时周期内的数据不会被标为过期。服务器 TOML 若显式写了 `cloud_public_poll_seconds = 600`，须改为 `21600` 或删除该行才生效；API 重启后会立即采集一轮，之后按周期执行。需要立即更新时，管理员在「今日总览」点「采集与回补」：每个游戏立即排一次公共采集（终末地强制刷新官网缓存，B 站回补近 60 天；B 站处于失败退避时跳过 B 站并在进度中注明），同时刷新管理员本人各账号的私人数据；同一游戏已在采集时合并，不重复排队，全站 5 分钟内只能触发一次。
 
+每日攻略检查（2026-10-22，M9）：调度器键 `('guides','daily')`，北京时间每天 `cloud_guide_check_time`（默认 `"05:30"`，`HH:MM`，启动时校验）后运行一次。顺序：鸣潮全角色（46 个静态条目 + 默认权重表中无静态条目的角色；角色间隔 3 秒；只在首选帖变化时提炼，每轮最多 8 个）→ 深塔（到期才查）→ 异环 2 个收录帖（缓存超过 24 小时才请求）。使用独立供应者信号量 `kurobbs_public`，不占用私人轮询的全局并发；复用 `public_tools` 上同一组攻略服务实例，与管理员按钮共用锁。运行记录在 `public.wuwa-guides.sqlite3` 的 `guide_runs` 表，重启不重跑当天已开始的时段；API 关停时取消进行中的检查并记为 `stopped`（`stop_code=shutdown`）。库街区 429/403 立即停止鸣潮部分并跳过深塔，日志 `guide_job_stopped code=http:429`；每轮结束一行 `guide_job_finished outcome=ok|partial|stopped|failed checked=… extracted=… failed=…`，不含玩家标识。该键**不要写进服务器 TOML**：默认值即生效，旧版本回滚时会拒绝未知键；确需改时间再显式加一行。
+
+管理员接口（管理员 + CSRF，与其他 `/api/admin/*` 一致）：`GET /api/admin/guides` 返回任务状态（`idle/queued/running`、上次运行、下次时间、冷却剩余秒数）、鸣潮名单检查覆盖、待处理新帖、提炼失败与检索失败码、深塔当期覆盖与失败码、异环原帖读取时间/过期/失败/摘要变化，只读缓存不访问上游；`POST /api/admin/guides/check` 把同一后台任务立即排队，已排队或运行中时合并（202 `{"state":"queued"|"merged","retry_after":600}`），全站 10 分钟冷却（429 `guide_check_cooldown` + `Retry-After`），调度器未运行时 503 `scheduler_unavailable`。
+
 `game-manage.service` 与 `game-manage-qq.service` 是待审核模板。只在新独立路径安装；检查 `systemd-analyze verify` 后再启用。资源初值：API `MemoryHigh=512M/MemoryMax=768M`，QQ `192M/256M`；CPU 配额分别 150%/50%，失败最多 300 秒内重启 3 次。OOM 停止后查看失败并告警，不能无限重启。数值是试运行初值，不是容量结论。`journald-cloud.conf` 安装到专用 `/etc/systemd/journald@game-manage-cloud.conf.d/limits.conf`，namespace 日志保留最多 64MiB/7 天，运行时最多 16MiB；不调整现有服务全局日志策略。
 
 合并 Caddy 片段到操作者审核的新配置后先运行 `caddy validate --config <reviewed-config>`。只有校验成功、域名解析/TLS 实测及明确切换授权后才 reload；模板不得替换整份服务器配置。`__Host-ga_session`/preauth 为 Secure、HTTPOnly、SameSite=Lax，无 Domain、Path=/，要求真实 HTTPS。HTTP 页面不能作为网站登录验收。

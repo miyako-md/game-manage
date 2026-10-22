@@ -7,6 +7,9 @@ cloud_allowed_origins = ["https://game.rekibot.cloud"]
 lol_enabled = false
 cloud_private_poll_seconds = 900
 cloud_public_poll_seconds = 21600
+# Daily guide check, Beijing time HH:MM; the default applies when absent. Leave it out
+# unless a different time is needed (older releases reject unknown keys on rollback).
+# cloud_guide_check_time = "05:30"
 cloud_poll_concurrency = 4
 cloud_provider_concurrency = 1
 cloud_upstream_timeout_seconds = 120
