@@ -480,9 +480,11 @@ class AccountPollingScheduler:
                 key = ('public', game)
                 if self.clock() >= self._due.get(key, 0):
                     self._queue(key, lambda game=game: self._poll_public(game))
-        if (self.guides and self._daily and GUIDE_KEY not in self._pending and self.clock() >= self._due.get(GUIDE_KEY, 0)
-                and self.guides.due(self.settings.cloud_guide_check_time)):
-            self._queue(GUIDE_KEY, self._run_guides)
+        if self.guides and self._daily and GUIDE_KEY not in self._pending and self.clock() >= self._due.get(GUIDE_KEY, 0):
+            # The slot is checked once a minute, not on every five-second tick.
+            self._due[GUIDE_KEY] = self.clock() + 60
+            if self.guides.due(self.settings.cloud_guide_check_time):
+                self._queue(GUIDE_KEY, self._run_guides)
 
     async def _run(self):
         while True:
