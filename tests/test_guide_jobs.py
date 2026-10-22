@@ -10,7 +10,7 @@ import pytest
 import respx
 
 from game_assistant import guide_jobs
-from game_assistant.guide_jobs import CN, GuideJob, guide_roster, static_sources
+from game_assistant.guide_jobs import CN, GuideJob, guide_roster, pending_candidate, static_sources
 from game_assistant.nte_guides import GuideService
 from game_assistant.nte_guides_catalog import SOURCES
 from game_assistant.wuwa_guide_extract import POST_URL
@@ -101,6 +101,52 @@ def test_roster_is_static_entries_then_default_weight_roles():
     assert '1482734021209260032' in static_sources('1102') and static_sources('1311') == frozenset()
     rows[0]['name'] = 'changed'
     assert guide_roster()[0]['name'] != 'changed'
+
+
+def test_pending_needs_a_post_newer_than_the_guide_on_display():
+    def value(published, active=None):
+        return {'candidates': [{'id': '7', 'kind': 'article', 'author_id': '10525366', 'published_at': published}],
+                'active_guide': active}
+    # 散华's catalog sources go up to 2026-03-15: an older community post is not new.
+    assert pending_candidate('1102', value('2025-01-01T00:00:00+00:00')) is None
+    assert pending_candidate('1102', value('2026-10-01T00:00:00+00:00'))['id'] == '7'
+    draft = {'sourceId': '7', 'sections': [{'status': 'extracted'}]}
+    reviewed = {'sourceId': '7', 'sections': [{'status': 'reviewed'}]}
+    # The page keeps the static guide until an extraction is fully reviewed, so a draft still waits.
+    assert pending_candidate('1102', value('2026-10-01T00:00:00+00:00', draft))['id'] == '7'
+    assert pending_candidate('1102', value('2026-10-01T00:00:00+00:00', reviewed)) is None
+    # A role without a static guide shows its draft: the extracted post is no longer new.
+    assert pending_candidate('1311', value('2026-10-01T00:00:00+00:00', draft)) is None
+    assert pending_candidate('1311', value('2024-01-01T00:00:00+00:00'))['id'] == '7'
+
+
+@respx.mock
+async def test_posts_older_than_the_static_guide_are_not_extracted(job, monkeypatch):
+    roster(monkeypatch, names=NAMES[:2], static=('甲乙', '丙丁'))
+    monkeypatch.setattr(guide_jobs, 'static_sources', lambda cid: frozenset({'900'}))
+    monkeypatch.setattr(guide_jobs, 'static_since', lambda cid: datetime(2027, 1, 1, tzinfo=CN))
+    upstream = Upstream()
+    respx.post(SEARCH_URL).mock(side_effect=upstream.search)
+    respx.post(POST_URL).mock(side_effect=upstream.detail)
+    assert await job.run() == 'ok'
+    assert upstream.searches == NAMES[:2] and upstream.details == []
+    assert job.status()['wuthering_waves']['pending'] == []
+
+
+@respx.mock
+async def test_a_new_role_checked_from_the_page_keeps_the_page_key(job, monkeypatch):
+    roster(monkeypatch, names=NAMES[1:2], static=())
+    monkeypatch.setattr(guide_jobs, 'static_sources', lambda cid: frozenset())
+    page = Search(character_id='9000', name='丙丁', attribute='导电')
+    job.updates.save(page, {**page.model_dump(), 'candidates': [], 'checked_at': '2026-10-01T00:00:00+00:00',
+                            'attempted_at': '2026-10-01T00:00:00+00:00', 'error': None, 'limited': False})
+    upstream = Upstream(names=['丙丁'])
+    respx.post(SEARCH_URL).mock(side_effect=upstream.search)
+    respx.post(POST_URL).mock(side_effect=upstream.detail)
+    assert await job.run() == 'ok'
+    stored = job.updates.cached(page)
+    assert stored['candidates'][0]['id'] == '100' and stored['active_guide']['sourceId'] == '100'
+    assert job.updates.stored('9000')[0] == page.key
 
 
 @respx.mock
@@ -208,7 +254,7 @@ def test_slot_is_beijing_time_and_a_restart_never_reruns_it(job):
 async def test_background_state_and_cancellation_are_recorded(job, monkeypatch):
     roster(monkeypatch, names=NAMES[:1])
     gate = asyncio.Event()
-    async def check(query, extract='always', known=()):
+    async def check(query, extract='always', known=(), since=None):
         await gate.wait()
     monkeypatch.setattr(job.updates, 'check', check)
     assert job.updates.background() == {'running': False, 'last_run_at': None}

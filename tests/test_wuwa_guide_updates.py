@@ -238,10 +238,18 @@ def test_cached_falls_back_to_the_same_character_id(tmp_path):
     by_id = service.cached_by_id('1311')
     assert set(by_id) >= {'character_id', 'name', 'attribute', 'candidates', 'checked_at', 'attempted_at', 'error',
                           'error_code', 'limited', 'active_guide', 'extraction_error'}
-    # The exact key wins even when another form of the key was checked later.
+    # The newest check wins whichever spelling wrote it; an older exact key does not hide it.
     service.save(web, row('心', '导电', '2026-10-19T00:00:00+00:00'))
-    assert service.cached(web)['candidates'] == [] and service.cached(web)['active_guide'] is None
-    assert service.cached_by_id('1311')['attribute'] == ''  # the latest check by id
+    assert service.cached(web)['candidates'][0]['id'] == '1' and service.cached_by_id('1311')['attribute'] == ''
+    service.save(web, row('心', '导电', '2026-10-21T00:00:00+00:00'))
+    assert service.cached(web)['candidates'] == [] and service.cached_by_id('1311')['attribute'] == '导电'
+    # The page's key has no extraction of its own: the job's extraction for the same id is shown.
+    assert service.cached(web)['active_guide']['sourceId'] == '1'
+    reviewed = [{'key': 'weapons', 'status': 'reviewed'}]
+    service.extractor.save(Search(character_id='1311', name='心', attribute='衍射'),
+                           {'guide': {'sourceId': '2', 'sections': reviewed, 'fetchedAt': '2026-10-01'}, 'error': None})
+    other = Search(character_id='1311', name='心', attribute='湮灭')
+    assert service.active_for(other.key, '1311')['guide']['sourceId'] == '2'  # fully reviewed first, then newest
     assert service.cached_by_id('13') is None  # an id prefix is not the same character
 
 

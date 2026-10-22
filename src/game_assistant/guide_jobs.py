@@ -16,7 +16,7 @@ import sqlite3
 
 from .nte_guides import GuideSourceError
 from .nte_guides_catalog import SOURCES
-from .wuwa_guide_updates import STOP_CODES, Search, preferred_candidate
+from .wuwa_guide_updates import STOP_CODES, Search, is_new_candidate, preferred_candidate
 
 logger = logging.getLogger(__name__)
 ROOT = Path(__file__).parent
@@ -40,7 +40,15 @@ def _roster():
     sources = {str(g['id']): frozenset({str(s['id']) for s in g.get('sources', []) if s.get('id')}
                                        | {str(s['sourceId']) for s in g.get('sections', []) if s.get('sourceId')})
                for g in static}
-    return tuple(rows), sources
+    # Catalog dates are Beijing time "YYYY-MM-DD HH:MM"; only posts newer than the newest one are new.
+    since = {}
+    for g in static:
+        dates = [s['publishedAt'] for s in g.get('sources', []) if isinstance(s.get('publishedAt'), str)]
+        try:
+            since[str(g['id'])] = max(datetime.strptime(d, '%Y-%m-%d %H:%M').replace(tzinfo=CN) for d in dates)
+        except ValueError:
+            pass
+    return tuple(rows), sources, since
 
 
 def guide_roster():
@@ -50,6 +58,26 @@ def guide_roster():
 
 def static_sources(character_id):
     return _roster()[1].get(str(character_id), frozenset())
+
+
+def static_since(character_id):
+    return _roster()[2].get(str(character_id))
+
+
+def pending_candidate(character_id, value):
+    """The preferred post of a cached check when it is new to the guide on display.
+
+    A role with a static guide shows its extraction only once all sections are reviewed (the
+    page's rule), so until then an extracted new post still waits for review.
+    """
+    value = value or {}
+    preferred = preferred_candidate(value.get('candidates'))
+    guide = value.get('active_guide')
+    if static_sources(character_id) and not (isinstance(guide, dict) and guide.get('sections') and all(
+            isinstance(s, dict) and s.get('status') == 'reviewed' for s in guide['sections'])):
+        guide = None
+    return preferred if is_new_candidate(preferred, guide, static_sources(character_id),
+                                         static_since(character_id)) else None
 
 
 def slot_time(check_time, now):
@@ -148,8 +176,13 @@ class GuideJob:
             if index:
                 await self.sleep(self.pause)
             query = Search(character_id=role['character_id'], name=role['name'], attribute=role['attribute'])
+            stored = None if role['static'] else self.updates.stored(role['character_id'])
+            if stored:
+                # A new role checked from the page first: keep the page's spelling so both share one key.
+                query = Search(character_id=role['character_id'], name=stored[1]['name'], attribute=stored[1]['attribute'])
             result = await self.updates.check(query, extract='changed' if counts['extracted'] < self.budget else 'never',
-                                              known=static_sources(role['character_id']))
+                                              known=static_sources(role['character_id']),
+                                              since=static_since(role['character_id']))
             codes = [result.get('error_code') if result.get('error') else None]
             failed = bool(result.get('error'))
             counts['checked'] += not failed
@@ -199,9 +232,8 @@ class GuideJob:
                 failed.append({**ref, 'error_code': value.get('error_code')})
             if value.get('extraction_error'):
                 extraction_failed.append(ref)
-            preferred = preferred_candidate(value['candidates'])
-            current = {(value.get('active_guide') or {}).get('sourceId'), *static_sources(role['character_id'])}
-            if preferred and preferred['id'] not in current:
+            preferred = pending_candidate(role['character_id'], value)
+            if preferred:
                 pending.append({**ref, 'post_id': preferred['id'], 'title': preferred.get('title'),
                                 'author': preferred.get('author'), 'published_at': preferred.get('published_at')})
         tower = self.tower.cached()

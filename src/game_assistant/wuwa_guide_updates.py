@@ -43,6 +43,16 @@ def preferred_candidate(candidates):
     return next((p for p in articles if p.get('author_id') == PREFERRED_AUTHOR), articles[0] if articles else None)
 
 
+def is_new_candidate(candidate, guide, known=(), since=None):
+    """Worth extracting or flagging: neither the active guide's nor a known (static) source, and newer than since."""
+    if not candidate or candidate.get('id') in {(guide or {}).get('sourceId'), *known}:
+        return False
+    try:
+        return since is None or datetime.fromisoformat(candidate.get('published_at') or '') > since
+    except ValueError:
+        return False
+
+
 class Search(BaseModel):
     character_id: str = Field(pattern=r'^\d{1,12}$')
     name: str = Field(min_length=1, max_length=30, pattern=r'^[\u4e00-\u9fffA-Za-z·・]+$')
@@ -139,7 +149,8 @@ class GuideUpdates:
                 found.append((row_key == key, value.get('attempted_at') or value.get('checked_at') or '', row_key, value))
         if not found:
             return None
-        _, _, row_key, value = max(found, key=lambda item: item[:2])
+        # The newest check wins: the daily job and the page may spell a new role's key differently.
+        _, _, row_key, value = max(found, key=lambda item: (item[1], item[0]))
         return row_key, {'error_code': None, **value}
 
     def cached(self, query):
@@ -156,8 +167,29 @@ class GuideUpdates:
     def background(self):
         return self.runner.background() if self.runner else {'running': False, 'last_run_at': None}
 
-    def with_guide(self,key,value):
+    def active_for(self, key, character_id):
+        """The key's extraction, else the best one stored for the same id: fully reviewed first, then newest."""
         active = self.extractor.active(key)
+        if active['guide'] or active['error'] or not re.fullmatch(r'\d{1,12}', str(character_id)):
+            return active
+        with closing(sqlite3.connect(self.path)) as conn:
+            rows = conn.execute('SELECT payload FROM guide_active WHERE key LIKE ?',
+                                (json.dumps([str(character_id)])[:-1] + ',%',)).fetchall()
+        best = None
+        for (payload,) in rows:
+            try:
+                guide = json.loads(payload).get('guide')
+            except (ValueError, AttributeError):
+                continue
+            if isinstance(guide, dict) and isinstance(guide.get('sections'), list):
+                rank = (bool(guide['sections']) and all(isinstance(s, dict) and s.get('status') == 'reviewed'
+                                                        for s in guide['sections']), str(guide.get('fetchedAt') or ''))
+                if best is None or rank > best[0]:
+                    best = rank, guide
+        return {'guide': best[1], 'error': None, 'error_code': None} if best else active
+
+    def with_guide(self,key,value):
+        active = self.active_for(key, value.get('character_id'))
         return {**value,'active_guide':active['guide'],'extraction_error':active['error']}
 
     async def extract(self,query,post_id,force=True):
@@ -173,9 +205,9 @@ class GuideUpdates:
                          (query.key, json.dumps(value, ensure_ascii=False)))
             conn.commit()
 
-    async def check(self, query, extract='always', known=()):
-        """extract: 'always' re-reads the preferred post (the page button); 'changed' only when it is
-        neither the active guide's source nor one of the known (static) sources; 'never' skips it."""
+    async def check(self, query, extract='always', known=(), since=None):
+        """extract: 'always' re-reads the preferred post (the page button); 'changed' only when
+        is_new_candidate (not the active guide's or a known static source, newer than since); 'never' skips it."""
         async with self.lock:
             previous = self.cached(query)
             attempt = previous.get('attempted_at')
@@ -219,8 +251,8 @@ class GuideUpdates:
             self.save(query, value)
             preferred = preferred_candidate(value['candidates']) if not value.get('error') and self.auto_extract else None
             if preferred and extract != 'never':
-                guide = self.extractor.active(query)['guide'] or {}
-                if extract == 'always' or preferred['id'] not in {guide.get('sourceId'), *known}:
+                guide = self.active_for(query.key, query.character_id)['guide']
+                if extract == 'always' or is_new_candidate(preferred, guide, known, since):
                     await self.extractor.extract(query,preferred['id'],force=True)
                     extracted = True
             result = self.with_guide(query.key,value)

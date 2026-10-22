@@ -45,9 +45,10 @@ class GuideSources:
         images=cached.get('images') if isinstance(cached,dict) else None
         return {**status,'image_count':len(images) if isinstance(images,list) else None}
 
-def _preferred(candidates):
-    from game_assistant.wuwa_guide_updates import preferred_candidate
-    return preferred_candidate([c for c in candidates if isinstance(c,dict)] if isinstance(candidates,list) else [])
+def _pending(character_id,state):
+    from game_assistant.guide_jobs import pending_candidate
+    candidates=state.get('candidates')
+    return pending_candidate(character_id,{**state,'candidates':[c for c in candidates if isinstance(c,dict)] if isinstance(candidates,list) else []})
 
 def _roster():
     from game_assistant.guide_jobs import guide_roster
@@ -88,9 +89,8 @@ def _wuwa_overlay(row,state,*,draft):
     guide=_guide(shown)
     checked=_checked(state.get('checked_at'))
     lines=[]
-    preferred=_preferred(state.get('candidates'))
-    # A newer preferred post than every shown source stays 待核查 until reviewed.
-    if preferred and str(preferred.get('id')) not in {s['id'] for s in guide['sources']}:
+    # A preferred post newer than the shown guide stays 待核查 until reviewed (same rule as the admin card).
+    if _pending(row['id'],state):
         lines.append('库街区有新攻略帖，待核查'+('（检查于 '+checked+'）' if checked else ''))
     elif checked:lines.append('攻略检查于 '+checked)
     images=live.get('images') if shown is not row and isinstance(live,dict) else None
