@@ -21,7 +21,7 @@ from game_assistant.accounts.models import AccountScope, QueryResult
 from .commands import safe_text
 from .cards import validate_card_document, card_to_text, image_references
 
-TEMPLATE_VERSION = 'qq-unified-4-skins'
+TEMPLATE_VERSION = 'qq-unified-5-guide-freshness'
 logger = logging.getLogger(__name__)
 # Exact codes only: never put exception text, scopes or rendered input in logs.
 RENDER_DIAGNOSTIC_CODES = frozenset('''

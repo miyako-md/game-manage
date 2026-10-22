@@ -139,6 +139,26 @@ test('guide sources without a version say so instead of printing VNone',()=>{
  assert.match(lines[0],/V3\.2/);assert.match(lines[1],/版本未确认/)
  assert.doesNotMatch(JSON.stringify(model),/VNone|Vnull|Vundefined/)
 })
+test('guide freshness leads the page and an automatic draft carries its mark instead of the reviewed label',()=>{
+ configure([],{})
+ const sections=[{key:'weapons',title:'武器推荐',text:'示例武器',sourceId:'9'}]
+ const base={id:'1311',name:'示例新角色',sources:[{id:'9',title:'示例帖',author:'作者',version:'3.7',url:'u'}],sections}
+ const draft={...base,freshness:{mark:'自动提炼·待校对',lines:['攻略检查于 2026-10-22 05:31','原帖共 6 张图，可在网站攻略页「查看原帖」查看']}}
+ const model=viewModel({command:'鸣潮 攻略 示例新角色',snapshot:{kind:'guide',game:'wuthering_waves',as_of:'2026-10-22T08:00:00+08:00',display_data:{guide:draft}}})
+ assert.ok(model.hero.meta.includes('自动提炼·待校对'));assert.ok(!model.hero.meta.includes('已整理的社区建议'))
+ assert.equal(model.panels[0].title,'攻略状态')
+ assert.deepEqual(model.panels[0].lines.map(l=>l.text),draft.freshness.lines)
+ assert.equal(model.panels.at(-1).title,'攻略来源')
+ const plain=viewModel({command:'鸣潮 攻略 示例',snapshot:{kind:'guide',game:'wuthering_waves',as_of:'2026-10-22T08:00:00+08:00',display_data:{guide:base}}})
+ assert.ok(plain.hero.meta.includes('已整理的社区建议'));assert.ok(!plain.panels.some(p=>p.title==='攻略状态'))
+})
+test('the Endfield guide notice shows the snapshot text with the source name and no link',()=>{
+ configure([],{})
+ const text='暂未收录可核验的终末地角色攻略；可在 B 站搜索 猫冬MT「终末地攻略合集」。'
+ const model=viewModel({command:'终末地 攻略',snapshot:{kind:'notice',game:'endfield',as_of:'2026-10-22T08:00:00+08:00',display_data:{title:'终末地 角色攻略',sections:[],notices:[text]}}})
+ assert.equal(model.panels[0].text,text)
+ assert.doesNotMatch(model.panels[0].text+model.panels[0].caption,/bilibili\.com|https?:/)
+})
 test('a bare guide reply is a plain notice, not an index image',()=>{
  const input={command:'鸣潮 攻略',snapshot:{kind:'notice',game:'wuthering_waves',as_of:'2026-10-18T00:00:00+08:00',display_data:{title:'鸣潮 角色攻略',sections:[],notices:['请发送「鸣潮 攻略 角色名」查看单个角色攻略；可用角色见网站攻略页。']}}}
  const model=viewModel(input)

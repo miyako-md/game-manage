@@ -74,8 +74,14 @@ def validate_snapshot(value):
             if not isinstance(row,dict) or set(row)!={'payload','fetched_at','state','complete','stale'}:raise RenderingUnavailable('qq_browser_invalid_snapshot')
             if type(row['stale']) is not bool or row['complete'] is not None and type(row['complete']) is not bool or not isinstance(row['state'],str) or row['fetched_at'] is not None and not isinstance(row['fetched_at'],str):raise RenderingUnavailable('qq_browser_invalid_snapshot')
             if panel_payload(game,provider,cap,row['payload'])!=row['payload']:raise RenderingUnavailable('qq_browser_private_field')
-    guide_fields=frozenset('guide key text note sourceId author version url aliases attribute element role status image sources asset_hints'.split()) if value['kind']=='guide' else frozenset()
+    guide_fields=frozenset('guide key text note sourceId author version url aliases attribute element role status image sources asset_hints freshness mark lines'.split()) if value['kind']=='guide' else frozenset()
     if value['kind']=='guide' and not isinstance(value['display_data']['guide'],dict):raise RenderingUnavailable('qq_browser_invalid_snapshot')
+    if value['kind']=='guide' and 'freshness' in value['display_data']['guide']:
+        # Short presentation text only: an optional mark and at most four lines.
+        freshness=value['display_data']['guide']['freshness']
+        if not isinstance(freshness,dict) or set(freshness)!={'mark','lines'} or freshness['mark'] is not None and (not isinstance(freshness['mark'],str) or len(freshness['mark'])>32):raise RenderingUnavailable('qq_browser_invalid_snapshot')
+        strings(freshness['lines'])
+        if len(freshness['lines'])>4 or any(len(line)>120 for line in freshness['lines']):raise RenderingUnavailable('qq_browser_data_limit')
     display_keys=CALENDAR|VERSION|ROLE|GACHA|DISPLAY_FIELDS|guide_fields|frozenset('games snapshots game_id display_name events payload fetched_at state complete stale detail snapshot archive ledger roles wuthering_waves nte endfield all 0 1 2 3 4 5 6 S A B unknown panels game provider capability notices sections items 轻波级 巨浪级 怒涛级 海啸级'.split())
     def inspect(node, depth=0):
         nonlocal count
