@@ -254,6 +254,38 @@ async def test_short_budget_reply_leaves_another_replys_download_running_and_clo
     assert not cache._deferred and cache._drainer is None and not cache._inflight
 
 
+async def test_download_whose_budget_ran_out_before_a_socket_freed_is_deferred_not_failed(monkeypatch):
+    assets = module()
+    clock = [100.0]
+    monkeypatch.setattr(assets, 'time', type('Clock', (), {'monotonic': staticmethod(lambda: clock[0])}))
+    gates, calls = {}, []
+    async def fetch(url, **kwargs):
+        name = url.rsplit('/', 1)[1]
+        calls.append(name)
+        await gates.setdefault(name, asyncio.Event()).wait()
+        return png()
+    monkeypatch.setattr(assets, '_download', fetch)
+    cache = assets.PublicAssetCache(concurrency=1)
+    first, queued = (cache.register_url(f'https://webstatic.tajiduo.com/{name}.png') for name in ('first', 'queued'))
+    with cache.rendering():
+        reply = asyncio.create_task(cache.prefetch([first, queued], budget_seconds=5))
+        for _ in range(2):  # the reply starts both tasks, then the first takes the socket
+            await asyncio.sleep(0)
+        assert calls == ['first.png']
+        # The budget is spent while the second download still waits for the only socket.
+        clock[0] += 6
+        gates['first.png'].set()
+        assert await reply == {'hit': 0, 'miss': 2, 'failed': 0, 'timeout': 1}
+        assert list(cache._deferred) == [queued] and cache._drainer and queued not in cache._failures
+        await asyncio.sleep(0)
+        assert calls == ['first.png'] and cache.get_png(first)
+    gates['queued.png'] = asyncio.Event()
+    gates['queued.png'].set()
+    await cache._drainer
+    assert calls == ['first.png', 'queued.png'] and cache.get_png(queued) and not cache._deferred
+    await cache.aclose()
+
+
 async def test_missing_or_invalid_images_are_remembered_longer_than_network_failures(monkeypatch):
     assets = module()
     clock = [100.0]

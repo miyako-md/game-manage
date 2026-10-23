@@ -426,10 +426,12 @@ class PublicAssetCache:
         80, hard bound 256) tasks and eight sockets can exist for this cache.
         Downloads this call started and that are unfinished at the budget are
         cancelled (no network or decoding beside the render) and queued for a
-        serial refetch while no render runs, so the next reply finds them.
+        serial refetch while no render runs, so the next reply finds them; so
+        are those whose budget ran out before a socket freed (they expired
+        without trying the network).
         Returns counts only: hit (cached), miss (downloads waited for), failed
-        (failed now, or a remembered failure) and timeout (deferred or still
-        downloading for another reply).
+        (failed now, or a remembered failure) and timeout (deferred, expired
+        unstarted, or still downloading for another reply).
         """
         stats = {'hit': 0, 'miss': 0, 'failed': 0, 'timeout': 0}
         if budget_seconds <= 0:
@@ -463,17 +465,18 @@ class PublicAssetCache:
         for task in stopped:
             task.cancel()
         await asyncio.gather(*stopped, return_exceptions=True)
-        for task in stopped:
+        results = {task: 'cancelled' if task.cancelled() else task.result() for task in done}
+        expired = [task for task in done if results[task] == 'expired']
+        for task in stopped + [task for task in expired if task in created]:
             self._deferred[created[task]] = None
             self._deferred.move_to_end(created[task])
         while len(self._deferred) > 512:
             self._deferred.popitem(last=False)
         if self._deferred and self._drainer is None:
             self._drainer = asyncio.create_task(self._drain())
-        results = ['cancelled' if task.cancelled() else task.result() for task in done]
-        stats['failed'] += sum(result != 'ok' for result in results)
-        stats['timeout'] = len(pending)
-        if 'error' in results:
+        stats['failed'] += sum(result not in ('ok', 'expired') for result in results.values())
+        stats['timeout'] = len(pending) + len(expired)
+        if 'error' in results.values():
             logger.warning('qq_asset_prefetch_failed')
         return stats
 
