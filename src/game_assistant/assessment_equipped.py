@@ -1,4 +1,10 @@
-"""Adapter-friendly equipped inputs. No inferred identity, area or item quality."""
+"""Adapter-friendly equipped inputs. No inferred identity.
+
+NTE kind, quality and drive area are read from the role API's own item fields: ``core``
+pieces are cartridges (one variable main stat), ``pie`` pieces are drives (fixed flat
+ATK/HP mains); the item ID ends in its quality colour, and a drive ID ``cell<N>_…`` names
+its area, which must agree with the "<roman>型驱动" name when one is given.
+"""
 import re
 from .assessment import Configuration
 from .wuwa_role_detail import role_detail_data
@@ -6,9 +12,44 @@ from .wuwa_role_detail import role_detail_data
 WUWA_NAMES={'攻击':'attack','攻击力':'attack','生命':'health','生命值':'health','防御':'defense','防御力':'defense','暴击':'crit_rate','暴击率':'crit_rate','暴击伤害':'crit_damage','共鸣效率':'energy_regen','普攻伤害加成':'basic_damage','重击伤害加成':'heavy_damage','共鸣技能伤害加成':'skill_damage','共鸣解放伤害加成':'liberation_damage','气动伤害加成':'aero_damage','冷凝伤害加成':'glacio_damage','热熔伤害加成':'fusion_damage','导电伤害加成':'electro_damage','衍射伤害加成':'spectro_damage','湮灭伤害加成':'havoc_damage','治疗效果加成':'healing_bonus'}
 
 
+NTE_KINDS={'core':'cartridge','pie':'drive'}
+NTE_QUALITY=re.compile(r'_(orange|purple|blue)$')
+NTE_AREA=re.compile(r'^cell([1-9])_')
+NTE_ROMAN={'Ⅰ':1,'Ⅱ':2,'Ⅲ':3,'Ⅳ':4,'Ⅴ':5,'Ⅵ':6}
+# Every equipped piece observed (125 of 125, levels 0-20) lists exactly four distinct substats.
+NTE_SUBSTATS=4
+
+
 def _entries(value):
     # Sources leave unequipped slots as null and may send null for a whole list; neither is an item.
     return [(index,item) for index,item in enumerate(value if isinstance(value,list) else []) if isinstance(item,dict)]
+
+
+def _nte_stat(p,observation_id,kind=None):
+    raw=str(p['value']).strip() if p.get('value') is not None else None
+    percent=raw is not None and raw.endswith('%')
+    value=raw[:-1] if percent else raw
+    if value is not None and not re.fullmatch(r'[0-9]+(?:\.[0-9]+)?',value): value=None
+    canonical=str(p['id']).lower() if p.get('id') not in (None,'') else None
+    return dict(canonical_id=canonical,observation_id=observation_id,value=value,
+                unit=None if value is None else 'percent_points' if percent else 'flat',context={'kind':kind} if kind else {})
+
+
+def _nte_input(group,item):
+    kind=NTE_KINDS[group]; source=str(item.get('id') or '')
+    quality=(m:=NTE_QUALITY.search(source)) and m[1]
+    area=None
+    if kind=='drive' and (m:=NTE_AREA.match(source)):
+        named=re.match(r'^(.)型驱动$',str(item.get('name') or ''))
+        # A name that disagrees with the ID leaves the area unknown rather than picking one.
+        if named is None or NTE_ROMAN.get(named[1])==int(m[1]): area=m[1]
+    rows=[p for _,p in _entries(item.get('properties'))]
+    substats=[_nte_stat(p,f'sub:{i}') for i,p in enumerate(rows)]
+    complete=(len(substats)==NTE_SUBSTATS and None not in [s['canonical_id'] for s in substats]+[s['value'] for s in substats]
+              and len({s['canonical_id'] for s in substats})==NTE_SUBSTATS)
+    mains=[p for _,p in _entries(item.get('main_properties'))]
+    mainstat=_nte_stat(mains[0],'main:0',kind) if kind=='cartridge' and len(mains)==1 else None
+    return dict(kind=kind,quality=quality or None,area=area,substats=substats,substats_complete=True if complete else None,mainstat=mainstat)
 
 
 def equipped_configuration(game,character,payload,observed_at=None):
@@ -20,8 +61,9 @@ def equipped_configuration(game,character,payload,observed_at=None):
             for group in ('core','pie'):
                 for index,item in _entries(suit.get(group)):
                     source_id=str(item['id']) if item.get('id') is not None else None
-                    items.append(dict(id=f'{group}:{index}:'+str(source_id or 'unknown'),source_id=source_id,source_group=group,
-                        stats=[dict(canonical_id=p.get('id'),value=p.get('value'),unit=None) for _,p in _entries(item.get('properties'))]))
+                    nte=_nte_input(group,item)
+                    items.append(dict(id=f'{group}:{index}:'+str(source_id or 'unknown'),source_id=source_id,source_group=group,kind=nte['kind'],nte=nte,
+                        stats=[dict(canonical_id=s['canonical_id'],observation_id=s['observation_id'],value=s['value'],unit=s['unit'],role='sub') for s in nte['substats']]))
     elif (payload:=role_detail_data(payload,character)) is not None:
         phantoms=payload.get('phantom_data') if isinstance(payload.get('phantom_data'),dict) else {}
         for index,item in _entries(phantoms.get('equip_phantom_list')):

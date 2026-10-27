@@ -64,8 +64,9 @@ def test_scoped_persistence_reopens_and_refuses_body_identity_and_source(identit
 def test_equipped_normalization_keeps_unknown_and_percentage_units():
     from game_assistant.assessment_equipped import equipped_configuration
     n=equipped_configuration('nte','c1',{'entries':[{'id':'c1','suit':{'core':[{'id':'i','properties':[{'id':'p','value':'3'}]}]}}]})
-    assert n.items[0].kind is None and n.items[0].nte is None
-    assert n.items[0].source_group=='core' and n.items[0].stats[0].unit is None
+    # The group names the kind; an ID without a colour and a short substat list stay unknown, not guessed.
+    assert n.items[0].kind=='cartridge' and n.items[0].nte.quality is None and n.items[0].nte.substats_complete is None
+    assert n.items[0].source_group=='core' and n.items[0].stats[0].unit=='flat' and n.items[0].nte.mainstat is None
     w=equipped_configuration('wuthering_waves','c1',{'role':{'role_id':'c1'},'phantom_data':{'equip_phantom_list':[{'main_props':[{'attribute_name':'攻击','attribute_value':'10%'}],'sub_props':[{'attribute_name':'暴击','attribute_value':'0%'}]}]}})
     assert w.items[0].stats[0].canonical_id=='attack_ratio' and w.items[0].stats[0].value=='10'
     assert w.items[0].stats[1].value=='0' and w.items[0].stats[1].unit=='percent_points'

@@ -1,8 +1,12 @@
 <script setup>
+import { computed } from 'vue'
+import { nteBadges } from '../assessment-display.js'
 import { displayNteText } from '../nte-display.js'
 import { nteNamedIcon } from '../nte-icons.js'
 import NteIcon from './NteIcon.vue'
-defineProps({ role:{type:Object,required:true}, imageMode:{type:Boolean,default:false} })
+// assessment: the score of these pieces (images carry the projected one, the website the one RoleAssessment read).
+const props = defineProps({ role:{type:Object,required:true}, imageMode:{type:Boolean,default:false}, assessment:{type:Object,default:null} })
+const badges = computed(() => nteBadges(props.assessment, props.role?.suit))
 const show = value => value == null || value === '' ? '未提供' : typeof value === 'object' ? JSON.stringify(value) : String(value)
 const rows = value => Array.isArray(value) ? value : []
 // The source has no awakening name field: keep a short leading title when the
@@ -26,8 +30,10 @@ const pieces = suit => GROUPS.reduce((n, g) => n + parts(suit, g.key).length, 0)
           <div class="nte-drives"><article v-for="(item,i) in parts(role.suit, group.key)" :key="i" class="nte-drive">
             <h6 class="nte-drive-name">{{ show(item.name) }} · Lv{{ show(item.level) }}</h6>
             <template v-for="kind in [{ key:'main_properties', label:'主属性' }, { key:'properties', label:'副属性' }]" :key="kind.key"><p class="nte-drive-kind">{{ kind.label }}</p><dl v-if="rows(item[kind.key]).length"><div v-for="(p,j) in rows(item[kind.key])" :key="j"><dt>{{ show(p.name) }}</dt><dd>{{ show(p.value) }}</dd></div></dl><p v-else class="nte-drive-empty">未提供</p></template>
-            <!-- D6: no built-in weights yet. The website shows the reserved slot; QQ images hide it (no height). -->
-            <p class="nte-drive-score" :hidden="imageMode">评分待接入</p>
+            <!-- An unscorable piece has no badge; the set's reason is in the assessment block. -->
+            <p v-if="badges.get(item)" class="nte-drive-score" :aria-label="`单件评分 ${badges.get(item).value} / ${badges.get(item).max}${badges.get(item).grade ? ' 等级 ' + badges.get(item).grade : ''}`">
+              <b>{{ badges.get(item).value }}</b><small>/ {{ badges.get(item).max }}</small><span v-if="badges.get(item).grade">{{ badges.get(item).grade }}</span>
+            </p>
           </article></div></div></template>
         <p v-if="!pieces(role.suit)">驱动件 未提供</p>
       </template><p v-else>未提供</p></section>
@@ -60,6 +66,9 @@ const pieces = suit => GROUPS.reduce((n, g) => n + parts(suit, g.key).length, 0)
 .nte-drive dt{color:var(--text-muted)}
 .nte-drive dd{color:var(--text);font-weight:500;font-variant-numeric:tabular-nums}
 .nte-drive-empty{color:var(--text-muted)}
-.nte-drive-score{display:block;margin:8px 0 0!important;padding:4px 8px;border-radius:var(--radius-chip);background:var(--control-track);color:var(--text-muted);font-size:12px}
-.nte-drive-score[hidden]{display:none}
+/* Piece score: value / maximum and the grade chip, like the WuWa echo badge. */
+.nte-drive-score{display:flex;align-items:baseline;gap:6px;margin:8px 0 0!important;font-variant-numeric:tabular-nums}
+.nte-drive-score b{color:var(--text);font-size:15px;font-weight:600}
+.nte-drive-score small{color:var(--text-muted);font-size:12px}
+.nte-drive-score span{margin-left:auto;padding:0 8px;border-radius:var(--radius-chip);background:var(--game-nte-tone);color:var(--game-nte);font-size:12px;font-weight:600;line-height:20px}
 </style>

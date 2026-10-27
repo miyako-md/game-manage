@@ -64,7 +64,11 @@ def install_assessment_routes(app,accounts=None,private_root=None,snapshots=None
 
     def validate(cls,body,game,character):
         # A saved copy of a default is the user's own model and carries no attribution.
-        if cls is AssessmentModel and body.get('source')=='user_configured': body={k:v for k,v in body.items() if k!='attribution'}
+        if cls is AssessmentModel and body.get('source')=='user_configured':
+            body={k:v for k,v in body.items() if k!='attribution'}
+            # So are the weights of a saved NTE default: they become the user's own.
+            if isinstance(body.get('nte_profile'),dict) and body['nte_profile'].get('source')=='builtin_default':
+                body['nte_profile']={**body['nte_profile'],'source':'user_configured'}
         try:
             result=cls.model_validate(body)
             if (result.game,result.character_id)!=(game,character): raise ValueError('identity mismatch')

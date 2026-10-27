@@ -31,6 +31,12 @@ ECHO_MAIN_MAX={'1':{'attack_ratio':'18','health_ratio':'22.8','defense_ratio':'1
 ECHO_MAIN_FIXED={'1':('health_flat','2280'),'3':('attack_flat','100'),'4':('attack_flat','150')}
 ECHO_TEXT=('单件=Σ(词条显示值×权重，主词条按 COST 取权重)÷该 COST 理论满分×50（HALF_UP 两位）；'
     '总分=各件之和，满分 250；等级按占比 0/0.48/0.6/0.7/0.78/0.84 → c/b/a/s/ss/sss。')
+# NTE grades follow the drive tag of NTE Drive Calc (score ÷ 10×area); the cartridge maximum
+# (50×the best main weight + 100) and the set grade are this project's extension of it.
+NTE_GRADES=('D','C','B','A','S','SS','SSS','ACE')
+NTE_GRADE_THRESHOLDS=tuple(Fraction(x) for x in ('0','0.2','0.3','0.4','0.5','0.6','0.7','0.8'))
+NTE_TEXT=('D=最高四项正副词条权重之和；驱动副项=10×面积×品质因子×权重/D；卡带副项=100×品质因子×权重/D；卡带主项=50×权重×当前/参考；'
+    '满分：驱动 10×面积，卡带 50×最高主词条权重+100，总满分为各件之和；等级按占比 0.2/0.3/0.4/0.5/0.6/0.7/0.8 → C/B/A/S/SS/SSS/ACE，不足 0.2 为 D。')
 
 
 class AssessmentStat(StatInput):
@@ -97,13 +103,24 @@ def echo_grade(ratio:Fraction)->str:
     return ECHO_GRADES[max(i for i,t in enumerate(ECHO_GRADE_THRESHOLDS) if ratio>=t)]
 
 
+def nte_grade(ratio:Fraction)->str:
+    return NTE_GRADES[max(i for i,t in enumerate(NTE_GRADE_THRESHOLDS) if ratio>=t)]
+
+
+def nte_max(item,profile)->Fraction:
+    """Best score the item's kind can reach: a full gold drive of its area, or a gold
+    level-limit cartridge with the character's best main stat and four top substats."""
+    if item.kind=='drive': return 10*Fraction(number(item.area))
+    return 50*max((Fraction(w) for w in profile.mainstat_weights.values()),default=Fraction())+100
+
+
 class AssessmentModel(Contract):
     game: Game
     character_id: Identifier
     version: Identifier
     source: Literal['user_configured','builtin_default']
     # Built-in defaults only: where the weights come from.
-    attribution: Literal['gpl_snapshot','self_made'] | None = None
+    attribution: Literal['gpl_snapshot','self_made','nte_workshop'] | None = None
     wuwa_weights: dict[str,FiniteDecimal] = Field(default_factory=dict,max_length=100)
     wuwa_echo_profile: WuwaEchoProfile | None = None
     nte_profile: WeightProfile | None = None
@@ -115,11 +132,14 @@ class AssessmentModel(Contract):
             raise ValueError('explicit canonical stat and weight 0..100 required')
         if self.game=='nte' and (self.wuwa_weights or self.wuwa_echo_profile): raise ValueError('game formula mismatch')
         if self.wuwa_weights and self.wuwa_echo_profile: raise ValueError('one formula per model')
-        if self.source=='builtin_default' and (self.game!='wuthering_waves' or self.wuwa_weights or not self.wuwa_echo_profile): raise ValueError('built-in defaults are WuWa echo profiles')
+        if self.source=='builtin_default' and self.game=='wuthering_waves' and (self.wuwa_weights or not self.wuwa_echo_profile): raise ValueError('built-in WuWa defaults are echo profiles')
+        if self.source=='builtin_default' and self.game=='nte' and (self.nte_profile is None or self.nte_spec is None): raise ValueError('built-in NTE defaults need weights and a spec')
         if (self.attribution is not None)!=(self.source=='builtin_default'): raise ValueError('attribution belongs to a built-in default')
+        if self.attribution is not None and (self.attribution=='nte_workshop')!=(self.game=='nte'): raise ValueError('attribution belongs to another game')
         if self.game=='wuthering_waves' and (self.nte_profile or self.nte_spec): raise ValueError('game formula mismatch')
         if self.nte_profile and self.nte_profile.character_id!=self.character_id: raise ValueError('character mismatch')
-        if self.nte_profile and self.nte_profile.source!='user_configured': raise ValueError('explicit user configured provenance required')
+        # Weights carry the provenance of the model they belong to.
+        if self.nte_profile and self.nte_profile.source!=self.source: raise ValueError('explicit weight provenance required')
         return self
 
 
@@ -142,7 +162,7 @@ def _assess_core(configuration: Configuration, model: AssessmentModel, item_leve
         model_fingerprint=hashlib.sha256(model.model_dump_json().encode()).hexdigest(),
         weight_version=model.nte_profile.version if model.nte_profile else model.version,
         formula='nte-custom-weighting-v1' if model.game=='nte' else ECHO_FORMULA if profile else 'wuwa-custom-weighted-values-v1',
-        formula_text='D=最高四项正副词条权重之和；驱动副项=10×面积×品质因子×权重/D；卡带副项=100×品质因子×权重/D；卡带主项=50×权重×当前/参考' if model.game=='nte' else ECHO_TEXT if profile else 'Σ(已知词条规范值×用户权重)；百分数除以100，平值不换算；每件加总。',
+        formula_text=NTE_TEXT if model.game=='nte' else ECHO_TEXT if profile else 'Σ(已知词条规范值×用户权重)；百分数除以100，平值不换算；每件加总。',
         status='unscorable',value=None,reason=None,contributions=[],
         # Built-in defaults are always marked unofficial; grades and maxima exist only for the echo formula.
         origin=model.source,unofficial=True if model.source=='builtin_default' else None,attribution=model.attribution,
@@ -153,7 +173,7 @@ def _assess_core(configuration: Configuration, model: AssessmentModel, item_leve
     if model.game=='wuthering_waves' and not model.wuwa_weights and not profile: return unavailable('NO_WEIGHTS','unconfigured')
     if not configuration.items: return unavailable('NO_EQUIPMENT')
     if len({item.id for item in configuration.items})!=len(configuration.items): return unavailable('DUPLICATE_ITEM')
-    terms=[]; contributions=[]; ratio=None
+    terms=[]; contributions=[]; ratio=None; nte_maximum=Fraction()
     for item in configuration.items:
         if model.game=='nte':
             if item.nte is None: return unavailable('MISSING_EXPLICIT_NTE_INPUT')
@@ -161,6 +181,8 @@ def _assess_core(configuration: Configuration, model: AssessmentModel, item_leve
             try: result=score_item(item.nte,model.nte_profile,model.nte_spec)
             except InventoryError as error: return unavailable(error.code)
             if result.status!='scored': return unavailable(result.reason,result.status)
+            # score_item accepted the area, so it is a positive integer here.
+            nte_maximum+=nte_max(item.nte,model.nte_profile)
             for contribution in result.contributions:
                 exact=contribution.exact_fraction
                 terms.append(Fraction(int(exact.numerator),int(exact.denominator)))
@@ -215,6 +237,7 @@ def _assess_core(configuration: Configuration, model: AssessmentModel, item_leve
     total=sum(terms,Fraction())
     grade=None
     if profile: grade=echo_grade(ratio) if item_level else echo_grade(total/250)
+    if model.game=='nte' and nte_maximum>0: base={**base,'max_value':_text(nte_maximum)}; grade=nte_grade(total/nte_maximum)
     return {**base,'status':'scored','value':_rounded(total),'contributions':contributions,'grade':grade,
             'exact_fraction':dict(numerator=str(total.numerator),denominator=str(total.denominator)),
             'rounding_adjustment':_text(Fraction(_rounded(total))-total)}

@@ -38,12 +38,23 @@ test('drives get one cell per piece under 空幕 and 驱动 with the set icon fr
   assert.match(content(root), /合成驱动B · Lv15 主属性 未提供 副属性 未提供/)
 })
 
-test('the score slot is a grey placeholder on the website and hidden in QQ images', t => {
-  const web = byClass(mount(t, Equipped, { role: fullSuit() }), 'nte-drive-score')
-  assert.equal(web.length, 6)
-  assert.ok(web.every(n => content(n) === '评分待接入' && !n.props.hidden))
-  const image = byClass(mount(t, Equipped, { role: fullSuit(), imageMode: true }), 'nte-drive-score')
-  assert.ok(image.length === 6 && image.every(n => n.props.hidden === true))
+test('each scored piece shows value / maximum and grade; unscorable pieces show nothing', t => {
+  const role = fullSuit()
+  role.suit.core[0].id = 'nature_orange'; role.suit.pie[0].id = 'cell2_style1_1_purple'; role.suit.pie[1].id = 'cell2_style1_9_orange'
+  const assessment = { item_results: [
+    { item_id: 'core:0:nature_orange', status: 'scored', value: '116.05', max_value: '150', grade: 'SSS' },
+    { item_id: 'pie:0:cell2_style1_1_purple', status: 'scored', value: '11.37', max_value: '20', grade: 's' },
+    { item_id: 'core:1:unknown', status: 'unscorable', value: null, max_value: null, reason: 'UNKNOWN_MAIN_REFERENCE' },
+    // A different piece at that position (the list changed since scoring) gets no badge.
+    { item_id: 'pie:1:cell3_style1_1_orange', status: 'scored', value: '20.00', max_value: '30', grade: 'SS' },
+  ] }
+  for (const imageMode of [false, true]) {
+    const scores = byClass(mount(t, Equipped, { role, imageMode, assessment }), 'nte-drive-score')
+    assert.deepEqual(scores.map(content), ['116.05 / 150 SSS', '11.37 / 20 S'])
+    assert.equal(scores[0].props['aria-label'], '单件评分 116.05 / 150 等级 SSS')
+  }
+  assert.equal(byClass(mount(t, Equipped, { role }), 'nte-drive-score').length, 0)
+  assert.doesNotMatch(content(mount(t, Equipped, { role })), /评分待接入/)
 })
 
 test('a set without pieces says so instead of showing empty groups', t => {

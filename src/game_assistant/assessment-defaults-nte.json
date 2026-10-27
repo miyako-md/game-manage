@@ -1,0 +1,721 @@
+{
+ "schema_version": 1,
+ "formula": "nte-custom-weighting-v1",
+ "data_version": "2026-10-28",
+ "provenance": {
+  "source": "异环工坊",
+  "endpoint": "https://yh.zzzmap.com/api/open/game-character/weight-configs",
+  "fetched_at": "2026-10-27T16:44:35Z",
+  "payload_sha256": "d990f912290fddf51a7ffc687ea03a220067245f93cc8d90bbcce84d28f20237",
+  "notice": "权重配置来自：异环工坊",
+  "license": "unstated",
+  "changes": "Modified by game-manage: keyed by game character ID; weight keys mapped to the role API stat IDs; zero weights and keys outside the measured stat catalog dropped. The scoring spec (catalog, quality factors, cartridge main references) is not workshop data."
+ },
+ "spec": {
+  "version": "nte-builtin-2026-10-28",
+  "quality_factors": {
+   "orange": "1",
+   "purple": "0.8",
+   "blue": "0.6"
+  },
+  "eligible_substats": [
+   "atkadd",
+   "atkup",
+   "critbase",
+   "critdamagebase",
+   "damageupgeneralbase",
+   "defadd",
+   "defup",
+   "hpmaxadd",
+   "hpmaxup",
+   "magbase",
+   "unbalintensitybase"
+  ],
+  "mainstat_reference_values": [
+   {
+    "canonical_id": "critdamagebase",
+    "value": "0.6",
+    "unit": "ratio",
+    "context": {
+     "kind": "cartridge"
+    }
+   },
+   {
+    "canonical_id": "critbase",
+    "value": "0.3",
+    "unit": "ratio",
+    "context": {
+     "kind": "cartridge"
+    }
+   },
+   {
+    "canonical_id": "damageupchaosbase",
+    "value": "0.375",
+    "unit": "ratio",
+    "context": {
+     "kind": "cartridge"
+    }
+   },
+   {
+    "canonical_id": "damageupincantationbase",
+    "value": "0.375",
+    "unit": "ratio",
+    "context": {
+     "kind": "cartridge"
+    }
+   },
+   {
+    "canonical_id": "damageupnaturebase",
+    "value": "0.375",
+    "unit": "ratio",
+    "context": {
+     "kind": "cartridge"
+    }
+   },
+   {
+    "canonical_id": "magbase",
+    "value": "180",
+    "unit": "flat",
+    "context": {
+     "kind": "cartridge"
+    }
+   }
+  ],
+  "catalog": [
+   {
+    "canonical_id": "atkadd",
+    "label": "攻击力",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": false,
+    "sub": true,
+    "unit": "flat"
+   },
+   {
+    "canonical_id": "atkup",
+    "label": "攻击力百分比",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": true,
+    "sub": true,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "critbase",
+    "label": "暴击率",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": true,
+    "sub": true,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "critdamagebase",
+    "label": "暴击伤害",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": true,
+    "sub": true,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "damageupgeneralbase",
+    "label": "通用伤害增强",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": false,
+    "sub": true,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "defadd",
+    "label": "防御力",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": false,
+    "sub": true,
+    "unit": "flat"
+   },
+   {
+    "canonical_id": "defup",
+    "label": "防御力百分比",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": true,
+    "sub": true,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "hpmaxadd",
+    "label": "生命值",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": false,
+    "sub": true,
+    "unit": "flat"
+   },
+   {
+    "canonical_id": "hpmaxup",
+    "label": "生命值百分比",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": true,
+    "sub": true,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "magbase",
+    "label": "环合强度",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": true,
+    "sub": true,
+    "unit": "flat"
+   },
+   {
+    "canonical_id": "unbalintensitybase",
+    "label": "倾陷强度",
+    "kinds": [
+     "drive",
+     "cartridge"
+    ],
+    "main": true,
+    "sub": true,
+    "unit": "flat"
+   },
+   {
+    "canonical_id": "chargegetefficiency",
+    "label": "充能效率",
+    "kinds": [
+     "cartridge"
+    ],
+    "main": true,
+    "sub": false,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "healup",
+    "label": "治疗加成",
+    "kinds": [
+     "cartridge"
+    ],
+    "main": true,
+    "sub": false,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "damageupchaosbase",
+    "label": "暗属性异能伤害增强",
+    "kinds": [
+     "cartridge"
+    ],
+    "main": true,
+    "sub": false,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "damageupcosmosbase",
+    "label": "光属性异能伤害增强",
+    "kinds": [
+     "cartridge"
+    ],
+    "main": true,
+    "sub": false,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "damageupincantationbase",
+    "label": "咒属性异能伤害增强",
+    "kinds": [
+     "cartridge"
+    ],
+    "main": true,
+    "sub": false,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "damageuplakshanabase",
+    "label": "相属性异能伤害增强",
+    "kinds": [
+     "cartridge"
+    ],
+    "main": true,
+    "sub": false,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "damageupnaturebase",
+    "label": "灵属性异能伤害增强",
+    "kinds": [
+     "cartridge"
+    ],
+    "main": true,
+    "sub": false,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "damageuppsychebase",
+    "label": "魂属性异能伤害增强",
+    "kinds": [
+     "cartridge"
+    ],
+    "main": true,
+    "sub": false,
+    "unit": "ratio"
+   },
+   {
+    "canonical_id": "damageuppsychicallybase",
+    "label": "心灵伤害增强",
+    "kinds": [
+     "cartridge"
+    ],
+    "main": true,
+    "sub": false,
+    "unit": "ratio"
+   }
+  ],
+  "aliases": {}
+ },
+ "characters": {
+  "1003": {
+   "name": "早雾",
+   "substat_weights": {
+    "atkadd": "0.4",
+    "atkup": "0.7",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.8",
+    "unbalintensitybase": "1"
+   },
+   "mainstat_weights": {
+    "atkup": "0.9",
+    "critbase": "1",
+    "critdamagebase": "0.9",
+    "damageupincantationbase": "1",
+    "unbalintensitybase": "1"
+   }
+  },
+  "1004": {
+   "name": "安魂曲",
+   "substat_weights": {
+    "atkadd": "0.35",
+    "atkup": "0.65",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.75",
+    "magbase": "0.2"
+   },
+   "mainstat_weights": {
+    "atkup": "0.8",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupchaosbase": "1"
+   }
+  },
+  "1008": {
+   "name": "翳",
+   "substat_weights": {
+    "atkadd": "0.3",
+    "atkup": "0.5",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.75"
+   },
+   "mainstat_weights": {
+    "atkup": "0.8",
+    "critbase": "1",
+    "critdamagebase": "0.9",
+    "damageuplakshanabase": "1"
+   }
+  },
+  "1010": {
+   "name": "娜娜莉",
+   "substat_weights": {
+    "atkadd": "0.45",
+    "atkup": "0.9",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.75"
+   },
+   "mainstat_weights": {
+    "atkup": "0.9",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupnaturebase": "1"
+   }
+  },
+  "1019": {
+   "name": "薄荷",
+   "substat_weights": {
+    "atkadd": "0.5",
+    "atkup": "0.85",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.75",
+    "magbase": "0.3"
+   },
+   "mainstat_weights": {
+    "atkup": "0.9",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupnaturebase": "1"
+   }
+  },
+  "1020": {
+   "name": "哈尼娅",
+   "substat_weights": {
+    "atkadd": "0.25",
+    "atkup": "0.35",
+    "critbase": "0.5",
+    "critdamagebase": "0.45",
+    "damageupgeneralbase": "0.5",
+    "magbase": "1",
+    "unbalintensitybase": "1"
+   },
+   "mainstat_weights": {
+    "critbase": "0.5",
+    "damageuppsychebase": "0.5",
+    "magbase": "1",
+    "unbalintensitybase": "1"
+   }
+  },
+  "1021": {
+   "name": "埃德嘉",
+   "substat_weights": {
+    "hpmaxadd": "0.5",
+    "hpmaxup": "1",
+    "magbase": "1",
+    "unbalintensitybase": "0.7"
+   },
+   "mainstat_weights": {
+    "healup": "1",
+    "hpmaxup": "1",
+    "magbase": "1",
+    "unbalintensitybase": "0.7"
+   }
+  },
+  "1023": {
+   "name": "白藏",
+   "substat_weights": {
+    "atkadd": "0.25",
+    "atkup": "0.55",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.8",
+    "magbase": "0.2"
+   },
+   "mainstat_weights": {
+    "atkup": "0.75",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupincantationbase": "1"
+   }
+  },
+  "1025": {
+   "name": "哈索尔",
+   "substat_weights": {
+    "atkadd": "0.25",
+    "atkup": "0.5",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.7"
+   },
+   "mainstat_weights": {
+    "atkup": "0.8",
+    "critbase": "1",
+    "critdamagebase": "0.9",
+    "damageuplakshanabase": "1"
+   }
+  },
+  "1033": {
+   "name": "阿德勒",
+   "substat_weights": {
+    "critbase": "0.5",
+    "critdamagebase": "0.45",
+    "damageupgeneralbase": "0.6",
+    "defadd": "0.5",
+    "defup": "1",
+    "unbalintensitybase": "1"
+   },
+   "mainstat_weights": {
+    "critbase": "0.5",
+    "damageupincantationbase": "0.6",
+    "defup": "1",
+    "unbalintensitybase": "1"
+   }
+  },
+  "1036": {
+   "name": "残虹",
+   "substat_weights": {
+    "atkadd": "0.3",
+    "atkup": "0.6",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.65",
+    "magbase": "0.6"
+   },
+   "mainstat_weights": {
+    "atkup": "0.9",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupincantationbase": "1",
+    "magbase": "1"
+   }
+  },
+  "1039": {
+   "name": "法帝娅",
+   "substat_weights": {
+    "critbase": "0.9",
+    "critdamagebase": "0.9",
+    "damageupgeneralbase": "0.8",
+    "hpmaxadd": "0.5",
+    "hpmaxup": "1",
+    "magbase": "0.7"
+   },
+   "mainstat_weights": {
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageuppsychicallybase": "1",
+    "hpmaxup": "1",
+    "magbase": "0.7"
+   }
+  },
+  "1042": {
+   "name": "黑羽",
+   "substat_weights": {
+    "atkadd": "0.25",
+    "atkup": "0.55",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.65",
+    "magbase": "0.3"
+   },
+   "mainstat_weights": {
+    "atkup": "0.9",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageuppsychebase": "1"
+   }
+  },
+  "1046": {
+   "name": "异能者(男)",
+   "substat_weights": {
+    "atkadd": "0.4",
+    "atkup": "0.75",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "1",
+    "magbase": "1"
+   },
+   "mainstat_weights": {
+    "atkup": "0.5",
+    "critbase": "0.7",
+    "critdamagebase": "0.7",
+    "damageupcosmosbase": "0.7",
+    "magbase": "1"
+   }
+  },
+  "1051": {
+   "name": "异能者(女)",
+   "substat_weights": {
+    "atkadd": "0.4",
+    "atkup": "0.75",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "1",
+    "magbase": "1"
+   },
+   "mainstat_weights": {
+    "atkup": "0.5",
+    "critbase": "0.7",
+    "critdamagebase": "0.7",
+    "damageupcosmosbase": "0.7",
+    "magbase": "1"
+   }
+  },
+  "1052": {
+   "name": "浔",
+   "substat_weights": {
+    "atkadd": "0.45",
+    "atkup": "0.9",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.8"
+   },
+   "mainstat_weights": {
+    "atkup": "0.8",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupcosmosbase": "1"
+   }
+  },
+  "1054": {
+   "name": "达芙蒂尔",
+   "substat_weights": {
+    "atkadd": "0.3",
+    "atkup": "0.55",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.7",
+    "unbalintensitybase": "1"
+   },
+   "mainstat_weights": {
+    "atkup": "0.8",
+    "critbase": "1",
+    "critdamagebase": "0.8",
+    "damageupchaosbase": "0.9",
+    "unbalintensitybase": "1"
+   }
+  },
+  "1055": {
+   "name": "九原",
+   "substat_weights": {
+    "atkadd": "0.45",
+    "atkup": "0.85",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.8"
+   },
+   "mainstat_weights": {
+    "atkup": "0.9",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupnaturebase": "1"
+   }
+  },
+  "1057": {
+   "name": "明音凛",
+   "substat_weights": {
+    "atkadd": "0.2",
+    "atkup": "0.4",
+    "critbase": "1",
+    "critdamagebase": "0.8",
+    "damageupgeneralbase": "0.6",
+    "magbase": "0.35"
+   },
+   "mainstat_weights": {
+    "atkup": "0.8",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageuplakshanabase": "1"
+   }
+  },
+  "1070": {
+   "name": "海月",
+   "substat_weights": {
+    "atkadd": "0.25",
+    "atkup": "0.45",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.7",
+    "magbase": "0.3"
+   },
+   "mainstat_weights": {
+    "atkup": "0.8",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageuppsychebase": "1"
+   }
+  },
+  "1071": {
+   "name": "卡厄斯",
+   "substat_weights": {
+    "atkadd": "0.4",
+    "atkup": "0.75",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.65",
+    "magbase": "0.3"
+   },
+   "mainstat_weights": {
+    "atkup": "0.9",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageuplakshanabase": "1"
+   }
+  },
+  "1072": {
+   "name": "灵可",
+   "substat_weights": {
+    "atkadd": "0.3",
+    "atkup": "0.55",
+    "critbase": "1",
+    "critdamagebase": "0.7",
+    "damageupgeneralbase": "0.75",
+    "magbase": "0.3"
+   },
+   "mainstat_weights": {
+    "atkup": "0.9",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupnaturebase": "1"
+   }
+  },
+  "1073": {
+   "name": "小吱",
+   "substat_weights": {
+    "atkadd": "0.2",
+    "atkup": "0.4",
+    "critbase": "0.4",
+    "critdamagebase": "0.7",
+    "damageupgeneralbase": "1"
+   },
+   "mainstat_weights": {
+    "damageupcosmosbase": "1"
+   }
+  },
+  "1075": {
+   "name": "伊洛伊",
+   "substat_weights": {
+    "atkadd": "0.55",
+    "atkup": "1",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.9"
+   },
+   "mainstat_weights": {
+    "atkup": "1",
+    "critbase": "1",
+    "critdamagebase": "0.9",
+    "damageupnaturebase": "1",
+    "healup": "1"
+   }
+  },
+  "1076": {
+   "name": "真红",
+   "substat_weights": {
+    "atkadd": "0.35",
+    "atkup": "0.65",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupgeneralbase": "0.75"
+   },
+   "mainstat_weights": {
+    "atkup": "0.8",
+    "critbase": "1",
+    "critdamagebase": "1",
+    "damageupcosmosbase": "1"
+   }
+  }
+ }
+}

@@ -1,0 +1,331 @@
+{
+ "code": 200,
+ "msg": "success",
+ "notice": "请在页面注明 - 权重配置来自：异环工坊",
+ "data": [
+  {
+   "itemId": "1042",
+   "name": "黑羽",
+   "weightConfig": {
+    "weights": [
+     {
+      "key": "critbase",
+      "name": "暴击率",
+      "value": 1,
+      "highlight": true,
+      "main_value": 1
+     },
+     {
+      "key": "critdamagebase",
+      "name": "暴击伤害",
+      "value": 1,
+      "highlight": true,
+      "main_value": 1
+     },
+     {
+      "key": "hpmaxadd",
+      "name": "生命值",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "hpmaxup",
+      "name": "生命值百分比",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "atkadd",
+      "name": "攻击力",
+      "value": 0.25,
+      "highlight": true,
+      "main_value": 0
+     },
+     {
+      "key": "atkup",
+      "name": "攻击力百分比",
+      "value": 0.55,
+      "highlight": true,
+      "main_value": 0.9
+     },
+     {
+      "key": "atkbase",
+      "name": "基础攻击力",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "defadd",
+      "name": "防御力",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "defup",
+      "name": "防御力百分比",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "chargegetefficiency",
+      "name": "充能效率",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "unbalintensitybase",
+      "name": "倾陷强度",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "magbase",
+      "name": "环合强度",
+      "value": 0.3,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "healup",
+      "name": "治疗加成",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "healbeup",
+      "name": "受治疗加成",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageupgeneralbase",
+      "name": "通用伤害增强",
+      "value": 0.65,
+      "highlight": true,
+      "main_value": 0
+     },
+     {
+      "key": "damageupcosmosbase",
+      "name": "光属性异能伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageupnaturebase",
+      "name": "灵属性异能伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageupincantationbase",
+      "name": "咒属性异能伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageupchaosbase",
+      "name": "暗属性异能伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageupsychebase",
+      "name": "魂属性异能伤害增强",
+      "value": 0,
+      "highlight": true,
+      "main_value": 1
+     },
+     {
+      "key": "damageuplakshanabase",
+      "name": "相属性异能伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageuppsychicallybase",
+      "name": "心灵伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     }
+    ]
+   }
+  },
+  {
+   "itemId": "1003",
+   "name": "早雾",
+   "weightConfig": {
+    "weights": [
+     {
+      "key": "critbase",
+      "name": "暴击率",
+      "value": 1,
+      "highlight": true,
+      "main_value": 1
+     },
+     {
+      "key": "critdamagebase",
+      "name": "暴击伤害",
+      "value": 1,
+      "highlight": true,
+      "main_value": 0.9
+     },
+     {
+      "key": "hpmaxadd",
+      "name": "生命值",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "hpmaxup",
+      "name": "生命值百分比",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "atkadd",
+      "name": "攻击力",
+      "value": 0.4,
+      "highlight": true,
+      "main_value": 0
+     },
+     {
+      "key": "atkup",
+      "name": "攻击力百分比",
+      "value": 0.7,
+      "highlight": true,
+      "main_value": 0.9
+     },
+     {
+      "key": "atkbase",
+      "name": "基础攻击力",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "defadd",
+      "name": "防御力",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "defup",
+      "name": "防御力百分比",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "chargegetefficiency",
+      "name": "充能效率",
+      "value": 0,
+      "highlight": true,
+      "main_value": 0
+     },
+     {
+      "key": "unbalintensitybase",
+      "name": "倾陷强度",
+      "value": 1,
+      "highlight": true,
+      "main_value": 1
+     },
+     {
+      "key": "magbase",
+      "name": "环合强度",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "healup",
+      "name": "治疗加成",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "healbeup",
+      "name": "受治疗加成",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageupgeneralbase",
+      "name": "通用伤害增强",
+      "value": 0.8,
+      "highlight": true,
+      "main_value": 0
+     },
+     {
+      "key": "damageupcosmosbase",
+      "name": "光属性异能伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageupnaturebase",
+      "name": "灵属性异能伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageupincantationbase",
+      "name": "咒属性异能伤害增强",
+      "value": 0,
+      "highlight": true,
+      "main_value": 1
+     },
+     {
+      "key": "damageupchaosbase",
+      "name": "暗属性异能伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageupsychebase",
+      "name": "魂属性异能伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageuplakshanabase",
+      "name": "相属性异能伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     },
+     {
+      "key": "damageuppsychicallybase",
+      "name": "心灵伤害增强",
+      "value": 0,
+      "highlight": false,
+      "main_value": 0
+     }
+    ]
+   }
+  }
+ ]
+}
