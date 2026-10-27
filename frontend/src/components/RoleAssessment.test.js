@@ -257,6 +257,10 @@ test('bot images omit an unconfigured or unscorable assessment until a score exi
  const Assessment=await loadVue(new URL('./RoleAssessment.vue',import.meta.url))
  for(const status of ['unconfigured','unscorable'])assert.doesNotMatch(content(mount(t,Assessment,{game:'nte',characterId:'c1',imageMode:true,initialAssessment:{status,reason:'NO_MODEL'}})),/个人权重评分/)
  assert.match(content(mount(t,Assessment,{game:'nte',characterId:'c1',imageMode:false})),/个人权重评分/)
+ // A partial NTE default still names its unofficial source and the known subtotal in images.
+ const partial=content(mount(t,Assessment,{game:'nte',characterId:'c1',imageMode:true,initialAssessment:{status:'unscorable',reason:'UNKNOWN_MAIN_REFERENCE',value:null,origin:'builtin_default',attribution:'nte_workshop',partial:true,partial_known_total:'150.00',item_results:[{item_id:'pie:0:x',status:'scored',value:'20.00',max_value:'30',grade:'SS'}]}}))
+ assert.match(partial,/默认评分 · 非官方.*该主词条的满级参考值尚未收录.*权重配置来自：异环工坊.*已知小计 150\.00/)
+ assert.doesNotMatch(partial,/装备 1：/)
 })
 
 test('malformed advanced JSON shows a fixed Chinese error message instead of a raw V8 SyntaxError',async t=>{

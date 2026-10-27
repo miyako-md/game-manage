@@ -94,7 +94,8 @@ async function remove(id){await run(async()=>{await call(base()+'/configurations
 function load(row){name.value=row.data.name;itemsJson.value=json(row.data.items);observedAt.value=row.data.observed_at||null;edited()}
 </script>
 <template>
- <section v-if="embedded ? !imageMode && opened : !imageMode || initialAssessment?.status === 'scored'" class="personal-assessment">
+ <!-- Images show a scored set, or a partial one whose pieces carry badges: either way the weights' source is named. -->
+ <section v-if="embedded ? !imageMode && opened : !imageMode || initialAssessment?.status === 'scored' || initialAssessment?.partial === true" class="personal-assessment">
   <h4 v-if="embedded">个人权重设置 <button type="button" @click="close">收起</button></h4>
   <h4 v-else>{{ isDefaultScore(visibleScore) ? '默认评分 · 非官方' : '个人权重评分' }}</h4>
   <p v-if="!embedded && !imageMode && !opened && loading" role="status">正在读取当前装备评分…</p>
