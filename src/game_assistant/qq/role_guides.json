@@ -4227,6 +4227,126 @@
         ]
       },
       {
+        "id": "明音",
+        "name": "明音",
+        "aliases": [
+          "明音凛"
+        ],
+        "element": "相",
+        "role": "主 C",
+        "source_id": 515374,
+        "pages": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "status": "reviewed",
+        "sections": [
+          {
+            "key": "weapons",
+            "title": "弧盘推荐",
+            "items": [
+              "优先专武「月的对跖点」；其后依次为「最后一朵玫瑰」「极速之绵」「漆黑青春妄想」。"
+            ],
+            "pages": [
+              4
+            ],
+            "note": "正文：不抽专武时建议月卡弧盘，性价比较高；安魂曲、达芙蒂尔的专武通常自用，有闲置再考虑。A 级弧盘没有太适配的，仅用于过渡。",
+            "sourceId": 515374,
+            "text": "优先专武「月的对跖点」；其后依次为「最后一朵玫瑰」「极速之绵」「漆黑青春妄想」。"
+          },
+          {
+            "key": "teams",
+            "title": "配队推荐",
+            "items": [
+              "队 A：明音凛、黑羽、早雾／哈尼娅／灵可、伊洛伊。",
+              "队 B：真红、明音凛、主角·零、伊洛伊。",
+              "队 C：明音凛、黑羽、零／浔／真红、伊洛伊。",
+              "队 D：明音凛、黑羽或未来的延滞队友、哈索尔、主角·零。"
+            ],
+            "pages": [
+              4
+            ],
+            "note": "正文：当前版本优先与魂属性搭配走浸染路线，最佳副 C 为黑羽；也可带光属性队友（主角、浔）多打延滞。",
+            "sourceId": 515374,
+            "text": "队 A：明音凛、黑羽、早雾／哈尼娅／灵可、伊洛伊。\n队 B：真红、明音凛、主角·零、伊洛伊。\n队 C：明音凛、黑羽、零／浔／真红、伊洛伊。\n队 D：明音凛、黑羽或未来的延滞队友、哈索尔、主角·零。"
+          },
+          {
+            "key": "sets",
+            "title": "卡带配装",
+            "items": [
+              "卡带：街头拳王。",
+              "空幕属性选 Ⅲ 型特化（每装配一个 Ⅲ 型驱动，攻击力增加 10%）。"
+            ],
+            "pages": [
+              2
+            ],
+            "note": "街头拳王在触发延滞或浸染后提供 28% 暴击率，容易吃满。必带与可选驱动块的形状、拼放位置见第 2 页原图。",
+            "sourceId": 515374,
+            "text": "卡带：街头拳王。\n空幕属性选 Ⅲ 型特化（每装配一个 Ⅲ 型驱动，攻击力增加 10%）。"
+          },
+          {
+            "key": "stats",
+            "title": "卡带词条",
+            "items": [
+              "卡带主词条：专武 1 阶时暴击率 > 暴击伤害／相属性伤害，注意暴击率不要溢出太多；专武 5 阶或使用暴击率弧盘时选暴击伤害。",
+              "副词条：暴击率 = 暴击伤害 > 伤害增加 > 攻击力百分比 > 环合强度。",
+              "毕业参考：月的对跖点 暴击 72% 以上、暴伤 154–168%；非双暴弧盘 暴击 63–70%、暴伤 106–120%；极速之绵 暴击 63–70%、暴伤 150–164%。"
+            ],
+            "pages": [
+              2
+            ],
+            "note": "",
+            "sourceId": 515374,
+            "text": "卡带主词条：专武 1 阶时暴击率 > 暴击伤害／相属性伤害，注意暴击率不要溢出太多；专武 5 阶或使用暴击率弧盘时选暴击伤害。\n副词条：暴击率 = 暴击伤害 > 伤害增加 > 攻击力百分比 > 环合强度。\n毕业参考：月的对跖点 暴击 72% 以上、暴伤 154–168%；非双暴弧盘 暴击 63–70%、暴伤 106–120%；极速之绵 暴击 63–70%、暴伤 150–164%。"
+          },
+          {
+            "key": "skills",
+            "title": "技能加点",
+            "items": [
+              "普通攻击 = 极轨终结 = 变轨技能 > 援护技。",
+              "觉醒优先级：2 觉 > 4 觉 > 6 觉 > 5 觉 > 3 觉 > 1 觉。"
+            ],
+            "pages": [
+              3
+            ],
+            "note": "正文：2 觉提升较大；1 觉只提高操作舒适度、没有伤害提升；3 觉增加聚怪，不带早雾或伊洛伊时可以考虑。",
+            "sourceId": 515374,
+            "text": "普通攻击 = 极轨终结 = 变轨技能 > 援护技。\n觉醒优先级：2 觉 > 4 觉 > 6 觉 > 5 觉 > 3 觉 > 1 觉。"
+          }
+        ],
+        "reviewed_at": "2026-10-28",
+        "game": "nte",
+        "image": "https://webstatic.tajiduo.com/bbs/pic/player_057_256.png",
+        "sources": [
+          {
+            "id": 515374,
+            "title": "异环角色 | V1.4明音凛培养攻略一图流",
+            "author": "轩儿Zero",
+            "version": "1.4",
+            "fingerprint": "471dd24368a9bfb99302855ead716f5603711b8f83bf26ea7e8f023634829e21",
+            "url": "https://www.tajiduo.com/bbs/index.html#/post?postId=515374&id=2"
+          }
+        ],
+        "asset_hints": [
+          "https://webstatic.tajiduo.com/bbs/pic/player_057_256.png",
+          "https://webstatic.tajiduo.com/bbs/yh-game-records-web-source/character/fork/fork_rose.png",
+          "https://webstatic.tajiduo.com/bbs/yh-game-records-web-source/character/fork/fork_motorcandy.png",
+          "https://webstatic.tajiduo.com/bbs/yh-game-records-web-source/character/fork/fork_blackbook.png",
+          "https://webstatic.tajiduo.com/bbs/pic/player_042_256.png",
+          "https://webstatic.tajiduo.com/bbs/pic/player_003_256.png",
+          "https://webstatic.tajiduo.com/bbs/pic/player_020_256.png",
+          "https://webstatic.tajiduo.com/bbs/pic/player_072_256.png",
+          "https://webstatic.tajiduo.com/bbs/pic/player_075_256.png",
+          "https://webstatic.tajiduo.com/bbs/pic/player_076_256.png",
+          "https://webstatic.tajiduo.com/bbs/pic/player_013_256.png",
+          "https://webstatic.tajiduo.com/bbs/pic/player_012_256.png",
+          "https://webstatic.tajiduo.com/bbs/yh-game-records-web-source/character/suit/detail/suit5.png"
+        ]
+      },
+      {
         "id": "灵可",
         "name": "灵可",
         "aliases": [],

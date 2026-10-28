@@ -9,6 +9,8 @@ SOURCES = {
              'fingerprint': '4d1530c13f7ba6a2f92a9b295fe7f0e94e32c625482adccf4c52dda11591edb6'},
     491439: {'id': 491439, 'title': '异环V1.3全角色养成一图流', 'author': '轩儿Zero', 'version': '1.3',
              'fingerprint': '15a1ac68523ab110d1683a6e0ffe43548e9ba26c9efd8a500103ef94caeab9db'},
+    515374: {'id': 515374, 'title': '异环角色 | V1.4明音凛培养攻略一图流', 'author': '轩儿Zero', 'version': '1.4',
+             'fingerprint': '471dd24368a9bfb99302855ead716f5603711b8f83bf26ea7e8f023634829e21'},
 }
 
 
@@ -41,6 +43,21 @@ def section(key, pages, *items, note=''):
 
 
 REVIEWED = {
+    # 2026-10-28 check of post 515374 (five originals: cover, 2 空幕搭配, 3 异能与觉醒, 4 弧盘与配队, 5 赠礼) and its text.
+    '明音': [
+        section('weapons', [4], '优先专武「月的对跖点」；其后依次为「最后一朵玫瑰」「极速之绵」「漆黑青春妄想」。',
+                note='正文：不抽专武时建议月卡弧盘，性价比较高；安魂曲、达芙蒂尔的专武通常自用，有闲置再考虑。A 级弧盘没有太适配的，仅用于过渡。'),
+        section('teams', [4], '队 A：明音凛、黑羽、早雾／哈尼娅／灵可、伊洛伊。', '队 B：真红、明音凛、主角·零、伊洛伊。',
+                '队 C：明音凛、黑羽、零／浔／真红、伊洛伊。', '队 D：明音凛、黑羽或未来的延滞队友、哈索尔、主角·零。',
+                note='正文：当前版本优先与魂属性搭配走浸染路线，最佳副 C 为黑羽；也可带光属性队友（主角、浔）多打延滞。'),
+        section('sets', [2], '卡带：街头拳王。', '空幕属性选 Ⅲ 型特化（每装配一个 Ⅲ 型驱动，攻击力增加 10%）。',
+                note='街头拳王在触发延滞或浸染后提供 28% 暴击率，容易吃满。必带与可选驱动块的形状、拼放位置见第 2 页原图。'),
+        section('stats', [2], '卡带主词条：专武 1 阶时暴击率 > 暴击伤害／相属性伤害，注意暴击率不要溢出太多；专武 5 阶或使用暴击率弧盘时选暴击伤害。',
+                '副词条：暴击率 = 暴击伤害 > 伤害增加 > 攻击力百分比 > 环合强度。',
+                '毕业参考：月的对跖点 暴击 72% 以上、暴伤 154–168%；非双暴弧盘 暴击 63–70%、暴伤 106–120%；极速之绵 暴击 63–70%、暴伤 150–164%。'),
+        section('skills', [3], '普通攻击 = 极轨终结 = 变轨技能 > 援护技。', '觉醒优先级：2 觉 > 4 觉 > 6 觉 > 5 觉 > 3 觉 > 1 觉。',
+                note='正文：2 觉提升较大；1 觉只提高操作舒适度、没有伤害提升；3 觉增加聚怪，不带早雾或伊洛伊时可以考虑。'),
+    ],
     '黑羽': [
         section('weapons', [4], '输出路线优先「罪与罚」；其他 S 级备选有「噬心诡刃」「好狗狗走四方」。',
                 'A级可考虑「光波眩晕」「当心头顶」；「思考喵」也是备选。辅助用途优先考虑队伍收益。',
@@ -125,10 +142,17 @@ def partial_sections(guide):
     return result
 
 
+# Reviewed later than the V1.3 catalog: these entries carry their own check date.
+REVIEWED_DATES = {'明音': '2026-10-28'}
+
+
 def guide_catalog(discovered=()):
     """The reviewed catalog; ``discovered`` (GuideService.new_posts) adds newer original posts."""
     guides = [{'id': '黑羽', 'name': '黑羽', 'aliases': [], 'element': '魂', 'role': '主 C / 副 C / 辅助',
-               'source_id': 495234, 'pages': [1, 2, 3, 4, 5]}]
+               'source_id': 495234, 'pages': [1, 2, 3, 4, 5]},
+              # The game calls her 明音; the author's titles say 明音凛.
+              {'id': '明音', 'name': '明音', 'aliases': ['明音凛'], 'element': '相', 'role': '主 C',
+               'source_id': 515374, 'pages': [1, 2, 3, 4, 5]}]
     for page, rows in enumerate(PAGES, 1):
         for name, element, role in rows:
             guides.append({'id': name, 'name': name, 'aliases': ['零', '主角'] if name == '主角·零' else ['哈妮娅'] if name == '哈尼娅' else [],
@@ -136,7 +160,7 @@ def guide_catalog(discovered=()):
     for guide in guides:
         guide['status'] = 'reviewed' if guide['name'] in REVIEWED else 'original_only'
         guide['sections'] = REVIEWED.get(guide['name'], [section(key, guide['pages'], note='尚未整理文字推荐，可打开对应原图页查看。') for key in SECTIONS])
-        guide['reviewed_at'] = REVIEWED_AT if guide['status'] == 'reviewed' else None
+        guide['reviewed_at'] = REVIEWED_DATES.get(guide['name'], REVIEWED_AT) if guide['status'] == 'reviewed' else None
         if guide['name'] in PARTIAL:
             guide['sections'] = partial_sections(guide)
             guide['partial_reviewed_at'] = PARTIAL_REVIEWED_AT
