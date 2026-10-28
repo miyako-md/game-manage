@@ -66,6 +66,7 @@ def fresh_caches(tower, nte):
     for post_id, source in SOURCES.items():
         nte.save(post_id, {'id': post_id, 'fingerprint': source['fingerprint'], 'title': source['title'],
                            'images': [], 'paragraphs': ['合成内容'], 'fetched_at': now.isoformat()})
+    nte.save_author({'fetched_at': now.isoformat(), 'posts': []})
 
 
 @pytest.fixture
@@ -301,6 +302,22 @@ def test_pending_ignores_static_and_active_sources(tmp_path):
     save(rows['1102'], [candidate('1482734021209260032')])          # static source: not pending
     save(rows['1311'], [candidate('7', kind='video'), candidate('8'), candidate('9', author='10525366')])
     pending = job.status()['wuthering_waves']['pending']
-    assert pending == [{'character_id': '1311', 'name': '心', 'post_id': '9', 'title': '合成攻略',
-                        'author': '作者', 'published_at': '2026-10-01T00:00:00+00:00'}]
+    assert pending == [{'character_id': '1311', 'name': '心', 'attribute': '', 'post_id': '9', 'title': '合成攻略',
+                        'author': '作者', 'published_at': '2026-10-01T00:00:00+00:00', 'url': None, 'kind': 'article',
+                        'state': 'not_extracted', 'has_static': False}]
+    # A role with a static guide keeps a new post pending until its extraction is reviewed:
+    # nothing recognised (images, no OCR on the server), then recognised advice awaiting review.
+    import sqlite3
+    save(rows['1102'], [candidate('20')])
+    static = lambda: next(p for p in job.status()['wuthering_waves']['pending'] if p['character_id'] == '1102')
+    assert (static()['state'], static()['has_static']) == ('not_extracted', True)
+    def extraction(*statuses):
+        guide = {'sourceId': '20', 'sections': [{'status': status} for status in statuses]}
+        with sqlite3.connect(path) as conn:
+            conn.execute('INSERT INTO guide_active VALUES (?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload',
+                         (json.dumps([rows['1102']['character_id'], rows['1102']['name'], rows['1102']['attribute']]), json.dumps({'guide': guide})))
+    extraction('pending', 'pending')
+    assert static()['state'] == 'extracted_empty'
+    extraction('pending', 'extracted')
+    assert static()['state'] == 'awaiting_review'
     assert job.status()['wuthering_waves']['checked_at_oldest'] == '2026-10-21T00:00:00+00:00'

@@ -1,4 +1,5 @@
-"""Cloud daily guide check: every WuWa role, the tower when due, then the NTE sources.
+"""Cloud daily guide check: every WuWa role, the tower when due, then the NTE sources
+and the NTE guide author's post list (new guides are reported, never extracted).
 
 One run per Beijing-time slot. Runs are persisted in guide_runs next to the guide
 caches, so a restart never repeats a started slot. The job only reuses the existing
@@ -216,6 +217,12 @@ class GuideJob:
                     failed += bool((await self.nte.read(post_id)).get('error'))
             except (GuideSourceError, TimeoutError):
                 failed += 1
+        # One list request finds the author's guides newer than the catalog's.
+        try:
+            async with asyncio.timeout(60):
+                await self.nte.read_author()
+        except (GuideSourceError, TimeoutError):
+            failed += 1
         return failed
 
     def status(self, *, state='idle', next_run_at=None, retry_after=0):
@@ -235,8 +242,17 @@ class GuideJob:
                 extraction_failed.append(ref)
             preferred = pending_candidate(role['character_id'], value)
             if preferred:
-                pending.append({**ref, 'post_id': preferred['id'], 'title': preferred.get('title'),
-                                'author': preferred.get('author'), 'published_at': preferred.get('published_at')})
+                # What the new post waits for: an extraction, the images (no OCR on the server),
+                # or a person comparing the extraction with the original.
+                extraction = self.updates.extraction_for(role['character_id'], preferred['id'])
+                sections = extraction['sections'] if extraction else []
+                state = ('not_extracted' if extraction is None else
+                         'extracted_empty' if all(isinstance(s, dict) and s.get('status') == 'pending' for s in sections) else
+                         'awaiting_review')
+                pending.append({**ref, 'attribute': role['attribute'], 'post_id': preferred['id'], 'title': preferred.get('title'),
+                                'author': preferred.get('author'), 'published_at': preferred.get('published_at'),
+                                'url': preferred.get('url'), 'kind': preferred.get('kind'), 'state': state,
+                                'has_static': bool(static_sources(role['character_id']))})
         tower = self.tower.cached()
         now = self.now().timestamp()
         covered = None if not tower.get('attempted_at') else any(
@@ -247,10 +263,12 @@ class GuideJob:
             value = self.nte.status(post_id)
             posts.append({'post_id': post_id, 'title': source['title'], 'fetched_at': None, 'summary_changed': False,
                           'stale': True, 'error': False, **(value or {})})
+        author = self.nte.author_posts() if hasattr(self.nte, 'author_posts') else None
+        new_posts = self.nte.new_posts() if author else []
         return {'job': {'state': state, 'last_run': self.last_run(), 'next_run_at': next_run_at, 'retry_after': retry_after},
                 'wuthering_waves': {'roles_total': len(roles), 'roles_checked': len(checked),
                                     'checked_at_oldest': min(checked) if checked else None, 'pending': pending,
                                     'extraction_failed': extraction_failed, 'failed': failed},
                 'tower': {'checked_at': tower.get('checked_at'), 'current_period_covered': covered,
                           'error_code': tower.get('error_code') if tower.get('error') else None},
-                'nte': {'posts': posts}}
+                'nte': {'posts': posts, 'author_checked_at': author['fetched_at'] if author else None, 'new_posts': new_posts}}

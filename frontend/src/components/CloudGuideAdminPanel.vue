@@ -1,7 +1,9 @@
 <script setup>
 import { computed,ref,onMounted,onUnmounted } from 'vue'
 import { subscribeSessionInvalidation } from '../http-client.js'
-import { getCloudGuideStatus,checkCloudGuides } from '../cloud-guides-api.js'
+import { getCloudGuideStatus,checkCloudGuides,extractCloudGuide } from '../cloud-guides-api.js'
+import { guideSourceUrl } from '../wuwa-guides.js'
+import { safeGuideUrl } from '../nte-guides-api.js'
 import { formatTime } from '../dashboard.js'
 const status=ref(null),error=ref(''),message=ref(''),busy=ref(false),paused=ref(false),cooldownUntil=ref(0),now=ref(Date.now())
 const states={idle:'空闲',queued:'已排队',running:'正在检查'}
@@ -9,6 +11,13 @@ const outcomes={ok:'完成',partial:'部分完成',stopped:'已停止',failed:'�
 let stopped=false,invalidated=false,generation=0,readId=0,timer,reads=0,deadline=0,controller=new AbortController()
 const job=computed(()=>status.value?.job||{})
 const wuwa=computed(()=>status.value?.wuthering_waves||{})
+const nte=computed(()=>status.value?.nte||{})
+// What each new WuWa post waits for; an older server without states lists them all as not extracted.
+const PENDING=[['not_extracted','新帖未提炼','本轮提炼名额已用完或尚未轮到，可立即提炼。'],
+  ['extracted_empty','已提炼，但没识别到内容','原帖内容在图片里，线上没有图片识别（OCR），需人工对照原图整理。'],
+  ['awaiting_review','已提炼，待人工核对','该角色有已核对的静态攻略，提炼结果核对后才会替换显示。']]
+const pendingGroups=computed(()=>PENDING.map(([state,title,note])=>({state,title,note,items:(wuwa.value.pending||[]).filter(item=>(item.state||'not_extracted')===state)})).filter(group=>group.items.length))
+const extracting=ref('')
 const active=computed(()=>['queued','running'].includes(job.value.state))
 const cooling=computed(()=>cooldownUntil.value>now.value)
 const time=value=>value?formatTime(value):'未知'
@@ -50,13 +59,23 @@ async function checkNow(){
   }finally{if(run===generation)busy.value=false}
 }
 function check(){resetBudget();now.value=Date.now();void load()}
+async function extract(item){
+  if(stopped||invalidated||extracting.value)return
+  const run=generation;extracting.value=String(item.character_id);error.value=message.value=''
+  try{
+    await extractCloudGuide(item,controller.signal)
+    if(stopped||invalidated||run!==generation)return
+    message.value=`已提炼 ${item.name} 的新帖，结果见该角色攻略页。`;check()
+  }catch(e){if(!stopped&&!invalidated&&run===generation&&e.name!=='AbortError')error.value=e.message||'提炼失败，请稍后重试'}
+  finally{if(run===generation)extracting.value=''}
+}
 onMounted(check)
 onUnmounted(()=>{stopped=true;unsubscribe();clear()})
 </script>
 <template>
   <section class="cap-card cloud-guide-admin" aria-label="管理员攻略更新">
     <h2>管理员 · 攻略更新</h2>
-    <p>每天北京时间清晨后台检查鸣潮角色攻略、逆境深塔与异环原帖；自动提炼的内容一律标注待校对。</p>
+    <p>每天北京时间清晨后台检查鸣潮角色攻略、逆境深塔、异环原帖与异环作者的新攻略帖；自动提炼的内容一律标注待校对。</p>
     <p v-if="error" role="alert">{{ error }}</p><p v-if="message" role="status">{{ message }}</p>
     <template v-if="status">
       <article>
@@ -68,8 +87,9 @@ onUnmounted(()=>{stopped=true;unsubscribe();clear()})
       <article>
         <strong>鸣潮角色攻略 · 已检查 {{ count(wuwa.roles_checked) }} / {{ count(wuwa.roles_total) }} 名</strong>
         <p>最早一次检查：{{ time(wuwa.checked_at_oldest) }}</p>
-        <details v-if="wuwa.pending?.length" open><summary>有新帖待提炼 · {{ wuwa.pending.length }} 名</summary><p v-for="item in wuwa.pending" :key="item.character_id">{{ item.name }} · {{ item.title }} · {{ item.author }} · 发布 {{ time(item.published_at) }}</p></details>
-        <p v-else-if="Array.isArray(wuwa.pending)">没有待提炼的新帖。</p>
+        <details v-for="group in pendingGroups" :key="group.state" class="pending-group" open><summary>{{ group.title }} · {{ group.items.length }} 名</summary><p class="hint">{{ group.note }}</p>
+          <p v-for="item in group.items" :key="item.character_id" class="pending-row"><span>{{ item.name }} · {{ item.title }} · {{ item.author }} · 发布 {{ time(item.published_at) }}</span><a v-if="guideSourceUrl(item.url)" :href="guideSourceUrl(item.url)" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">原帖 ↗</a><button v-if="group.state==='not_extracted' && item.kind!=='video'" type="button" class="ui-button small-button" :disabled="!!extracting || active" @click="extract(item)">{{ extracting===String(item.character_id) ? '正在提炼…' : '立即提炼' }}</button></p></details>
+        <p v-if="Array.isArray(wuwa.pending) && !wuwa.pending.length">没有待处理的新帖。</p>
         <details v-if="wuwa.extraction_failed?.length"><summary>提炼失败 · {{ wuwa.extraction_failed.length }} 名</summary><p>{{ wuwa.extraction_failed.map(item=>item.name).join('、') }}</p></details>
         <details v-if="wuwa.failed?.length"><summary>检查失败 · {{ wuwa.failed.length }} 名</summary><p v-for="item in wuwa.failed" :key="item.character_id">{{ item.name }} · {{ item.error_code || '原因未知' }}</p></details>
       </article>
@@ -81,6 +101,9 @@ onUnmounted(()=>{stopped=true;unsubscribe();clear()})
         <strong>异环原帖</strong>
         <p v-for="post in status.nte.posts || []" :key="post.post_id">{{ post.title }} · 读取于 {{ time(post.fetched_at) }}<span v-if="post.summary_changed"> · 原帖有更新，摘要待复核</span><span v-if="post.error"> · 最近读取失败</span><span v-else-if="post.stale"> · 待更新</span></p>
         <p v-if="!status.nte.posts?.length">尚未读取收录的原帖。</p>
+        <p class="hint">作者新帖：最近检查 {{ time(nte.author_checked_at) }}</p>
+        <details v-if="nte.new_posts?.length" open><summary>有新攻略帖待收录 · {{ nte.new_posts.length }} 篇</summary><p v-for="post in nte.new_posts" :key="post.id" class="pending-row"><span>{{ post.role || '全角色' }} · {{ post.title }} · 发布 {{ time(post.published_at) }}<template v-if="post.role && !post.known_role"> · 攻略页已先展示原图</template><template v-else-if="post.role"> · 攻略页提示有新版本</template></span><a v-if="safeGuideUrl(post.url)" :href="safeGuideUrl(post.url)" target="_blank" rel="noopener noreferrer">原帖 ↗</a></p></details>
+        <p v-else-if="nte.author_checked_at">没有待收录的新攻略帖。</p>
       </article>
     </template>
     <p v-else-if="!error">正在读取攻略更新状态…</p>
@@ -90,5 +113,5 @@ onUnmounted(()=>{stopped=true;unsubscribe();clear()})
   </section>
 </template>
 <style scoped>
-.cloud-guide-admin{display:grid;gap:12px}.cloud-guide-admin article{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--border)}.cloud-guide-admin article strong{font-weight:500}h2,p{margin:0}h2{font-size:16px;font-weight:500;line-height:24px}p{line-height:1.65;overflow-wrap:anywhere}p[role=alert]{color:var(--danger)}summary{cursor:pointer}.actions{display:flex;flex-wrap:wrap;gap:10px}
+.cloud-guide-admin{display:grid;gap:12px}.pending-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.pending-row a{color:var(--accent)}.hint{color:var(--text-muted);font-size:13px}.cloud-guide-admin article{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--border)}.cloud-guide-admin article strong{font-weight:500}h2,p{margin:0}h2{font-size:16px;font-weight:500;line-height:24px}p{line-height:1.65;overflow-wrap:anywhere}p[role=alert]{color:var(--danger)}summary{cursor:pointer}.actions{display:flex;flex-wrap:wrap;gap:10px}
 </style>

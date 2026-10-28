@@ -18,9 +18,12 @@ def post(content='<p>配装说明</p>', image='https://bbs-upload.tajiduo.com/te
 
 def test_catalog_covers_source_pages_and_distinguishes_reviewed_from_original_only():
     catalog = guide_catalog()
-    assert len(catalog['guides']) == 23
+    assert len(catalog['guides']) == 24
     reviewed = [g for g in catalog['guides'] if g['status'] == 'reviewed']
-    assert len(reviewed) == 5
+    assert len(reviewed) == 6
+    # 明音 (V1.4, post 515374) was checked later than the V1.3 catalog and says so.
+    mingyin = next(g for g in catalog['guides'] if g['name'] == '明音')
+    assert (mingyin['aliases'], mingyin['source_id'], mingyin['reviewed_at']) == (['明音凛'], 515374, '2026-10-28')
     for g in reviewed:
         assert {s['key'] for s in g['sections']} == {'weapons', 'teams', 'sets', 'stats', 'skills'}
         assert all(s['items'] and s['pages'] for s in g['sections'])
@@ -147,3 +150,65 @@ def test_partial_summaries_keep_source_version_pages_and_explicit_gaps():
         assert any(s['note'] and not s['items'] for s in g['sections'])
         assert all(s['pages'] == g['pages'] for s in g['sections'])
         assert g['gap_note']
+
+
+AUTHOR_URL = 'https://bbs-api.tajiduo.com/bbs/wapi/getUserPostList'
+
+
+def author_list(*rows):
+    return {'code': 0, 'data': {'hasMore': False, 'page': 0, 'posts': [
+        {'postId': pid, 'subject': title, 'createTime': 1792038957281, 'images': [{}] * images, 'isDelete': False, 'deleteTime': 0}
+        for pid, title, images in rows]}}
+
+
+def test_author_posts_find_only_guides_newer_than_the_catalog():
+    from game_assistant.nte_guides import new_guide_posts, parse_author_posts
+    posts = parse_author_posts(author_list(
+        (540000, '异环角色 | V1.6新角色培养攻略一图流', 5),   # role without a catalog entry
+        (515374, '异环角色 | V1.4明音凛培养攻略一图流', 5),   # a catalog source (明音, alias 明音凛)
+        (513951, '异环V1.4全角色弧盘推荐', 4),               # not a guide pattern
+        (495234, '异环角色 | V1.4黑羽培养攻略一图流', 5),     # already the catalog source
+        (477485, '异环角色 | V1.3灵可培养攻略一图流', 5),     # older than 灵可's catalog source 491439
+        (530000, '异环角色 ｜ V1.5灵可培养攻略一图流', 6),    # newer than it (full-width bar)
+        (530001, '异环V1.5全角色养成一图流', 6),
+        (530002, '异环角色 | V1.5哈妮娅培养攻略一图流', 4)))  # an alias names the catalog entry
+    found = {p['id']: (p['role'], p['known_role'], p['version']) for p in new_guide_posts(posts)}
+    assert found == {540000: ('新角色', False, '1.6'), 530000: ('灵可', True, '1.5'),
+                     530001: (None, None, '1.5'), 530002: ('哈妮娅', True, '1.5')}
+    assert parse_author_posts(author_list((0, 'x', 1), (1, None, 1))) == []
+    with pytest.raises(GuideSourceError):
+        parse_author_posts({'code': 0, 'data': {'posts': [{}] * 51}})
+
+
+def test_catalog_shows_a_new_role_as_original_images_and_flags_a_newer_source():
+    from game_assistant.nte_guides import new_guide_posts, parse_author_posts
+    posts = new_guide_posts(parse_author_posts(author_list((540000, '异环角色 | V1.6新角色培养攻略一图流', 5),
+                                                           (530000, '异环角色 | V1.5灵可培养攻略一图流', 6))))
+    catalog = guide_catalog(posts)
+    new = next(g for g in catalog['guides'] if g['name'] == '新角色')
+    assert (new['status'], new['discovered'], new['source_id'], new['pages']) == ('original_only', True, 540000, [1, 2, 3, 4, 5])
+    assert all(not s['items'] for s in new['sections'])
+    linke = next(g for g in catalog['guides'] if g['name'] == '灵可')
+    assert linke['newer_source']['id'] == 530000 and linke['source_id'] == 491439 and linke['status'] == 'reviewed'
+    assert {s['id'] for s in catalog['sources'] if s.get('discovered')} == {540000, 530000}
+    assert guide_catalog() == {**guide_catalog(), 'new_posts': []} and 'newer_source' not in str(guide_catalog())
+
+
+@respx.mock
+async def test_author_list_is_read_daily_and_unlocks_only_reported_posts(tmp_path):
+    service = GuideService(tmp_path / 'guides.sqlite3')
+    assert service.new_posts() == [] and not service.known(540000)
+    route = respx.get(AUTHOR_URL).respond(200, json=author_list((540000, '异环角色 | V1.6新角色培养攻略一图流', 5)))
+    await service.read_author()
+    await service.read_author()
+    assert route.call_count == 1 and route.calls[0].request.url.params['uid'] == '10208854'
+    assert 'cookie' not in route.calls[0].request.headers and 'authorization' not in route.calls[0].request.headers
+    assert service.known(540000) and not service.known(513951)
+    detail = respx.get(URL, params={'postId': 540000}).respond(200, json={**post(), 'data': {**post()['data'], 'post': {**post()['data']['post'], 'postId': 540000}}})
+    value = await service.read(540000)
+    assert detail.call_count == 1 and value['summary_changed'] is False and value['url'].endswith('postId=540000&id=2')
+    # A failed list read keeps the last one.
+    respx.get(AUTHOR_URL).respond(503)
+    with pytest.raises(GuideSourceError):
+        await service.read_author(force=True)
+    assert service.known(540000)
