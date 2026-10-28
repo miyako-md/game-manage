@@ -53,3 +53,22 @@ test('explicit refresh uses write protection and exposes stale fallback', async 
   assert.equal(written.method,'POST');assert.equal(written.headers['X-Game-Assistant'],'1')
   assert.match(content(root),/暂时无法读取.*重试/);assert.match(content(root),/推荐甲弧盘/)
 })
+
+test('a role found only through a new post shows its original images; a newer post is pointed at', async t => {
+  const discovered = { ...catalog,
+    sources: [...catalog.sources, { id:3, title:'异环角色 | V1.4丙培养攻略一图流', author:'作者', version:'1.4', url:'https://www.tajiduo.com/bbs/index.html#/post?postId=3', published_at:'2026-10-07T00:00:00Z', discovered:true },
+              { id:4, title:'异环角色 | V1.5甲培养攻略一图流', author:'作者', version:'1.5', url:'https://www.tajiduo.com/bbs/index.html#/post?postId=4', published_at:'2026-10-20T00:00:00Z', discovered:true }],
+    guides: [{ ...catalog.guides[0], newer_source:{ id:4, title:'异环角色 | V1.5甲培养攻略一图流', url:'https://www.tajiduo.com/bbs/index.html#/post?postId=4', published_at:'2026-10-20T00:00:00Z' } },
+             catalog.guides[1],
+             { id:'丙', name:'丙', aliases:[], element:null, role:null, status:'original_only', discovered:true, source_id:3, pages:[1,2], sections:[{ ...section, items:[], note:'新帖原图尚未整理文字推荐，请查看原图。', pages:[1,2] }] }] }
+  api(t, url => url.endsWith('/guides') ? discovered : source(url.endsWith('/3') ? 3 : 1))
+  const root = mount(t, Panel, { roles:[] }); await flush(); await flush()
+  assert.match(content(root), /作者已发布更新版本：\s*异环角色 \| V1\.5甲培养攻略一图流 ↗.*以下摘要仍按旧版原图整理/)
+  assert.ok(nodes(root,'a').some(a => a.props.href?.includes('postId=4')))
+  const pick = nodes(root,'button').find(n => n.props['aria-label']==='查看丙攻略')
+  assert.match(content(pick), /新帖 · 仅原图/); assert.doesNotMatch(content(pick), /null/)
+  pick.props.onClick(); await flush()
+  assert.match(content(root), /这是作者新发布的攻略帖，文字推荐尚未整理，请直接查看下方原图（共 2 页）/)
+  assert.doesNotMatch(content(root), /作者已发布更新版本/)
+  assert.equal(nodes(root,'img').at(-1).props.src, 'https://bbs-upload.tajiduo.com/1.png')
+})

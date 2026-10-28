@@ -27,3 +27,18 @@ export async function getCloudGuideStatus(signal) {
   return value
 }
 export const checkCloudGuides=signal=>request('/check','POST',signal)
+// Extract one pending WuWa post now (the same administrator route the role guide page uses).
+export async function extractCloudGuide(item,signal) {
+  const timeout=AbortSignal.timeout(90000)
+  const body=JSON.stringify({character_id:String(item.character_id),name:item.name,attribute:item.attribute||'',post_id:String(item.post_id)})
+  let response
+  try {
+    response=await requestResponse('/api/admin/wuwa/guides/updates/extract',{method:'POST',headers:{'Content-Type':'application/json','X-Game-Assistant':'1'},body,signal:signal?AbortSignal.any([signal,timeout]):timeout})
+  } catch(error) {
+    if(timeout.aborted&&!signal?.aborted) throw new Error('提炼超时，请稍后在状态里查看结果')
+    throw error
+  }
+  const data=await response.json().catch(()=>null)
+  if(!response.ok) throw new Error(typeof data?.detail==='string'&&data.detail.length<=64?data.detail:'提炼失败，请稍后重试')
+  return data
+}

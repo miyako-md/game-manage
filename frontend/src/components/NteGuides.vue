@@ -30,6 +30,9 @@ const totalImages = computed(() => source.value?.images?.length || 0)
 const reviewedCount = computed(() => catalog.value?.guides?.filter(item => item.status === 'reviewed').length || 0)
 const originalLink = computed(() => safeGuideUrl(sourceMeta.value?.url))
 const date = value => value ? displayBeijing(value) : '未提供'
+// A role found only through the author's new post has no element or position yet.
+const roleMeta = item => item.discovered ? '新帖 · 仅原图' : `${item.element} · ${item.role}`
+const newerLink = computed(() => safeGuideUrl(guide.value?.newer_source?.url))
 
 async function loadCatalog() {
   catalogLoading.value = true; catalogError.value = ''
@@ -74,17 +77,19 @@ onBeforeUnmount(() => { disposed = true; requestId++; sourceController?.abort();
       <p v-else-if="!guides.length" class="notice">没有匹配的角色，试试其他关键词。</p>
       <nav v-if="!guide && guides.length && !targetId" class="role-list" aria-label="攻略角色候选"><button v-for="item in guides" :key="item.id" :aria-label="`查看${item.name}攻略`" @click="selectGuide(item.id)">{{ item.name }}</button></nav>
       <div v-if="guide" class="guides-layout">
-        <p class="muted">完整目录 {{ catalog.guides.length }} 名 · {{ reviewedCount }} 名完整摘要；可搜索角色或横向滚动目录。</p><nav ref="roleList" class="role-list" aria-label="攻略角色列表"><button v-for="item in guides" :key="item.id" :aria-pressed="guide.id === item.id" :aria-label="`查看${item.name}攻略`" @click="selectGuide(item.id)"><NteIcon :src="nteRoleIcon(item.name)" :name="item.name" /><span><strong>{{ item.name }}</strong><small>{{ item.element }} · {{ item.role }}</small></span><span class="guide-dot" :class="{ reviewed:item.status === 'reviewed' }" :title="item.status === 'reviewed' ? '已整理摘要' : '原图索引'" /></button></nav>
+        <p class="muted">完整目录 {{ catalog.guides.length }} 名 · {{ reviewedCount }} 名完整摘要；可搜索角色或横向滚动目录。</p><nav ref="roleList" class="role-list" aria-label="攻略角色列表"><button v-for="item in guides" :key="item.id" :aria-pressed="guide.id === item.id" :aria-label="`查看${item.name}攻略`" @click="selectGuide(item.id)"><NteIcon :src="nteRoleIcon(item.name)" :name="item.name" /><span><strong>{{ item.name }}</strong><small>{{ roleMeta(item) }}</small></span><span class="guide-dot" :class="{ reviewed:item.status === 'reviewed' }" :title="item.status === 'reviewed' ? '已整理摘要' : '原图索引'" /></button></nav>
         <div class="guide-main">
           <button v-for="role in owned" :key="entryCharacterId(role)" type="button" class="ui-button soft small-button" :aria-label="`查看本人${characterLabel('nte',role)}`" @click="emit('role',entryCharacterId(role))">查看本人 {{ characterLabel('nte',role) }} 面板</button>
-          <header class="role-heading"><NteIcon :src="nteRoleIcon(guide.name)" :name="guide.name" size="xl" /><div><p class="kicker">{{ guide.element }} · {{ guide.role }}</p><h3>{{ guide.name }} <span>培养攻略</span></h3></div><span class="version">V{{ sourceMeta?.version || '未知' }} 资料</span></header>
+          <header class="role-heading"><NteIcon :src="nteRoleIcon(guide.name)" :name="guide.name" size="xl" /><div><p class="kicker">{{ roleMeta(guide) }}</p><h3>{{ guide.name }} <span>培养攻略</span></h3></div><span class="version">V{{ sourceMeta?.version || '未知' }} 资料</span></header>
           <p class="provenance">{{ sourceMeta?.author }}</p>
           <details data-render-collapsed><summary>资料详情</summary><p v-if="guide.reviewed_at">摘要核对于 {{ guide.reviewed_at }}</p>
           <p v-if="source?.summary_changed" class="notice warning" role="status">原帖有更新，文字摘要待复核；以下为此前核对内容，请优先查看最新原图。</p>
           <p v-if="sourceError || source?.error" class="notice warning" role="alert">{{ friendlyDataError(sourceError || source.error) }}</p>
           <p v-else-if="sourceLoading" class="source-status" role="status">正在核对原帖与图片…</p>
           <p v-else-if="source?.stale" class="source-status">当前展示旧版缓存资料。</p></details>
-          <p v-if="guide.status === 'original_only'" class="notice">{{ guide.partial_reviewed_at ? '部分文字已核对，完整推荐待整理。' : '文字推荐待整理。' }}已定位到原图第 {{ guide.pages.join('、') }} 页，可查看该角色的五类配装信息。{{ guide.gap_note }}<span v-if="guide.partial_reviewed_at">部分核对：{{ guide.partial_reviewed_at }}</span></p>
+          <p v-if="guide.newer_source" class="notice warning" role="status">作者已发布更新版本：<a v-if="newerLink" :href="newerLink" target="_blank" rel="noopener noreferrer">{{ guide.newer_source.title }} ↗</a><span v-else>{{ guide.newer_source.title }}</span>（发布 {{ date(guide.newer_source.published_at) }}，北京时间）；以下摘要仍按旧版原图整理。</p>
+          <p v-if="guide.discovered" class="notice">这是作者新发布的攻略帖，文字推荐尚未整理，请直接查看下方原图（共 {{ guide.pages.length }} 页）。</p>
+          <p v-else-if="guide.status === 'original_only'" class="notice">{{ guide.partial_reviewed_at ? '部分文字已核对，完整推荐待整理。' : '文字推荐待整理。' }}已定位到原图第 {{ guide.pages.join('、') }} 页，可查看该角色的五类配装信息。{{ guide.gap_note }}<span v-if="guide.partial_reviewed_at">部分核对：{{ guide.partial_reviewed_at }}</span></p>
           <div v-if="guide.status === 'reviewed' || guide.sections?.some(section=>section.items.length)" class="advice-grid"><article v-for="(section, index) in guide.sections" :key="section.key" class="advice-card"><header><h4>{{ section.title }}</h4></header><ul v-if="section.items.length"><li v-for="(item, i) in section.items" :key="i"><NteGuideVisual :text="item" :section-key="section.key" :role-name="guide.name" /></li></ul><p v-else class="muted">暂无已整理的文字推荐</p><details v-if="section.note" class="section-note"><summary>适用条件与说明</summary><p>{{ section.note }}</p></details><button type="button" class="text-link" :disabled="sourceLoading || !source || !section.pages.some(n => n <= totalImages)" @click="showPage(section.pages[0])">查看对应原图 · 第 {{ section.pages.join('、') }} 页 ↗</button></article></div>
           <section ref="sourcePanel" class="source-card" aria-label="攻略原图与来源"><header><div><h4>原图与来源</h4><a v-if="originalLink" :href="originalLink" target="_blank" rel="noopener noreferrer">{{ sourceMeta.title }} ↗</a></div><button v-if="canMaintain" type="button" class="ui-button small-button" :disabled="sourceLoading" @click="loadSource(true)">{{ sourceLoading ? '读取中…' : '刷新原帖' }}</button></header>
             <p class="muted">更新于 {{ date(source?.fetched_at) }}（北京时间）<span v-if="source?.published_at"> · 发布：{{ date(source.published_at) }}（北京时间）</span><span v-if="source?.edited_at"> · 编辑：{{ date(source.edited_at) }}（北京时间）</span></p>

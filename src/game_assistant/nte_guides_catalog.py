@@ -1,5 +1,6 @@
 """Reviewed community advice and original-image indexes; never inferred account builds."""
 from copy import deepcopy
+import re
 
 REVIEWED_AT = '2026-09-26'
 SECTIONS = {'weapons': '弧盘推荐', 'teams': '配队推荐', 'sets': '卡带配装', 'stats': '卡带词条', 'skills': '技能加点'}
@@ -9,8 +10,20 @@ SOURCES = {
     491439: {'id': 491439, 'title': '异环V1.3全角色养成一图流', 'author': '轩儿Zero', 'version': '1.3',
              'fingerprint': '15a1ac68523ab110d1683a6e0ffe43548e9ba26c9efd8a500103ef94caeab9db'},
 }
+
+
+def post_url(post_id):
+    return f"https://www.tajiduo.com/bbs/index.html#/post?postId={post_id}&id=2"
+
+
 for _source in SOURCES.values():
-    _source['url'] = f"https://www.tajiduo.com/bbs/index.html#/post?postId={_source['id']}&id=2"
+    _source['url'] = post_url(_source['id'])
+
+# Both catalog sources are 轩儿Zero's: the daily job lists that author's posts (one anonymous
+# request) and reports guides newer than the catalog's. Titles follow the author's own patterns.
+AUTHOR = {'uid': 10208854, 'name': '轩儿Zero'}
+ROLE_POST = re.compile(r'^异环角色\s*[|｜]\s*V(\d+(?:\.\d+)*)\s*(\S+?)培养攻略一图流$')
+ALL_POST = re.compile(r'^异环V(\d+(?:\.\d+)*)全角色养成一图流$')
 
 # The page index is checked against the six original images, not guessed from a search title.
 PAGES = [
@@ -112,7 +125,8 @@ def partial_sections(guide):
     return result
 
 
-def guide_catalog():
+def guide_catalog(discovered=()):
+    """The reviewed catalog; ``discovered`` (GuideService.new_posts) adds newer original posts."""
     guides = [{'id': '黑羽', 'name': '黑羽', 'aliases': [], 'element': '魂', 'role': '主 C / 副 C / 辅助',
                'source_id': 495234, 'pages': [1, 2, 3, 4, 5]}]
     for page, rows in enumerate(PAGES, 1):
@@ -127,4 +141,21 @@ def guide_catalog():
             guide['sections'] = partial_sections(guide)
             guide['partial_reviewed_at'] = PARTIAL_REVIEWED_AT
             guide['gap_note'] = '已核对部分弧盘、卡带与词条文字；配队头像、完整技能或布局未全部核实，不标记为完整摘要。'
-    return deepcopy({'reviewed_at': REVIEWED_AT, 'guides': guides, 'sources': list(SOURCES.values())})
+    sources = list(SOURCES.values())
+    names = {name: g for g in guides for name in [g['name'], *g['aliases']]}
+    for post in discovered:
+        meta = {k: post[k] for k in ('id', 'title', 'author', 'version', 'url', 'published_at')}
+        sources.append({**meta, 'discovered': True})
+        if post['role'] is None:
+            continue
+        guide = names.get(post['role'])
+        if guide is not None:
+            # The summary stays the reviewed one; the page points at the newer original.
+            guide['newer_source'] = meta
+            continue
+        pages = list(range(1, post['images'] + 1))
+        guides.append({'id': post['role'], 'name': post['role'], 'aliases': [], 'element': None, 'role': None,
+                       'source_id': post['id'], 'pages': pages, 'status': 'original_only', 'discovered': True,
+                       'reviewed_at': None, 'sections': [section(key, pages, note='新帖原图尚未整理文字推荐，请查看原图。') for key in SECTIONS]})
+    return deepcopy({'reviewed_at': REVIEWED_AT, 'guides': guides, 'sources': sources,
+                     'new_posts': [dict(post) for post in discovered]})

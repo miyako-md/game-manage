@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from .nte_guides import GuideService, GuideSourceError
-from .nte_guides_catalog import SOURCES, guide_catalog
+from .nte_guides_catalog import guide_catalog
 
 
 def install_nte_guides_routes(app, settings):
@@ -14,10 +14,10 @@ def install_nte_guides_routes(app, settings):
 
     @router.get('')
     async def catalog():
-        return guide_catalog()
+        return guide_catalog(service.new_posts())
 
     async def read(post_id, force=False):
-        if post_id not in SOURCES: raise HTTPException(404, '未收录的攻略来源')
+        if not service.known(post_id): raise HTTPException(404, '未收录的攻略来源')
         try: return await service.read(post_id, force=force)
         except GuideSourceError as error: raise HTTPException(502, str(error)) from None
 

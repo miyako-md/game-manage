@@ -188,6 +188,22 @@ class GuideUpdates:
                     best = rank, guide
         return {'guide': best[1], 'error': None, 'error_code': None} if best else active
 
+    def extraction_for(self, character_id, post_id):
+        """The stored extraction of one post for a character (any key spelling), or None."""
+        if not re.fullmatch(r'\d{1,12}', str(character_id)):
+            return None
+        with closing(sqlite3.connect(self.path)) as conn:
+            rows = conn.execute('SELECT payload FROM guide_active WHERE key LIKE ?',
+                                (json.dumps([str(character_id)])[:-1] + ',%',)).fetchall()
+        for (payload,) in rows:
+            try:
+                guide = json.loads(payload).get('guide')
+            except (ValueError, AttributeError):
+                continue
+            if isinstance(guide, dict) and str(guide.get('sourceId')) == str(post_id) and isinstance(guide.get('sections'), list):
+                return guide
+        return None
+
     def with_guide(self,key,value):
         active = self.active_for(key, value.get('character_id'))
         return {**value,'active_guide':active['guide'],'extraction_error':active['error']}

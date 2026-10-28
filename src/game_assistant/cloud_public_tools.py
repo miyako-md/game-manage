@@ -16,7 +16,7 @@ from .endfield_public import EndfieldPublicService, PublicSourceError
 from .guide_jobs import GuideJob
 from .identity.dependencies import require_user
 from .nte_guides import GuideService, GuideSourceError
-from .nte_guides_catalog import SOURCES, guide_catalog
+from .nte_guides_catalog import guide_catalog
 from .wuwa_guide_updates import GuideUpdates, Search, Selection
 from .wuwa_tower_guides import TowerGuides
 
@@ -103,7 +103,7 @@ class CloudPublicTools:
                 self.endfield.cache_only.reset(token)
 
     async def read_nte(self, post_id, force=False):
-        if post_id not in SOURCES:
+        if not self.nte.known(post_id):
             raise HTTPException(404, '未收录的攻略来源')
         try:
             return await self.bounded(lambda: self.nte.read(post_id, force=force))
@@ -154,7 +154,7 @@ def install_cloud_public_tools(app, settings):
 
     @readers.get('/nte/guides')
     async def catalog():
-        return guide_catalog()
+        return guide_catalog(tools.nte.new_posts())
 
     @readers.get('/nte/guides/sources/{post_id}')
     async def nte_source(post_id: int):
@@ -162,7 +162,7 @@ def install_cloud_public_tools(app, settings):
 
     @writers.post('/nte/guides/sources/{post_id}/refresh')
     async def nte_refresh(post_id: int):
-        if post_id not in SOURCES:
+        if not tools.nte.known(post_id):
             raise HTTPException(404, '未收录的攻略来源')
         tools.maintenance('nte')
         return await tools.read_nte(post_id, force=True)
