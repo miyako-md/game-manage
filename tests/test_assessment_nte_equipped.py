@@ -102,9 +102,9 @@ def test_exact_scores_maxima_and_grades():
 
 def test_unproven_inputs_stay_unknown_and_count_as_a_partial_result():
     pies = [pie('cell3_style1_2_orange', 'Ⅱ型驱动'), pie('cell2_style1_1_orange', 'Ⅱ型驱动', SUBS[:3])]
-    result = score(role(cores=[core(main=('hpmaxup', '生命值百分比', '30%'))], pies=pies))
+    result = score(role(cores=[core(main=('chargegetefficiency', '充能效率', '20%'))], pies=pies))
     reasons = [i['reason'] for i in result['item_results']]
-    # No measured reference for HP%; the name disagrees with the ID's area; three substats are not a complete list.
+    # Charge efficiency is no cartridge main stat (no reference); the name disagrees with the ID's area; three substats are not a complete list.
     assert reasons == ['UNKNOWN_MAIN_REFERENCE', 'UNKNOWN_AREA', 'UNKNOWN_SUBSTATS']
     assert result['status'] == 'unscorable' and result['max_value'] is None and result['partial'] is None
 
@@ -135,3 +135,12 @@ def test_resolution_prefers_the_saved_model_and_a_saved_copy_is_the_users_own(tm
     store.save(scope, AssessmentModel.model_validate(own), 'model')
     assert resolve_model(store, scope, 'nte', '1003')[1] == 'user_configured'
     store.close()
+
+
+def test_every_cartridge_main_stat_has_its_s_rank_level_limit_reference():
+    refs = {r.canonical_id: str(r.value) for r in nte_defaults().spec.mainstat_reference_values}
+    assert refs['defup'] == '0.525' and refs['healup'] == '0.345' and refs['unbalintensitybase'] == '180'
+    assert {k for k in refs if k.startswith('damageup')} == {e.canonical_id for e in nte_defaults().spec.catalog if e.canonical_id.startswith('damageup') and e.main}
+    # A gold level-20 HP% cartridge reaches the full main term.
+    item = score(role(cores=[core(main=('hpmaxup', '生命值百分比', '37.5%'))], pies=[]))['item_results'][0]
+    assert item['status'] == 'scored'

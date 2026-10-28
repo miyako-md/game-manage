@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'src' / 'game_assistant' / 'assessment-defaults-nte.json'
-DATA_VERSION = '2026-10-28'
+DATA_VERSION = '2026-10-28.1'
 ENDPOINT = 'https://yh.zzzmap.com/api/open/game-character/weight-configs'
 NOTICE = '权重配置来自：异环工坊'
 
@@ -41,10 +41,14 @@ MAIN_ONLY = {'chargegetefficiency': ('充能效率', 'ratio'), 'healup': ('治�
              'damageuppsychicallybase': ('心灵伤害增强', 'ratio')}
 # Item ID colour suffix -> quality factor; the pie main values scale by the same 1 / 0.8 / 0.6.
 QUALITY_FACTORS = {'orange': '1', 'purple': '0.8', 'blue': '0.6'}
-# Gold, level-20 cartridge main values seen on real equipped items (magbase: purple 144 / 0.8).
-# Main stats without a measured value stay unscorable (UNKNOWN_MAIN_REFERENCE) until measured.
-REFERENCES = {'critdamagebase': '0.6', 'critbase': '0.3', 'damageupchaosbase': '0.375',
-              'damageupincantationbase': '0.375', 'damageupnaturebase': '0.375', 'magbase': '180'}
+# S-rank cartridge main values at level 20 (GameWith "Effect Value (Max Enhancement)", checked
+# 2026-10-28). Six of them were also measured on real equipped items (crit, crit damage, 暗/咒/灵
+# damage, magbase from purple 144 / 0.8) and agree. Charge efficiency is not a cartridge main stat;
+# a main stat without a value here stays unscorable (UNKNOWN_MAIN_REFERENCE).
+REFERENCES = {'atkup': '0.375', 'hpmaxup': '0.375', 'defup': '0.525', 'critbase': '0.3', 'critdamagebase': '0.6',
+              'magbase': '180', 'unbalintensitybase': '180', 'healup': '0.345',
+              **{key: '0.375' for key in ('damageupchaosbase', 'damageupcosmosbase', 'damageupincantationbase', 'damageuplakshanabase',
+                                          'damageupnaturebase', 'damageuppsychebase', 'damageuppsychicallybase')}}
 # The workshop spells one key differently from the role API.
 WORKSHOP_KEYS = {'damageupsychebase': 'damageuppsychebase'}
 
