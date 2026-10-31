@@ -16,7 +16,8 @@ WUWA_STATS = {'attack_flat':'flat','attack_ratio':'ratio','health_flat':'flat','
     'electro_damage':'ratio','spectro_damage':'ratio','havoc_damage':'ratio','healing_bonus':'ratio'}
 SKILL_DAMAGE=('basic_damage','heavy_damage','skill_damage','liberation_damage')
 ELEMENT_DAMAGE=('glacio_damage','fusion_damage','electro_damage','aero_damage','spectro_damage','havoc_damage')
-# Upstream WutheringWavesUID echo formula: weights are per percent point (flat values as shown in game).
+# WutheringWavesUID echo formula (XutheringWavesUID keeps the same maxima): weights are per percent point
+# (flat values as shown in game).
 ECHO_FORMULA='wuwa-echo-default-v1'
 ECHO_COSTS=('1','3','4')
 ECHO_GRADES=('c','b','a','s','ss','sss')
@@ -120,7 +121,7 @@ class AssessmentModel(Contract):
     version: Identifier
     source: Literal['user_configured','builtin_default']
     # Built-in defaults only: where the weights come from.
-    attribution: Literal['gpl_snapshot','self_made','nte_workshop'] | None = None
+    attribution: Literal['xwuid_snapshot','nte_workshop'] | None = None
     wuwa_weights: dict[str,FiniteDecimal] = Field(default_factory=dict,max_length=100)
     wuwa_echo_profile: WuwaEchoProfile | None = None
     nte_profile: WeightProfile | None = None

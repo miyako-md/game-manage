@@ -5,8 +5,7 @@ const GRADES = new Set(['c', 'b', 'a', 's', 'ss', 'sss', 'd', 'ace'])
 export const gradeLabel = grade => typeof grade === 'string' && GRADES.has(grade.toLowerCase()) ? grade.toUpperCase() : ''
 export const isDefaultScore = score => score?.origin === 'builtin_default'
 export const attributionLabel = score => !isDefaultScore(score) ? ''
-  : score.attribution === 'gpl_snapshot' ? '权重改编自 WutheringWavesUID（GPL-3.0）'
-  : score.attribution === 'self_made' ? '自制权重'
+  : score.attribution === 'xwuid_snapshot' ? '权重来自 XWUID（XutheringWavesUID）'
   // The 异环工坊 endpoint asks every page showing its weights to credit it in these words.
   : score.attribution === 'nte_workshop' ? '权重配置来自：异环工坊' : ''
 // No saved model and no default weights for the character: the backend's empty placeholder.

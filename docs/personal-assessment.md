@@ -8,10 +8,10 @@
 
 没有保存个人模型时，鸣潮角色使用内置默认权重 `src/game_assistant/assessment-defaults-wuwa.json`，结果 `origin=builtin_default`、`unofficial=true`，网页与 QQ 图标“默认评分 · 非官方”。优先级：用户保存的模型（整体替换默认，不逐项合并）> 内置默认 > 未配置。DELETE `/model` 删除个人模型即恢复默认；PUT 只接受 `source=user_configured`，把默认模型另存为个人模型时去掉 `attribution`，仍按下面的声骸公式计分。
 
-- 公式 `wuwa-echo-default-v1`，复刻 WutheringWavesUID：单件分 = Σ(词条显示值 × 权重) ÷ 该 COST 理论满分 × 50；主词条（含随 COST 固定的第二主词条）按声骸 COST 1/3/4 取权重，副词条用副词条权重；百分比词条按显示的百分数数值计，平值按原值计。等级按单件分 ÷ 50 的占比 0/0.48/0.6/0.7/0.78/0.84 定 c/b/a/s/ss/sss；总分为各件单件分之和，满分 250，总等级按总分 ÷ 250。
-- 理论满分不入库，加载时按权重 × 游戏内单条最大值和每个角色的满分词条组合复算；与上游 45 份 `score_max` 都一致（上游存的是浮点截断到 3 位的值，差小于 0.003）。
-- 与上游的差异：取整用 HALF_UP 两位（上游向下截断），满分用精确值；菲比“新光套”等按套装切换的变体忽略，只用 `calc.json`。技能伤害已按 `skill_weight` 展开，属性伤害只计角色本属性。
-- 覆盖：上游快照 46 个角色 ID（`attribution=gpl_snapshot`，署名“权重改编自 WutheringWavesUID（GPL-3.0）”）；12 名上游未覆盖的角色为自制权重（`attribution=self_made`，署名“自制权重”）：绯雪、洛瑟菈、穗穗、莫宁、爱弥斯、达妮娅、丽贝卡、心、清宵、琳奈、露西、秧秧·玄翎。其余角色没有默认权重（网页显示“暂无默认权重”，QQ 图不显示评分块），不回退通用模板。
+- 公式 `wuwa-echo-default-v1`，复刻 WutheringWavesUID（XutheringWavesUID 的满分沿用同一算法）：单件分 = Σ(词条显示值 × 权重) ÷ 该 COST 理论满分 × 50；主词条（含随 COST 固定的第二主词条）按声骸 COST 1/3/4 取权重，副词条用副词条权重；百分比词条按显示的百分数数值计，平值按原值计。等级按单件分 ÷ 50 的占比 0/0.48/0.6/0.7/0.78/0.84 定 c/b/a/s/ss/sss；总分为各件单件分之和，满分 250，总等级按总分 ÷ 250。
+- 理论满分不入库，加载时按权重 × 游戏内单条最大值和每个角色的满分词条组合复算；与 XWUID 快照 64 份 `score_max` 都一致（上游存的是浮点截断到 3 位的值，差小于 0.003）。
+- 与上游的差异：取整用 HALF_UP 两位（上游向下截断），满分用精确值；洛瑟菈按声骸模态 / 套装切换的变体（`condition.json`）忽略，只用 `calc.json`。技能伤害已按 `skill_weight` 展开，属性伤害只计角色本属性。XWUID 的单件分子算法在编译件里，未逐件对照，所以只说“权重来自 XWUID”，不保证与 XWUID 显示的分数完全相同。
+- 覆盖：XWUID 权重快照（XutheringWavesUID-Resources@93c75d6，2026-10-31 取）64 个角色 ID，`attribution=xwuid_snapshot`，署名“权重来自 XWUID（XutheringWavesUID）”；其中 45 份与此前使用的 tyql688 GPL-3.0 原版逐值相同。上游列出但没有权重的角色（1512）和其余角色没有默认权重（网页显示“暂无默认权重”，QQ 图不显示评分块），不回退通用模板。更新方式：重抓快照后改 `scripts/build_wuwa_default_weights.py` 的 `SHA` / `PAYLOAD_SHA256` 等常量并重新生成，`--check` 核对。
 - 已装备声骸取自库街区角色详情：每件带 `cost`，主副词条都是数组且每项都能解析时视为完整（D2，只限装备快照）。缺 COST 或 COST 不是 1/3/4 的那件判不可评分（`UNKNOWN_COST`），计入部分结果，不按 0 分；主副身份未知为 `UNKNOWN_STAT_ROLE`。
 - 新增结果字段：顶层 `origin`、`unofficial`、`attribution`、`grade`、`max_value`（250）；`item_results[]` 的 `cost`、`grade`、`max_value`（50）。用户 Σ 权重模型这些字段为 null（`origin=user_configured`）。
 

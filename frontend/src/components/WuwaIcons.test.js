@@ -114,15 +114,14 @@ test('image: the total, grade and unofficial source sit in the echo header, each
   const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
   const fetch = t.mock.method(globalThis, 'fetch', async () => { throw new Error('no request in images') })
   const image = data => mount(t, Detail, { imageMode: true, data: { ...scoredDetail(), ...data } })
-  const scored = image({ assessment: defaultAssessment('gpl_snapshot') })
-  assert.equal(echoHeader(scored), '装备声骸 总 COST 11 总分 146.82 / 250 · B 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）')
+  const scored = image({ assessment: defaultAssessment('xwuid_snapshot') })
+  assert.equal(echoHeader(scored), '装备声骸 总 COST 11 总分 146.82 / 250 · B 非官方 · 权重来自 XWUID（XutheringWavesUID）')
   assert.deepEqual(badgeTexts(scored), ['38.52 SS', '31.58 A'])
   const tiles = nodes(scored, 'article').filter(n => /声骸/.test(content(n)))
   assert.deepEqual(tiles.map(n => badgeTexts(n).length), [1, 1, 0], 'the unscorable echo has no badge')
   assert.deepEqual(blocks(scored), []); assert.doesNotMatch(content(scored), /默认评分|装备 1：|权重设置/)
-  assert.match(echoHeader(image({ assessment: defaultAssessment('self_made') })), /总分 146.82 \/ 250 · B 非官方 · 自制权重$/)
-  const partial = image({ assessment: defaultAssessment('gpl_snapshot', false) })
-  assert.equal(echoHeader(partial), '装备声骸 总 COST 11 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）')
+  const partial = image({ assessment: defaultAssessment('xwuid_snapshot', false) })
+  assert.equal(echoHeader(partial), '装备声骸 总 COST 11 非官方 · 权重来自 XWUID（XutheringWavesUID）')
   assert.deepEqual(badgeTexts(partial), ['38.52 SS', '31.58 A'])
   for (const assessment of [undefined, noDefault, { ...noDefault, status: 'unscorable', reason: 'NO_EQUIPMENT', model_version: 'builtin-1', origin: 'builtin_default' }]) {
     const plain = image({ assessment })
@@ -136,7 +135,7 @@ test('image: the total, grade and unofficial source sit in the echo header, each
   await settle(); assert.equal(fetch.mock.callCount(), 0)
 })
 
-function liveDetail(t, { equipped = () => reply(defaultAssessment('gpl_snapshot')), model = { game: 'wuthering_waves', character_id: '1205', version: 'mine', source: 'user_configured', wuwa_weights: { attack_flat: '1' } } } = {}) {
+function liveDetail(t, { equipped = () => reply(defaultAssessment('xwuid_snapshot')), model = { game: 'wuthering_waves', character_id: '1205', version: 'mine', source: 'user_configured', wuwa_weights: { attack_flat: '1' } } } = {}) {
   const calls = []
   t.mock.method(globalThis, 'fetch', async (path, options = {}) => {
     const key = `${options.method || 'GET'} ${path.replace(/^\/api\/assessment\/[^/]+\/[^/]+/, '')}`
@@ -155,7 +154,7 @@ test('website: the live detail reads the equipped score on mount and shows it in
   const root = mount(t, Detail, { liveAssessment: true, data: scoredDetail() })
   await settle()
   assert.deepEqual(calls, ['GET /equipped'])
-  assert.equal(echoHeader(root), '装备声骸 总 COST 11 总分 146.82 / 250 · B 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0） 权重设置')
+  assert.equal(echoHeader(root), '装备声骸 总 COST 11 总分 146.82 / 250 · B 非官方 · 权重来自 XWUID（XutheringWavesUID） 权重设置')
   assert.deepEqual(badgeTexts(root), ['38.52 SS', '31.58 A'])
   assert.deepEqual(blocks(root), []); assert.doesNotMatch(content(root), /默认评分|个人权重评分|装备 1：/)
 })

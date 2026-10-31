@@ -112,11 +112,11 @@ def test_projection_uses_scope_model_else_builtin_default_and_strips_unrelated_p
     assert [(i.source_id,i.cost,i.stats_complete) for i in items][:2]==[('390080005',4,True),('390080006',3,True)]
     value=with_assessment(snap,store,scope,'wuthering_waves')
     assessment=value.payload['assessment']
-    assert (assessment['status'],assessment['value'],assessment['origin'],assessment['attribution'])==('scored','168.16','builtin_default','gpl_snapshot')
+    assert (assessment['status'],assessment['value'],assessment['origin'],assessment['attribution'])==('scored','168.16','builtin_default','xwuid_snapshot')
     projected=role_snapshot('wuthering_waves',snap,datetime.now(timezone.utc),detail=value,resolved_id='1205')
     shown=projected['display_data']['detail']['assessment']
     assert {k:shown[k] for k in ('value','grade','max_value','origin','unofficial','attribution')}=={'value':'168.16','grade':'a','max_value':250,
-        'origin':'builtin_default','unofficial':True,'attribution':'gpl_snapshot'}
+        'origin':'builtin_default','unofficial':True,'attribution':'xwuid_snapshot'}
     assert [(i['cost'],i['grade'],i['max_value']) for i in shown['item_results']][:2]==[(4,'ss',50),(3,'ss',50)]
     echo_ids=[e['phantom_prop']['phantom_id'] for e in projected['display_data']['detail']['phantom_data']['equip_phantom_list']]
     assert [i['item_id'] for i in shown['item_results']]==[f'echo:{n}:{p}' for n,p in enumerate(echo_ids)]
@@ -137,7 +137,7 @@ def test_model_put_refuses_builtin_source_and_delete_restores_the_default(identi
     register(identity)
     path='/api/accounts/owned/roles/role/assessment/wuthering_waves/1205'
     builtin=client.get(path).json()['model']
-    assert (builtin['source'],builtin['attribution'])==('builtin_default','gpl_snapshot')
+    assert (builtin['source'],builtin['attribution'])==('builtin_default','xwuid_snapshot')
     assert write(client,path+'/model',builtin,method='put').status_code==422
     # The editor saves a copy of the default as the user's own model; it keeps the echo formula.
     saved=write(client,path+'/model',dict(builtin,source='user_configured'),method='put')

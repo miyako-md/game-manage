@@ -127,7 +127,7 @@ def test_resolution_prefers_the_saved_model_and_a_saved_copy_is_the_users_own(tm
     model, origin = resolve_model(store, scope, 'nte', '1003')
     assert origin == 'builtin_default' and model.nte_profile.source == 'builtin_default'
     with pytest.raises(ValueError):
-        AssessmentModel.model_validate({**model.model_dump(mode='python'), 'attribution': 'gpl_snapshot'})
+        AssessmentModel.model_validate({**model.model_dump(mode='python'), 'attribution': 'xwuid_snapshot'})
     with pytest.raises(ValueError):
         AssessmentModel.model_validate({**model.model_dump(mode='python'), 'source': 'user_configured', 'attribution': None})
     own = model.model_dump(mode='python')

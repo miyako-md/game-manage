@@ -279,7 +279,7 @@ test('malformed advanced JSON shows a fixed Chinese error message instead of a r
 
 // M8: default scores (builtin weights) are unofficial and say where their weights come from.
 const defaultItem = (index, value, grade) => ({ item_id: `echo:${index}:unknown`, status: 'scored', value, grade, max_value: 50, cost: 3 })
-const defaultScore = (attribution = 'gpl_snapshot') => ({ status: 'scored', value: '182.50', grade: 's', max_value: 250, origin: 'builtin_default', unofficial: true, attribution,
+const defaultScore = (attribution = 'xwuid_snapshot') => ({ status: 'scored', value: '182.50', grade: 's', max_value: 250, origin: 'builtin_default', unofficial: true, attribution,
   source: 'builtin_default', model_version: 'default-v1', weight_version: 'default-v1', formula: 'wuwa-echo-default-v1', partial: false,
   item_results: [defaultItem(0, '38.52', 'ss'), { item_id: 'echo:1:unknown', status: 'unscorable', reason: 'NO_STAT_VALUES', value: null, grade: null, max_value: null, cost: null }] })
 const noDefault = { status: 'unconfigured', value: null, reason: 'NO_WEIGHTS', model_version: 'unconfigured', source: 'user_configured', item_results: [], partial: null }
@@ -287,11 +287,10 @@ const noDefault = { status: 'unconfigured', value: null, reason: 'NO_WEIGHTS', m
 test('a scored default shows on the image as an unofficial score with its total, grade and weight source', async t => {
   const fetch = t.mock.method(globalThis, 'fetch', async () => reply({}))
   const root = mount(t, Assessment, { game: 'wuthering_waves', characterId: '1205', imageMode: true, autoLoad: true, initialAssessment: defaultScore() })
-  assert.match(content(root), /默认评分 · 非官方.*总分 182.50 \/ 250 · 等级 S.*权重改编自 WutheringWavesUID（GPL-3.0）.*装备 1：已评分 · 38.52 \/ 50 · SS.*装备 2：不可评分/)
-  assert.match(content(mount(t, Assessment, { game: 'wuthering_waves', characterId: '1205', imageMode: true, initialAssessment: defaultScore('self_made') })), /默认评分 · 非官方.*自制权重/)
+  assert.match(content(root), /默认评分 · 非官方.*总分 182.50 \/ 250 · 等级 S.*权重来自 XWUID（XutheringWavesUID）.*装备 1：已评分 · 38.52 \/ 50 · SS.*装备 2：不可评分/)
   for (const status of ['unconfigured', 'unscorable']) assert.doesNotMatch(content(mount(t, Assessment, { game: 'wuthering_waves', characterId: '1205', imageMode: true, initialAssessment: { ...defaultScore(), status, value: null } })), /非官方|评分/)
   const own = content(mount(t, Assessment, { game: 'wuthering_waves', characterId: '1205', imageMode: true, initialAssessment: scored('3.00') }))
-  assert.match(own, /个人权重评分.*已评分：3.00/); assert.doesNotMatch(own, /非官方|\/ 250|WutheringWavesUID/)
+  assert.match(own, /个人权重评分.*已评分：3.00/); assert.doesNotMatch(own, /非官方|\/ 250|XutheringWavesUID/)
   await nextTick(); assert.equal(fetch.mock.callCount(), 0, 'image data arrives via props')
 })
 
@@ -316,7 +315,7 @@ test('the website reads the equipped default score on mount, without a click', a
   const { root, calls, emitted, settle } = autoLoaded(t)
   await settle()
   assert.deepEqual(calls, ['GET /equipped'])
-  assert.match(content(root), /默认评分 · 非官方.*总分 182.50 \/ 250 · 等级 S.*权重改编自 WutheringWavesUID（GPL-3.0）/)
+  assert.match(content(root), /默认评分 · 非官方.*总分 182.50 \/ 250 · 等级 S.*权重来自 XWUID（XutheringWavesUID）/)
   assert.ok(nodes(root, 'details').some(node => /来源 内置默认（非官方）/.test(content(node))))
   assert.equal(emitted.at(-1).origin, 'builtin_default')
 })
@@ -356,7 +355,7 @@ test('an equipped read of the previous character never lands on the next one', a
 })
 
 test('the editor starts from the default model as a personal copy, without a restore button', async t => {
-  const { root, click, settle } = autoLoaded(t, { model: { game: 'wuthering_waves', character_id: '1205', version: 'default-v1', source: 'builtin_default', attribution: 'gpl_snapshot', wuwa_weights: { crit_rate: '2' } } })
+  const { root, click, settle } = autoLoaded(t, { model: { game: 'wuthering_waves', character_id: '1205', version: 'default-v1', source: 'builtin_default', attribution: 'xwuid_snapshot', wuwa_weights: { crit_rate: '2' } } })
   await settle(); await click(open)
   const model = JSON.parse(nodes(root, 'textarea').find(node => node.props['aria-label'] === '权重及公式配置 JSON').props.value)
   assert.equal(model.source, 'user_configured'); assert.equal(model.attribution, null, 'a personal model carries no default attribution'); assert.equal(model.version, 'default-v1'); assert.deepEqual(model.wuwa_weights, { crit_rate: '2' })
