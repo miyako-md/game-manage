@@ -12,8 +12,8 @@ const rows = value => Array.isArray(value) ? value : []
 // The source has no awakening name field: keep a short leading title when the
 // text carries one, otherwise number the awakening; never show its effect text.
 const awakenName = (effect, i) => { const title = displayNteText(effect).split(/[\n：:]/)[0].trim(); return !title || title.length > 12 || title.endsWith('待核验') ? `觉醒 ${i + 1}` : title }
-// The upstream groups are only `core` and `pie`; the game calls them 空幕 and 驱动.
-const GROUPS = [{ key:'core', label:'空幕' }, { key:'pie', label:'驱动' }]
+// The upstream groups are only `core` and `pie`; the game calls them 卡带 and 驱动 (空幕 is the whole board).
+const GROUPS = [{ key:'core', label:'卡带' }, { key:'pie', label:'驱动' }]
 // Real piece counts are unverified (the samples used 4 + 2): any count fills the grid in order,
 // a group without pieces has no heading, and malformed entries are skipped rather than shown.
 const parts = (suit, key) => rows(suit?.[key]).filter(item => item && typeof item === 'object')
@@ -53,7 +53,7 @@ const pieces = suit => GROUPS.reduce((n, g) => n + parts(suit, g.key).length, 0)
 .nte-suit-head strong{color:var(--text);font-size:15px;font-weight:600;line-height:22px}
 .nte-suit-count{color:var(--text-muted);font-size:12px}
 .nte-suit-count b{color:var(--text);font-weight:600}
-/* One cell per piece, grouped 空幕 / 驱动; the grid follows .wuwa-echoes. */
+/* One cell per piece, grouped 卡带 / 驱动; the grid follows .wuwa-echoes. */
 .nte-drive-group{margin-top:10px}
 .nte-drive-group-title{display:flex;align-items:baseline;gap:8px}
 .nte-drive-group-title span{font-size:12px;font-variant-numeric:tabular-nums}

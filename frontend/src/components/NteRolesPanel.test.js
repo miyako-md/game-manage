@@ -30,12 +30,15 @@ test('wide single-role detail requires explicit mode and never follows a one-res
   await nextTick()
   assert.equal(cards(root).length,1)
   assert.doesNotMatch(nodes(root,'section')[0].props.class,/role-detail-view/)
-  for (const imageMode of [false,true]) {
-    const selected=mount(t,Panel,{snap:snap([entries[0]]),detailMode:true,imageMode})
-    assert.match(nodes(selected,'section')[0].props.class,/role-detail-view/)
-    assert.equal(nodes(selected,'details')[0].props.open,true)
-    assert.match(content(selected),/攻击.*320.*战技一.*Lv5/)
-  }
+  const selected=mount(t,Panel,{snap:snap([entries[0]]),detailMode:true})
+  assert.match(nodes(selected,'section')[0].props.class,/role-detail-view/)
+  assert.equal(nodes(selected,'details')[0].props.open,true)
+  assert.match(content(selected),/攻击.*320.*战技一.*Lv5/)
+  // The image of a selected role is the role sheet: no disclosure, the same facts.
+  const image=mount(t,Panel,{snap:snap([entries[0]]),detailMode:true,imageMode:true})
+  assert.match(nodes(image,'section')[0].props.class,/role-detail-view/)
+  assert.equal(nodes(image,'details').length,0)
+  assert.match(content(image),/攻击.*320.*Lv5 战技一/)
 })
 
 test('image overview keeps the complete roster without mounting every detailed skill and equipment section', t => {
@@ -46,12 +49,14 @@ test('image overview keeps the complete roster without mounting every detailed s
   assert.doesNotMatch(content(root), /战技一|城区一/)
 })
 
-test('selected image role mounts all details and preserves unknown versus zero', t => {
+test('selected image role draws the role sheet and preserves unknown versus zero', t => {
   const root = mount(t, Panel, { snap: snap([{ ...entries[0], awaken_level: null }]), imageMode: true, detailMode: true })
-  assert.equal(nodes(root, 'details').length, 1)
-  assert.match(content(root), /战技一.*Lv5/)
-  assert.match(content(root), /觉醒 未提供/)
-  assert.match(content(root), /Lv0/)
+  assert.equal(nodes(root, 'div').filter(n => String(n.props.class).includes('nte-role-sheet')).length, 1)
+  assert.equal(cards(root).length, 0)
+  assert.match(content(root), /Lv5 战技一/)
+  assert.match(content(root), /觉醒 未提供 混频 1/)
+  assert.match(content(root), /角色1 Lv0/)
+  assert.doesNotMatch(content(root), /城区一|角色总数/, 'city skills and roster counts stay out of a single role sheet')
 })
 
 test('catalog icons accompany remote role filters and full collapsible equipment details', async t => {

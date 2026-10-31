@@ -25,7 +25,7 @@ def piece(kind, i):
 def role(core, pie):
     return {'id': '1003', 'name': '早雾', 'quality': 'S', 'level': 90, 'element': '光', 'awaken_level': 0,
             'weapon': {'name': '合成弧盘', 'level': 80, 'breakthrough_level': 4, 'properties': [{'name': '攻击力', 'value': '570'}]},
-            'suit': {'name': '合成套装', 'activation_count': 4, 'core': [piece('空幕', i) for i in range(core)], 'pie': [piece('驱动', i) for i in range(pie)]},
+            'suit': {'name': '合成套装', 'activation_count': 4, 'core': [piece('卡带', i) for i in range(core)], 'pie': [piece('驱动', i) for i in range(pie)]},
             'skills': [{'id': '1', 'name': '合成技能', 'level': 4}], 'city_skills': [{'id': '2', 'name': '城区技能', 'level': None}]}
 
 
@@ -69,8 +69,8 @@ async def test_real_nte_neon_pages_stay_legible_and_keep_their_layout():
                    out.ink=getComputedStyle(document.querySelector('.cloud-gacha .bar-values')).color}
                  if(name==='progress'){out.card=box('.nte-card')[0].right;out.tag=box('.categories .target-met').map(b=>b.right)
                    out.bars=box('.categories progress').map(b=>[Math.round(b.left),Math.round(b.right)])}
-                 if(name==='detail'){out.cells=box('.nte-drive').length;out.titles=[...document.querySelectorAll('.nte-drive-group-title')].map(e=>e.textContent)
-                   const suit=box('.equipped-suit')[0];out.inside=box('.nte-drive').every(b=>b.left>=suit.left&&b.right<=suit.right)}
+                 if(name==='detail'){out.cells=box('.sheet-piece').length;out.kinds=[...document.querySelectorAll('.piece-title span')].map(e=>e.textContent.split(' ')[0])
+                   const suit=box('.sheet-pieces')[0];out.inside=box('.sheet-piece').every(b=>b.left>=suit.left&&b.right<=suit.right)}
                  return out}""" % MIN_TEXT, name)
                 await page.evaluate('window.disposeLongRender()')
     finally:
@@ -87,9 +87,9 @@ async def test_real_nte_neon_pages_stay_legible_and_keep_their_layout():
     progress = results['progress']
     assert progress['tag'] and all(right <= progress['card'] for right in progress['tag'])
     assert len({tuple(b) for b in progress['bars']}) == 1, progress['bars']
-    # Odd drive counts: one cell per piece inside the set block.
+    # Odd piece counts: one cell per piece inside the role sheet's piece grid, cartridges first.
     assert results['detail']['cells'] == 6 and results['detail']['inside']
-    assert results['detail']['titles'] == ['空幕5 件', '驱动1 件']
+    assert results['detail']['kinds'] == ['卡带'] * 5 + ['驱动']
 
 
 def test_nte_skin_keeps_glow_out_of_gradients():

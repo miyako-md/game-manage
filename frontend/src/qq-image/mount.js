@@ -16,6 +16,7 @@ import './skin.css'
 import './skin-wuwa.css'
 import './skin-nte.css'
 import './skin-endfield.css'
+import './role-sheet.css'
 
 let app=null
 const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve))

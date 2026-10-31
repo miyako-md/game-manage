@@ -5,7 +5,8 @@ import { list, starCount, value } from '../wuwa-display.js'
 import WuwaFields from './WuwaFields.vue'
 import WuwaIcon from './WuwaIcon.vue'
 import RoleAssessment from './RoleAssessment.vue'
-import { echoBadges, isNoDefault, scoreLine } from '../assessment-display.js'
+import WuwaRoleSheet from './WuwaRoleSheet.vue'
+import { echoBadges, echoStatFlags, isNoDefault, scoreLine, statTone } from '../assessment-display.js'
 // liveAssessment: the detail on screen is the account's current one, so the website reads its equipped score.
 // The score lives in the echo section (header total and source, a badge per echo), never as a block of its own.
 const props = defineProps({ data: { type: Object, default: () => ({}) }, imageMode:{type:Boolean,default:false}, liveAssessment:{type:Boolean,default:false} })
@@ -23,12 +24,10 @@ const live = computed(() => props.liveAssessment && !props.imageMode)
 const score = computed(() => props.imageMode ? props.data.assessment : live.value ? liveScore.value : null)
 const badges = computed(() => echoBadges(score.value, props.data.phantom_data?.equip_phantom_list))
 const line = computed(() => scoreLine(score.value))
+// Effective stats take the accent, as on the role image.
+const flags = computed(() => echoStatFlags(score.value, props.data.phantom_data?.equip_phantom_list))
+const tone = (echo, group, j) => statTone(flags.value.get(echo)?.get(`${group}:${j}`))
 const toggleEditor = () => editorState.value.opened ? editor.value?.close() : editor.value?.open()
-// Image layout (R1): the cached detail has no full-length art, so the portrait is the
-// outfit picture, else the role icon; skills and chains each fill one row.
-const portrait = computed(() => safeUrl(props.data.role_skin?.skin_icon) || safeUrl(props.data.role?.role_icon_url))
-const skillCount = computed(() => Math.max(1, Math.min(list(props.data.skill_list).length, 7)))
-const chainCount = computed(() => Math.max(1, Math.min(chains.value.length, 6)))
 // Attribute rows made only of { attribute_name, attribute_value } read as a
 // key-value grid; anything with extra fields keeps the generic renderer so no
 // field is dropped.
@@ -42,15 +41,12 @@ const isAttributeList = (v) =>
   )
 </script>
 <template>
-  <div class="wuwa-role-detail">
+  <!-- Images draw the role sheet; the website keeps this detail. -->
+  <WuwaRoleSheet v-if="imageMode" :data="data" />
+  <div v-else class="wuwa-role-detail">
     <!-- History entries keep the stand-alone editor block; the live detail and images embed the score below. -->
     <RoleAssessment v-if="!imageMode && !liveAssessment" game="wuthering_waves" :character-id="String(data.role?.role_id || '')" />
     <section class="wuwa-detail-section wuwa-detail-basics">
-      <figure v-if="imageMode" class="wuwa-portrait">
-        <img v-if="portrait" :src="portrait" :alt="data.role?.role_name || '角色'" />
-        <span v-else class="wuwa-portrait-fallback" aria-hidden="true">{{ (data.role?.role_name || '?').slice(0, 1) }}</span>
-        <figcaption><strong>{{ data.role?.role_name || '角色' }}</strong> <b>Lv.{{ value(data.role?.level) }}</b></figcaption>
-      </figure>
       <h3 class="wuwa-subhead role-profile-heading"><WuwaIcon v-if="!imageMode" :src="data.role?.role_icon_url" :name="data.role?.role_name || '角色'" size="large" /><span>{{ data.role?.role_name }} · 角色基本信息</span></h3>
       <div class="wuwa-basics">
         <img
@@ -149,7 +145,7 @@ const isAttributeList = (v) =>
     <section class="wuwa-detail-section wuwa-detail-skills">
       <h3 class="wuwa-subhead">技能</h3>
       <p v-if="!list(data.skill_list).length" class="wuwa-muted">未提供</p>
-      <div v-else class="wuwa-tiles wuwa-skills" :style="imageMode ? { '--row-count': skillCount } : undefined">
+      <div v-else class="wuwa-tiles wuwa-skills">
         <article
           v-for="(entry, i) in list(data.skill_list)"
           :key="i"
@@ -173,7 +169,7 @@ const isAttributeList = (v) =>
           >已解锁 {{ unlockedChains }} / {{ chains.length }}</span
         >
       </h3>
-      <div v-if="chains.length" class="wuwa-chains" :style="imageMode ? { '--row-count': chainCount } : undefined">
+      <div v-if="chains.length" class="wuwa-chains">
         <div
           v-for="(chain, i) in chains"
           :key="i"
@@ -235,7 +231,7 @@ const isAttributeList = (v) =>
             <h5>主词条</h5>
             <p v-if="!list(echo.main_props).length" class="wuwa-muted">未提供</p>
             <dl v-else class="wuwa-kv">
-              <div v-for="(p, j) in list(echo.main_props)" :key="j">
+              <div v-for="(p, j) in list(echo.main_props)" :key="j" :class="tone(echo, 'main_props', j)">
                 <dt>{{ p.attribute_name }}</dt>
                 <dd>{{ value(p.attribute_value) }}</dd>
               </div>
@@ -243,7 +239,7 @@ const isAttributeList = (v) =>
             <h5>副词条</h5>
             <p v-if="!list(echo.sub_props).length" class="wuwa-muted">未提供</p>
             <dl v-else class="wuwa-kv">
-              <div v-for="(p, j) in echo.sub_props" :key="j">
+              <div v-for="(p, j) in echo.sub_props" :key="j" :class="tone(echo, 'sub_props', j)">
                 <dt>{{ p.attribute_name }}</dt>
                 <dd>{{ value(p.attribute_value) }}</dd>
               </div>
@@ -325,4 +321,6 @@ const isAttributeList = (v) =>
 .wuwa-echo-total{color:var(--wuwa-ink);font-weight:600;font-variant-numeric:tabular-nums}
 .wuwa-echo-weights{margin-left:auto}
 .wuwa-echo-editor{margin-top:12px}
+.wuwa-props .stat-effective :is(dt,dd){color:var(--wuwa-ink);font-weight:600}
+.wuwa-props .stat-ineffective :is(dt,dd){color:var(--text-muted)}
 </style>

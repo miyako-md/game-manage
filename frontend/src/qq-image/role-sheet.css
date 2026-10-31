@@ -1,0 +1,7 @@
+/* Role sheets (鸣潮 / 异环 角色 images): one colour ladder for score grades, read as var(--tier). */
+.role-sheet [data-tier="2"] { --tier: #5aa7ff; }
+.role-sheet [data-tier="3"] { --tier: #b67dff; }
+.role-sheet [data-tier="4"] { --tier: #f2c14e; }
+.role-sheet [data-tier="5"] { --tier: #ff9a3c; }
+.role-sheet [data-tier="6"] { --tier: #ff5d5d; }
+.role-sheet [data-tier="7"] { --tier: #ff4fd8; }

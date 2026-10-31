@@ -21,6 +21,8 @@ ROLE |= frozenset('formula_text model_fingerprint contribution_id weight unit cu
 ROLE |= frozenset('item_id item_results partial partial_known_total display_mode'.split())
 # Built-in default score fields; phantom_id (a public echo resource ID) pairs item_results with echo slots.
 ROLE |= frozenset('grade max_value cost origin unofficial attribution phantom_id'.split())
+# Role sheets: which stat rows are effective, and the official role art.
+ROLE |= frozenset('observation_id effective role_pic_url'.split())
 NTE_OVERVIEW = frozenset('id name level quality element awaken_level mix_level affinity_exp icon_url'.split())
 GACHA = frozenset('schema_version pools details name id item_id total_draws s_count average guarantee luck_title luck_type lucky_type pity obtained_at total gold_total items gold pool coverage earliest latest imported_at source message failed_pools state total rarity_distribution rank rarity time timestamp quantity reward_name reward_id reward_rank pool_group_id result_type pool_id total_pulls hard_pity_remaining rule_basis as_of latest_record_at basis missing_requirements total_records records counts complete'.split())
 GACHA |= frozenset('aggregates five_star_total period_count kind source_time time_basis diagnostics segment_count latest_confirmed continuity_confirmed warnings rule_version up_guarantee count status limit offset'.split())
@@ -505,8 +507,14 @@ def asset_requests(node):
                     if isinstance(entry,dict):
                         selected=entry if detail else {key:entry[key] for key in ('id','name','icon_url') if key in entry}
                         ids=(str(entry['id']),) if type(entry.get('id')) in (str,int) else ()
+                        # The role sheet shows the official half-length art large: artwork size, not the 192px icon.
+                        if detail and isinstance(entry.get('icon_url'),str):yield from emit(entry['icon_url'],'artwork')
                         yield from visit(selected,'nte',role_ids=ids)
                 return
+            if value.get('kind')=='wuwa_role':
+                role=(value['display_data'].get('detail') or {}).get('role')
+                # The official cut-out art heads the role sheet (artwork size); the outfit icon remains its fallback.
+                if isinstance(role,dict) and isinstance(role.get('role_pic_url'),str):yield from emit(role['role_pic_url'],'artwork')
             current_mode='artwork' if value.get('kind')=='calendar' else mode
             # Child equipment/skill IDs are not character IDs. The selected
             # NTE role establishes this context once at its entries boundary.

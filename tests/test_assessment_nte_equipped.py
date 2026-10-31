@@ -144,3 +144,11 @@ def test_every_cartridge_main_stat_has_its_s_rank_level_limit_reference():
     # A gold level-20 HP% cartridge reaches the full main term.
     item = score(role(cores=[core(main=('hpmaxup', '生命值百分比', '37.5%'))], pies=[]))['item_results'][0]
     assert item['status'] == 'scored'
+
+
+def test_effective_stats_are_the_positively_weighted_ones():
+    # 早雾 weights crit rate/damage and ATK% (and the crit damage main stat), not flat DEF.
+    result = score(role())
+    core0 = next(i for i in result['item_results'] if i['item_id'].startswith('core:0'))
+    assert {c['contribution_id']: c['effective'] for c in core0['contributions']} == {
+        'main:critdamagebase': True, 'sub:critbase': True, 'sub:critdamagebase': True, 'sub:atkup': True, 'sub:defadd': False}

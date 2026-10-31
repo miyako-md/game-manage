@@ -455,3 +455,24 @@ def test_projected_nte_noncharacter_reward_does_not_borrow_a_character_image(rew
     snapshot=shared.gacha_snapshot('nte',row({'schema_version':1,'pools':[]}),NOW,ledger=ledger)
     assert snapshot['display_data']['ledger']['records'][0]['reward_type']==reward_type
     assert not list(shared.asset_requests(snapshot))
+
+
+def test_role_sheets_prefetch_the_official_role_art_at_artwork_size():
+    # The WuWa role image heads with the detail's own role_pic_url; a selected NTE role with its
+    # official half-length art. Both are artwork (large), never the 192px icon or the Endfield-only portrait.
+    pic='https://web-static.kurobbs.com/adminConfig/27/role_pic/1.png'
+    detail=QueryResult({'role':{'role_id':1205,'role_name':'长离','role_pic_url':pic,'role_icon_url':'https://web-static.kurobbs.com/adminConfig/27/role_icon/1.png'}},NOW.isoformat(),'ok',False)
+    snapshot=shared.role_snapshot('wuthering_waves',detail,NOW,detail=detail,resolved_id='1205')
+    assert snapshot['display_data']['detail']['role']['role_pic_url']==pic
+    assert (pic,'artwork') in set(shared.asset_requests(snapshot))
+    art='https://webstatic.tajiduo.com/bbs/yh-game-records-web-source/character/detail/1003.png'
+    roles=QueryResult({'schema_version':1,'entries':[{'id':'1003','name':'早雾','icon_url':art}]},NOW.isoformat(),'ok',False)
+    assert (art,'artwork') in set(shared.asset_requests(shared.role_snapshot('nte',roles,NOW,resolved_id='1003')))
+    # The roster keeps the small icon only.
+    assert (art,'artwork') not in set(shared.asset_requests(shared.role_snapshot('nte',roles,NOW)))
+
+
+def test_role_sheet_score_fields_survive_the_projection():
+    contribution={'item_id':'echo:0:1','contribution_id':'crit_rate','observation_id':'sub_props:2','effective':True,'weight':'2'}
+    projected=shared.project({'assessment':{'item_results':[{'item_id':'echo:0:1','contributions':[contribution]}]}},shared.ROLE)
+    assert projected['assessment']['item_results'][0]['contributions'][0]==contribution

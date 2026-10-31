@@ -103,14 +103,17 @@ async def test_real_production_sized_nte_roster_and_selected_detail(selected, tm
         png = await renderer.render_summary_async(SCOPE, envelope, budget_seconds=10)
         assert renderer.last_state['state'] == 'ready'
         assert renderer.last_state['displayed_blocks'] == renderer.last_state['content_blocks']
-        assert renderer.last_state['content_blocks'] == (8 if selected else 21)
+        # The selected role is the role sheet: hero, attributes, skills and one block per piece (no score here).
+        assert renderer.last_state['content_blocks'] == (9 if selected else 21)
         assert 1<=png.total_pages<=100
         assert all(row['width']==720 and 0<row['height']<=1440 for row in renderer.last_state['pages'])
         assert Image.open(BytesIO(png)).width == 720
         if selected:
             assert '合成角色7' in '\n'.join(renderer.page_texts)
-            for text in ('Lv0', '觉醒', '未提供', '合成弧盘', '属性0', '技能0', '城区技能', '合成套装', '合成装备'):
+            for text in ('Lv0', '觉醒', '未提供', '合成弧盘', '属性0', '技能0', '合成套装', '合成装备'):
                 assert text in '\n'.join(renderer.page_texts)
+            # City skills are left out of the role sheet.
+            assert '城区技能' not in '\n'.join(renderer.page_texts)
         else:
             assert any(f'合成角色{i}' in '\n'.join(renderer.page_texts) for i in range(21))
             assert '合成角色0' in '\n'.join(renderer.page_texts)

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { attributionLabel, echoBadges, gradeLabel, isDefaultScore, isNoDefault, nteBadges, scoreLine } from './assessment-display.js'
+import { attributionLabel, echoBadges, echoStatFlags, gradeLabel, gradeTier, isDefaultScore, isNoDefault, nteBadges, nteStatFlags, scoreHero, scoreLine, statTone } from './assessment-display.js'
 
 test('grades read upper case and only the six known grades are shown', () => {
   assert.deepEqual(['c', 'b', 'a', 's', 'ss', 'sss', 'SS'].map(gradeLabel), ['C', 'B', 'A', 'S', 'SS', 'SSS', 'SS'])
@@ -48,4 +48,29 @@ test('NTE badges follow group and position and skip a different piece there', ()
   assert.equal(badges.get(suit.core[0]).max, '20')
   assert.equal(nteBadges(null, suit).size, 0)
   assert.equal(nteBadges({ item_results: [item('core:0:unknown', { max_value: null })] }, suit).size, 0)
+})
+
+test('stat flags follow the scored item at each position; unknown or mismatched items give none', () => {
+  const echo = { phantom_prop: { phantom_id: 7 } }, other = { phantom_prop: { phantom_id: 8 } }
+  const flags = echoStatFlags({ item_results: [
+    { item_id: 'echo:0:7', status: 'scored', value: '1', max_value: 50, contributions: [{ observation_id: 'sub_props:1', effective: true }, { observation_id: 'main_props:0', effective: false }, { observation_id: 'sub_props:2' }] },
+    { item_id: 'echo:1:9', status: 'scored', value: '1', max_value: 50, contributions: [{ observation_id: 'sub_props:0', effective: true }] },
+  ] }, [echo, other])
+  assert.deepEqual([...flags.get(echo)], [['sub_props:1', true], ['main_props:0', false]])
+  assert.equal(flags.get(other), undefined, 'a different echo at that position is not coloured')
+  const piece = { id: 'cell2_style1_1_orange' }
+  const nte = nteStatFlags({ item_results: [{ item_id: 'pie:0:cell2_style1_1_orange', status: 'scored', value: '1', max_value: '20', contributions: [{ contribution_id: 'sub:critbase', effective: true }, { contribution_id: 'sub:defadd', effective: false }] }] }, { pie: [piece] })
+  assert.deepEqual([...nte.get(piece)], [['sub:critbase', true], ['sub:defadd', false]])
+  assert.deepEqual([statTone(true), statTone(false), statTone(undefined)], ['stat-effective', 'stat-ineffective', undefined])
+})
+
+test('the score card reads scored, partial, no-default and unscorable assessments; grades share one ladder', () => {
+  assert.deepEqual(scoreHero(null), { kind: 'absent' })
+  assert.deepEqual(scoreHero({ status: 'scored', value: '146.82', max_value: 250, grade: 'b', origin: 'builtin_default', attribution: 'self_made' }),
+    { kind: 'scored', grade: 'B', value: '146.82', max: '250', source: '非官方 · 自制权重' })
+  assert.deepEqual(scoreHero({ status: 'unscorable', partial: true, partial_known_total: '70.10', origin: 'builtin_default', attribution: 'nte_workshop',
+    item_results: [{ status: 'scored' }, { status: 'unscorable' }, { status: 'scored' }] }), { kind: 'partial', value: '70.10', count: 2, source: '非官方 · 权重配置来自：异环工坊' })
+  assert.equal(scoreHero({ status: 'unconfigured', model_version: 'unconfigured' }).kind, 'none')
+  assert.equal(scoreHero({ status: 'unscorable', reason: 'NO_EQUIPMENT' }).kind, 'unscorable')
+  assert.deepEqual(['d', 'C', 'b', 'A', 's', 'SS', 'sss', 'ACE', 'x', null].map(gradeTier), [0, 1, 2, 3, 4, 5, 6, 7, null, null])
 })

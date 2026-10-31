@@ -1,7 +1,6 @@
 import {roleIdentity} from './models.js'
 export function prepareReuse(c){
  const s=structuredClone(c.snapshot),d=s.display_data
- if(s.kind==='wuwa_role'){delete d.detail.equip_phantom_attribute_list;delete d.detail.equip_phantom_add_prop_list}
  for(const p of d.panels||[]){
   if(p.game==='wuthering_waves'&&p.capability==='combat'){
    const v=p.snapshot.payload

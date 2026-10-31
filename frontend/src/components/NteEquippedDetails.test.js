@@ -17,20 +17,20 @@ for (const imageMode of [false, true]) test(`${imageMode ? 'image' : 'web'} equi
   const root = mount(t, Equipped, { role: completeRole(), imageMode })
   assert.match(content(root), /觉醒 觉醒 1 · 觉醒名称 · 觉醒 3/)
   assert.match(content(root), /弧盘资料 合成弧盘 · 突破 2 攻击 570/)
-  assert.match(content(root), /已装备套装 合 合成套装 激活数 4 空幕 1 件 合成驱动 · Lv20 主属性 攻击力 63 副属性 暴击率 3%/)
+  assert.match(content(root), /已装备套装 合 合成套装 激活数 4 卡带 1 件 合成驱动 · Lv20 主属性 攻击力 63 副属性 暴击率 3%/)
   assert.doesNotMatch(content(root), DETAILS)
 })
 
 const classOf = n => String(n.props.class || '')
 const byClass = (root, name) => nodes(root, 'article').concat(nodes(root, 'p'), nodes(root, 'div'), nodes(root, 'header'), nodes(root, 'h5')).filter(n => classOf(n).split(' ').includes(name))
 const fullSuit = () => ({ ...completeRole(), suit: { name: '迪亚波罗斯', activation_count: 4,
-  core: [1, 2, 3, 4].map(i => ({ name: `合成空幕${i}`, level: 20, main_properties: [{ name: '攻击力', value: '63' }], properties: [{ name: '暴击率', value: '3%' }] })),
+  core: [1, 2, 3, 4].map(i => ({ name: `合成卡带${i}`, level: 20, main_properties: [{ name: '攻击力', value: '63' }], properties: [{ name: '暴击率', value: '3%' }] })),
   pie: [{ name: '合成驱动A', level: null, main_properties: [], properties: [{ name: '暴击伤害', value: '6%' }] }, { name: '合成驱动B', level: 15 }] } })
 
-test('drives get one cell per piece under 空幕 and 驱动 with the set icon from the catalog', t => {
+test('drives get one cell per piece under 卡带 and 驱动 with the set icon from the catalog', t => {
   const root = mount(t, Equipped, { role: fullSuit() })
   assert.equal(byClass(root, 'nte-drive').length, 6)
-  assert.deepEqual(byClass(root, 'nte-drive-group-title').map(content), ['空幕 4 件', '驱动 2 件'])
+  assert.deepEqual(byClass(root, 'nte-drive-group-title').map(content), ['卡带 4 件', '驱动 2 件'])
   const icon = nodes(byClass(root, 'nte-suit-head')[0], 'img')[0]
   assert.match(icon.props.src, /^https:\/\/webstatic\.tajiduo\.com\/.*suit1\.png$/)
   // Unknown stays unknown: a missing level or stat list is 未提供, never 0 or an empty cell.
@@ -69,9 +69,9 @@ const suitWith = (core, pie) => ({ ...completeRole(), suit: { name: '迪亚波�
 test('any real piece count gets one cell per piece and empty groups lose their heading', t => {
   const range = (kind, n) => Array.from({ length: n }, (_, i) => piece(kind, i + 1))
   for (const imageMode of [false, true]) for (const [core, pie] of [[0, 1], [1, 0], [3, 0], [5, 1], [4, 3], [0, 5], [7, 2]]) {
-    const root = mount(t, Equipped, { role: suitWith(range('空幕', core), range('驱动', pie)), imageMode })
+    const root = mount(t, Equipped, { role: suitWith(range('卡带', core), range('驱动', pie)), imageMode })
     assert.equal(byClass(root, 'nte-drive').length, core + pie)
-    assert.deepEqual(byClass(root, 'nte-drive-group-title').map(content), [...(core ? [`空幕 ${core} 件`] : []), ...(pie ? [`驱动 ${pie} 件`] : [])])
+    assert.deepEqual(byClass(root, 'nte-drive-group-title').map(content), [...(core ? [`卡带 ${core} 件`] : []), ...(pie ? [`驱动 ${pie} 件`] : [])])
     assert.doesNotMatch(content(root), /未提供/)
   }
 })

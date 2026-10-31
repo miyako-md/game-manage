@@ -99,6 +99,13 @@ def echo_max(profile:WuwaEchoProfile,cost:str)->Fraction:
     return best_sub+best_main
 
 
+def echo_effective_subs(profile:WuwaEchoProfile)->frozenset:
+    """Substats shown as effective: the ones forming the theoretical maximum, as upstream picks them."""
+    if profile.max_sub is not None: return frozenset(profile.max_sub)
+    subs={s:Fraction(profile.sub.get(s,Decimal(0)))*Fraction(v) for s,v in ECHO_SUB_MAX.items()}
+    return frozenset(s for s in sorted(subs,key=lambda s:subs[s],reverse=True)[:5] if subs[s]>0)
+
+
 def echo_grade(ratio:Fraction)->str:
     return ECHO_GRADES[max(i for i,t in enumerate(ECHO_GRADE_THRESHOLDS) if ratio>=t)]
 
@@ -174,6 +181,7 @@ def _assess_core(configuration: Configuration, model: AssessmentModel, item_leve
     if not configuration.items: return unavailable('NO_EQUIPMENT')
     if len({item.id for item in configuration.items})!=len(configuration.items): return unavailable('DUPLICATE_ITEM')
     terms=[]; contributions=[]; ratio=None; nte_maximum=Fraction()
+    effective_subs=echo_effective_subs(profile) if profile else frozenset()
     for item in configuration.items:
         if model.game=='nte':
             if item.nte is None: return unavailable('MISSING_EXPLICIT_NTE_INPUT')
@@ -186,7 +194,8 @@ def _assess_core(configuration: Configuration, model: AssessmentModel, item_leve
             for contribution in result.contributions:
                 exact=contribution.exact_fraction
                 terms.append(Fraction(int(exact.numerator),int(exact.denominator)))
-                contributions.append({'item_id':item.id,**contribution.model_dump(mode='json')})
+                # A stat with a positive weight is effective; the role image colours it.
+                contributions.append({'item_id':item.id,**contribution.model_dump(mode='json'),'effective':Fraction(contribution.weight)>0})
         else:
             if item.stats_complete is not True: return unavailable('UNKNOWN_STAT_COMPLETENESS')
             cost=str(item.cost) if item.cost is not None else None
@@ -219,13 +228,17 @@ def _assess_core(configuration: Configuration, model: AssessmentModel, item_leve
                     shown=canonical*100 if expected=='ratio' else canonical
                     weight=(profile.main[cost] if stat.role=='main' else profile.sub).get(name,Decimal(0)); term=shown*Fraction(weight)
                     points+=term
+                    # Effective: a weighted main stat, or a substat among those forming the maximum.
+                    effective=weight>0 if stat.role=='main' else name in effective_subs
                     contributions.append(dict(item_id=item.id,contribution_id=name,value=_text(term),weight=str(weight),unit=expected,
-                        current_value=_text(shown),exact_fraction=dict(numerator=str(term.numerator),denominator=str(term.denominator))))
+                        current_value=_text(shown),exact_fraction=dict(numerator=str(term.numerator),denominator=str(term.denominator)),
+                        observation_id=stat.observation_id,effective=effective))
                     continue
                 weight=model.wuwa_weights.get(name,Decimal(0)); term=canonical*Fraction(weight)
                 terms.append(term)
                 contributions.append(dict(item_id=item.id,contribution_id=name,value=_text(term),weight=str(weight),unit=expected,
-                    current_value=_text(canonical),exact_fraction=dict(numerator=str(term.numerator),denominator=str(term.denominator))))
+                    current_value=_text(canonical),exact_fraction=dict(numerator=str(term.numerator),denominator=str(term.denominator)),
+                    observation_id=stat.observation_id,effective=weight>0))
             # Confirmed complete source lists prove absent canonical stats are zero.
             if not seen: return unavailable('NO_STAT_VALUES')
             if profile:

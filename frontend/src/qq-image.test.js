@@ -185,13 +185,18 @@ test('QQ skins: the sheet and each overview game block carry data-skin, and skin
  for(const file of ['skin.css','skin-wuwa.css','skin-nte.css','skin-endfield.css'])assert.doesNotMatch(read(file),/url\(|@font-face/,file)
 })
 
-test('Wuwa skin: the R1 detail grid is image only and nothing in the skin sets text below 17px',()=>{
- const skin=readFileSync(new URL('./qq-image/skin-wuwa.css',import.meta.url),'utf8')
- const grid=skin.slice(skin.indexOf('.reuse.lab-sheet[data-skin="wuwa"] #render-content .wuwa-role-detail {'))
- assert.match(grid,/grid-template-areas:\s+"basics attrs"\s+"basics weapon"\s+"basics \."\s+"skills skills"\s+"chains chains"\s+"echoes echoes"/)
- for(const rule of skin.match(/[^{}]*wuwa-(?:role-detail|portrait|basics|attrs|skills|chains|echoes)[^{}]*\{/g))assert.match(rule,/\.reuse\.lab-sheet\[data-skin="wuwa"\]/,rule)
- const sizes=[...skin.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
- assert.ok(sizes.every(size=>size>=17),String(sizes))
+test('role sheets: every rule outranks the image type reset and no text is set below 17px',()=>{
+ for(const name of ['WuwaRoleSheet','NteRoleSheet','RoleScoreHero']){
+  const source=readFileSync(new URL(`./components/${name}.vue`,import.meta.url),'utf8')
+  const css=source.slice(source.indexOf('<style scoped>')+14,source.indexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g,'')
+  // `.reuse.lab-sheet #render-content *` forces size, line height and spacing: each rule needs an id and !important.
+  for(const rule of css.match(/[^{}]+\{[^{}]*\}/g))for(const selector of rule.slice(0,rule.indexOf('{')).split(/,(?![^(]*\))/))assert.match(selector.trim(),/^\.lab-sheet #render-content /,`${name}: ${selector}`)
+  for(const [,prop,value] of css.matchAll(/(font-size|line-height|letter-spacing):([^;}]+)/g))assert.match(value,/!important$/,`${name}: ${prop}:${value}`)
+  const sizes=[...css.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
+  assert.ok(sizes.every(size=>size>=17),`${name}: ${sizes}`)
+ }
+ // The old R1 grid is gone from the Wuwa skin; the sheet carries its own layout.
+ assert.doesNotMatch(readFileSync(new URL('./qq-image/skin-wuwa.css',import.meta.url),'utf8'),/wuwa-role-detail|wuwa-portrait/)
 })
 
 test('C1.1: Wuwa sub-images keep unearned stars visible and lift the shared sub-17px labels',()=>{

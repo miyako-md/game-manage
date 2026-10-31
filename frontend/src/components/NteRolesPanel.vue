@@ -9,6 +9,7 @@ import MenuSelect from './MenuSelect.vue'
 import NteIcon from './NteIcon.vue'
 import NteRoleDetail from './NteRoleDetail.vue'
 import NteRoleDialog from './NteRoleDialog.vue'
+import NteRoleSheet from './NteRoleSheet.vue'
 import { roleBreakdown } from '../nte-charts.js'
 import { levelBands } from '../wuwa-charts.js'
 import BarChart from './BarChart.vue'
@@ -78,7 +79,7 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
       <button v-if="!imageMode && !detailMode" type="button" class="ui-button small-button" @click="browseGuides=true">浏览全部攻略</button>
       <InfoHint v-if="roles.length" text="收藏保存在当前浏览器，按账号与角色分别保存。" />
       <span v-if="snap?.stale" class="badge badge-stale">数据可能过期</span>
-      <span v-if="roles.length" class="chip-list summary">
+      <span v-if="roles.length && !(imageMode && detailMode)" class="chip-list summary">
         <span class="chip">角色总数 <b>{{ roles.length }}</b></span>
         <span class="chip">S级 <b>{{ qualityCount('S') }}</b></span>
         <span class="chip">A级 <b>{{ qualityCount('A') }}</b></span>
@@ -124,6 +125,8 @@ function imageFailed(event) { const url = safeUrl(event.currentTarget?.src); if 
         </div>
       </div>
       <p v-if="!visible.length" class="empty">没有符合筛选条件的角色</p>
+      <!-- A selected role's image is the role sheet; the website and the roster keep the cards. -->
+      <template v-else-if="imageMode && detailMode"><NteRoleSheet v-for="role in visible" :key="keyOf(role)" :role="role" /></template>
       <ul v-else class="role-grid">
         <li v-for="(role, index) in visible" :key="keyOf(role)" class="role-card t-item" :data-render-block="imageMode && !detailMode ? '' : undefined" :class="{ compared: isCompared(role) }" :style="{ '--i': Math.min(index, 11) }">
           <div class="role-top" :data-render-block="imageMode && detailMode ? '' : undefined">

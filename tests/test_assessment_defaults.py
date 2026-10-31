@@ -161,3 +161,26 @@ def test_resolution_prefers_the_saved_model_and_never_falls_back_to_the_template
     store.save(scope, wuwa_model(), 'model')
     assert resolve_model(store, scope, 'wuthering_waves', 'c1') == (wuwa_model(), 'user_configured')
     store.close()
+
+
+def test_effective_rows_follow_the_maximum_selection():
+    # The role image colours effective stats: a weighted main stat, or a substat among those
+    # forming the theoretical maximum (长离: crit rate/damage, ATK%, flat ATK, skill damage).
+    result = assess(golden(), default_model('wuthering_waves', '1205'))
+    rows = [[(c['observation_id'], c['effective']) for c in i['contributions']] for i in result['item_results']]
+    assert rows[1] == [('main:0', True), ('main:1', True), ('sub:0', True), ('sub:1', True), ('sub:2', True),
+                       ('sub:3', False), ('sub:4', False)]
+    assert rows[4] == [('main:0', False), ('main:1', False), ('sub:0', True), ('sub:1', False), ('sub:2', False),
+                       ('sub:3', False), ('sub:4', False)]
+    # Scores are unchanged by the added fields.
+    assert result['value'] == '168.16'
+
+
+def test_without_a_maximum_selection_the_five_best_weighted_substats_are_effective():
+    from game_assistant.assessment import WuwaEchoProfile, echo_effective_subs
+    main = {'1': {}, '3': {}, '4': {}}
+    profile = WuwaEchoProfile(main=main, sub={'crit_rate': '2', 'crit_damage': '1', 'attack_ratio': '1.1', 'attack_flat': '0.1',
+                                              'skill_damage': '0.5', 'energy_regen': '0.1', 'health_flat': '0.001'})
+    # crit 21, crit damage 21, ATK% 12.76, flat ATK 6, skill 5.8 beat energy 1.24 and flat HP 0.58.
+    assert echo_effective_subs(profile) == {'crit_rate', 'crit_damage', 'attack_ratio', 'attack_flat', 'skill_damage'}
+    assert echo_effective_subs(WuwaEchoProfile(main=main, sub={'crit_rate': '1'})) == {'crit_rate'}

@@ -22,15 +22,14 @@ test('image role preserves nested source attributes while raw keys and effect te
     role_attribute_list:[{attribute_name:'攻击',attribute_value:'1234'},{attribute_name:'防御',attribute_value:null}]},
     skill_list:[{level:0,skill:{name:'战技',description:'完整技能条件'}}],
     weapon_data:{level:0,weapon:{weapon_name:'合成武器',effect_description:'完整武器效果'}}}})
-  assert.match(content(root),/完整属性.*攻击.*1234.*防御.*未知/)
-  assert.match(content(root),/合成武器.*战技.*Lv.0/)
+  assert.match(content(root),/合成武器.*完整属性.*攻击.*1234.*防御.*未知.*Lv\.0 战技/)
   assert.doesNotMatch(content(root),/完整技能条件|完整武器效果|来源补充字段|role_id|role_attribute_list|attribute_name|synthetic-character/)
 })
 
-test('R1: the image detail leads with a portrait card and fits skills and chains in one row; the website keeps its basics', async t => {
+test('role sheet: the image leads with the official art and fits skills and chains in one row; the website keeps its basics', async t => {
   const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
   const data = {
-    role: { role_name: '角色甲', level: 0, role_icon_url: 'https://web-static.kurobbs.com/role.png' },
+    role: { role_name: '角色甲', level: 0, role_icon_url: 'https://web-static.kurobbs.com/role.png', role_pic_url: 'https://web-static.kurobbs.com/pic.png', attribute_name: '冷凝', breach: 6 },
     role_skin: { skin_name: '外观甲', skin_icon: 'https://web-static.kurobbs.com/skin.png' },
     skill_list: Array.from({ length: 9 }, (_, i) => ({ level: i, skill: { name: `技能${i}` } })),
     chain_list: Array.from({ length: 6 }, (_, i) => ({ order: i + 1, name: `链${i}`, unlocked: i < 2 })),
@@ -39,17 +38,22 @@ test('R1: the image detail leads with a portrait card and fits skills and chains
   const image = mount(t, Detail, { imageMode: true, data })
   const [figure] = nodes(image, 'figure')
   assert.equal(figure.props.class, 'wuwa-portrait')
-  assert.deepEqual(nodes(figure, 'img').map(n => n.props.src), ['https://web-static.kurobbs.com/skin.png'])
+  assert.deepEqual(nodes(figure, 'img').map(n => n.props.src), ['https://web-static.kurobbs.com/pic.png'])
   assert.match(content(figure), /角色甲 Lv.0/)
-  assert.deepEqual(nodes(image, 'img').map(n => n.props.src).filter(src => /role|skin/.test(src)), ['https://web-static.kurobbs.com/skin.png'], 'no second copy of the picture')
-  assert.equal(byClass(image, 'wuwa-skills')[0].props.style['--row-count'], 7)
-  assert.equal(byClass(image, 'wuwa-chains')[0].props.style['--row-count'], 6)
+  assert.match(content(image), /属性 冷凝 突破 6 共鸣链 2 \/ 6 外观 外观甲/)
+  assert.deepEqual(nodes(image, 'img').map(n => n.props.src).filter(src => /role|skin|pic/.test(src)), ['https://web-static.kurobbs.com/pic.png'], 'no second copy of the picture')
+  assert.equal(byClass(image, 'sheet-skills')[0].props.style['--row-count'], 7)
+  assert.equal(byClass(image, 'sheet-chains')[0].props.style['--row-count'], 6)
+  assert.deepEqual(byClass(image, 'wuwa-chain').map(n => n.props.class.split(' ').includes('is-locked')), [false, false, true, true, true, true])
   for (const name of ['basics', 'attrs', 'weapon', 'skills', 'chains', 'echoes']) assert.equal(byClass(image, `wuwa-detail-${name}`).length, 1, name)
-  // The top-level level is on the portrait card; the trailing field list must not repeat it in images.
+  // The top-level level is on the portrait; the sheet never lists it again.
   const leveled = { ...data, level: 90 }
   assert.doesNotMatch(content(mount(t, Detail, { imageMode: true, data: leveled })).replace(/Lv\.\d+/g, ''), /等级\s*90/)
   assert.match(content(mount(t, Detail, { data: leveled })), /等级\s*90/)
-  const noSkin = mount(t, Detail, { imageMode: true, data: { ...data, role_skin: {} } })
+  // Without the official art the outfit, then the role icon stand in.
+  const noArt = { ...data, role: { ...data.role, role_pic_url: undefined } }
+  assert.equal(nodes(nodes(mount(t, Detail, { imageMode: true, data: noArt }), 'figure')[0], 'img')[0].props.src, 'https://web-static.kurobbs.com/skin.png')
+  const noSkin = mount(t, Detail, { imageMode: true, data: { ...noArt, role_skin: {} } })
   assert.equal(nodes(nodes(noSkin, 'figure')[0], 'img')[0].props.src, 'https://web-static.kurobbs.com/role.png')
   const unknown = mount(t, Detail, { imageMode: true, data: { role: { role_name: '角色乙' } } })
   assert.match(content(nodes(unknown, 'figure')[0]), /^角 角色乙 Lv\.未知$/, 'initial stands in for a missing picture; unknown level stays unknown')
@@ -110,30 +114,52 @@ const ok = body => ({ ok: true, status: 200, json: async () => body })
 const reply = assessment => ok({ configuration: { items: [] }, assessment })
 const settle = async () => { for (let i = 0; i < 6; i++) await nextTick() }
 
-test('image: the total, grade and unofficial source sit in the echo header, each scored echo has a badge, and no score block exists', async t => {
+const hero = root => nodes(root, 'div').filter(n => String(n.props.class ?? '').split(' ').includes('role-score-hero')).map(content)
+
+test('image: the score card carries grade, total and source, each scored echo has a badge, and the header keeps the COST', async t => {
   const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
   const fetch = t.mock.method(globalThis, 'fetch', async () => { throw new Error('no request in images') })
   const image = data => mount(t, Detail, { imageMode: true, data: { ...scoredDetail(), ...data } })
   const scored = image({ assessment: defaultAssessment('gpl_snapshot') })
-  assert.equal(echoHeader(scored), '装备声骸 总 COST 11 总分 146.82 / 250 · B 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）')
+  assert.equal(echoHeader(scored), '装备声骸 总 COST 11')
+  assert.deepEqual(hero(scored), ['B 声骸评分 146.82 / 250 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）'])
   assert.deepEqual(badgeTexts(scored), ['38.52 SS', '31.58 A'])
   const tiles = nodes(scored, 'article').filter(n => /声骸/.test(content(n)))
   assert.deepEqual(tiles.map(n => badgeTexts(n).length), [1, 1, 0], 'the unscorable echo has no badge')
   assert.deepEqual(blocks(scored), []); assert.doesNotMatch(content(scored), /默认评分|装备 1：|权重设置/)
-  assert.match(echoHeader(image({ assessment: defaultAssessment('self_made') })), /总分 146.82 \/ 250 · B 非官方 · 自制权重$/)
+  assert.deepEqual(hero(image({ assessment: defaultAssessment('self_made') })), ['B 声骸评分 146.82 / 250 非官方 · 自制权重'])
   const partial = image({ assessment: defaultAssessment('gpl_snapshot', false) })
-  assert.equal(echoHeader(partial), '装备声骸 总 COST 11 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）')
+  assert.deepEqual(hero(partial), ['— 声骸评分 70.10 部分可评 · 已评 2 件 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）'])
   assert.deepEqual(badgeTexts(partial), ['38.52 SS', '31.58 A'])
-  for (const assessment of [undefined, noDefault, { ...noDefault, status: 'unscorable', reason: 'NO_EQUIPMENT', model_version: 'builtin-1', origin: 'builtin_default' }]) {
-    const plain = image({ assessment })
-    assert.equal(echoHeader(plain), '装备声骸 总 COST 11'); assert.deepEqual(badgeTexts(plain), []); assert.deepEqual(blocks(plain), [])
-  }
+  assert.deepEqual(hero(image({ assessment: undefined })), [])
+  assert.deepEqual(hero(image({ assessment: noDefault })), ['— 声骸评分 暂无默认权重'])
+  assert.deepEqual(hero(image({ assessment: { ...noDefault, status: 'unscorable', reason: 'NO_EQUIPMENT', model_version: 'builtin-1', origin: 'builtin_default' } })), ['— 声骸评分 暂不可评分 非官方 · 默认评分'])
   // A personal model replaces the default wholly: its score is shown as personal, never as unofficial.
   const own = image({ assessment: { ...defaultAssessment(null), origin: 'user_configured', unofficial: null, source: 'user_configured' } })
-  assert.equal(echoHeader(own), '装备声骸 总 COST 11 总分 146.82 / 250 · B 个人权重')
+  assert.deepEqual(hero(own), ['B 声骸评分 146.82 / 250 个人权重'])
   const weights = image({ assessment: { status: 'scored', value: '3.00', origin: 'user_configured', source: 'user_configured', max_value: null, grade: null, item_results: [] } })
-  assert.equal(echoHeader(weights), '装备声骸 总 COST 11 评分 3.00 个人权重')
+  assert.deepEqual(hero(weights), ['— 声骸评分 3.00 个人权重'])
   await settle(); assert.equal(fetch.mock.callCount(), 0)
+})
+
+test('image and website: effective stat rows take the accent, the others recede, unknown rows stay plain', async t => {
+  const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
+  const props = names => names.map(n => ({ attribute_name: n, attribute_value: '1%' }))
+  const data = { role: { role_id: 1205, role_name: '角色甲' }, phantom_data: { cost: 4, equip_phantom_list: [
+    { cost: 4, phantom_prop: { name: '声骸甲' }, main_props: props(['暴击', '攻击']), sub_props: props(['暴击伤害', '防御', '共鸣效率']) },
+    { cost: 1, phantom_prop: { name: '声骸乙' }, main_props: props(['攻击']), sub_props: props(['生命']) },
+  ] } }
+  const flag = (row, effective) => ({ observation_id: row, effective })
+  const assessment = { ...defaultAssessment('gpl_snapshot'), item_results: [
+    { item_id: 'echo:0:unknown', status: 'scored', value: '30.00', grade: 'a', max_value: 50, contributions: [flag('main_props:0', true), flag('main_props:1', true), flag('sub_props:0', true), flag('sub_props:1', false)] },
+  ] }
+  const tones = root => nodes(root, 'div').filter(n => /stat-(in)?effective/.test(String(n.props.class ?? ''))).map(n => `${content(n).split(' ')[0]}:${n.props.class}`)
+  const expected = ['暴击:stat-effective', '攻击:stat-effective', '暴击伤害:stat-effective', '防御:stat-ineffective']
+  assert.deepEqual(tones(mount(t, Detail, { imageMode: true, data: { ...data, assessment } })), expected, 'the unflagged 共鸣效率 and the unscored echo stay plain')
+  liveDetail(t, { equipped: () => reply(assessment) })
+  const web = mount(t, Detail, { liveAssessment: true, data })
+  await settle()
+  assert.deepEqual(tones(web), expected)
 })
 
 function liveDetail(t, { equipped = () => reply(defaultAssessment('gpl_snapshot')), model = { game: 'wuthering_waves', character_id: '1205', version: 'mine', source: 'user_configured', wuwa_weights: { attack_flat: '1' } } } = {}) {
@@ -199,4 +225,15 @@ test('history entries keep the stand-alone editor block and request nothing', as
   assert.deepEqual(calls, []); assert.deepEqual(badgeTexts(root), [])
   assert.equal(echoHeader(root), '装备声骸 总 COST 11')
   assert.match(content(blocks(root)[0]), /个人权重评分 配置权重与 A\/B 对比/)
+})
+
+test('role sheet: art that fails to load gives way to the outfit, the role icon, then the initial', async t => {
+  const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
+  const root = mount(t, Detail, { imageMode: true, data: { role: { role_name: '角色甲', role_pic_url: 'https://web-static.kurobbs.com/pic.png', role_icon_url: 'https://web-static.kurobbs.com/role.png' },
+    role_skin: { skin_icon: 'https://web-static.kurobbs.com/skin.png' } } })
+  const art = () => nodes(nodes(root, 'figure')[0], 'img')[0]
+  const seen = []
+  while (art()) { seen.push(art().props.src); art().props.onError(); await nextTick() }
+  assert.deepEqual(seen, ['https://web-static.kurobbs.com/pic.png', 'https://web-static.kurobbs.com/skin.png', 'https://web-static.kurobbs.com/role.png'])
+  assert.match(content(nodes(root, 'figure')[0]), /^角 角色甲/)
 })

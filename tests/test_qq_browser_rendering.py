@@ -291,7 +291,7 @@ async def test_real_shared_long_records_retain_every_row_across_short_pages(kind
     outside={}
     expected_counts={'nte_role':{'.role-card':20},'nte_gacha':{'.pull-row':40},
         'wuwa_gacha':{'.wuwa-draws tbody tr':90,'.wuwa-gold-row':30},
-        'wuwa_role':{'.wuwa-skills > article':12,'.wuwa-chain':8}}[kind]
+        'wuwa_role':{'.sheet-skills > article':12,'.wuwa-chain':8}}[kind]
     original_close=renderer._bounded_close
     async def inspect_close(operation):
         if renderer._browser is not None and renderer._browser.contexts:
