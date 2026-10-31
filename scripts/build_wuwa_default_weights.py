@@ -1,18 +1,19 @@
 """Build src/game_assistant/assessment-defaults-wuwa.json from a pinned upstream snapshot.
 
 Development-machine tool; the application never runs it and never goes online.
-Input: a directory holding the upstream files of WutheringWavesUID@1d693a2
-(GPL-3.0, weights by tyql688) laid out as ``<dir>/<name>/calc.json`` (or the
-flattened ``<dir>/<name>__calc.json``) plus ``<dir>/CharId2Data.json``.
+Input: a directory holding the files of XutheringWavesUID-Resources@93c75d6
+(``XutheringWavesUID/resource/map``; weights by Loping151, no licence stated) laid
+out as ``<dir>/character/<ID>/calc.json`` plus ``<dir>/CharId2Data.json``.
 
     uv run python scripts/build_wuwa_default_weights.py --snapshot DIR          # write
     uv run python scripts/build_wuwa_default_weights.py --snapshot DIR --check  # compare
 
-``--check`` regenerates every entry whose upstream file is present and fails on
-any difference, so a partial snapshot (e.g. the test fixtures) checks a subset.
+Writing needs the complete pinned snapshot (PAYLOAD_SHA256). ``--check`` regenerates
+every entry whose upstream file is present and fails on any difference, so a partial
+snapshot (e.g. the test fixtures) checks a subset.
 """
 import argparse
-import copy
+import hashlib
 import json
 import sys
 from decimal import Decimal
@@ -20,24 +21,30 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'src' / 'game_assistant' / 'assessment-defaults-wuwa.json'
-SHA = '1d693a2df0f940824cb34e102cec1cf3b381e70f'
-DATA_VERSION = '2026-10-22'
+SHA = '93c75d6539cd6c1b3dbe151c02237cabb6af6a95'
+PLUGIN_SHA = 'b29863c0284028bc289464e9353ceebfe1311ce1'
+FETCHED_AT = '2026-10-31T09:44:01Z'
+# sha256 over CharId2Data.json and every character/<ID>/calc.json it lists (see payload_sha256).
+PAYLOAD_SHA256 = '66a86f3355bd098a782a53a2eac94cbcca86eddeeae5745b8fe2d0af3f6d1067'
+DATA_VERSION = '2026-10-31'
 
 ELEMENTS = {'冷凝': 'glacio_damage', '热熔': 'fusion_damage', '导电': 'electro_damage',
             '气动': 'aero_damage', '衍射': 'spectro_damage', '湮灭': 'havoc_damage'}
 # Character element by game ID. Cross-checked against character-search-catalog.json
 # where that catalog lists the character; the rest per the official character pages.
+# 1212/1309/1310/1312/1412/1510: game data (api.encore.moe ElementName) and the upstream
+# grade lists (own element damage) agree.
 ELEMENT = {
     '1102': '冷凝', '1103': '冷凝', '1104': '冷凝', '1105': '冷凝', '1106': '冷凝', '1107': '冷凝',
     '1108': '冷凝', '1109': '冷凝', '1110': '冷凝',
     '1202': '热熔', '1203': '热熔', '1204': '热熔', '1205': '热熔', '1206': '热熔', '1207': '热熔',
-    '1208': '热熔', '1209': '热熔', '1210': '热熔', '1211': '热熔',
+    '1208': '热熔', '1209': '热熔', '1210': '热熔', '1211': '热熔', '1212': '热熔',
     '1301': '导电', '1302': '导电', '1303': '导电', '1304': '衍射', '1305': '导电', '1306': '导电',
-    '1307': '导电', '1308': '导电', '1311': '导电',
+    '1307': '导电', '1308': '导电', '1309': '导电', '1310': '导电', '1311': '导电', '1312': '导电',
     '1402': '气动', '1403': '气动', '1404': '气动', '1405': '气动', '1406': '气动', '1407': '气动',
-    '1408': '气动', '1409': '气动', '1410': '气动', '1411': '气动', '1413': '气动',
+    '1408': '气动', '1409': '气动', '1410': '气动', '1411': '气动', '1412': '气动', '1413': '气动',
     '1501': '衍射', '1502': '衍射', '1503': '衍射', '1504': '导电', '1505': '衍射', '1506': '衍射',
-    '1507': '衍射', '1508': '湮灭', '1509': '衍射', '1511': '衍射',
+    '1507': '衍射', '1508': '湮灭', '1509': '衍射', '1510': '衍射', '1511': '衍射',
     '1601': '湮灭', '1602': '湮灭', '1603': '湮灭', '1604': '湮灭', '1605': '湮灭', '1606': '湮灭',
     '1607': '湮灭', '1608': '湮灭', '1610': '湮灭',
 }
@@ -46,43 +53,6 @@ STATS = {'攻击': 'attack_flat', '攻击%': 'attack_ratio', '生命': 'health_f
          '共鸣效率': 'energy_regen', '治疗效果加成': 'healing_bonus'}
 SKILLS = ['普攻伤害加成', '重击伤害加成', '共鸣技能伤害加成', '共鸣解放伤害加成']
 SKILL_IDS = ['basic_damage', 'heavy_damage', 'skill_damage', 'liberation_damage']
-
-# Self-made entries: the upstream ``default`` template with these overrides (upstream
-# stat names; values follow comparable upstream characters). Not upstream data: the
-# reasoning per character (official kit: damage types, scaling stat, energy need) is
-# kept in the owner's review table outside the repository.
-_DPS = {'技能伤害加成': 1.1}
-_NO_ATTACK = {'main': {'4': {'攻击': 0, '攻击%': 0, '暴击': 0, '暴击伤害': 0}, '3': {'攻击': 0, '攻击%': 0, '属性伤害加成': 0},
-                       '1': {'攻击%': 0}},
-              'sub': {'攻击': 0, '攻击%': 0, '暴击': 0, '暴击伤害': 0}}
-
-
-def _support(main, sub, skill_weight=(0, 0, 0, 0)):
-    out = copy.deepcopy(_NO_ATTACK)
-    for cost, table in main.items():
-        out['main'][cost].update(table)
-    out['sub'].update(sub)
-    return dict(out, skill_weight=list(skill_weight))
-
-
-SELF_MADE = {
-    '1108': dict(name='绯雪', element='冷凝', sub={**_DPS, '共鸣效率': 0.3}, skill_weight=[0, 0, 0, 0.7]),
-    '1109': dict(name='洛瑟菈', element='冷凝', sub={**_DPS, '共鸣效率': 0.1}, skill_weight=[0.6, 0, 0, 0]),
-    '1110': dict(name='穗穗', element='冷凝', **_support(
-        {'4': {'生命%': 0.3, '治疗效果加成': 0.375}, '3': {'生命%': 0.3, '共鸣效率': 0.3}, '1': {'生命': 0.003, '生命%': 0.4}},
-        {'生命': 0.01, '生命%': 1.2, '共鸣效率': 1.2, '暴击伤害': 0.33})),
-    '1209': dict(name='莫宁', element='热熔', **_support(
-        {'4': {'防御%': 0.4, '治疗效果加成': 0.375}, '3': {'防御%': 0.255, '共鸣效率': 0.3003}, '1': {'防御%': 0.44}},
-        {'防御': 0.15, '防御%': 1.2, '共鸣效率': 1.2, '技能伤害加成': 1.1}, (0, 0, 0, 0.35))),
-    '1210': dict(name='爱弥斯', element='热熔', sub={**_DPS, '共鸣效率': 0.3}, skill_weight=[0.2, 0, 0, 0.6]),
-    '1211': dict(name='达妮娅', element='热熔', sub={**_DPS, '共鸣效率': 0.5}, skill_weight=[0.3, 0, 0, 0.5]),
-    '1308': dict(name='丽贝卡', element='导电', sub={**_DPS, '共鸣效率': 0.5}, skill_weight=[0.6, 0, 0, 0]),
-    '1311': dict(name='心', element='导电', sub={**_DPS, '共鸣效率': 0.3}, skill_weight=[0.25, 0.15, 0.6, 0]),
-    '1413': dict(name='清宵', element='气动', sub={**_DPS, '共鸣效率': 0.3}, skill_weight=[0.5, 0.2, 0, 0.2]),
-    '1509': dict(name='琳奈', element='衍射', sub={**_DPS, '共鸣效率': 0.3}, skill_weight=[0.65, 0, 0, 0.1]),
-    '1511': dict(name='露西', element='衍射', sub={**_DPS, '共鸣效率': 0.3}, skill_weight=[0.15, 0.65, 0, 0]),
-    '1610': dict(name='秧秧·玄翎', element='湮灭', sub={**_DPS, '共鸣效率': 0.2}, skill_weight=[0.15, 0.65, 0, 0]),
-}
 
 
 def text(value):
@@ -136,59 +106,37 @@ def expand(calc, element):
     return dict(main=main, sub=sub, max_main=max_main, max_sub=selected(calc['max_sub_props']))
 
 
-def best_selection(entry):
-    """Theoretical maximum picks for a self-made entry: the best possible echo."""
-    from game_assistant.assessment import ECHO_MAIN_FIXED, ECHO_MAIN_MAX, ECHO_SUB_MAX
-    main = {}
-    for cost in ('1', '3', '4'):
-        weights = entry['main'][cost]
-        primary = max(ECHO_MAIN_MAX[cost], key=lambda s: Decimal(weights.get(s, '0')) * Decimal(ECHO_MAIN_MAX[cost][s]))
-        main[cost] = [primary, ECHO_MAIN_FIXED[cost][0]]
-    ranked = sorted(ECHO_SUB_MAX, key=lambda s: -Decimal(entry['sub'].get(s, '0')) * Decimal(ECHO_SUB_MAX[s]))
-    return main, [s for s in ranked[:5] if Decimal(entry['sub'].get(s, '0')) > 0]
+def calc_path(snapshot, character_id):
+    return snapshot / 'character' / character_id / 'calc.json'
 
 
-def calc_file(snapshot, name):
-    for path in (snapshot / name / 'calc.json', snapshot / f'{name}__calc.json'):
+def payload_sha256(snapshot, ids):
+    """Hash of the files the build reads; equal to PAYLOAD_SHA256 only for the complete pinned snapshot."""
+    digest = hashlib.sha256()
+    paths = [snapshot / 'CharId2Data.json'] + [calc_path(snapshot, cid) for cid in sorted(ids)]
+    for path in paths:
         if path.is_file():
-            return json.loads(path.read_text(encoding='utf-8'))
-    return None
+            digest.update(path.relative_to(snapshot).as_posix().encode('utf-8') + b'\n' + path.read_bytes() + b'\n')
+    return digest.hexdigest()
 
 
 def build(snapshot):
+    """Returns (entries, complete); characters the upstream map lists without a calc.json get no entry."""
     ids = json.loads((snapshot / 'CharId2Data.json').read_text(encoding='utf-8'))
-    characters, missing = {}, []
+    characters = {}
     for character_id, row in sorted(ids.items()):
-        calc = calc_file(snapshot, row['name'])
-        if calc is None:
-            missing.append(row['name'])
+        path = calc_path(snapshot, character_id)
+        if not path.is_file():
             continue
-        characters[character_id] = dict(name=row['name'], origin='gpl_snapshot', upstream=row['name'],
+        calc = json.loads(path.read_text(encoding='utf-8'))
+        characters[character_id] = dict(name=row['name'], origin='xwuid_snapshot', upstream=character_id,
                                         element=ELEMENT[character_id], **expand(calc, ELEMENT[character_id]))
-    template = calc_file(snapshot, 'default')
-    if template is not None:
-        for character_id, spec in SELF_MADE.items():
-            if character_id in ids:
-                raise ValueError(f'{character_id} is covered upstream')
-            calc = copy.deepcopy(template)
-            for cost, table in spec.get('main', {}).items():
-                calc['main_props'][cost].update(table)
-            calc['sub_props'].update(spec.get('sub', {}))
-            calc['skill_weight'] = spec.get('skill_weight', calc['skill_weight'])
-            entry = expand(calc, spec['element'])
-            entry['max_main'], entry['max_sub'] = best_selection(entry)
-            if spec['element'] != ELEMENT[character_id]:
-                raise ValueError(f'{character_id} element mismatch')
-            characters[character_id] = dict(name=spec['name'], origin='self_made', upstream='default',
-                                            element=spec['element'], **entry)
-    else:
-        missing.append('default')
     catalog = json.loads((ROOT / 'src' / 'game_assistant' / 'character-search-catalog.json').read_text(encoding='utf-8'))
     for row in catalog['characters']:
         if row['game'] == 'wuthering_waves' and row['character_id'] in characters and row['form'] in ELEMENTS:
             if row['form'] != characters[row['character_id']]['element']:
                 raise ValueError(f"{row['character_id']} element differs from the search catalog")
-    return dict(sorted(characters.items())), missing
+    return dict(sorted(characters.items())), payload_sha256(snapshot, ids) == PAYLOAD_SHA256
 
 
 def document(characters):
@@ -197,17 +145,22 @@ def document(characters):
         formula='wuwa-echo-default-v1',
         data_version=DATA_VERSION,
         provenance=dict(
-            repository='https://github.com/Celec7/WutheringWavesUID',
-            original_repository='kvcfdd/WutheringWavesUID (deleted; Celec7 is an archived mirror at the same commit)',
+            source='XutheringWavesUID',
+            repository='https://cnb.cool/loping151/XutheringWavesUID-Resources',
             commit=SHA,
-            path='WutheringWavesUID/utils/map/character/<name>/calc.json',
-            author='tyql688',
-            license='GPL-3.0',
+            path='XutheringWavesUID/resource/map/character/<ID>/calc.json',
+            plugin_repository='https://github.com/Loping151/XutheringWavesUID',
+            plugin_commit=PLUGIN_SHA,
+            author='Loping151',
+            license='unstated',
+            fetched_at=FETCHED_AT,
+            payload_sha256=PAYLOAD_SHA256,
             modified=DATA_VERSION,
-            changes=('Modified by game-manage: keyed by game character ID; upstream stat names mapped to canonical IDs; '
-                     'skill damage expanded by skill_weight and element damage to the character element; zero weights, '
-                     'grades, colours and score_max dropped (score_max is recomputed); conditional variants ignored; '
-                     'entries with origin self_made are not upstream data but derived from the default template.'),
+            changes=('Modified by game-manage: upstream stat names mapped to canonical IDs; skill damage expanded by '
+                     'skill_weight and element damage to the character element; zero weights, grades, colours, '
+                     'revision notes and score_max dropped (score_max is recomputed); conditional variants '
+                     '(洛瑟菈 condition.json) ignored. 45 entries are value-identical to the GPL-3.0 weights by '
+                     'tyql688 in WutheringWavesUID@1d693a2.'),
         ),
         grade_thresholds=['0', '0.48', '0.6', '0.7', '0.78', '0.84'],
         grades=['c', 'b', 'a', 's', 'ss', 'sss'],
@@ -225,10 +178,10 @@ def main(argv=None):
     parser.add_argument('--check', action='store_true')
     parser.add_argument('--output', type=Path, default=OUTPUT)
     args = parser.parse_args(argv)
-    characters, missing = build(args.snapshot)
+    characters, complete = build(args.snapshot)
     if not args.check:
-        if missing:
-            print('missing upstream files: ' + ', '.join(missing), file=sys.stderr)
+        if not complete:
+            print('snapshot differs from the pinned payload (PAYLOAD_SHA256)', file=sys.stderr)
             return 1
         args.output.write_text(dump(document(characters)), encoding='utf-8', newline='\n')
         print(f'wrote {len(characters)} entries')
@@ -237,12 +190,12 @@ def main(argv=None):
     expected = document({})
     problems = [key for key in expected if key != 'characters' and stored.get(key) != expected[key]]
     problems += [cid for cid, entry in characters.items() if stored['characters'].get(cid) != entry]
-    if not missing:
+    if complete:
         problems += [cid for cid in stored['characters'] if cid not in characters]
     if problems:
         print('differs: ' + ', '.join(problems), file=sys.stderr)
         return 1
-    print(f'checked {len(characters)} entries' + (f'; not in snapshot: {len(missing)}' if missing else ''))
+    print(f'checked {len(characters)} entries' + ('' if complete else ' (partial snapshot)'))
     return 0
 
 

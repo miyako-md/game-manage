@@ -10,11 +10,10 @@ test('grades read upper case and only the six known grades are shown', () => {
 })
 
 test('only a default score carries an attribution', () => {
-  assert.equal(attributionLabel({ origin: 'builtin_default', attribution: 'gpl_snapshot' }), '权重改编自 WutheringWavesUID（GPL-3.0）')
-  assert.equal(attributionLabel({ origin: 'builtin_default', attribution: 'self_made' }), '自制权重')
+  assert.equal(attributionLabel({ origin: 'builtin_default', attribution: 'xwuid_snapshot' }), '权重来自 XWUID（XutheringWavesUID）')
   assert.equal(attributionLabel({ origin: 'builtin_default', attribution: 'nte_workshop' }), '权重配置来自：异环工坊')
   assert.equal(attributionLabel({ origin: 'builtin_default', attribution: null }), '')
-  assert.equal(attributionLabel({ origin: 'user_configured', attribution: 'gpl_snapshot' }), '')
+  assert.equal(attributionLabel({ origin: 'user_configured', attribution: 'xwuid_snapshot' }), '')
   assert.equal(isDefaultScore(null), false)
 })
 
@@ -31,9 +30,9 @@ test('echo badges follow the source position, skip unscorable items and a differ
 })
 
 test('the header line shows a total only for a scored set and always names a default unofficial', () => {
-  const base = { origin: 'builtin_default', attribution: 'gpl_snapshot', max_value: 250 }
-  assert.deepEqual(scoreLine({ ...base, status: 'scored', value: '146.82', grade: 'b' }), { total: '总分 146.82 / 250 · B', source: '非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）' })
-  assert.deepEqual(scoreLine({ ...base, status: 'unscorable', value: null, partial: true }), { total: '', source: '非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）' })
+  const base = { origin: 'builtin_default', attribution: 'xwuid_snapshot', max_value: 250 }
+  assert.deepEqual(scoreLine({ ...base, status: 'scored', value: '146.82', grade: 'b' }), { total: '总分 146.82 / 250 · B', source: '非官方 · 权重来自 XWUID（XutheringWavesUID）' })
+  assert.deepEqual(scoreLine({ ...base, status: 'unscorable', value: null, partial: true }), { total: '', source: '非官方 · 权重来自 XWUID（XutheringWavesUID）' })
   assert.deepEqual(scoreLine({ origin: 'user_configured', status: 'scored', value: '3.00', max_value: null }), { total: '评分 3.00', source: '个人权重' })
   assert.deepEqual(scoreLine(null), { total: '', source: '' })
   assert.equal(isNoDefault({ status: 'unconfigured', model_version: 'unconfigured' }), true)
@@ -66,8 +65,8 @@ test('stat flags follow the scored item at each position; unknown or mismatched 
 
 test('the score card reads scored, partial, no-default and unscorable assessments; grades share one ladder', () => {
   assert.deepEqual(scoreHero(null), { kind: 'absent' })
-  assert.deepEqual(scoreHero({ status: 'scored', value: '146.82', max_value: 250, grade: 'b', origin: 'builtin_default', attribution: 'self_made' }),
-    { kind: 'scored', grade: 'B', value: '146.82', max: '250', source: '非官方 · 自制权重' })
+  assert.deepEqual(scoreHero({ status: 'scored', value: '146.82', max_value: 250, grade: 'b', origin: 'builtin_default', attribution: 'xwuid_snapshot' }),
+    { kind: 'scored', grade: 'B', value: '146.82', max: '250', source: '非官方 · 权重来自 XWUID（XutheringWavesUID）' })
   assert.deepEqual(scoreHero({ status: 'unscorable', partial: true, partial_known_total: '70.10', origin: 'builtin_default', attribution: 'nte_workshop',
     item_results: [{ status: 'scored' }, { status: 'unscorable' }, { status: 'scored' }] }), { kind: 'partial', value: '70.10', count: 2, source: '非官方 · 权重配置来自：异环工坊' })
   assert.equal(scoreHero({ status: 'unconfigured', model_version: 'unconfigured' }).kind, 'none')

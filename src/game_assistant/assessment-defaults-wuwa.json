@@ -1,16 +1,20 @@
 {
  "schema_version": 1,
  "formula": "wuwa-echo-default-v1",
- "data_version": "2026-10-22",
+ "data_version": "2026-10-31",
  "provenance": {
-  "repository": "https://github.com/Celec7/WutheringWavesUID",
-  "original_repository": "kvcfdd/WutheringWavesUID (deleted; Celec7 is an archived mirror at the same commit)",
-  "commit": "1d693a2df0f940824cb34e102cec1cf3b381e70f",
-  "path": "WutheringWavesUID/utils/map/character/<name>/calc.json",
-  "author": "tyql688",
-  "license": "GPL-3.0",
-  "modified": "2026-10-22",
-  "changes": "Modified by game-manage: keyed by game character ID; upstream stat names mapped to canonical IDs; skill damage expanded by skill_weight and element damage to the character element; zero weights, grades, colours and score_max dropped (score_max is recomputed); conditional variants ignored; entries with origin self_made are not upstream data but derived from the default template."
+  "source": "XutheringWavesUID",
+  "repository": "https://cnb.cool/loping151/XutheringWavesUID-Resources",
+  "commit": "93c75d6539cd6c1b3dbe151c02237cabb6af6a95",
+  "path": "XutheringWavesUID/resource/map/character/<ID>/calc.json",
+  "plugin_repository": "https://github.com/Loping151/XutheringWavesUID",
+  "plugin_commit": "b29863c0284028bc289464e9353ceebfe1311ce1",
+  "author": "Loping151",
+  "license": "unstated",
+  "fetched_at": "2026-10-31T09:44:01Z",
+  "payload_sha256": "66a86f3355bd098a782a53a2eac94cbcca86eddeeae5745b8fe2d0af3f6d1067",
+  "modified": "2026-10-31",
+  "changes": "Modified by game-manage: upstream stat names mapped to canonical IDs; skill damage expanded by skill_weight and element damage to the character element; zero weights, grades, colours, revision notes and score_max dropped (score_max is recomputed); conditional variants (洛瑟菈 condition.json) ignored. 45 entries are value-identical to the GPL-3.0 weights by tyql688 in WutheringWavesUID@1d693a2."
  },
  "grade_thresholds": [
   "0",
@@ -31,8 +35,8 @@
  "characters": {
   "1102": {
    "name": "散华",
-   "origin": "gpl_snapshot",
-   "upstream": "散华",
+   "origin": "xwuid_snapshot",
+   "upstream": "1102",
    "element": "冷凝",
    "main": {
     "1": {
@@ -84,8 +88,8 @@
   },
   "1103": {
    "name": "白芷",
-   "origin": "gpl_snapshot",
-   "upstream": "白芷",
+   "origin": "xwuid_snapshot",
+   "upstream": "1103",
    "element": "冷凝",
    "main": {
     "1": {
@@ -130,8 +134,8 @@
   },
   "1104": {
    "name": "凌阳",
-   "origin": "gpl_snapshot",
-   "upstream": "凌阳",
+   "origin": "xwuid_snapshot",
+   "upstream": "1104",
    "element": "冷凝",
    "main": {
     "1": {
@@ -183,8 +187,8 @@
   },
   "1105": {
    "name": "折枝",
-   "origin": "gpl_snapshot",
-   "upstream": "折枝",
+   "origin": "xwuid_snapshot",
+   "upstream": "1105",
    "element": "冷凝",
    "main": {
     "1": {
@@ -236,8 +240,8 @@
   },
   "1106": {
    "name": "釉瑚",
-   "origin": "gpl_snapshot",
-   "upstream": "釉瑚",
+   "origin": "xwuid_snapshot",
+   "upstream": "1106",
    "element": "冷凝",
    "main": {
     "1": {
@@ -288,8 +292,8 @@
   },
   "1107": {
    "name": "珂莱塔",
-   "origin": "gpl_snapshot",
-   "upstream": "珂莱塔",
+   "origin": "xwuid_snapshot",
+   "upstream": "1107",
    "element": "冷凝",
    "main": {
     "1": {
@@ -339,32 +343,33 @@
   },
   "1108": {
    "name": "绯雪",
-   "origin": "self_made",
-   "upstream": "default",
+   "origin": "xwuid_snapshot",
+   "upstream": "1108",
    "element": "冷凝",
    "main": {
     "1": {
-     "attack_ratio": "0.4"
+     "attack_ratio": "0.528947"
     },
     "3": {
-     "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "glacio_damage": "0.275"
+     "attack_flat": "0.020629",
+     "attack_ratio": "0.248605",
+     "glacio_damage": "0.248605"
     },
     "4": {
-     "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "crit_damage": "0.25",
-     "crit_rate": "0.5"
+     "attack_flat": "0.016186",
+     "attack_ratio": "0.214945",
+     "crit_damage": "0.161209",
+     "crit_rate": "0.241813"
     }
    },
    "sub": {
     "attack_flat": "0.1",
     "attack_ratio": "1.1",
     "crit_damage": "1",
-    "crit_rate": "2",
-    "energy_regen": "0.3",
-    "liberation_damage": "0.77"
+    "crit_rate": "1.7",
+    "energy_regen": "0.25",
+    "liberation_damage": "1.0527",
+    "skill_damage": "0.0968"
    },
    "max_main": {
     "1": [
@@ -372,11 +377,11 @@
      "health_flat"
     ],
     "3": [
-     "attack_ratio",
+     "glacio_damage",
      "attack_flat"
     ],
     "4": [
-     "crit_rate",
+     "crit_damage",
      "attack_flat"
     ]
    },
@@ -384,23 +389,23 @@
     "crit_rate",
     "crit_damage",
     "attack_ratio",
-    "liberation_damage",
-    "attack_flat"
+    "attack_flat",
+    "liberation_damage"
    ]
   },
   "1109": {
    "name": "洛瑟菈",
-   "origin": "self_made",
-   "upstream": "default",
+   "origin": "xwuid_snapshot",
+   "upstream": "1109",
    "element": "冷凝",
    "main": {
     "1": {
-     "attack_ratio": "0.4"
+     "attack_ratio": "0.6"
     },
     "3": {
      "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "glacio_damage": "0.275"
+     "attack_ratio": "0.3",
+     "glacio_damage": "0.3"
     },
     "4": {
      "attack_flat": "0.025",
@@ -410,12 +415,11 @@
     }
    },
    "sub": {
-    "attack_flat": "0.1",
-    "attack_ratio": "1.1",
-    "basic_damage": "0.66",
+    "attack_flat": "0.11",
+    "attack_ratio": "1.2",
+    "basic_damage": "0.9",
     "crit_damage": "1",
-    "crit_rate": "2",
-    "energy_regen": "0.1"
+    "crit_rate": "2"
    },
    "max_main": {
     "1": [
@@ -423,11 +427,11 @@
      "health_flat"
     ],
     "3": [
-     "attack_ratio",
+     "glacio_damage",
      "attack_flat"
     ],
     "4": [
-     "crit_rate",
+     "crit_damage",
      "attack_flat"
     ]
    },
@@ -435,34 +439,38 @@
     "crit_rate",
     "crit_damage",
     "attack_ratio",
-    "basic_damage",
-    "attack_flat"
+    "attack_flat",
+    "basic_damage"
    ]
   },
   "1110": {
    "name": "穗穗",
-   "origin": "self_made",
-   "upstream": "default",
+   "origin": "xwuid_snapshot",
+   "upstream": "1110",
    "element": "冷凝",
    "main": {
     "1": {
-     "health_flat": "0.003",
+     "health_flat": "0.0027",
      "health_ratio": "0.4"
     },
     "3": {
      "energy_regen": "0.3",
+     "glacio_damage": "0.28",
      "health_ratio": "0.3"
     },
     "4": {
-     "healing_bonus": "0.375",
-     "health_ratio": "0.3"
+     "crit_damage": "0.2",
+     "healing_bonus": "0.47",
+     "health_ratio": "0.35"
     }
    },
    "sub": {
     "crit_damage": "0.33",
-    "energy_regen": "1.2",
+    "crit_rate": "0.1",
+    "energy_regen": "1",
     "health_flat": "0.01",
-    "health_ratio": "1.2"
+    "health_ratio": "1.2",
+    "skill_damage": "0.12"
    },
    "max_main": {
     "1": [
@@ -479,16 +487,17 @@
     ]
    },
    "max_sub": [
-    "energy_regen",
     "health_ratio",
+    "health_flat",
+    "energy_regen",
     "crit_damage",
-    "health_flat"
+    "skill_damage"
    ]
   },
   "1202": {
    "name": "炽霞",
-   "origin": "gpl_snapshot",
-   "upstream": "炽霞",
+   "origin": "xwuid_snapshot",
+   "upstream": "1202",
    "element": "热熔",
    "main": {
     "1": {
@@ -540,8 +549,8 @@
   },
   "1203": {
    "name": "安可",
-   "origin": "gpl_snapshot",
-   "upstream": "安可",
+   "origin": "xwuid_snapshot",
+   "upstream": "1203",
    "element": "热熔",
    "main": {
     "1": {
@@ -593,8 +602,8 @@
   },
   "1204": {
    "name": "莫特斐",
-   "origin": "gpl_snapshot",
-   "upstream": "莫特斐",
+   "origin": "xwuid_snapshot",
+   "upstream": "1204",
    "element": "热熔",
    "main": {
     "1": {
@@ -645,8 +654,8 @@
   },
   "1205": {
    "name": "长离",
-   "origin": "gpl_snapshot",
-   "upstream": "长离",
+   "origin": "xwuid_snapshot",
+   "upstream": "1205",
    "element": "热熔",
    "main": {
     "1": {
@@ -697,8 +706,8 @@
   },
   "1206": {
    "name": "布兰特",
-   "origin": "gpl_snapshot",
-   "upstream": "布兰特",
+   "origin": "xwuid_snapshot",
+   "upstream": "1206",
    "element": "热熔",
    "main": {
     "1": {
@@ -751,8 +760,8 @@
   },
   "1207": {
    "name": "露帕",
-   "origin": "gpl_snapshot",
-   "upstream": "露帕",
+   "origin": "xwuid_snapshot",
+   "upstream": "1207",
    "element": "热熔",
    "main": {
     "1": {
@@ -803,8 +812,8 @@
   },
   "1208": {
    "name": "嘉贝莉娜",
-   "origin": "gpl_snapshot",
-   "upstream": "嘉贝莉娜",
+   "origin": "xwuid_snapshot",
+   "upstream": "1208",
    "element": "热熔",
    "main": {
     "1": {
@@ -854,27 +863,31 @@
   },
   "1209": {
    "name": "莫宁",
-   "origin": "self_made",
-   "upstream": "default",
+   "origin": "xwuid_snapshot",
+   "upstream": "1209",
    "element": "热熔",
    "main": {
     "1": {
-     "defense_ratio": "0.44"
+     "defense_ratio": "0.6"
     },
     "3": {
-     "defense_ratio": "0.255",
-     "energy_regen": "0.3003"
+     "defense_ratio": "0.26",
+     "energy_regen": "0.35",
+     "fusion_damage": "0.25"
     },
     "4": {
-     "defense_ratio": "0.4",
-     "healing_bonus": "0.375"
+     "crit_damage": "0.2",
+     "defense_ratio": "0.3",
+     "healing_bonus": "0.44"
     }
    },
    "sub": {
-    "defense_flat": "0.15",
-    "defense_ratio": "1.2",
-    "energy_regen": "1.2",
-    "liberation_damage": "0.385"
+    "crit_damage": "0.3",
+    "crit_rate": "0.1",
+    "defense_flat": "0.1",
+    "defense_ratio": "1.25",
+    "energy_regen": "1.3",
+    "liberation_damage": "0.44"
    },
    "max_main": {
     "1": [
@@ -882,25 +895,26 @@
      "health_flat"
     ],
     "3": [
-     "defense_ratio",
+     "energy_regen",
      "attack_flat"
     ],
     "4": [
-     "defense_ratio",
+     "healing_bonus",
      "attack_flat"
     ]
    },
    "max_sub": [
     "defense_ratio",
-    "energy_regen",
     "defense_flat",
+    "energy_regen",
+    "crit_damage",
     "liberation_damage"
    ]
   },
   "1210": {
    "name": "爱弥斯",
-   "origin": "self_made",
-   "upstream": "default",
+   "origin": "xwuid_snapshot",
+   "upstream": "1210",
    "element": "热熔",
    "main": {
     "1": {
@@ -919,13 +933,12 @@
     }
    },
    "sub": {
-    "attack_flat": "0.1",
+    "attack_flat": "0.12",
     "attack_ratio": "1.1",
-    "basic_damage": "0.22",
     "crit_damage": "1",
     "crit_rate": "2",
-    "energy_regen": "0.3",
-    "liberation_damage": "0.66"
+    "energy_regen": "0.2",
+    "liberation_damage": "0.77"
    },
    "max_main": {
     "1": [
@@ -933,11 +946,11 @@
      "health_flat"
     ],
     "3": [
-     "attack_ratio",
+     "fusion_damage",
      "attack_flat"
     ],
     "4": [
-     "crit_rate",
+     "crit_damage",
      "attack_flat"
     ]
    },
@@ -945,39 +958,38 @@
     "crit_rate",
     "crit_damage",
     "attack_ratio",
-    "liberation_damage",
-    "attack_flat"
+    "attack_flat",
+    "liberation_damage"
    ]
   },
   "1211": {
    "name": "达妮娅",
-   "origin": "self_made",
-   "upstream": "default",
+   "origin": "xwuid_snapshot",
+   "upstream": "1211",
    "element": "热熔",
    "main": {
     "1": {
-     "attack_ratio": "0.4"
+     "attack_ratio": "0.7"
     },
     "3": {
      "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "fusion_damage": "0.275"
+     "attack_ratio": "0.3",
+     "fusion_damage": "0.3"
     },
     "4": {
-     "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "crit_damage": "0.25",
-     "crit_rate": "0.5"
+     "attack_flat": "0.02",
+     "attack_ratio": "0.32",
+     "crit_damage": "0.24",
+     "crit_rate": "0.48"
     }
    },
    "sub": {
-    "attack_flat": "0.1",
-    "attack_ratio": "1.1",
-    "basic_damage": "0.33",
+    "attack_flat": "0.11",
+    "attack_ratio": "1.2",
     "crit_damage": "1",
     "crit_rate": "2",
-    "energy_regen": "0.5",
-    "liberation_damage": "0.55"
+    "energy_regen": "0.2",
+    "liberation_damage": "0.85"
    },
    "max_main": {
     "1": [
@@ -985,11 +997,11 @@
      "health_flat"
     ],
     "3": [
-     "attack_ratio",
+     "fusion_damage",
      "attack_flat"
     ],
     "4": [
-     "crit_rate",
+     "crit_damage",
      "attack_flat"
     ]
    },
@@ -997,14 +1009,71 @@
     "crit_rate",
     "crit_damage",
     "attack_ratio",
-    "liberation_damage",
-    "energy_regen"
+    "attack_flat",
+    "liberation_damage"
+   ]
+  },
+  "1212": {
+   "name": "景燃",
+   "origin": "xwuid_snapshot",
+   "upstream": "1212",
+   "element": "热熔",
+   "main": {
+    "1": {
+     "attack_ratio": "0.5",
+     "health_flat": "0.0015",
+     "health_ratio": "0.395"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.15",
+     "fusion_damage": "0.3",
+     "health_ratio": "0.3"
+    },
+    "4": {
+     "attack_flat": "0.02",
+     "attack_ratio": "0.15",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5",
+     "health_ratio": "0.12"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.05",
+    "attack_ratio": "0.35",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3",
+    "health_flat": "0.0065",
+    "health_ratio": "1",
+    "heavy_damage": "0.96"
+   },
+   "max_main": {
+    "1": [
+     "health_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "fusion_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "health_ratio",
+    "heavy_damage"
    ]
   },
   "1301": {
    "name": "卡卡罗",
-   "origin": "gpl_snapshot",
-   "upstream": "卡卡罗",
+   "origin": "xwuid_snapshot",
+   "upstream": "1301",
    "element": "导电",
    "main": {
     "1": {
@@ -1056,8 +1125,8 @@
   },
   "1302": {
    "name": "吟霖",
-   "origin": "gpl_snapshot",
-   "upstream": "吟霖",
+   "origin": "xwuid_snapshot",
+   "upstream": "1302",
    "element": "导电",
    "main": {
     "1": {
@@ -1108,8 +1177,8 @@
   },
   "1303": {
    "name": "渊武",
-   "origin": "gpl_snapshot",
-   "upstream": "渊武",
+   "origin": "xwuid_snapshot",
+   "upstream": "1303",
    "element": "导电",
    "main": {
     "1": {
@@ -1158,8 +1227,8 @@
   },
   "1304": {
    "name": "今汐",
-   "origin": "gpl_snapshot",
-   "upstream": "今汐",
+   "origin": "xwuid_snapshot",
+   "upstream": "1304",
    "element": "衍射",
    "main": {
     "1": {
@@ -1210,8 +1279,8 @@
   },
   "1305": {
    "name": "相里要",
-   "origin": "gpl_snapshot",
-   "upstream": "相里要",
+   "origin": "xwuid_snapshot",
+   "upstream": "1305",
    "element": "导电",
    "main": {
     "1": {
@@ -1263,8 +1332,8 @@
   },
   "1306": {
    "name": "奥古斯塔",
-   "origin": "gpl_snapshot",
-   "upstream": "奥古斯塔",
+   "origin": "xwuid_snapshot",
+   "upstream": "1306",
    "element": "导电",
    "main": {
     "1": {
@@ -1314,8 +1383,8 @@
   },
   "1307": {
    "name": "卜灵",
-   "origin": "gpl_snapshot",
-   "upstream": "卜灵",
+   "origin": "xwuid_snapshot",
+   "upstream": "1307",
    "element": "导电",
    "main": {
     "1": {
@@ -1359,32 +1428,32 @@
   },
   "1308": {
    "name": "丽贝卡",
-   "origin": "self_made",
-   "upstream": "default",
+   "origin": "xwuid_snapshot",
+   "upstream": "1308",
    "element": "导电",
    "main": {
     "1": {
-     "attack_ratio": "0.4"
+     "attack_ratio": "0.6"
     },
     "3": {
      "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "electro_damage": "0.275"
+     "attack_ratio": "0.3",
+     "electro_damage": "0.3"
     },
     "4": {
-     "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "crit_damage": "0.25",
-     "crit_rate": "0.5"
+     "attack_flat": "0.02",
+     "attack_ratio": "0.32",
+     "crit_damage": "0.24",
+     "crit_rate": "0.48"
     }
    },
    "sub": {
-    "attack_flat": "0.1",
-    "attack_ratio": "1.1",
-    "basic_damage": "0.66",
+    "attack_flat": "0.11",
+    "attack_ratio": "1.2",
+    "basic_damage": "0.9",
     "crit_damage": "1",
     "crit_rate": "2",
-    "energy_regen": "0.5"
+    "energy_regen": "0.25"
    },
    "max_main": {
     "1": [
@@ -1392,11 +1461,11 @@
      "health_flat"
     ],
     "3": [
-     "attack_ratio",
+     "electro_damage",
      "attack_flat"
     ],
     "4": [
-     "crit_rate",
+     "crit_damage",
      "attack_flat"
     ]
    },
@@ -1404,14 +1473,14 @@
     "crit_rate",
     "crit_damage",
     "attack_ratio",
-    "basic_damage",
-    "energy_regen"
+    "attack_flat",
+    "basic_damage"
    ]
   },
-  "1311": {
-   "name": "心",
-   "origin": "self_made",
-   "upstream": "default",
+  "1309": {
+   "name": "漂泊者·导电",
+   "origin": "xwuid_snapshot",
+   "upstream": "1309",
    "element": "导电",
    "main": {
     "1": {
@@ -1432,11 +1501,11 @@
    "sub": {
     "attack_flat": "0.1",
     "attack_ratio": "1.1",
-    "basic_damage": "0.275",
+    "basic_damage": "0.144",
     "crit_damage": "1",
     "crit_rate": "2",
-    "energy_regen": "0.3",
-    "heavy_damage": "0.165",
+    "energy_regen": "0.2",
+    "liberation_damage": "0.396",
     "skill_damage": "0.66"
    },
    "max_main": {
@@ -1449,7 +1518,7 @@
      "attack_flat"
     ],
     "4": [
-     "crit_rate",
+     "crit_damage",
      "attack_flat"
     ]
    },
@@ -1457,14 +1526,170 @@
     "crit_rate",
     "crit_damage",
     "attack_ratio",
-    "skill_damage",
-    "attack_flat"
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1310": {
+   "name": "漂泊者·导电",
+   "origin": "xwuid_snapshot",
+   "upstream": "1310",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "electro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.1",
+    "basic_damage": "0.144",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "liberation_damage": "0.396",
+    "skill_damage": "0.66"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "attack_ratio",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1311": {
+   "name": "心",
+   "origin": "xwuid_snapshot",
+   "upstream": "1311",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.6"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.3",
+     "electro_damage": "0.3"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.11",
+    "attack_ratio": "1.15",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "skill_damage": "0.814"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "electro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "skill_damage"
+   ]
+  },
+  "1312": {
+   "name": "锁暝",
+   "origin": "xwuid_snapshot",
+   "upstream": "1312",
+   "element": "导电",
+   "main": {
+    "1": {
+     "attack_ratio": "0.570461"
+    },
+    "3": {
+     "attack_flat": "0.025329",
+     "attack_ratio": "0.257848",
+     "electro_damage": "0.257848"
+    },
+    "4": {
+     "attack_flat": "0.018712",
+     "attack_ratio": "0.186541",
+     "crit_damage": "0.169583",
+     "crit_rate": "0.339166"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.11",
+    "attack_ratio": "1.18",
+    "basic_damage": "0.9408",
+    "crit_damage": "1",
+    "crit_rate": "2.2",
+    "energy_regen": "0.15",
+    "liberation_damage": "0.1344"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "electro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "basic_damage"
    ]
   },
   "1402": {
    "name": "秧秧",
-   "origin": "gpl_snapshot",
-   "upstream": "秧秧",
+   "origin": "xwuid_snapshot",
+   "upstream": "1402",
    "element": "气动",
    "main": {
     "1": {
@@ -1517,8 +1742,8 @@
   },
   "1403": {
    "name": "秋水",
-   "origin": "gpl_snapshot",
-   "upstream": "秋水",
+   "origin": "xwuid_snapshot",
+   "upstream": "1403",
    "element": "气动",
    "main": {
     "1": {
@@ -1569,8 +1794,8 @@
   },
   "1404": {
    "name": "忌炎",
-   "origin": "gpl_snapshot",
-   "upstream": "忌炎",
+   "origin": "xwuid_snapshot",
+   "upstream": "1404",
    "element": "气动",
    "main": {
     "1": {
@@ -1622,8 +1847,8 @@
   },
   "1405": {
    "name": "鉴心",
-   "origin": "gpl_snapshot",
-   "upstream": "鉴心",
+   "origin": "xwuid_snapshot",
+   "upstream": "1405",
    "element": "气动",
    "main": {
     "1": {
@@ -1675,8 +1900,8 @@
   },
   "1406": {
    "name": "漂泊者·气动",
-   "origin": "gpl_snapshot",
-   "upstream": "漂泊者·气动",
+   "origin": "xwuid_snapshot",
+   "upstream": "1406",
    "element": "气动",
    "main": {
     "1": {
@@ -1727,8 +1952,8 @@
   },
   "1407": {
    "name": "夏空",
-   "origin": "gpl_snapshot",
-   "upstream": "夏空",
+   "origin": "xwuid_snapshot",
+   "upstream": "1407",
    "element": "气动",
    "main": {
     "1": {
@@ -1780,8 +2005,8 @@
   },
   "1408": {
    "name": "漂泊者·气动",
-   "origin": "gpl_snapshot",
-   "upstream": "漂泊者·气动",
+   "origin": "xwuid_snapshot",
+   "upstream": "1408",
    "element": "气动",
    "main": {
     "1": {
@@ -1832,8 +2057,8 @@
   },
   "1409": {
    "name": "卡提希娅",
-   "origin": "gpl_snapshot",
-   "upstream": "卡提希娅",
+   "origin": "xwuid_snapshot",
+   "upstream": "1409",
    "element": "气动",
    "main": {
     "1": {
@@ -1883,8 +2108,8 @@
   },
   "1410": {
    "name": "尤诺",
-   "origin": "gpl_snapshot",
-   "upstream": "尤诺",
+   "origin": "xwuid_snapshot",
+   "upstream": "1410",
    "element": "气动",
    "main": {
     "1": {
@@ -1899,7 +2124,7 @@
      "attack_flat": "0.025",
      "attack_ratio": "0.275",
      "crit_damage": "0.25",
-     "crit_rate": "0.5"
+     "crit_rate": "0.33"
     }
    },
    "sub": {
@@ -1934,8 +2159,8 @@
   },
   "1411": {
    "name": "仇远",
-   "origin": "gpl_snapshot",
-   "upstream": "仇远",
+   "origin": "xwuid_snapshot",
+   "upstream": "1411",
    "element": "气动",
    "main": {
     "1": {
@@ -1983,36 +2208,34 @@
     "heavy_damage"
    ]
   },
-  "1413": {
-   "name": "清宵",
-   "origin": "self_made",
-   "upstream": "default",
+  "1412": {
+   "name": "西格莉卡",
+   "origin": "xwuid_snapshot",
+   "upstream": "1412",
    "element": "气动",
    "main": {
     "1": {
-     "attack_ratio": "0.4"
+     "attack_ratio": "0.5"
     },
     "3": {
      "aero_damage": "0.275",
      "attack_flat": "0.025",
-     "attack_ratio": "0.275"
+     "attack_ratio": "0.275",
+     "energy_regen": "0.225"
     },
     "4": {
      "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "crit_damage": "0.25",
-     "crit_rate": "0.5"
+     "attack_ratio": "0.25",
+     "crit_damage": "0.2",
+     "crit_rate": "0.4"
     }
    },
    "sub": {
     "attack_flat": "0.1",
     "attack_ratio": "1.1",
-    "basic_damage": "0.55",
     "crit_damage": "1",
     "crit_rate": "2",
-    "energy_regen": "0.3",
-    "heavy_damage": "0.22",
-    "liberation_damage": "0.22"
+    "energy_regen": "0.8"
    },
    "max_main": {
     "1": [
@@ -2024,7 +2247,7 @@
      "attack_flat"
     ],
     "4": [
-     "crit_rate",
+     "crit_damage",
      "attack_flat"
     ]
    },
@@ -2032,14 +2255,67 @@
     "crit_rate",
     "crit_damage",
     "attack_ratio",
-    "basic_damage",
+    "energy_regen",
     "attack_flat"
+   ]
+  },
+  "1413": {
+   "name": "清宵",
+   "origin": "xwuid_snapshot",
+   "upstream": "1413",
+   "element": "气动",
+   "main": {
+    "1": {
+     "attack_ratio": "0.490854"
+    },
+    "3": {
+     "aero_damage": "0.205668",
+     "attack_flat": "0.026654",
+     "attack_ratio": "0.205668"
+    },
+    "4": {
+     "attack_flat": "0.0161",
+     "attack_ratio": "0.16051",
+     "crit_damage": "0.145918",
+     "crit_rate": "0.291836"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.11",
+    "attack_ratio": "1.09",
+    "basic_damage": "0.187",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.2",
+    "heavy_damage": "0.306",
+    "liberation_damage": "0.2635"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "aero_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "heavy_damage"
    ]
   },
   "1501": {
    "name": "漂泊者·衍射",
-   "origin": "gpl_snapshot",
-   "upstream": "漂泊者·衍射",
+   "origin": "xwuid_snapshot",
+   "upstream": "1501",
    "element": "衍射",
    "main": {
     "1": {
@@ -2092,8 +2368,8 @@
   },
   "1502": {
    "name": "漂泊者·衍射",
-   "origin": "gpl_snapshot",
-   "upstream": "漂泊者·衍射",
+   "origin": "xwuid_snapshot",
+   "upstream": "1502",
    "element": "衍射",
    "main": {
     "1": {
@@ -2146,8 +2422,8 @@
   },
   "1503": {
    "name": "维里奈",
-   "origin": "gpl_snapshot",
-   "upstream": "维里奈",
+   "origin": "xwuid_snapshot",
+   "upstream": "1503",
    "element": "衍射",
    "main": {
     "1": {
@@ -2191,8 +2467,8 @@
   },
   "1504": {
    "name": "灯灯",
-   "origin": "gpl_snapshot",
-   "upstream": "灯灯",
+   "origin": "xwuid_snapshot",
+   "upstream": "1504",
    "element": "导电",
    "main": {
     "1": {
@@ -2244,8 +2520,8 @@
   },
   "1505": {
    "name": "守岸人",
-   "origin": "gpl_snapshot",
-   "upstream": "守岸人",
+   "origin": "xwuid_snapshot",
+   "upstream": "1505",
    "element": "衍射",
    "main": {
     "1": {
@@ -2294,8 +2570,8 @@
   },
   "1506": {
    "name": "菲比",
-   "origin": "gpl_snapshot",
-   "upstream": "菲比",
+   "origin": "xwuid_snapshot",
+   "upstream": "1506",
    "element": "衍射",
    "main": {
     "1": {
@@ -2348,8 +2624,8 @@
   },
   "1507": {
    "name": "赞妮",
-   "origin": "gpl_snapshot",
-   "upstream": "赞妮",
+   "origin": "xwuid_snapshot",
+   "upstream": "1507",
    "element": "衍射",
    "main": {
     "1": {
@@ -2400,8 +2676,8 @@
   },
   "1508": {
    "name": "千咲",
-   "origin": "gpl_snapshot",
-   "upstream": "千咲",
+   "origin": "xwuid_snapshot",
+   "upstream": "1508",
    "element": "湮灭",
    "main": {
     "1": {
@@ -2451,8 +2727,8 @@
   },
   "1509": {
    "name": "琳奈",
-   "origin": "self_made",
-   "upstream": "default",
+   "origin": "xwuid_snapshot",
+   "upstream": "1509",
    "element": "衍射",
    "main": {
     "1": {
@@ -2472,12 +2748,12 @@
    },
    "sub": {
     "attack_flat": "0.1",
-    "attack_ratio": "1.1",
-    "basic_damage": "0.715",
+    "attack_ratio": "1.05",
+    "basic_damage": "0.792",
     "crit_damage": "1",
     "crit_rate": "2",
-    "energy_regen": "0.3",
-    "liberation_damage": "0.11"
+    "energy_regen": "0.2",
+    "liberation_damage": "0.253"
    },
    "max_main": {
     "1": [
@@ -2485,11 +2761,11 @@
      "health_flat"
     ],
     "3": [
-     "attack_ratio",
+     "spectro_damage",
      "attack_flat"
     ],
     "4": [
-     "crit_rate",
+     "crit_damage",
      "attack_flat"
     ]
    },
@@ -2497,39 +2773,89 @@
     "crit_rate",
     "crit_damage",
     "attack_ratio",
-    "basic_damage",
-    "attack_flat"
+    "attack_flat",
+    "basic_damage"
+   ]
+  },
+  "1510": {
+   "name": "陆·赫斯",
+   "origin": "xwuid_snapshot",
+   "upstream": "1510",
+   "element": "衍射",
+   "main": {
+    "1": {
+     "attack_ratio": "0.4"
+    },
+    "3": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "spectro_damage": "0.275"
+    },
+    "4": {
+     "attack_flat": "0.025",
+     "attack_ratio": "0.275",
+     "crit_damage": "0.25",
+     "crit_rate": "0.5"
+    }
+   },
+   "sub": {
+    "attack_flat": "0.1",
+    "attack_ratio": "1.15",
+    "basic_damage": "0.847",
+    "crit_damage": "1",
+    "crit_rate": "2",
+    "energy_regen": "0.3"
+   },
+   "max_main": {
+    "1": [
+     "attack_ratio",
+     "health_flat"
+    ],
+    "3": [
+     "spectro_damage",
+     "attack_flat"
+    ],
+    "4": [
+     "crit_damage",
+     "attack_flat"
+    ]
+   },
+   "max_sub": [
+    "crit_rate",
+    "crit_damage",
+    "attack_ratio",
+    "attack_flat",
+    "basic_damage"
    ]
   },
   "1511": {
    "name": "露西",
-   "origin": "self_made",
-   "upstream": "default",
+   "origin": "xwuid_snapshot",
+   "upstream": "1511",
    "element": "衍射",
    "main": {
     "1": {
-     "attack_ratio": "0.4"
+     "attack_ratio": "0.6"
     },
     "3": {
      "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "spectro_damage": "0.275"
+     "attack_ratio": "0.3",
+     "spectro_damage": "0.3"
     },
     "4": {
-     "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "crit_damage": "0.25",
-     "crit_rate": "0.5"
+     "attack_flat": "0.02",
+     "attack_ratio": "0.32",
+     "crit_damage": "0.24",
+     "crit_rate": "0.48"
     }
    },
    "sub": {
-    "attack_flat": "0.1",
-    "attack_ratio": "1.1",
-    "basic_damage": "0.165",
+    "attack_flat": "0.11",
+    "attack_ratio": "1.2",
     "crit_damage": "1",
     "crit_rate": "2",
-    "energy_regen": "0.3",
-    "heavy_damage": "0.715"
+    "energy_regen": "0.2",
+    "heavy_damage": "0.9"
    },
    "max_main": {
     "1": [
@@ -2537,11 +2863,11 @@
      "health_flat"
     ],
     "3": [
-     "attack_ratio",
+     "spectro_damage",
      "attack_flat"
     ],
     "4": [
-     "crit_rate",
+     "crit_damage",
      "attack_flat"
     ]
    },
@@ -2549,14 +2875,14 @@
     "crit_rate",
     "crit_damage",
     "attack_ratio",
-    "heavy_damage",
-    "attack_flat"
+    "attack_flat",
+    "heavy_damage"
    ]
   },
   "1601": {
    "name": "桃祈",
-   "origin": "gpl_snapshot",
-   "upstream": "桃祈",
+   "origin": "xwuid_snapshot",
+   "upstream": "1601",
    "element": "湮灭",
    "main": {
     "1": {
@@ -2607,8 +2933,8 @@
   },
   "1602": {
    "name": "丹瑾",
-   "origin": "gpl_snapshot",
-   "upstream": "丹瑾",
+   "origin": "xwuid_snapshot",
+   "upstream": "1602",
    "element": "湮灭",
    "main": {
     "1": {
@@ -2660,8 +2986,8 @@
   },
   "1603": {
    "name": "椿",
-   "origin": "gpl_snapshot",
-   "upstream": "椿",
+   "origin": "xwuid_snapshot",
+   "upstream": "1603",
    "element": "湮灭",
    "main": {
     "1": {
@@ -2712,8 +3038,8 @@
   },
   "1604": {
    "name": "漂泊者·湮灭",
-   "origin": "gpl_snapshot",
-   "upstream": "漂泊者·湮灭",
+   "origin": "xwuid_snapshot",
+   "upstream": "1604",
    "element": "湮灭",
    "main": {
     "1": {
@@ -2765,8 +3091,8 @@
   },
   "1605": {
    "name": "漂泊者·湮灭",
-   "origin": "gpl_snapshot",
-   "upstream": "漂泊者·湮灭",
+   "origin": "xwuid_snapshot",
+   "upstream": "1605",
    "element": "湮灭",
    "main": {
     "1": {
@@ -2818,8 +3144,8 @@
   },
   "1606": {
    "name": "洛可可",
-   "origin": "gpl_snapshot",
-   "upstream": "洛可可",
+   "origin": "xwuid_snapshot",
+   "upstream": "1606",
    "element": "湮灭",
    "main": {
     "1": {
@@ -2869,8 +3195,8 @@
   },
   "1607": {
    "name": "坎特蕾拉",
-   "origin": "gpl_snapshot",
-   "upstream": "坎特蕾拉",
+   "origin": "xwuid_snapshot",
+   "upstream": "1607",
    "element": "湮灭",
    "main": {
     "1": {
@@ -2920,8 +3246,8 @@
   },
   "1608": {
    "name": "弗洛洛",
-   "origin": "gpl_snapshot",
-   "upstream": "弗洛洛",
+   "origin": "xwuid_snapshot",
+   "upstream": "1608",
    "element": "湮灭",
    "main": {
     "1": {
@@ -2970,33 +3296,33 @@
   },
   "1610": {
    "name": "秧秧·玄翎",
-   "origin": "self_made",
-   "upstream": "default",
+   "origin": "xwuid_snapshot",
+   "upstream": "1610",
    "element": "湮灭",
    "main": {
     "1": {
-     "attack_ratio": "0.4"
+     "attack_ratio": "0.536727"
     },
     "3": {
-     "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "havoc_damage": "0.275"
+     "attack_flat": "0.022382",
+     "attack_ratio": "0.247431",
+     "havoc_damage": "0.247431"
     },
     "4": {
-     "attack_flat": "0.025",
-     "attack_ratio": "0.275",
-     "crit_damage": "0.25",
-     "crit_rate": "0.5"
+     "attack_flat": "0.01578",
+     "attack_ratio": "0.182354",
+     "crit_damage": "0.165776",
+     "crit_rate": "0.265242"
     }
    },
    "sub": {
-    "attack_flat": "0.1",
-    "attack_ratio": "1.1",
-    "basic_damage": "0.165",
+    "attack_flat": "0.095",
+    "attack_ratio": "0.96",
+    "basic_damage": "0.0735",
     "crit_damage": "1",
-    "crit_rate": "2",
+    "crit_rate": "2.1",
     "energy_regen": "0.2",
-    "heavy_damage": "0.715"
+    "heavy_damage": "0.945"
    },
    "max_main": {
     "1": [
@@ -3004,11 +3330,11 @@
      "health_flat"
     ],
     "3": [
-     "attack_ratio",
+     "havoc_damage",
      "attack_flat"
     ],
     "4": [
-     "crit_rate",
+     "crit_damage",
      "attack_flat"
     ]
    },
@@ -3016,8 +3342,8 @@
     "crit_rate",
     "crit_damage",
     "attack_ratio",
-    "heavy_damage",
-    "attack_flat"
+    "attack_flat",
+    "heavy_damage"
    ]
   }
  }

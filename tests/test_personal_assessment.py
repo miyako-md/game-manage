@@ -120,7 +120,7 @@ def test_duplicated_item_ids_show_no_partial_total():
 
 def echo_model(source='user_configured', **profile):
     return AssessmentModel.model_validate(dict(game='wuthering_waves',character_id='c1',version='v1',source=source,
-        attribution='self_made' if source=='builtin_default' else None,
+        attribution='xwuid_snapshot' if source=='builtin_default' else None,
         wuwa_echo_profile={'main':{'1':{'attack_ratio':'1'},'3':{'attack_ratio':'2','fusion_damage':'2'},'4':{'crit_rate':'1','attack_flat':'0.1'}},
                            'sub':{'crit_rate':'1','skill_damage':'0.5'},**profile}))
 
@@ -174,10 +174,10 @@ def test_echo_profile_validation_and_builtin_marking():
     with pytest.raises(ValueError): echo_model(sub={'fusion_damage':'1'})  # element damage is never a sub stat
     with pytest.raises(ValueError): echo_model(sub={'crit_rate':'101'})
     with pytest.raises(ValueError): AssessmentModel.model_validate(dict(game='wuthering_waves',character_id='c1',version='v',source='builtin_default',wuwa_weights={'crit_rate':'1'}))
-    with pytest.raises(ValueError): AssessmentModel.model_validate(dict(game='wuthering_waves',character_id='c1',version='v',source='user_configured',attribution='gpl_snapshot'))
-    with pytest.raises(ValueError): AssessmentModel.model_validate(dict(game='wuthering_waves',character_id='c1',version='v',source='builtin_default',attribution='gpl_snapshot'))
+    with pytest.raises(ValueError): AssessmentModel.model_validate(dict(game='wuthering_waves',character_id='c1',version='v',source='user_configured',attribution='xwuid_snapshot'))
+    with pytest.raises(ValueError): AssessmentModel.model_validate(dict(game='wuthering_waves',character_id='c1',version='v',source='builtin_default',attribution='xwuid_snapshot'))
     builtin=assess(echoes(echo()),echo_model('builtin_default'))
-    assert (builtin['origin'],builtin['unofficial'],builtin['attribution'],builtin['item_results'][0]['grade'])==('builtin_default',True,'self_made','sss')
+    assert (builtin['origin'],builtin['unofficial'],builtin['attribution'],builtin['item_results'][0]['grade'])==('builtin_default',True,'xwuid_snapshot','sss')
     legacy=assess(config(),wuwa_model())
     assert (legacy['origin'],legacy['unofficial'],legacy['attribution'],legacy['grade'],legacy['max_value'])==('user_configured',None,None,None,None)
     assert legacy['item_results'][0]['cost'] is None

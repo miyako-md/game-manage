@@ -120,16 +120,15 @@ test('image: the score card carries grade, total and source, each scored echo ha
   const Detail = await loadVue(new URL('./WuwaRoleDetail.vue', import.meta.url))
   const fetch = t.mock.method(globalThis, 'fetch', async () => { throw new Error('no request in images') })
   const image = data => mount(t, Detail, { imageMode: true, data: { ...scoredDetail(), ...data } })
-  const scored = image({ assessment: defaultAssessment('gpl_snapshot') })
+  const scored = image({ assessment: defaultAssessment('xwuid_snapshot') })
   assert.equal(echoHeader(scored), '装备声骸 总 COST 11')
-  assert.deepEqual(hero(scored), ['B 声骸评分 146.82 / 250 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）'])
+  assert.deepEqual(hero(scored), ['B 声骸评分 146.82 / 250 非官方 · 权重来自 XWUID（XutheringWavesUID）'])
   assert.deepEqual(badgeTexts(scored), ['38.52 SS', '31.58 A'])
   const tiles = nodes(scored, 'article').filter(n => /声骸/.test(content(n)))
   assert.deepEqual(tiles.map(n => badgeTexts(n).length), [1, 1, 0], 'the unscorable echo has no badge')
   assert.deepEqual(blocks(scored), []); assert.doesNotMatch(content(scored), /默认评分|装备 1：|权重设置/)
-  assert.deepEqual(hero(image({ assessment: defaultAssessment('self_made') })), ['B 声骸评分 146.82 / 250 非官方 · 自制权重'])
-  const partial = image({ assessment: defaultAssessment('gpl_snapshot', false) })
-  assert.deepEqual(hero(partial), ['— 声骸评分 70.10 部分可评 · 已评 2 件 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0）'])
+  const partial = image({ assessment: defaultAssessment('xwuid_snapshot', false) })
+  assert.deepEqual(hero(partial), ['— 声骸评分 70.10 部分可评 · 已评 2 件 非官方 · 权重来自 XWUID（XutheringWavesUID）'])
   assert.deepEqual(badgeTexts(partial), ['38.52 SS', '31.58 A'])
   assert.deepEqual(hero(image({ assessment: undefined })), [])
   assert.deepEqual(hero(image({ assessment: noDefault })), ['— 声骸评分 暂无默认权重'])
@@ -150,7 +149,7 @@ test('image and website: effective stat rows take the accent, the others recede,
     { cost: 1, phantom_prop: { name: '声骸乙' }, main_props: props(['攻击']), sub_props: props(['生命']) },
   ] } }
   const flag = (row, effective) => ({ observation_id: row, effective })
-  const assessment = { ...defaultAssessment('gpl_snapshot'), item_results: [
+  const assessment = { ...defaultAssessment('xwuid_snapshot'), item_results: [
     { item_id: 'echo:0:unknown', status: 'scored', value: '30.00', grade: 'a', max_value: 50, contributions: [flag('main_props:0', true), flag('main_props:1', true), flag('sub_props:0', true), flag('sub_props:1', false)] },
   ] }
   const tones = root => nodes(root, 'div').filter(n => /stat-(in)?effective/.test(String(n.props.class ?? ''))).map(n => `${content(n).split(' ')[0]}:${n.props.class}`)
@@ -162,7 +161,7 @@ test('image and website: effective stat rows take the accent, the others recede,
   assert.deepEqual(tones(web), expected)
 })
 
-function liveDetail(t, { equipped = () => reply(defaultAssessment('gpl_snapshot')), model = { game: 'wuthering_waves', character_id: '1205', version: 'mine', source: 'user_configured', wuwa_weights: { attack_flat: '1' } } } = {}) {
+function liveDetail(t, { equipped = () => reply(defaultAssessment('xwuid_snapshot')), model = { game: 'wuthering_waves', character_id: '1205', version: 'mine', source: 'user_configured', wuwa_weights: { attack_flat: '1' } } } = {}) {
   const calls = []
   t.mock.method(globalThis, 'fetch', async (path, options = {}) => {
     const key = `${options.method || 'GET'} ${path.replace(/^\/api\/assessment\/[^/]+\/[^/]+/, '')}`
@@ -181,7 +180,7 @@ test('website: the live detail reads the equipped score on mount and shows it in
   const root = mount(t, Detail, { liveAssessment: true, data: scoredDetail() })
   await settle()
   assert.deepEqual(calls, ['GET /equipped'])
-  assert.equal(echoHeader(root), '装备声骸 总 COST 11 总分 146.82 / 250 · B 非官方 · 权重改编自 WutheringWavesUID（GPL-3.0） 权重设置')
+  assert.equal(echoHeader(root), '装备声骸 总 COST 11 总分 146.82 / 250 · B 非官方 · 权重来自 XWUID（XutheringWavesUID） 权重设置')
   assert.deepEqual(badgeTexts(root), ['38.52 SS', '31.58 A'])
   assert.deepEqual(blocks(root), []); assert.doesNotMatch(content(root), /默认评分|个人权重评分|装备 1：/)
 })

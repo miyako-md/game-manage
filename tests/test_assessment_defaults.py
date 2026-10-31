@@ -1,4 +1,4 @@
-"""Built-in WuWa defaults. Upstream fixtures: WutheringWavesUID@1d693a2 (GPL-3.0, weights by tyql688)."""
+"""Built-in WuWa defaults. Upstream fixtures: XutheringWavesUID-Resources@93c75d6 (weights by Loping151)."""
 import json
 import shutil
 import sys
@@ -11,24 +11,25 @@ from game_assistant.assessment_store import AssessmentStore
 from game_assistant.accounts.models import AccountScope
 
 ROOT = Path(__file__).resolve().parents[1]
-UPSTREAM = Path(__file__).parent / 'fixtures' / 'wuwa-gpl-calc'
+UPSTREAM = Path(__file__).parent / 'fixtures' / 'wuwa-xwuid-calc'
 sys.path.insert(0, str(ROOT / 'scripts'))
 import build_wuwa_default_weights as builder  # noqa: E402
 
-GPL_IDS = ['1102', '1103', '1104', '1105', '1106', '1107', '1202', '1203', '1204', '1205', '1206', '1207', '1208',
-           '1301', '1302', '1303', '1304', '1305', '1306', '1307', '1402', '1403', '1404', '1405', '1406', '1407',
-           '1408', '1409', '1410', '1411', '1501', '1502', '1503', '1504', '1505', '1506', '1507', '1508', '1601',
-           '1602', '1603', '1604', '1605', '1606', '1607', '1608']
-SELF_MADE_IDS = ['1108', '1109', '1110', '1209', '1210', '1211', '1308', '1311', '1413', '1509', '1511', '1610']
+IDS = ['1102', '1103', '1104', '1105', '1106', '1107', '1108', '1109', '1110', '1202', '1203', '1204', '1205', '1206',
+       '1207', '1208', '1209', '1210', '1211', '1212', '1301', '1302', '1303', '1304', '1305', '1306', '1307', '1308',
+       '1309', '1310', '1311', '1312', '1402', '1403', '1404', '1405', '1406', '1407', '1408', '1409', '1410', '1411',
+       '1412', '1413', '1501', '1502', '1503', '1504', '1505', '1506', '1507', '1508', '1509', '1510', '1511', '1601',
+       '1602', '1603', '1604', '1605', '1606', '1607', '1608', '1610']
 
 
 def test_bundled_file_validates_and_marks_every_origin():
     data = defaults()
-    origins = {cid: entry.origin for cid, entry in data.characters.items()}
-    assert sorted(cid for cid, o in origins.items() if o == 'gpl_snapshot') == GPL_IDS
-    assert sorted(cid for cid, o in origins.items() if o == 'self_made') == SELF_MADE_IDS
-    assert data.provenance.commit == builder.SHA and data.provenance.author == 'tyql688'
-    assert data.provenance.license == 'GPL-3.0' and 'Modified' in data.provenance.changes
+    assert sorted(data.characters) == IDS and {e.origin for e in data.characters.values()} == {'xwuid_snapshot'}
+    assert all(entry.upstream == cid for cid, entry in data.characters.items())
+    provenance = data.provenance
+    assert (provenance.source, provenance.commit, provenance.plugin_commit) == ('XutheringWavesUID', builder.SHA, builder.PLUGIN_SHA)
+    assert (provenance.author, provenance.license, provenance.payload_sha256) == ('Loping151', 'unstated', builder.PAYLOAD_SHA256)
+    assert 'Modified' in provenance.changes and 'tyql688' in provenance.changes
     raw = json.loads(PATH.read_text(encoding='utf-8'))
     assert 'default' not in raw['characters'] and all('score_max' not in e for e in raw['characters'].values())
     # Element damage only for the character's own element; skill damage expanded by skill_weight.
@@ -40,11 +41,12 @@ def test_bundled_file_validates_and_marks_every_origin():
     assert 'basic_damage' not in changli
 
 
-@pytest.mark.parametrize('name,character_id', [('长离', '1205'), ('桃祈', '1601'), ('守岸人', '1505')])
-def test_snapshot_entries_equal_the_upstream_calc_after_mapping(name, character_id):
-    calc = json.loads((UPSTREAM / name / 'calc.json').read_text(encoding='utf-8'))
+@pytest.mark.parametrize('character_id', ['1205', '1410', '1413', '1505'])
+def test_snapshot_entries_equal_the_upstream_calc_after_mapping(character_id):
+    calc = json.loads((UPSTREAM / 'character' / character_id / 'calc.json').read_text(encoding='utf-8'))
+    name = json.loads((UPSTREAM / 'CharId2Data.json').read_text(encoding='utf-8'))[character_id]['name']
     stored = json.loads(PATH.read_text(encoding='utf-8'))['characters'][character_id]
-    assert stored == dict(name=name, origin='gpl_snapshot', upstream=name, element=builder.ELEMENT[character_id],
+    assert stored == dict(name=name, origin='xwuid_snapshot', upstream=character_id, element=builder.ELEMENT[character_id],
                           **builder.expand(calc, builder.ELEMENT[character_id]))
     # Inverse: every nonzero upstream weight is present with the same value.
     entry = defaults().characters[character_id]
@@ -61,37 +63,28 @@ def test_snapshot_entries_equal_the_upstream_calc_after_mapping(name, character_
 
 
 def test_recomputed_maximum_matches_every_upstream_score_max():
-    names = json.loads((UPSTREAM / 'CharId2Data.json').read_text(encoding='utf-8'))
     table = json.loads((UPSTREAM / 'score_max.json').read_text(encoding='utf-8'))['score_max']
-    checked = set()
-    for character_id, row in names.items():
+    assert sorted(table) == IDS
+    for character_id, maxima in table.items():
         model = default_model('wuthering_waves', character_id)
-        for cost, upstream in zip(('1', '3', '4'), table[row['name']]):
+        for cost, upstream in zip(('1', '3', '4'), maxima):
             # Upstream stores float results truncated to 3 places in three steps.
-            assert 0 <= echo_max(model.wuwa_echo_profile, cost) - Fraction(upstream) < Fraction(3, 1000)
-        checked.add(row['name'])
-    assert checked == set(table) and len(table) == 43
-    template = json.loads((UPSTREAM / 'default' / 'calc.json').read_text(encoding='utf-8'))
-    profile = default_model('wuthering_waves', '1205').wuwa_echo_profile.model_copy(
-        update=builder.expand(template, '热熔'))
-    assert [echo_max(profile, c) for c in ('1', '3', '4')] == [Fraction(x) for x in ('67.96', '71.51', '75.51')]
+            assert 0 <= echo_max(model.wuwa_echo_profile, cost) - Fraction(str(upstream)) < Fraction(3, 1000)
 
 
-def test_self_made_entries_are_the_template_with_reviewed_overrides():
-    template = json.loads((UPSTREAM / 'default' / 'calc.json').read_text(encoding='utf-8'))
-    for character_id in SELF_MADE_IDS:
-        entry = defaults().characters[character_id]
-        assert entry.upstream == 'default' and entry.name == builder.SELF_MADE[character_id]['name']
-        assert entry.element == builder.ELEMENT[character_id]
-        # Without the selection, the maximum is the best possible echo: the stored picks reach it.
-        free = entry.model_copy(update=dict(max_main=None, max_sub=None))
-        assert all(echo_max(entry, c) == echo_max(free, c) > 0 for c in ('1', '3', '4'))
-    assert template['sub_props']['技能伤害加成'] == 0
-    assert defaults().characters['1311'].sub['skill_damage'] == Fraction('0.66')
+def test_revised_upstream_weights_replace_the_old_ones():
+    # 尤诺: the COST 4 crit rate main stat was lowered from the old 0.5; 爱弥斯 is liberation only.
+    assert defaults().characters['1410'].main['4']['crit_rate'] == Fraction('0.33')
+    emis = defaults().characters['1210'].sub
+    assert 'basic_damage' not in emis and emis['liberation_damage'] == Fraction('0.77')
 
 
 def test_build_check_passes_on_the_fixture_subset_and_catches_changes(tmp_path, capsys):
     assert builder.main(['--snapshot', str(UPSTREAM), '--check']) == 0
+    assert 'partial snapshot' in capsys.readouterr().out
+    # Writing needs the complete pinned snapshot.
+    assert builder.main(['--snapshot', str(UPSTREAM), '--output', str(tmp_path / 'out.json')]) == 1
+    assert not (tmp_path / 'out.json').exists()
     changed = json.loads(PATH.read_text(encoding='utf-8'))
     changed['characters']['1205']['sub']['crit_rate'] = '3'
     output = tmp_path / 'defaults.json'
@@ -100,7 +93,7 @@ def test_build_check_passes_on_the_fixture_subset_and_catches_changes(tmp_path, 
     assert '1205' in capsys.readouterr().err
     calc = tmp_path / 'snapshot'
     shutil.copytree(UPSTREAM, calc)
-    shutil.rmtree(calc / '长离')
+    shutil.rmtree(calc / 'character' / '1205')
     assert builder.main(['--snapshot', str(calc), '--check', '--output', str(output)]) == 0
 
 
@@ -141,7 +134,7 @@ def test_changli_five_echo_golden():
         ('41.16', 'ss', 4, 50), ('39.94', 'ss', 3, 50), ('27.38', 'b', 3, 50), ('50.00', 'sss', 1, 50), ('9.68', 'c', 1, 50)]
     # 168.16 ÷ 250 = 0.6726 → a (upstream, flooring each item, would show 168.14).
     assert (result['status'], result['value'], result['grade'], result['max_value']) == ('scored', '168.16', 'a', 250)
-    assert (result['origin'], result['unofficial'], result['attribution']) == ('builtin_default', True, 'gpl_snapshot')
+    assert (result['origin'], result['unofficial'], result['attribution']) == ('builtin_default', True, 'xwuid_snapshot')
     assert result['formula'] == 'wuwa-echo-default-v1' and result['partial'] is False
 
 
@@ -149,9 +142,9 @@ def test_resolution_prefers_the_saved_model_and_never_falls_back_to_the_template
     from tests.test_personal_assessment import wuwa_model
     store = AssessmentStore(tmp_path / 'score.db'); scope = AccountScope('u', 'a', 'r')
     model, origin = resolve_model(store, scope, 'wuthering_waves', '1205')
-    assert (origin, model.source, model.attribution) == ('builtin_default', 'builtin_default', 'gpl_snapshot')
-    assert resolve_model(store, scope, 'wuthering_waves', '1311')[0].attribution == 'self_made'
-    for missing in ('1412', '9999', 'c1'):
+    assert (origin, model.source, model.attribution) == ('builtin_default', 'builtin_default', 'xwuid_snapshot')
+    assert resolve_model(store, scope, 'wuthering_waves', '1311')[0].attribution == 'xwuid_snapshot'
+    for missing in ('1512', '9999', 'c1'):
         model, origin = resolve_model(store, scope, 'wuthering_waves', missing)
         assert origin is None and model.version == 'unconfigured' and default_model('wuthering_waves', missing) is None
         result = assess(Configuration.model_validate(dict(game='wuthering_waves', character_id=missing, name='x',
