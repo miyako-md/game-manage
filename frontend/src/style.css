@@ -33,7 +33,6 @@
   --brand-ink: #e8e7e3; --brand-tile: #2b3346; --brand-tile-2: #5b76c0;
   --game-wuwa: #dcbf8e; --game-wuwa-vivid: #c09452; --game-wuwa-2: #c98500; --game-wuwa-tone: #2f2619;
   --game-nte: #e3b0aa; --game-nte-vivid: #c9817a; --game-nte-2: #d55181; --game-nte-tone: #33232a;
-  --game-lol: #9ccbb9; --game-lol-vivid: #5fa58c; --game-lol-2: #008300; --game-lol-tone: #1a2b26;
   --game-endfield: #a8c1e0; --game-endfield-vivid: #6f95c9; --game-endfield-2: #3987e5; --game-endfield-tone: #1d2836;
   /* Series colours (dataviz reference order, validated on these card surfaces):
      a chart takes them in this order and never cycles past eight. */
@@ -72,7 +71,6 @@
   --brand-ink: #26282e; --brand-tile: #e1e6f1; --brand-tile-2: #9baed9;
   --game-wuwa: #7a5a33; --game-wuwa-vivid: #ae8245; --game-wuwa-2: #dcab4b; --game-wuwa-tone: #efe2ce;
   --game-nte: #87504a; --game-nte-vivid: #b56d66; --game-nte-2: #cf5f88; --game-nte-tone: #edd7d5;
-  --game-lol: #3f6a5c; --game-lol-vivid: #5a8c7b; --game-lol-2: #00704f; --game-lol-tone: #dbe9e4;
   --game-endfield: #3d5d81; --game-endfield-vivid: #5275a5; --game-endfield-2: #3363b8; --game-endfield-tone: #dfe9f4;
   --chart-1: #2e73c7; --chart-2: #d86538; --chart-3: #21a376; --chart-4: #d9970a; --chart-5: #d5759b; --chart-7: #5f50c7; --chart-8: #d1494a;
   --glass-bg: rgba(255, 255, 255, .85); --glass-strong: rgba(255, 255, 255, .96); --glass-border: #ffffff;

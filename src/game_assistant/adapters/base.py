@@ -24,8 +24,6 @@ class BaseGameAdapter(ABC):
             Capability.ANNOUNCEMENT: self.fetch_announcement,
             Capability.EVENTS: self.fetch_events,
             Capability.NEWS: self.fetch_news,
-            Capability.MATCH: self.fetch_match,
-            Capability.STATS: self.fetch_stats,
             Capability.EXPLORATION: self.fetch_exploration,
             Capability.CALABASH: self.fetch_calabash,
             Capability.ROLES: self.fetch_roles,
@@ -37,17 +35,13 @@ class BaseGameAdapter(ABC):
             Capability.REALESTATE: self.fetch_realestate,
             Capability.VEHICLES: self.fetch_vehicles,
             Capability.TEAMS: self.fetch_teams,
-            Capability.ESPORTS: self.fetch_esports,
         }[capability]
         auth = getattr(self, '_auth', None)
-        if auth and capability != Capability.ESPORTS:
+        if auth:
             return await auth.fetch(self.game_id, capability, method)
         return await method()
 
     async def fetch_account(self) -> FetchResult:
-        return FetchResult(ok=False, error="适配器未实现该能力")
-
-    async def fetch_esports(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")
 
     async def fetch_realestate(self) -> FetchResult:
@@ -74,12 +68,6 @@ class BaseGameAdapter(ABC):
     async def fetch_news(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")
 
-    async def fetch_match(self) -> FetchResult:
-        return FetchResult(ok=False, error="适配器未实现该能力")
-
-    async def fetch_stats(self) -> FetchResult:
-        return FetchResult(ok=False, error="适配器未实现该能力")
-
     async def fetch_exploration(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")
 
@@ -103,6 +91,3 @@ class BaseGameAdapter(ABC):
 
     async def fetch_record(self) -> FetchResult:
         return FetchResult(ok=False, error="适配器未实现该能力")
-
-    async def fetch_match_detail(self, match_id: str) -> FetchResult:
-        return FetchResult(ok=False, error="该游戏不支持对局详情")

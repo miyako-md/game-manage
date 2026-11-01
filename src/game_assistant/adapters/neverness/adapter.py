@@ -91,7 +91,7 @@ class NteAdapter(BaseGameAdapter):
         self._characters_cache = None
 
     def _require_client(self) -> TajiduoClient:
-        """每次拉取新建鉴权客户端（参考 LoLNewsClient 生命周期模式）。"""
+        """每次拉取新建鉴权客户端（实例持有 AsyncClient，用后关闭）。"""
         s = self._settings
         if not (s.nte_access_token or s.nte_refresh_token):
             raise _UnconfiguredCredentialsError("未配置塔吉多凭据")

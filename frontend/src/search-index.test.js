@@ -10,9 +10,9 @@ const pairs = text => [...text.matchAll(/\[\s*'([a-z]+)',\s*'([^']+)'\s*\]/g)].m
 const tabsIn = name => { const text = source(name); return pairs(text.slice(text.indexOf('const tabs = ['), text.indexOf(']\n', text.indexOf('const tabs = [')) + 2)) }
 
 test('search tabs repeat the game pages tab lists, in order', () => {
+  assert.deepEqual(Object.keys(GAME_SECTIONS), ['wuthering_waves', 'nte', 'endfield'])
   assert.deepEqual(GAME_SECTIONS.wuthering_waves, tabsIn('WuwaDashboard.vue'))
   assert.deepEqual(GAME_SECTIONS.endfield, tabsIn('EndfieldDashboard.vue'))
-  assert.deepEqual(GAME_SECTIONS.league_of_legends, tabsIn('LolDashboard.vue'))
   const card = source('GameCard.vue'), groups = card.slice(card.indexOf('const groups = computed'), card.indexOf('].filter(group =>'))
   const nte = [...groups.matchAll(/\{ id: '([a-z]+)', label: '([^']+)', caps: (\[[^\]]*\]|props\.game\.capabilities)/g)].filter(([, id]) => id !== 'all')
   assert.deepEqual(GAME_SECTIONS.nte.map(([id, label, caps]) => [id, label, JSON.stringify(caps)]), nte.map(([, id, label, caps]) => [id, label, JSON.stringify(JSON.parse(caps.replaceAll("'", '"')))]))

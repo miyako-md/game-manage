@@ -71,23 +71,6 @@ def test_mobile_calendar_primary_and_community_fallback_leave_native_storage_int
         assert json.loads(store.get('nte','events')['payload'])==native
         assert result['poll_status']['scope']=='public_source'
 
-def test_lol_catalog_and_snapshot_are_not_changed_even_with_a_configured_bili_uid(tmp_path):
-    from tests.test_registry import DummyAdapter
-    from game_assistant.models import Capability
-    class Lol(DummyAdapter):
-        game_id='league_of_legends'
-        capabilities={Capability.NEWS,Capability.ANNOUNCEMENT}
-    settings=Settings(db_path=str(tmp_path/'lol.db'),bilibili_sources={'league_of_legends':'123'})
-    store=SnapshotStore(settings.db_path)
-    native=[{'title':'LOL资讯','url':'https://lol.qq.com/news'}]
-    store.save('league_of_legends','news',json.dumps(native))
-    app=create_app(registry=FakeRegistry(Lol()),store=store,settings=settings,start_scheduler=False)
-    with TestClient(app, base_url="http://127.0.0.1:8010") as c:
-        assert set(c.get('/api/games').json()[0]['capabilities'])=={'news','announcement'}
-        result=c.get('/api/games/league_of_legends/snapshot/news').json()
-        assert result['payload']==native and 'primary_source' not in result
-
-
 def test_official_community_articles_are_visible_without_promoting_calendar_decisions(tmp_path):
     app, _ = setup(tmp_path)
     from game_assistant.sources.bilibili import classify_dynamic

@@ -100,7 +100,6 @@ class AccountRuntime:
                 setattr(settings,field,'')
         settings.wuwa_app_token = settings.notify_send_key = ''
         settings.auth_store_path = ''
-        settings.lol_enabled = False
         from game_assistant.private_data import scope_directory
         settings.db_path = str(scope_directory(self.root_path,scope) / 'private.db')
         from game_assistant.registry import build_account_registry

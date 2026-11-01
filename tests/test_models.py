@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from game_assistant.models import (
     CalabashData, Capability, CountryGroup,
     DetectionSummary, ExplorationData, AreaSummary,
-    MatchSummary, ProgressItem, RoleEntry, StaminaInfo,
+    ProgressItem, RoleEntry, StaminaInfo,
 )
 
 
@@ -48,14 +48,6 @@ def test_stamina_roundtrip():
     assert StaminaInfo.model_validate(s.model_dump()) == s
 
 
-def test_match_summary_roundtrip():
-    m = MatchSummary(match_id="1234567890", queue_id=450, mode="ARAM",
-                     start_at=datetime(2026, 9, 13, 20, 0, tzinfo=None),
-                     duration_seconds=1234, win=True, champion_id=157,
-                     kills=8, deaths=3, assists=10)
-    assert MatchSummary.model_validate(m.model_dump()) == m
-
-
 def test_capability_names_and_values_are_pinned():
     # 前端和轮询间隔配置按字符串值寻址能力；任何一项被改名或改值都是破坏性变更，
     # 必须在这里显式暴露，而不是被参数化测试的自反断言掩盖。
@@ -65,8 +57,6 @@ def test_capability_names_and_values_are_pinned():
         "PROGRESS": "progress",
         "ANNOUNCEMENT": "announcement",
         "NEWS": "news",
-        "MATCH": "match",
-        "STATS": "stats",
         "EXPLORATION": "exploration",
         "CALABASH": "calabash",
         "ROLES": "roles",
@@ -79,6 +69,5 @@ def test_capability_names_and_values_are_pinned():
         "REALESTATE": "realestate",
         "VEHICLES": "vehicles",
         "TEAMS": "teams",
-        "ESPORTS": "esports",
     }
     assert {c.name: c.value for c in Capability} == expected

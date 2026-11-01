@@ -39,7 +39,7 @@ def cloud(tmp_path, monkeypatch):
     settings = Settings(cloud_accounts_enabled=True, cloud_db_path=str(root/'identity.db'),
         cloud_data_root=str(root), cloud_credentials_key_path=str(key),
         cloud_allowed_origins=['https://cloud.example'], bilibili_sources={'wuthering_waves':'123'},
-        wuwa_enabled=True, nte_enabled=False, endfield_enabled=False, lol_enabled=False)
+        wuwa_enabled=True, nte_enabled=False, endfield_enabled=False)
     identity = IdentityService(IdentityStore(settings.cloud_db_path), settings)
     admin = identity.bootstrap_admin('admin', 'Admin-password-123')
     with TestClient(create_cloud_app(settings, start_scheduler=False), base_url='https://cloud.example') as client:

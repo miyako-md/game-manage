@@ -4,7 +4,6 @@
 
 - `wuthering_waves.jpg`
 - `nte.jpg`
-- `league_of_legends.svg`
 - `endfield.png`
 
 每款游戏支持 png、jpg、webp、svg，按此顺序选择。运行 `npm run build --prefix frontend` 后刷新页面；开发模式需要重启 Vite。构建时仅为实际存在的图片生成映射，不会为未安装图标请求不存在的地址。加载失败会自动回退到公开版标识。

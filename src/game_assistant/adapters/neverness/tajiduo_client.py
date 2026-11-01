@@ -3,7 +3,7 @@
 API 事实来源：参考项目 github.com/tyql688/NTEUID 公开源码（逐字引用，
 见 endpoints.py 文件头注释）。2026-09-14 已完成实际登录态的数据查询校准。
 
-两个客户端（参考 LoLNewsClient 生命周期模式：实例持有 AsyncClient，
+两个客户端（实例持有 AsyncClient，
 aclose / async with 收尾；适配器每次拉取新建）：
 - TajiduoWebClient：匿名 Web 客户端，官方公告专用（UA Mozilla/5.0，
   无 DS 签名、无 authorization）；

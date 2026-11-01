@@ -58,7 +58,8 @@ test('local artwork overrides official artwork and failures reach the bundled ic
 })
 test('each supported game records separate rights for official artwork and bundled fallback', () => {
   const sources = JSON.parse(readFileSync(new URL('../../public/game-icons/sources.json', import.meta.url)))
-  for (const id of ['league_of_legends', 'wuthering_waves', 'nte', 'endfield']) {
+  assert.deepEqual(sources.map(item => item.game_id).sort(), ['endfield', 'nte', 'wuthering_waves'])
+  for (const id of ['wuthering_waves', 'nte', 'endfield']) {
     const official = sources.find(item => item.game_id === id).official_icon
     assert.equal(official.url, officialGameIcons[id])
     assert.deepEqual(official.fallback_urls, officialGameIconFallbacks[id] || [])
@@ -78,7 +79,7 @@ test('each supported game records separate rights for official artwork and bundl
     assert.ok(readFileSync(new URL(`../../public${light}`, import.meta.url)).length > 500)
     assert.equal(sources.find(item => item.game_id === id).file_light, light.split('/').at(-1))
   }
-  for (const file of ['nte.jpg', 'wuthering_waves.jpg', 'league_of_legends.svg']) {
+  for (const file of ['nte.jpg', 'wuthering_waves.jpg', 'league_of_legends.svg', 'league_of_legends-mark.svg', 'league_of_legends-mark-light.svg']) {
     assert.equal(existsSync(new URL(`../../public/game-icons/${file}`, import.meta.url)), false)
   }
 })

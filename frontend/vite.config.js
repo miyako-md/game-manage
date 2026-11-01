@@ -8,7 +8,7 @@ const version = buildVersion(fileURLToPath(new URL('..', import.meta.url)))
 
 // Optional, user-owned artwork stays outside the public repository.
 const localGameIcons = Object.fromEntries(
-  ['nte', 'wuthering_waves', 'league_of_legends', 'endfield'].flatMap(id => {
+  ['nte', 'wuthering_waves', 'endfield'].flatMap(id => {
     const file = ['png', 'jpg', 'webp', 'svg'].map(ext => `${id}.${ext}`)
       .find(name => existsSync(new URL(`./public/local-game-icons/${name}`, import.meta.url)))
     return file ? [[id, `/local-game-icons/${file}`]] : []

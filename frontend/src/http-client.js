@@ -49,7 +49,7 @@ function cloudPath(path, method) {
   if (['GET','PUT'].includes(method) && /^\/api\/admin\/qq\/groups\/[^/?]+\/settings$/.test(path)) return path
   if (/^\/api\/(identity(?:\/|$)|accounts(?:\/|$)|qq(?:\/|$)|public\/games\/)/.test(path)) return path
   if (/^\/api\/admin\/bilibili-source\/login\/(?:status|sessions(?:\/[^/?]+(?:\/(?:qr\/poll|commit|cookie))?)?)$/.test(path)) return path
-  if (/^\/api\/admin\/bilibili-source\/(?:status|(?:wuthering_waves|nte|endfield|league_of_legends)\/refresh)$/.test(path)) return path
+  if (/^\/api\/admin\/bilibili-source\/(?:status|(?:wuthering_waves|nte|endfield)\/refresh)$/.test(path)) return path
   if (['GET','POST'].includes(method) && path === '/api/admin/collect') return path
   if ((method === 'GET' && path === '/api/admin/guides') || (method === 'POST' && path === '/api/admin/guides/check')) return path
   if (method === 'GET' && /^\/api\/public\/(?:nte\/guides(?:\/sources\/[^/?]+)?|wuwa\/guides\/(?:updates|tower)|endfield\/(?:public|map(?:\/marks\/[^/?]+)?))(?:\?.*)?$/.test(path)) return path

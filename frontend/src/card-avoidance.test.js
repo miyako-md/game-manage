@@ -212,7 +212,7 @@ test('standalone game navigation, identity and status rows follow the same edge 
   const { root, controller, flush } = setup(t)
   const page = window.document.createElement('section')
   page.className = 'game-card'
-  page.innerHTML = '<div class="detail-navigation"><nav>游戏分区</nav></div><header class="lol-header">账号</header><div class="lol-toolbar"><nav>时间与模式</nav></div><p class="coverage-line">当前展示</p><section class="cap-card"><header>卡片里的标题</header></section>'
+  page.innerHTML = '<div class="detail-navigation"><nav>游戏分区</nav></div><section class="cap-card"><header>卡片里的标题</header></section>'
   for (const el of page.children) el.getBoundingClientRect = () => box(24, 100, 1392)
   root.append(page)
   await new Promise(resolve => window.setTimeout(resolve, 0))

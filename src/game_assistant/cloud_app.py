@@ -224,7 +224,6 @@ def create_cloud_app(settings: Settings, start_scheduler: bool = True) -> FastAP
             public_settings.wuwa_app_token = public_settings.notify_send_key = ''
             public_settings.qq_service_token = ''
             public_settings.auth_store_path = ''
-            public_settings.lol_enabled = False
             public_settings.nte_events = []
             public_settings.db_path = str(root / 'public.db')
             from .cloud_public_tools import install_cloud_public_tools

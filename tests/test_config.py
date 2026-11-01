@@ -55,8 +55,8 @@ def test_nte_events_toml_array_of_tables(tmp_path):
 
 
 def test_load_accepts_pre_release_template_keys(tmp_path):
-    # app_host/app_port/wuwa_app_token 来自 0.1.0 之前的配置模板；Settings 用
-    # extra='forbid'拒绝未知键，这三个键必须继续被接受才不会让旧配置报错。
+    # app_host/app_port/wuwa_app_token 来自 0.1.0 之前的配置模板，lol_enabled 来自已移除的英雄联盟；
+    # Settings 用 extra='forbid' 拒绝未知键，这些键必须继续被接受才不会让旧配置报错。
     cfg = tmp_path / "config.toml"
     cfg.write_text(
         'app_host = "0.0.0.0"\n'
@@ -99,3 +99,12 @@ def test_guide_check_time_is_a_validated_beijing_hh_mm(tmp_path):
     cfg = tmp_path / "config.toml"
     cfg.write_text('cloud_guide_check_time = "06:00"\n', encoding="utf-8")
     assert Settings.load(str(cfg)).cloud_guide_check_time == "06:00"
+
+
+def test_a_left_over_lol_enabled_true_loads_and_registers_no_league_of_legends(tmp_path):
+    # Desktop configs written before the removal still say lol_enabled = true.
+    from game_assistant.registry import build_default_registry
+    cfg = tmp_path / "config.toml"
+    cfg.write_text('lol_enabled = true\n', encoding="utf-8")
+    s = Settings.load(str(cfg))
+    assert 'league_of_legends' not in {adapter.game_id for adapter in build_default_registry(s).all()}

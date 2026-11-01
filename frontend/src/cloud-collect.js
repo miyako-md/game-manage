@@ -3,7 +3,7 @@ import { requestJson, subscribeSessionInvalidation } from './http-client.js'
 
 // Administrator "collect and backfill": one POST, then progress from GET /api/admin/collect.
 const PATH = '/api/admin/collect'
-const NAMES = { wuthering_waves: '鸣潮', nte: '异环', endfield: '终末地', league_of_legends: '英雄联盟' }
+const NAMES = { wuthering_waves: '鸣潮', nte: '异环', endfield: '终末地' }
 export const COLLECT_LABELS = { queued: '已排队', running: '采集中', done: '已完成', failed: '部分来源失败，已保留已有数据', backoff: '已完成，B站处于失败退避期，本次跳过' }
 export const COLLECT_POLL_MS = 2500
 export const COLLECT_LIMIT_MS = 5 * 60 * 1000

@@ -2,4 +2,3 @@
 db_path = "/var/lib/game-manage-cloud/.unused-local.db"
 cloud_db_path = "/var/lib/game-manage-cloud/identity.db"
 cloud_allowed_origins = ["https://game.rekibot.cloud"]
-lol_enabled = false

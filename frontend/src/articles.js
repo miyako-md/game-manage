@@ -10,14 +10,13 @@ export const ARTICLE_CATEGORIES = [
   { id: 'fix', label: '修复与补偿', pattern: /修复|补偿|异常说明|问题说明|问题处理/ },
   { id: 'check-in', label: '签到福利', pattern: /签到|七日.{0,8}奖励|登录.{0,8}(?:福利|奖励)/ },
   { id: 'event', label: '游戏内活动', pattern: /限时活动|游戏内活动|活动(?:开启|开放|时间|预告)|盲盒|调频|限时.{0,8}(?:挑战|玩法)/ },
-  { id: 'esports', label: '赛事资讯', pattern: /赛事|世界赛|全球总决赛|职业联赛|赛程|LPL|LCK|MSI|S\d+.{0,8}(?:赛|对决)/i },
   { id: 'guide', label: '攻略与玩法', pattern: /攻略|玩法解析|技巧|配队|培养指南|玩法介绍/ },
   { id: 'character', label: '角色介绍', pattern: /角色(?:介绍|档案|演示)|干员(?:介绍|档案)|英雄(?:介绍|揭秘)|人物介绍/ },
   { id: 'preview', label: '前瞻与宣传', pattern: /前瞻|直播预告|宣传|PV|主题曲|预告片/i },
   { id: 'notice', label: '官方公告', pattern: /公告|通知/ },
   { id: 'other', label: '其他', pattern: null },
 ]
-const SOURCE_CATEGORIES = { events: 'event', notices: 'notice', 公告: 'notice', news: 'other', 赛事: 'esports', 攻略: 'guide', 社区: 'community' }
+const SOURCE_CATEGORIES = { events: 'event', notices: 'notice', 公告: 'notice', news: 'other', 攻略: 'guide', 社区: 'community' }
 const text = value => typeof value === 'string' ? value : ''
 const normalizedTitle = value => text(value).normalize('NFKC').replace(/#[^#]*#/g, '').replace(/[\s\p{P}\p{S}]/gu, '').toLowerCase()
 const contentRank = row => row.body || row.images.length ? row.content_status === 'full' && !row.source_stale ? 3 : row.content_status === 'stale' || row.content_status === 'full' ? 2 : 1 : 0

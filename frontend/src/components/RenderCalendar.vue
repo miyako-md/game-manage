@@ -81,7 +81,7 @@ function sources(calendar) {
   <div class="qq-calendar" :data-calendar-count="count">
     <p v-if="gameCount > 1" class="qq-calendar-summary" data-render-block>{{ gameCount }} 款游戏 · 共 {{ count }} 项</p>
     <p v-if="!groups.length" class="qq-calendar-empty" data-render-block>暂无活动数据</p>
-    <section v-for="calendar in groups" :key="calendar.key" class="qq-calendar-game" :style="gameVars(calendar.gameId === 'lol' ? 'league_of_legends' : calendar.gameId)" :data-calendar-game="calendar.gameId">
+    <section v-for="calendar in groups" :key="calendar.key" class="qq-calendar-game" :style="gameVars(calendar.gameId)" :data-calendar-game="calendar.gameId">
       <header class="qq-calendar-heading" data-render-block>
         <h2 data-render-heading>{{ calendar.gameName }} · {{ versionLabel(calendar.version) }}</h2>
         <p>{{ calendar.events.length }} 项活动</p>

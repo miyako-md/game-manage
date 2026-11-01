@@ -21,9 +21,7 @@ INTERVAL_ATTRS = {
     Capability.EVENTS: "announcement_seconds",
     Capability.NEWS: "news_seconds",
     Capability.ACCOUNT: "activity_seconds",
-    Capability.MATCH: "activity_seconds",
     # 生涯统计（近 20 场口径）：慢变化数据，与对局同为 1 小时
-    Capability.STATS: "activity_seconds",
     # 探索度/数据坞（roleBox）：慢变化数据，与资讯同为 4 小时
     Capability.EXPLORATION: "news_seconds",
     Capability.CALABASH: "news_seconds",
@@ -38,7 +36,6 @@ INTERVAL_ATTRS = {
     Capability.REALESTATE: "news_seconds",
     Capability.VEHICLES: "news_seconds",
     Capability.TEAMS: "news_seconds",
-    Capability.ESPORTS: "esports_seconds",
 }
 
 
@@ -105,7 +102,7 @@ class PollingScheduler:
             logger.warning("拉取失败 %s/%s: %s（保留旧快照）",
                            game_id, capability.value, result.error)
         status = self.store.record_poll(game_id, capability.value, result)
-        if self.reminder and capability != Capability.ESPORTS:
+        if self.reminder:
             # 提醒引擎异常不得影响轮询与快照保存
             try:
                 await self.reminder.handle_poll(game_id, adapter.display_name,

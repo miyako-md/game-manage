@@ -5,18 +5,18 @@ import { collectCalendarEvents, eventStatus } from './calendar.js'
 import { dailyTasks } from './overview-data.js'
 
 const game = { game_id: 'nte', display_name: '异环', capabilities: ['account', 'stamina', 'events'] }
-test('mobile duplicate notices prefer Bilibili but LOL keeps both different links', () => {
-  const lol = { game_id: 'league_of_legends', display_name: '英雄联盟' }
+test('mobile duplicate notices prefer Bilibili; a feed without a Bilibili primary keeps both different links', () => {
+  const other = { game_id: 'endfield', display_name: '终末地' }
   const native = { title: '更新公告', url: 'https://community.test/1', published_at: '2026-09-16T00:00:00Z' }
   const bili = { ...native, url: 'https://t.bilibili.com/123', source: 'bilibili', published_at: '2026-09-15T00:00:00Z' }
   const snaps = {
     nte: { news: { primary_source: 'bilibili', payload: [bili] }, announcement: { payload: [native] } },
-    league_of_legends: { news: { payload: [bili] }, announcement: { payload: [native] } },
+    endfield: { news: { payload: [bili] }, announcement: { payload: [native] } },
   }
-  const rows = recentNews([game,lol],snaps)
+  const rows = recentNews([game,other],snaps)
   assert.equal(rows.filter(r => r.gameId === 'nte').length, 1)
   assert.equal(rows.find(r => r.gameId === 'nte').source, 'bilibili')
-  assert.equal(rows.filter(r => r.gameId === 'league_of_legends').length, 2)
+  assert.equal(rows.filter(r => r.gameId === 'endfield').length, 2)
 })
 const snapshot = (payload) => ({ payload, stale: false, fetched_at: '2026-09-14T12:30:00Z' })
 const deferred = () => { let resolve; const promise = new Promise((r) => { resolve = r }); return { promise, resolve } }
@@ -162,19 +162,7 @@ test('stamina summary preserves real zero and unknown denominator', () => {
   assert.equal(unknown.value, null); assert.equal(unknown.percent, null)
 })
 
-test('LoL summary separates losses, remakes and unknown results without guessing legacy counts', () => {
-  const lol = { game_id: 'league_of_legends', capabilities: ['account', 'match', 'stats'] }
-  const s = summaryFor(lol, { stats: snapshot({ total_games: 20, wins: 10, winrate: 55.6, decided_games: 18, remakes: 1 }) })
-  assert.equal(s.value, 55.6); assert.equal(s.totalGames, 20); assert.equal(s.decided, 18)
-  assert.equal(s.losses, 8); assert.equal(s.remakes, 1); assert.equal(s.unknownResults, 1)
-  const old = summaryFor(lol, { stats: snapshot({ total_games: 20, wins: 11, winrate: 55 }) })
-  assert.equal(old.decided, null)
-  assert.equal(old.losses, null); assert.equal(old.remakes, null); assert.equal(old.unknownResults, null)
-  const remakesOnly = summaryFor(lol, { stats: snapshot({ total_games: 2, wins: 0, decided_games: 0, remakes: 2, winrate: null }) })
-  assert.equal(remakesOnly.value, null); assert.equal(remakesOnly.losses, 0); assert.equal(remakesOnly.unknownResults, 0)
-})
-
-test('Endfield summary shows special headhunting pity instead of a win rate', () => {
+test('Endfield summary shows special headhunting pity', () => {
   const endfield = { game_id: 'endfield', display_name: '终末地', capabilities: ['account', 'gacha', 'events'] }
   const gacha = snapshot({ schema_version: 1, pools: [
     { key: 'E_CharacterGachaPoolType_Standard', since_last_six: { count: 40, status: 'exact' } },
@@ -184,7 +172,7 @@ test('Endfield summary shows special headhunting pity instead of a win rate', ()
   assert.equal(s.fetchedAt, gacha.fetched_at)
   const legacy = summaryFor(endfield, { gacha: snapshot({ pools: gacha.payload.pools }) })
   assert.equal(legacy.value, null)
-  assert.equal(summaryFor({ ...endfield, capabilities: ['account'] }, {}).metric, 'stats')
+  assert.equal(summaryFor({ ...endfield, capabilities: ['account'] }, {}).metric, 'gacha')
 })
 
 test('NTE legacy raw data cannot silently become a valid account or stamina summary', () => {

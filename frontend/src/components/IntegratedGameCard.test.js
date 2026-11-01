@@ -39,15 +39,6 @@ test('integrated shell retains the upstream Endfield gacha panel', async t => {
   assert.doesNotMatch(content(root),/敬请期待/)
 })
 
-test('integrated LOL shell exposes both announcements and local archive analysis', async t => {
-  t.mock.method(globalThis,'fetch',async()=>({ok:true,json:async()=>({matches:[],overview:{},coverage:{}})}))
-  const root=mount(t,Card,{game:game('league_of_legends',['account','news','announcement','match']),externalSnapshots:{}})
-  await flushAsyncComponents()
-  for (let i=0;i<3;i++) { await new Promise(setImmediate); await flushAsyncComponents() }   // the dashboard is loaded on demand
-  assert.ok(nodes(root,'button').some(n=>content(n)==='公告与资讯'))
-  assert.ok(nodes(root,'button').some(n=>content(n)==='个人总览'))
-})
-
 test('NTE guides receive the account roles for the owned-only filter', async t => {
   const catalog = { reviewed_at:'2026-09-26', sources:[{ id:1, title:'原帖', author:'作者', version:'1.3', url:'https://www.tajiduo.com/bbs/index.html#/post?postId=1' }],
     guides:[{ id:'甲', name:'甲', aliases:[], element:'魂', role:'主 C', status:'reviewed', source_id:1, pages:[1], sections:[] },

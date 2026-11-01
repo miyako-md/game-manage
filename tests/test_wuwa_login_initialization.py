@@ -83,7 +83,7 @@ def test_cloud_operator_resolver_propagates_and_request_cannot_select_url(tmp_pa
     settings = Settings(cloud_accounts_enabled=True,
         cloud_db_path=str(tmp_path / 'identity.db'), cloud_data_root=str(tmp_path / 'data'),
         cloud_credentials_key_path=str(key), cloud_allowed_origins=['https://cloud.example'],
-        wuwa_login_public_ip_url='https://api64.ipify.org', lol_enabled=False)
+        wuwa_login_public_ip_url='https://api64.ipify.org')
     app = create_cloud_app(settings, start_scheduler=False)
     app.state.identity.bootstrap_admin('synthetic-admin', 'Synthetic-test-password-01')
     with TestClient(app, base_url='https://cloud.example') as client:

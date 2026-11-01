@@ -5,7 +5,6 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 
-from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.config import Settings
 from game_assistant.models import Capability
 from game_assistant.notify.wechat_push import build_notifier
@@ -67,8 +66,6 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
     install_wuwa_archive_routes(app)
     from game_assistant.assessment_routes import install_assessment_routes
     install_assessment_routes(app)
-    from game_assistant.lol_routes import install_lol_routes
-    install_lol_routes(app)
     from game_assistant.sources.bilibili_service import BilibiliService
     from game_assistant.sources.bilibili_routes import install_bilibili_routes
     from game_assistant.sources.public_content import MOBILE_GAMES
@@ -135,9 +132,6 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
             app.state.registry.get(game_id)
         except KeyError:
             raise HTTPException(status_code=404, detail="未注册的游戏")
-        if game_id == 'league_of_legends' and capability == 'esports':
-            from game_assistant.lol_esports_routes import read_esports_snapshot
-            return read_esports_snapshot(app, datetime.now(timezone.utc))
         snap = app.state.store.get(game_id, capability)
         source_status = poll_status(game_id, capability, snap)
         if game_id in MOBILE_GAMES and capability in ('news', 'events'):
@@ -188,8 +182,6 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
         scheduler = PollingScheduler(app.state.registry, app.state.store,
                                      settings, reminder=engine)
     app.state.scheduler = scheduler
-    from game_assistant.lol_esports_routes import install_lol_esports_routes
-    install_lol_esports_routes(app)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -211,21 +203,6 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
             app.state.endfield_public.close()
             app.state.assessments.close()
 
-    @app.get("/api/games/{game_id}/match/{match_id}/detail")
-    async def match_detail(game_id: str, match_id: str) -> dict:
-        # 对局详情按需实时拉取（不写快照）；仅 LoL 覆盖基类默认实现
-        try:
-            adapter = app.state.registry.get(game_id)
-        except KeyError:
-            raise HTTPException(status_code=404, detail="未注册的游戏")
-        if type(adapter).fetch_match_detail is BaseGameAdapter.fetch_match_detail:
-            raise HTTPException(status_code=404, detail="该游戏不支持对局详情")
-        result = await adapter.fetch_match_detail(match_id)
-        if result.ok:
-            return {"payload": result.payload.model_dump(mode="json")}
-        # 失败走 200 + {"error"}，前端展示错误条（与 refresh 行为一致）
-        return {"error": result.error}
-
     @app.post("/api/games/{game_id}/refresh")
     async def refresh(game_id: str) -> dict:
         try:
@@ -237,9 +214,7 @@ def create_app(registry=None, store=None, scheduler=None, notifier=None,
             bili.trigger(game_id)
         results = {}
         for cap in adapter.capabilities:
-            if game_id == 'league_of_legends' and cap == Capability.ESPORTS:
-                r = await app.state.lol_esports_poller.poll_once(game_id, cap)
-            elif app.state.scheduler:
+            if app.state.scheduler:
                 r = await app.state.scheduler.poll_once(game_id, cap)
             else:
                 r = await adapter.fetch(cap)

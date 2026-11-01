@@ -52,7 +52,7 @@ class WutheringWavesAdapter(BaseGameAdapter):
             self.credentials_configured = False
 
     def _get_rolebox(self) -> RoleBoxClient:
-        """roleBox 三件套全非空才启用（每次拉取新建，参考 LcuClient 生命周期）。"""
+        """roleBox 三件套全非空才启用（每次拉取新建）。"""
         s = self._settings
         if s.wuwa_b_at and s.wuwa_dev_code and s.wuwa_did:
             return RoleBoxClient(s.wuwa_b_at, s.wuwa_dev_code, s.wuwa_did, token=s.wuwa_token)

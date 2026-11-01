@@ -79,10 +79,6 @@ def test_grouped_weapon_and_character_pools_and_nte_aliases():
     assert len(events)==2 and events[0]['category']=='角色卡池'
     assert '浔' in events[0]['aliases'] and '行进于时间之外' in events[1]['aliases']
 
-def test_lol_calendar_is_not_changed_by_mobile_source_parser():
-    p=notice('3.6版本内容说明\n[活动]战斗活动\n活动时间：2026年9月1日10:00 ~ 2026年9月2日10:00')
-    assert calendar_from_posts([p],'league_of_legends',NOW)['events']==[]
-
 def test_current_version_deadline_extension_overrides_original_version_end():
     base=notice('3.6版本内容说明\n[测试]活动\n活动时间：2026年8月20日10:00 ~ 2026年9月29日03:59')
     later=notice('3.6版本活动延期通知\n[测试]活动\n活动时间：2026年8月20日10:00 ~ 2026年9月30日03:59','2','2026-09-15T00:00:00+00:00')

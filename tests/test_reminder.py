@@ -54,7 +54,7 @@ async def test_stamina_threshold_below_full(tmp_path):
 
 async def test_fail_threshold_triggers_once(tmp_path):
     eng, _ = _engine(tmp_path, settings=Settings(fail_notify_threshold=2))
-    bad = FetchResult(ok=False, error="LOL 客户端未运行")
+    bad = FetchResult(ok=False, error="来源暂不可用")
     await eng.handle_poll("lol", "英雄联盟", Capability.ACCOUNT, bad)  # 1次，不推
     await eng.handle_poll("lol", "英雄联盟", Capability.ACCOUNT, bad)  # 2次>=阈值，推
     await eng.handle_poll("lol", "英雄联盟", Capability.ACCOUNT, bad)  # 3次>=阈值，但同日 dedup 拦截

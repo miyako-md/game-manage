@@ -76,7 +76,6 @@ for (const [gameId, title, expected] of [
   ['endfield', '「冬猎」特许寻访', '角色卡池'],
   ['endfield', '「武库申领」限时开放', '武器与装备卡池'],
   ['wuthering_waves', '「身赴三途」角色活动唤取', '角色卡池'],
-  ['league_of_legends', '世界赛赛事日程公布', '赛事资讯'],
   ['nte', '创作征集网页活动开启', '社区活动'],
 ]) test(`${gameId} classifies ${title} by its article subject`, t => {
   const root = mount(t, List, { gameId, snap: { payload: [article(title, '正文说明')] } })
@@ -84,7 +83,7 @@ for (const [gameId, title, expected] of [
 })
 
 test('duplicate snapshots form one dated list and retain the fuller body and stale source state', async t => {
-  const root = mount(t, List, { gameId: 'league_of_legends', snap: { payload: [article('更新维护通知', '', { published_at: '2026-10-01T00:00:00Z' })] }, extraSnaps: [{ stale: true, capability: 'announcement', payload: [article('更新维护通知', '保留的完整正文', { published_at: '2026-10-01T00:00:00Z', content_status: 'full' })] }] })
+  const root = mount(t, List, { gameId: 'endfield', snap: { payload: [article('更新维护通知', '', { published_at: '2026-10-01T00:00:00Z' })] }, extraSnaps: [{ stale: true, capability: 'announcement', payload: [article('更新维护通知', '保留的完整正文', { published_at: '2026-10-01T00:00:00Z', content_status: 'full' })] }] })
   assert.equal(nodes(root, 'button').filter(n => content(n) === '更新维护通知').length, 1)
   assert.ok(nodes(root, 'span').some(node => String(node.props.class).includes('badge-stale') && content(node) === '数据可能过期'))
   await click(root, '更新维护通知')

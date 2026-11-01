@@ -144,7 +144,7 @@ test('image presents its date axis and activities without technical source discl
 
 test('calendar artwork follows event sources on screen and never adds external images to bot rendering', async t => {
   const asOf=Date.parse('2026-10-17T12:00:00+08:00')
-  const rows={nte:{events:{payload:[{name:'带配图活动',version:'1.4',source_post_id:'p1',start_at:'2026-10-01T12:00:00+08:00',end_at:'2026-11-01T12:00:00+08:00'}]},news:{payload:[{id:'p1',images:['https://example.com/event.jpg']}]}}}
+  const rows={nte:{events:{payload:[{name:'带配图活动',version:'1.4',source_post_id:'p1',start_at:'2026-10-01T12:00:00+08:00',end_at:new Date(Date.now()+30*86400000).toISOString()}]},news:{payload:[{id:'p1',images:['https://example.com/event.jpg']}]}}}
   const calendars=collectVersionCalendars(games,rows,'',asOf)
   const screen=mount(t,Version,{calendars,snapshots:rows,asOf})
   assert.ok(nodes(screen,'img').some(img=>img.props.src==='https://example.com/event.jpg'))

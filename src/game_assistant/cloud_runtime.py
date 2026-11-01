@@ -62,8 +62,6 @@ def load_runtime(path):
         # Never search/import local config or consume local single-user secrets.
         data.setdefault('db_path', str(config.parent / '.unused-local.db'))
         settings = Settings(**data)
-        if 'lol_enabled' in data and data['lol_enabled']:
-            raise RuntimeConfigurationError('local_service_configuration_forbidden')
         from .auth.service import FIELDS
         secret_fields = {field for mapping in FIELDS.values() for field in mapping.values()}
         secret_fields.discard('wuwa_token_source')
@@ -71,7 +69,6 @@ def load_runtime(path):
         secret_fields.update({'wuwa_app_token','notify_send_key','auth_store_path'})
         if any(getattr(settings, field) for field in secret_fields):
             raise RuntimeConfigurationError('local_credentials_forbidden')
-        settings.lol_enabled = False
         dist = runtime.get('frontend_dist')
         if settings.system_update_enabled and settings.system_update_install_root:
             from .system_update_version import source_root, release_root_matches

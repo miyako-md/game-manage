@@ -44,7 +44,7 @@ const groups = computed(() => presentationGroups(events.value.filter(event => ev
 const boundaryDays = computed(() => props.mode === 'image' ? new Set() : activityBoundaryDays(events.value,dayStart))
 const undated = computed(() => props.showUnplaced ? events.value.filter(event => event.geometry.kind==='undated') : [])
 const invalid = computed(() => props.showUnplaced ? events.value.filter(event => event.geometry.kind==='invalid') : [])
-const groupVars = id => gameVars(id==='lol' ? 'league_of_legends' : id)
+const groupVars = id => gameVars(id)
 const barStyle = event => ({left:event.geometry.left+'%',width:event.geometry.kind==='range' ? event.geometry.width+'%' : undefined})
 function stateLabel(event) {
   const state=event.status==='更新后开放' && event.start_precision!=='relative' ? '时刻待定' : event.status

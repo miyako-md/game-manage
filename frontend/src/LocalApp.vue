@@ -3,7 +3,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import * as api from './api.js'
 import { getAuthStatus } from './auth-api.js'
 import { createDashboard, readRoute, gameStyle, gameVars } from './dashboard.js'
-import { GAME_SECTIONS } from './search-index.js'
 import { vGlide } from './motion.js'
 import { followSystem } from './theme.js'
 import { lazyPage } from './lazy-page.js'
@@ -63,12 +62,8 @@ const searchPages = [
 // Choosing the page already shown still reopens it at the chosen tab.
 const jumps = ref(0)
 let timer, clockTimer, stopFollowingSystem
-// The LoL page keeps its tab in the shared browse state rather than a prop.
-function followTab({ game, tab }) { if (game === 'league_of_legends' && GAME_SECTIONS.league_of_legends.some(([id]) => id === tab)) state.esportsBrowse.league_of_legends.section = tab }
-followTab(route.value)
 function syncRoute() {
   route.value = readRoute(window.location.hash)
-  followTab(route.value)
   menuOpen.value = false; window.scrollTo({ top: 0, behavior: 'instant' }); nextTick(() => mainContent.value?.focus({ preventScroll: true }))
 }
 function openSearch() { menuOpen.value = false; searchOpen.value = true }
@@ -148,8 +143,8 @@ onBeforeUnmount(() => { clearInterval(timer); clearInterval(clockTimer); stopFol
         <div v-if="state.loadError" class="service-error" role="alert"><div><strong>暂时无法读取游戏数据</strong></div><button class="ui-button" :disabled="state.loading" @click="dashboard.load">重试连接</button></div>
         <OverviewPage v-if="route.page === 'overview'" class="t-page" :games="state.games" :snapshots="state.snapshots" :accounts="state.accounts" :collection="state.collection" :read-errors="state.readErrors" :refresh-errors="state.refreshErrors" :refreshing="state.refreshing" :now="now" :loading="state.loading" @navigate="navigate" @refresh="refreshAll" />
         <CalendarPage v-else-if="route.page === 'calendar'" class="t-page" :games="state.games" :snapshots="state.snapshots" :loading="state.loading" :initial-game-id="route.game" :read-errors="calendarErrors" />
-        <template v-else-if="route.page === 'game'"><GameCard v-if="selectedGame" class="t-page" :key="`${selectedGame.game_id}:${accountRevisions[selectedGame.game_id] || 0}:${route.tab || ''}:${jumps}`" :game="selectedGame" :auth-account="state.accounts[selectedGame.game_id]" :esports-browse="state.esportsBrowse[selectedGame.game_id]" @esports-browse="Object.assign(state.esportsBrowse.league_of_legends, $event)" @esports-snapshot="state.snapshots.league_of_legends = { ...state.snapshots.league_of_legends, esports: $event }" :initial-section="route.tab || 'overview'" :collection-status="state.collection" :external-snapshots="state.snapshots[selectedGame.game_id] || {}" :external-refreshing="!!state.refreshing[selectedGame.game_id]" :external-error="state.refreshErrors[selectedGame.game_id] || state.readErrors[selectedGame.game_id] || ''" @refresh="dashboard.refresh(selectedGame.game_id)" @calendar="navigate('calendar', selectedGame.game_id)" /><div v-else class="empty-page"><p>{{ state.loading ? '加载中…' : '这个游戏尚未启用。' }}</p><button class="ui-button" @click="navigate('overview')">返回总览</button></div></template>
-        <div v-show="route.page === 'accounts'" class="accounts-page"><header class="page-heading"><div class="page-heading-copy"><h1>社区账号</h1></div></header><LoginPanel @account-changed="onAccountChanged" /><section class="connection-note"><AppIcon name="shield" :size="16" /><p>凭据在本机加密保存。英雄联盟读取本机客户端，无需登录。</p></section></div>
+        <template v-else-if="route.page === 'game'"><GameCard v-if="selectedGame" class="t-page" :key="`${selectedGame.game_id}:${accountRevisions[selectedGame.game_id] || 0}:${route.tab || ''}:${jumps}`" :game="selectedGame" :auth-account="state.accounts[selectedGame.game_id]" :initial-section="route.tab || 'overview'" :collection-status="state.collection" :external-snapshots="state.snapshots[selectedGame.game_id] || {}" :external-refreshing="!!state.refreshing[selectedGame.game_id]" :external-error="state.refreshErrors[selectedGame.game_id] || state.readErrors[selectedGame.game_id] || ''" @refresh="dashboard.refresh(selectedGame.game_id)" @calendar="navigate('calendar', selectedGame.game_id)" /><div v-else class="empty-page"><p>{{ state.loading ? '加载中…' : '这个游戏尚未启用。' }}</p><button class="ui-button" @click="navigate('overview')">返回总览</button></div></template>
+        <div v-show="route.page === 'accounts'" class="accounts-page"><header class="page-heading"><div class="page-heading-copy"><h1>社区账号</h1></div></header><LoginPanel @account-changed="onAccountChanged" /><section class="connection-note"><AppIcon name="shield" :size="16" /><p>凭据在本机加密保存。</p></section></div>
         <BilibiliSourcePanel v-if="route.page === 'overview' || route.page === 'game'" :game-id="route.page === 'game' ? route.game : ''" @collected="dashboard.loadSnapshots()" />
       </main>
     </div>

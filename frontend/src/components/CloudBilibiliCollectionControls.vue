@@ -4,7 +4,7 @@ import { subscribeSessionInvalidation } from '../http-client.js'
 import { getCloudBilibiliSources,refreshCloudBilibiliSource } from '../cloud-bilibili-api.js'
 import { formatTime } from '../dashboard.js'
 const sources=ref([]),error=ref(''),message=ref(''),busy=ref(false),paused=ref(false)
-const names={wuthering_waves:'鸣潮',nte:'异环',endfield:'终末地',league_of_legends:'英雄联盟'}
+const names={wuthering_waves:'鸣潮',nte:'异环',endfield:'终末地'}
 const labels={queued:'已排队',running:'正在更新',backoff:'稍后再试',cooldown:'等待下次更新',idle:'待更新'}
 let stopped=false,invalidated=false,generation=0,readId=0,timer,reads=0,deadline=0,controller=new AbortController()
 const observed=new Map()

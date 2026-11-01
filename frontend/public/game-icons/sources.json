@@ -62,36 +62,6 @@
     }
   },
   {
-    "game_id": "league_of_legends",
-    "file": "league_of_legends-mark.svg",
-    "creator": "game-manage contributors",
-    "license": "GPL-3.0-only",
-    "kind": "original text identifier; not official game artwork",
-    "file_light": "league_of_legends-mark-light.svg",
-    "official_icon": {
-      "url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/d3b7bd9decb1e1672dcb80be4f8bc1aa05490dc1-110x70.svg?accountingTag=LoL",
-      "owner": "Riot Games",
-      "website": "https://www.leagueoflegends.com/en-us/",
-      "store_listing": null,
-      "verified_at": "2026-10-17",
-      "kind": "external official game icon; loaded at runtime, not bundled",
-      "license": "All rights reserved by the respective owner; not covered by the project GPL-3.0-only license",
-      "evidence": "Official website favicon; original SVG includes intentional space around the emblem.",
-      "fallback_urls": []
-    },
-    "official_banners": {
-      "urls": [
-        "https://cmsassets.rgpub.io/sanity/images/dsfx7636/news/565197caf987af4e4da307df6e2b235a28714736-837x469.jpg"
-      ],
-      "kind": "general game illustration; not a current-version or event assertion",
-      "owner": "Riot Games",
-      "website": "https://www.leagueoflegends.com/en-us/",
-      "verified_at": "2026-10-17",
-      "license": "All rights reserved by the respective owner; not covered by the project GPL-3.0-only license",
-      "evidence": "Official website og:image, 837x469."
-    }
-  },
-  {
     "game_id": "endfield",
     "file": "endfield-mark.svg",
     "creator": "game-manage contributors",

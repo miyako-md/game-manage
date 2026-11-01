@@ -104,7 +104,7 @@ def test_get_is_cache_only_and_rejected_apply_returns_frontend_error_code(cloud)
 
 def test_local_routes_keep_global_loopback_origin_and_write_header_boundary(tmp_path):
     settings = Settings(db_path=str(tmp_path/'assistant.db'), auth_store_path=str(tmp_path/'credentials.json'),
-                        wuwa_enabled=False, nte_enabled=False, endfield_enabled=False, lol_enabled=False)
+                        wuwa_enabled=False, nte_enabled=False, endfield_enabled=False)
     app = create_app(registry=FakeRegistry(DummyAdapter()), settings=settings, start_scheduler=False)
     app.state.system_update.fetch = upstream()
     app.state.system_update.version = capture_version(marker(tmp_path / 'local-release'))

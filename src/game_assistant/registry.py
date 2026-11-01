@@ -1,6 +1,5 @@
 from game_assistant.adapters.base import BaseGameAdapter
 from game_assistant.adapters.endfield.adapter import EndfieldAdapter
-from game_assistant.adapters.league_of_legends.adapter import LeagueOfLegendsAdapter
 from game_assistant.adapters.neverness.adapter import NteAdapter
 from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
 from game_assistant.config import Settings
@@ -28,8 +27,6 @@ def build_default_registry(settings: Settings) -> GameRegistry:
     registry = GameRegistry()
     if settings.wuwa_enabled:
         registry.register(WutheringWavesAdapter(settings))
-    if settings.lol_enabled:
-        registry.register(LeagueOfLegendsAdapter(settings))
     if settings.nte_enabled:
         registry.register(NteAdapter(settings))
     if settings.endfield_enabled:
@@ -38,7 +35,7 @@ def build_default_registry(settings: Settings) -> GameRegistry:
 
 
 def build_account_registry(settings: Settings, game: str, *, provider: str) -> GameRegistry:
-    """One explicit game context; never enables LCU or unrelated credentials."""
+    """One explicit game context; never enables unrelated credentials."""
     registry = GameRegistry()
     if provider == 'skland':
         from game_assistant.accounts.runtime import SklandAccountAdapter

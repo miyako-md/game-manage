@@ -362,7 +362,6 @@ async def test_parser_exception_isolated(monkeypatch, caplog):
 
 def test_registry_includes_nte():
     reg = build_default_registry(Settings(wuwa_enabled=False,
-                                          lol_enabled=False,
                                           nte_enabled=True))
     adapter = reg.get("nte")
     assert adapter.display_name == "异环" and adapter.section == "mobile"
@@ -374,7 +373,6 @@ def test_registry_includes_nte():
 
 def test_registry_nte_disabled_skips_registration():
     reg = build_default_registry(Settings(wuwa_enabled=False,
-                                          lol_enabled=False,
                                           nte_enabled=False))
     assert "nte" not in {a.game_id for a in reg.all()}
 

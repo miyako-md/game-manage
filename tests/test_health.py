@@ -5,7 +5,7 @@ from game_assistant.config import Settings
 
 def test_health(tmp_path):
     app = create_app(settings=Settings(db_path=str(tmp_path / 'health.db'),
-        wuwa_enabled=False, nte_enabled=False, lol_enabled=False, notify_send_key=''),
+        wuwa_enabled=False, nte_enabled=False, notify_send_key=''),
         start_scheduler=False)
     client = TestClient(app, base_url="http://127.0.0.1:8010")
     resp = client.get("/api/health")

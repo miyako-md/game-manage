@@ -117,6 +117,7 @@ class SnapshotStore:
             ).fetchone()
         return {"payload": row[0], "fetched_at": row[1]} if row else None
 
+    # 'esports' is the removed League of Legends feed: rows left in old databases stay public, never private.
     _PUBLIC_CAPABILITIES = ('announcement', 'events', 'news', 'teams', 'esports')
 
     def _private_clause(self):

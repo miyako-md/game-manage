@@ -6,7 +6,6 @@ import respx
 
 from game_assistant.adapters.wuthering_waves.adapter import WutheringWavesAdapter
 from game_assistant.adapters.neverness.adapter import NteAdapter
-from game_assistant.adapters.league_of_legends.adapter import LeagueOfLegendsAdapter
 from game_assistant.config import Settings
 from game_assistant.models import Capability, FetchResult
 from tests.adapters import test_wuwa_adapter as wuwa
@@ -25,22 +24,6 @@ async def test_missing_rolebox_credentials_are_unconfigured():
                                             wuwa_role_id='r1', wuwa_server_id='s1'))
     result = await adapter.fetch(Capability.ROLES)
     assert result.error_kind == 'unconfigured'
-
-
-async def test_lol_process_absence_is_offline(monkeypatch):
-    monkeypatch.setattr('game_assistant.adapters.league_of_legends.adapter.discover_lcu_credentials', lambda: None)
-    result = await LeagueOfLegendsAdapter(Settings()).fetch(Capability.ACCOUNT)
-    assert result.error_kind == 'offline'
-
-
-@respx.mock
-async def test_lol_connection_failure_is_source_error_not_offline(monkeypatch):
-    monkeypatch.setattr('game_assistant.adapters.league_of_legends.adapter.discover_lcu_credentials',
-                        lambda: ('54321', 'fake-token'))
-    respx.get('https://127.0.0.1:54321/lol-summoner/v1/current-summoner').mock(
-        side_effect=httpx.ConnectError('failed'))
-    result = await LeagueOfLegendsAdapter(Settings()).fetch(Capability.ACCOUNT)
-    assert result.error_kind == 'source_error'
 
 
 @pytest.mark.parametrize('body', ['', '<p>新版本已发布，没有可解析活动</p>'])

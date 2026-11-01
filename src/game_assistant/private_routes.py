@@ -490,7 +490,7 @@ _declare('private_query','GET',
     '/api/endfield/skland/card','/api/endfield/skland/attendance','/api/endfield/skland/operators/{char_id}',
     '/api/endfield/skland/challenges','/api/endfield/skland/tools','/api/wuwa/roles/{role_id}',
     '/api/wuwa/resources/{kind}/{period}','/api/wuwa/history','/api/wuwa/gacha','/api/wuwa/gacha/export',
-    '/api/games/{game_id}/snapshot/{capability}','/api/status','/api/games/{game_id}/match/{match_id}/detail')
+    '/api/games/{game_id}/snapshot/{capability}','/api/status')
 _declare('private_modify','POST',
     '/api/auth/{game}/sessions','/api/auth/{game}/sms','/api/auth/{game}/login',
     '/api/nte/gacha/preview','/api/nte/gacha/import','/api/nte/gacha/rules','/api/endfield/blueprints',
@@ -504,7 +504,6 @@ _declare('public_read_only','GET','/api/endfield/public','/api/endfield/map','/a
     policy='reviewed_read_only')
 _declare('admin_sources','POST','/api/endfield/public/refresh','/api/nte/guides/sources/{post_id}/refresh',
     '/api/wuwa/guides/updates','/api/wuwa/guides/updates/extract','/api/wuwa/guides/tower/check',
-    '/api/lol/esports/refresh',
     '/api/auth/bilibili-source/credentials','/api/sources/bilibili/{game}/refresh',policy='admin_required')
 _declare('admin_sources','GET','/api/auth/bilibili-source/login/status',
     '/api/auth/bilibili-source/login/sessions/{sid}','/api/sources/bilibili','/api/sources/bilibili/{game}/audit',policy='admin_required')
@@ -516,8 +515,7 @@ _declare('admin_sources','POST','/api/auth/bilibili-source/login/sessions',
 _declare('admin_sources','DELETE','/api/auth/bilibili-source/login/sessions/{sid}',policy='admin_required')
 _declare('admin_system','GET','/api/system/update',policy='admin_required')
 _declare('admin_system','POST','/api/system/update/check','/api/system/update/apply',policy='admin_required')
-_declare('disabled','POST','/api/endfield/skland/attendance','/api/lol/collect',policy='disabled')
-_declare('disabled','GET','/api/lol/analysis','/api/lol/matches/{match_id}',policy='disabled')
+_declare('disabled','POST','/api/endfield/skland/attendance',policy='disabled')
 for _method in ('GET','HEAD','POST','PUT','PATCH','DELETE','OPTIONS','TRACE','CONNECT'):
     _declare('disabled',_method,'/{path:path}',policy='disabled_local_spa')
 

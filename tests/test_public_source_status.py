@@ -159,7 +159,7 @@ def test_mixed_fresh_and_failed_articles_keep_per_row_staleness(tmp_path):
         assert effective(client)['error_kind'] == 'partial_data'
 
 
-@pytest.mark.parametrize('game', ['wuthering_waves', 'endfield', 'league_of_legends'])
+@pytest.mark.parametrize('game', ['wuthering_waves', 'endfield'])
 def test_other_games_keep_their_selected_source_and_failure(tmp_path, game):
     from game_assistant.api import create_app
     from game_assistant.config import Settings
@@ -189,5 +189,3 @@ def test_other_games_keep_their_selected_source_and_failure(tmp_path, game):
         assert snap['payload'][0]['name'] == '原生活动' and snap['stale']
         if game == 'endfield':
             assert snap['primary_source'] == 'official'
-        if game == 'league_of_legends':
-            assert 'primary_source' not in snap

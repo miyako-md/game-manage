@@ -84,7 +84,6 @@ def test_every_capability_polls_on_its_interval_setting():
     expected = {
         Capability.STAMINA: stamina,
         Capability.ACCOUNT: activity, Capability.PROGRESS: activity,
-        Capability.MATCH: activity, Capability.STATS: activity,
         Capability.ROLES: activity, Capability.COMBAT: activity,
         Capability.ACTIVITIES: activity,
         Capability.ANNOUNCEMENT: announcement, Capability.EVENTS: announcement,
@@ -93,6 +92,5 @@ def test_every_capability_polls_on_its_interval_setting():
         Capability.GACHA: news, Capability.RECORD: news,
         Capability.REALESTATE: news, Capability.VEHICLES: news,
         Capability.TEAMS: news,
-        Capability.ESPORTS: 900,
     }
     assert {cap: interval_for(cap, settings) for cap in Capability} == expected

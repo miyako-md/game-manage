@@ -1,13 +1,11 @@
 import { reactive } from 'vue'
 import { DAY_MS, collectCalendarEvents, eventGeometry, parseBeijingTime, safeUrl } from './calendar.js'
-import { createEsportsBrowseState } from './esports.js'
 import { capabilityLabel } from './cloud-display.js'
 
-const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams', 'esports'])
+const PUBLIC_CAPS = new Set(['events', 'announcement', 'news', 'teams'])
 const GAME_STYLE = {
   wuthering_waves: { mark: '鸣', icon: '/game-icons/wuthering_waves-mark.svg', iconLight: '/game-icons/wuthering_waves-mark-light.svg', color: 'var(--game-wuwa)', vivid: 'var(--game-wuwa-vivid)', vivid2: 'var(--game-wuwa-2)', tone: 'var(--game-wuwa-tone)', english: 'WUTHERING WAVES', resource: '结晶波片' },
   nte: { mark: '异', icon: '/game-icons/nte-mark.svg', iconLight: '/game-icons/nte-mark-light.svg', color: 'var(--game-nte)', vivid: 'var(--game-nte-vivid)', vivid2: 'var(--game-nte-2)', tone: 'var(--game-nte-tone)', english: 'NEVERNESS TO EVERNESS', resource: '本性像素' },
-  league_of_legends: { mark: 'L', icon: '/game-icons/league_of_legends-mark.svg', iconLight: '/game-icons/league_of_legends-mark-light.svg', color: 'var(--game-lol)', vivid: 'var(--game-lol-vivid)', vivid2: 'var(--game-lol-2)', tone: 'var(--game-lol-tone)', english: 'LEAGUE OF LEGENDS' },
   endfield: { mark: '终', icon: '/game-icons/endfield-mark.svg', iconLight: '/game-icons/endfield-mark-light.svg', color: 'var(--game-endfield)', vivid: 'var(--game-endfield-vivid)', vivid2: 'var(--game-endfield-2)', tone: 'var(--game-endfield-tone)', english: 'ARKNIGHTS: ENDFIELD', resource: '理智' },
 }
 // Versioned private payloads: an old snapshot shape is shown as missing, never misread.
@@ -43,23 +41,18 @@ export function summaryFor(game, snapshots = {}) {
   }
   const account = validPayload('account')
   const stamina = validPayload('stamina')
-  const stats = validPayload('stats')
   const hasStamina = game.capabilities.includes('stamina')
-  // Games without stamina or match stats show headhunting pity instead.
-  const metric = hasStamina ? 'stamina' : game.capabilities.includes('stats') || !game.capabilities.includes('gacha') ? 'stats' : 'gacha'
+  // Games without stamina show headhunting pity instead.
+  const metric = hasStamina ? 'stamina' : 'gacha'
   const pity = metric === 'gacha' ? validPayload('gacha')?.pools?.find?.(pool => pool?.key === ENDFIELD_SPECIAL_POOL)?.since_last_six : null
-  const value = finiteValue(metric === 'stamina' ? stamina?.current : metric === 'gacha' ? pity?.count : stats?.winrate)
+  const value = finiteValue(metric === 'stamina' ? stamina?.current : pity?.count)
   const maximum = finiteValue(stamina?.maximum)
   const primary = snapshots[metric] || snapshots.account
-  const totalGames = finiteValue(stats?.total_games), wins = finiteValue(stats?.wins)
-  const decided = finiteValue(stats?.decided_games), remakes = finiteValue(stats?.remakes)
   return {
     nickname: account?.nickname || null, level: finiteValue(account?.level), hasStamina, metric,
     pityStatus: pity?.status || null,
-    value, maximum, percent: metric === 'stamina' ? percentOf(value, maximum) : metric === 'stats' ? value : null,
-    expectedFullAt: stamina?.expected_full_at || null, totalGames, wins, decided, remakes,
-    losses: decided != null && wins != null && decided >= wins ? decided - wins : null,
-    unknownResults: totalGames != null && decided != null && remakes != null && totalGames >= decided + remakes ? totalGames - decided - remakes : null,
+    value, maximum, percent: metric === 'stamina' ? percentOf(value, maximum) : null,
+    expectedFullAt: stamina?.expected_full_at || null,
     fetchedAt: primary?.fetched_at || null, stale: !!primary?.stale,
   }
 }
@@ -94,7 +87,6 @@ export function recentNews(games, snapshots) {
     if (!previous || priority(row) > priority(previous) || (priority(row) === priority(previous) && row.publishedTime > previous.publishedTime)) selected.set(key, row)
   }
   // Only configured mobile community supplements move behind primary notices.
-  // LOL keeps its original source and chronological order.
   const supplement = row => row.primary && row.source !== 'bilibili' ? 1 : 0
   return [...selected.values()].sort((a, b) => supplement(a) - supplement(b) || b.publishedTime - a.publishedTime)
 }
@@ -112,8 +104,7 @@ export function readRoute(hash) {
 
 export function createDashboard(api) {
   const state = reactive({ games: [], snapshots: {}, notify: null, accounts: {}, collection: [], readErrors: {}, refreshErrors: {}, refreshing: {},
-    loading: false, loadError: '', serviceError: '', loadedAt: null,
-    esportsBrowse: { league_of_legends: createEsportsBrowseState() } })
+    loading: false, loadError: '', serviceError: '', loadedAt: null })
   const requests = new Map(), epochs = new Map(), refreshResults = new Map(), reads = new Map()
   let catalogRequest = 0, statusRequest = 0, disposed = false
 

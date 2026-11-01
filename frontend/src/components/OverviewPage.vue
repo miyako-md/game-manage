@@ -48,23 +48,20 @@ function status(card) {
   if (props.readErrors[card.game_id]) return '读取异常'
   if (card.auth?.state === 'expired') return '登录已失效'
   if (card.summary.stale) return '待更新'
-  if (card.game_id === 'league_of_legends') return '本机客户端'
   return ({ connected: '已登录', configured: '已登录', unconfigured: '未登录' })[card.auth?.state] || (card.credentials_configured ? '已登录' : '未登录')
 }
 const warned = card => !!(card.summary.stale || card.auth?.state === 'expired' || props.readErrors[card.game_id] || card.source?.tone === 'danger')
-const METRIC_UNITS = { stats: '%', gacha: '抽' }
-const PLATFORMS = { league_of_legends: 'PC / 国服', endfield: '官服 / 鹰角通行证' }
+const METRIC_UNITS = { gacha: '抽' }
+const PLATFORMS = { endfield: '官服 / 鹰角通行证' }
 const identity = card => card.summary.nickname ? `${card.summary.nickname}${card.summary.level != null ? ` · Lv.${card.summary.level}` : ''}` : card.platform || PLATFORMS[card.game_id] || '手游 / 社区数据'
 function metricLabel(card) {
-  return ({ stamina: card.style.resource, gacha: '距上次 6★' })[card.summary.metric] || '最近对局胜率'
+  return ({ stamina: card.style.resource, gacha: '距上次 6★' })[card.summary.metric]
 }
 const metricValue = card => `${card.summary.metric === 'gacha' && card.summary.pityStatus === 'lower_bound' && card.summary.value != null ? '≥' : ''}${card.summary.value ?? '—'}`
 const metricUnit = card => card.summary.hasStamina ? `/ ${card.summary.maximum ?? '—'}` : METRIC_UNITS[card.summary.metric]
 function resourceNote(card) {
   const s = card.summary
   if (s.metric === 'gacha') return `特许寻访 · ${s.value == null ? '等待更新' : s.pityStatus === 'exact' ? '按连续记录计算' : '含缺口或免费寻访，为下限'}`
-  // 胜率不含重开和结果未知的对局；分母和总场数不同时写出来，免得按总场数去算。
-  if (!s.hasStamina) return s.totalGames == null ? '等待对局数据' : `最近 ${s.totalGames} 场 · ${s.wins == null ? '胜场未知' : `${s.wins} 胜`}${s.decided != null && s.decided !== s.totalGames ? ` · 胜率按 ${s.decided} 场计` : ''}`
   if (s.percent >= 100) return '体力已满'
   if (s.expectedFullAt) return `预计 ${formatTime(s.expectedFullAt)} 回满`
   return '回满时间未知'
@@ -114,7 +111,7 @@ const digest = computed(() => digests.value.find(item => item.gameId === gachaId
 const shortDate = time => time == null ? '' : formatTime(time, { hour: undefined, minute: undefined })
 
 // Two tabs of each game page, by the names those tabs carry, then its calendar.
-const QUICK_TABS = { wuthering_waves: ['roles', 'gacha'], nte: ['characters', 'gacha'], endfield: ['operators', 'gacha'], league_of_legends: ['history', 'esports'] }
+const QUICK_TABS = { wuthering_waves: ['roles', 'gacha'], nte: ['characters', 'gacha'], endfield: ['operators', 'gacha'] }
 function quickLinks(card) {
   const tabs = sectionsFor(card).filter(([id]) => (QUICK_TABS[card.game_id] || []).includes(id)).map(([id, label]) => ({ label, href: gameHref(card.game_id, id) }))
   return card.capabilities.includes('events') ? [...tabs, { label: '活动日历', href: `#/calendar?game=${encodeURIComponent(card.game_id)}` }] : tabs

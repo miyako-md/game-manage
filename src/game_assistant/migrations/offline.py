@@ -51,6 +51,8 @@ SOURCES = {'wuwa_history': ('wuthering_waves','kuro'), 'wuwa_gacha': ('wuthering
            'blueprints': ('endfield',None)}
 # Known public caches / features intentionally out of the initial cloud scope.
 # Arbitrary unknown tables cannot be made "public" by an exclusion declaration.
+# lol_accounts / lol_matches and the esports capability belong to the removed League of Legends
+# feature; old local databases still carry them and migrate without them.
 EXCLUDABLE = {'cache','guide_posts','guide_active','guide_checks','bili_posts','bili_state',
               'notified','lol_accounts','lol_matches'}
 PUBLIC_CAPS = {'announcement','events','news','teams','esports'}

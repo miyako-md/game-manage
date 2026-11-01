@@ -122,7 +122,7 @@ class BilibiliService:
         def on_diagnostic(values):
             nonlocal diagnostic
             # Values come from the collector's scalar allowlist, never raw SDK data.
-            diagnostic = {'game_id': game if game in ('nte', 'wuthering_waves', 'endfield', 'league_of_legends') else 'other', **values}
+            diagnostic = {'game_id': game if game in ('nte', 'wuthering_waves', 'endfield') else 'other', **values}
             self.store.set_state(game, uid, diagnostic=diagnostic)
         try:
             client = self.client_factory(uid, self.credentials.load().get('bilibili', {}))

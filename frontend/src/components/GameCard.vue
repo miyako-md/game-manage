@@ -16,9 +16,6 @@ const EndfieldDashboard = lazyPage(() => import('./EndfieldDashboard.vue'))
 const WuwaDashboard = lazyPage(() => import('./WuwaDashboard.vue'))
 const NteModuleCard = lazyPage(() => import('./NteModuleCard.vue'))
 
-// Only the local workbench shows League of Legends; the cloud never loads this dashboard or its esports tables.
-const LolDashboard = lazyPage(() => import('./LolDashboard.vue'))
-
 const props = defineProps({
   cloudAccount: Object,
   authAccount: Object,
@@ -27,7 +24,6 @@ const props = defineProps({
   cloudSources: Object,
   sourceSnapshots: Object,
   isAdmin: Boolean,
-  esportsBrowse: Object,
   game: { type: Object, required: true },
   externalSnapshots: { type: Object, required: true },
   externalRefreshing: { type: Boolean, default: false },
@@ -35,7 +31,7 @@ const props = defineProps({
   initialSection: { type: String, default: 'all' },
   collectionStatus: { type: Array, default: () => [] },
 })
-const emit = defineEmits(['refresh', 'calendar', 'esports-snapshot', 'esports-browse'])
+const emit = defineEmits(['refresh', 'calendar'])
 const reauthorizationRequired = computed(() => props.cloudAccount?.state === 'expired' || props.collectionStatus.some(row => row.game_id === props.game.game_id && row.state === 'auth_expired'))
 const errorNotice = computed(() => reauthorizationRequired.value ? '社区授权已失效，请到社区账号重新登录。' : props.externalError ? '暂时无法更新数据，请稍后重试。' : '')
 const activeSection = ref(props.game.game_id==='nte' && props.initialSection==='guides'?'characters':props.initialSection)
@@ -69,7 +65,7 @@ const visibleCaps = computed(() => {
   return caps.map((cap, index) => ({ cap, index })).sort((a, b) => rank(a.cap) - rank(b.cap) || a.index - b.index).map(item => item.cap)
 })
 
-// Wuwa, LoL and Endfield have their own dashboards; this grid only serves NTE.
+// Wuwa and Endfield have their own dashboards; this grid only serves NTE.
 function capComponent(cap) {
   if (props.game.game_id !== 'nte') return null
   if (['realestate', 'vehicles', 'teams'].includes(cap)) return NteAssetsPanel
@@ -121,9 +117,8 @@ function capProps(cap) {
         <AppIcon name="refresh" :size="15" :class="{ spinning: externalRefreshing }" /><span :class="{ 't-shimmer': externalRefreshing }">{{ externalRefreshing ? '刷新中…' : '刷新数据' }}</span>
       </button>
     </header>
-    <div v-if="!['wuthering_waves','league_of_legends','endfield'].includes(game.game_id)" class="detail-navigation"><nav v-glide class="detail-tabs segmented" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
+    <div v-if="!['wuthering_waves','endfield'].includes(game.game_id)" class="detail-navigation"><nav v-glide class="detail-tabs segmented" aria-label="游戏数据分区"><button v-for="group in groups" :key="group.id" type="button" :aria-pressed="activeSection === group.id" :class="{ active: activeSection === group.id }" @click="activeSection = group.id">{{ group.label }}</button></nav><button v-if="game.capabilities.includes('events')" class="text-link" @click="emit('calendar')"><AppIcon name="calendar" :size="15" />活动日历 <AppIcon name="arrow" :size="15" /></button></div>
     <WuwaDashboard v-if="game.game_id === 'wuthering_waves'" :snaps="externalSnapshots" :configured="game.credentials_configured" :initial-section="initialSection" @calendar="emit('calendar')" />
-    <LolDashboard v-else-if="game.game_id === 'league_of_legends'" :snaps="externalSnapshots" :esports-browse="esportsBrowse" @esports-snapshot="emit('esports-snapshot', $event)" @esports-browse="emit('esports-browse', $event)" @refresh="emit('refresh')" />
     <EndfieldDashboard v-else-if="game.game_id === 'endfield'" :snaps="externalSnapshots" :configured="game.credentials_configured" :auth-account="authAccount" :refreshing="externalRefreshing" :initial-section="initialSection" :cloud-account="cloudAccount" :cloud-role="cloudRole" :cloud-sources="cloudSources" :source-snapshots="sourceSnapshots" :is-admin="isAdmin" @calendar="emit('calendar')" @refresh="emit('refresh')" />
 
     <div v-else class="cap-list">

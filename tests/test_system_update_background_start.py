@@ -38,7 +38,7 @@ def application(tmp_path, monkeypatch, mode, enabled=True):
     state.mkdir()
     if mode == 'local':
         settings = Settings(db_path=str(tmp_path/'local.db'),auth_store_path=str(tmp_path/'credentials.json'),
-            wuwa_enabled=False,nte_enabled=False,endfield_enabled=False,lol_enabled=False,
+            wuwa_enabled=False,nte_enabled=False,endfield_enabled=False,
             system_update_enabled=enabled,system_update_state_dir=str(state),bilibili_sources={'dummy':'1'})
         app = create_app(settings=settings,registry=FakeRegistry(DummyAdapter()),scheduler=Scheduler())
         base_url = 'http://127.0.0.1:8010'

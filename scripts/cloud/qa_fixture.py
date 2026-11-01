@@ -78,7 +78,7 @@ def provision(destination, frontend_dist=None, users=2, port=8443):
             snapshots._conn.close()
     config = {'cloud_accounts_enabled':True,'cloud_db_path':str(root/'identity.db'),
         'cloud_data_root':str(root),'cloud_credentials_key_path':str(key),
-        'cloud_allowed_origins':[f'https://localhost:{port}'], 'lol_enabled':False,
+        'cloud_allowed_origins':[f'https://localhost:{port}'],
         'wuwa_enabled':False,'nte_enabled':False,'endfield_enabled':False}
     lines = [f'{name}={json.dumps(value,ensure_ascii=False).lower() if isinstance(value,bool) else json.dumps(value,ensure_ascii=False)}'
              for name,value in config.items()]

@@ -61,8 +61,6 @@ class Settings(BaseSettings):
     activity_seconds: int = 3600
     announcement_seconds: int = 3600
     news_seconds: int = 14400
-    esports_seconds: int = 900
-    esports_profiles_seconds: int = 86400
     bilibili_sources: dict[str, str] = {}
     bilibili_history_days: int = 60
     bilibili_poll_seconds: int = 600
@@ -89,7 +87,8 @@ class Settings(BaseSettings):
     wuwa_did: str = ""
     wuwa_role_id: str = ""
     wuwa_server_id: str = ""
-    lol_enabled: bool = True
+    # League of Legends was removed; old config.toml files may still set this key (extra='forbid'), nothing reads it.
+    lol_enabled: bool = False
     # 异环凭据由页面短信登录取得；以下字段保留旧配置兼容。
     # 未登录时私人能力不可用，公共来源独立运行。
     nte_enabled: bool = True

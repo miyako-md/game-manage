@@ -7,7 +7,6 @@ import { upcomingEvents } from './dashboard.js'
 export const GAME_SECTIONS = {
   wuthering_waves: [['profile', '档案'], ['roles', '角色'], ['combat', '挑战'], ['activities', '玩法'], ['resources', '资源简报'], ['gacha', '抽卡历史'], ['history', '成长记录'], ['news', '公告与资讯']],
   nte: [['overview', '概览', ['account', 'stamina', 'progress', 'record']], ['characters', '角色', ['roles', 'calabash']], ['assets', '房产、载具与探索', ['realestate', 'vehicles', 'exploration']], ['teams', '官方配队', ['teams']], ['gacha', '抽卡统计', ['gacha']], ['news', '公告与资讯', ['announcement', 'news']]],
-  league_of_legends: [['overview', '个人总览'], ['history', '对局记录'], ['hex', '海克斯'], ['news', '公告与资讯'], ['esports', '职业赛事']],
   endfield: [['overview', '概览'], ['operators', '全员练度'], ['regions', '地区建设'], ['ship', '帝江号'], ['gacha', '抽卡统计'], ['honor', '光荣之路'], ['challenges', '挑战记录'], ['news', '公告与资讯'], ['map', '地图与图鉴'], ['blueprints', '蓝图收藏']],
 }
 // Where a game lists its roles; a role result opens that tab.

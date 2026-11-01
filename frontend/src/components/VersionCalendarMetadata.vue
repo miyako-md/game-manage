@@ -8,7 +8,7 @@ function versionBoundary(version,side) {
   if (!version[side+'_at'] && !version[side+'_date']) return '未知'
   return props.mode === 'image' ? version[side+'_at'] ? formatBeijingDateTime(version[side+'_at']) : version[side+'_date'] : browserCalendarBoundary(version,side,true)
 }
-const gameAccent = id => gameStyle(id === 'lol' ? 'league_of_legends' : id).color
+const gameAccent = id => gameStyle(id).color
 const versionLabel = version => version.id ? `${version.id}版本活动` : '已公布活动'
 function sources(calendar) {
   const seen = new Map()
