@@ -148,7 +148,8 @@ export function createCloudDashboard(overrides = {}) {
       await Promise.all(state.accounts.filter(a => a.state !== 'revoked').map(async account => {
         const role = account.roles?.find(r => r.is_default)?.role_id || account.roles?.[0]?.role_id
         if (!role) return
-        const caps = accounts.accountCapabilities(account).filter(cap => ['account','stamina','gacha'].includes(cap))
+        const caps = accounts.accountCapabilities(account).filter(cap =>
+          ['account', 'stamina', 'gacha'].includes(cap) || (account.provider === 'kuro' && cap === 'progress'))
         const old = state.overview[account.account_id]
         const entry = { role, version: account.version, grant_id: account.grant_id, roles: account.roles, snapshots: old?.role === role ? { ...old.snapshots } : {} }
         const publish = () => { if (valid()) state.overview[account.account_id] = { ...entry, snapshots: { ...entry.snapshots } } }

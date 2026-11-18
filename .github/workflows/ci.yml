@@ -30,6 +30,22 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install uv==0.12.3
           uv sync --locked --extra dev --extra qq --extra qq-render --python ${{ matrix.python }}
+      - name: Check packaged assessment defaults
+        if: matrix.python == '3.11'
+        shell: bash
+        run: |
+          uv build --wheel --out-dir dist
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          wheel, = Path("dist").glob("*.whl")
+          with ZipFile(wheel) as package:
+              for game in ("wuwa", "nte"):
+                  path = f"game_assistant/assessment-defaults-{game}.json"
+                  assert json.loads(package.read(path))["characters"], path
+          PY
       - name: Backend tests
         run: .\.venv\Scripts\python.exe -m pytest -q
       - name: Isolated runtime checks (never autostart)

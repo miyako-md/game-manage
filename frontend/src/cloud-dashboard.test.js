@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configureHttpClient, requestJson, getAccountScope } from './http-client.js'
 import { createCloudDashboard } from './cloud-dashboard.js'
+import { dailyTasks } from './overview-data.js'
 
 const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve() }
 const account = { account_id: 'a', provider: 'kuro', roles: [{ role_id: 'r', is_default: true }] }
@@ -43,6 +44,25 @@ test('overview and selected page coalesce only the same scoped snapshot GET', as
  await flush();assert.equal(calls,1)
  finish(snapshot('idle'));await Promise.all([page,overview])
  assert.equal(dashboard.state.overview.a.snapshots.account.payload.nickname,'new')
+})
+
+test('cloud overview includes daily progress from the default WuWa role', async t => {
+  const calls = []
+  const dashboard = createCloudDashboard({ getAccountSnapshot: async (id, role, cap) => {
+    calls.push([id, role, cap])
+    return { state: 'ok', payload: [{ name: '活跃度', cur: 80, total: 100 }] }
+  } })
+  t.after(dashboard.dispose)
+  dashboard.state.user = { user_id: 'A' }
+  dashboard.state.accounts = [
+    { ...account, capabilities: ['progress', 'roles'] },
+    { ...account, account_id: 'b', provider: 'tajiduo', capabilities: ['progress'] },
+  ]
+  await dashboard.loadOverview()
+  const game = { game_id: 'wuthering_waves', display_name: '鸣潮' }
+  const tasks = dailyTasks([game], { [game.game_id]: dashboard.state.overview.a.snapshots })
+  assert.deepEqual(tasks.map(task => [task.name, task.current, task.total]), [['活跃度', 80, 100]])
+  assert.deepEqual(calls, [['a', 'r', 'progress']])
 })
 
 test('overview displays each capability as it arrives while another read is pending', async t => {
