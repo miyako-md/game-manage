@@ -721,3 +721,27 @@ test('Poster calendar moves names that do not fit their bar beside it and never 
  const label=css.match(/\.ov-pcal-short-lbl strong \{[^}]*\}/)?.[0]||''
  assert.ok(label&&!/text-overflow|white-space: nowrap|overflow: hidden/.test(label),label)
 })
+
+test('Poster calendar keeps names inside by dropping tags, skips version art shared by many activities, and labels named versions plainly',async t=>{
+ const EventCalendarSheet=await loadVue(new URL('./qq-image/EventCalendarSheet.vue',import.meta.url))
+ const shared='https://ak.hycdn.cn/version-banner.png',own='https://ak.hycdn.cn/own-banner.png'
+ const ev=(name,start,end,extra={})=>({name,category:'限时活动',version:'丹青渡',start_at:`${start}T10:00:00+08:00`,end_at:`${end}T04:00:00+08:00`,...extra})
+ const input={command:'日历',origin:'',snapshot:{kind:'calendar',game:'all',as_of:'2026-11-22T02:00:00+08:00',
+  display_data:{games:[{game_id:'nte',display_name:'异环'},{game_id:'endfield',display_name:'终末地'}],snapshots:{
+   nte:{events:{version:'1.5',payload:[
+    {name:'曳尔沫',category:'角色卡池',version:'1.5',start_at:'2026-11-05T10:00:00+08:00',end_at:'2026-11-26T04:00:00+08:00'},
+    {name:'所行皆坦途',category:'盲盒',version:'1.5',start_at:'2026-10-15T10:00:00+08:00',end_at:'2026-12-17T04:00:00+08:00'}]}},
+   endfield:{events:{version:'丹青渡',payload:[
+    ev('墨分诸彩','2026-10-15','2026-11-05',{image_urls:[shared]}),
+    ev('万物更新','2026-10-15','2026-11-05',{image_urls:[shared]}),
+    ev('百趣演武','2026-10-29','2026-11-19',{image_urls:[own,shared]})]}}}}}}
+ configure([input],{[shared]:true,[own]:true})
+ const root=mount(t,EventCalendarSheet,{input,model:viewModel(input)})
+ const inside=nodes(root,'strong').filter(n=>cls(n,'ov-pcal-bar-name')).map(n=>content(n))
+ assert.ok(inside.includes('曳尔沫'),inside)
+ assert.ok(!nodes(root,'div').some(n=>cls(n,'ov-pcal-short-lbl')&&content(n).includes('曳尔沫')))
+ assert.deepEqual(nodes(root,'img').map(n=>n.props.src),[own])
+ const text=content(root)
+ assert.ok(text.includes('丹青渡')&&!text.includes('V丹青渡')&&text.includes('V1.5'))
+ configure([],{})
+})

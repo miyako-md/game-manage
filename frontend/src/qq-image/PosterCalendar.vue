@@ -116,8 +116,20 @@ const rulerTicks = computed(() => {
   return out
 })
 
-function safeEventArt(ev, snapshots) {
+// A picture reused by three or more activities of one game is a version or
+// notice image, not this activity's banner (two pools may share one banner).
+const SHARED_ART_LIMIT = 3
+function sharedArtwork(events, snapshots) {
+  const counts = new Map()
+  for (const ev of events || []) {
+    for (const url of eventArtwork(ev, snapshots || {})) counts.set(url, (counts.get(url) || 0) + 1)
+  }
+  return new Set([...counts].filter(([, count]) => count >= SHARED_ART_LIMIT).map(([url]) => url))
+}
+
+function safeEventArt(ev, snapshots, shared) {
   for (const url of eventArtwork(ev, snapshots || {})) {
+    if (shared.has(url)) continue
     const cached = asset(url)
     if (cached && !failedArt.has(cached)) return cached
   }
@@ -192,6 +204,7 @@ function buildItems(events, snapshots, withCategoryKind = false) {
   if (!r) return { visible: [], pending: [] }
   const visible = []
   const pending = []
+  const shared = sharedArtwork(events, snapshots)
 
   for (const ev of events || []) {
     const geom = eventGeometry(ev, r)
@@ -215,18 +228,26 @@ function buildItems(events, snapshots, withCategoryKind = false) {
     const right = left + width
     const catInfo = withCategoryKind ? classifySingleKind(ev) : { kind: 'activity', label: ev.category || '', accent: 'activity' }
     const stateChip = status === '进行中' || status === '未开始' || status === '已结束' ? status : ''
-    // The QQ layout audit rejects clipped or escaping text, so a bar keeps its
-    // copy inside only when the whole name and date line fit; otherwise the
-    // label goes beside the bar like a short one.
-    const fits = strip => {
-      const chips = withCategoryKind
-        ? chipPx(catInfo.kind === 'checkin' && !strip ? '签到' : stateChip)
-        : chipPx(ev.category) + chipPx(stateChip)
+    // The QQ layout audit rejects clipped or escaping text. A bar keeps its name
+    // and date inside, dropping the category and then the status tag when the
+    // line is too long; only a bar too narrow for the name or the date itself
+    // carries its label beside the bar.
+    const tagText = withCategoryKind && catInfo.kind === 'checkin' ? '签到' : ''
+    const fit = strip => {
       const copyPx = (width / 100) * TRACK_PX - 24 - (strip ? CHECKIN_STRIP_PX : 0)
-      return Math.max(textPx(name, 18), textPx(dateText) + chips) * 1.08 <= copyPx
+      const fitsLine = px => px * 1.08 <= copyPx
+      if (!fitsLine(textPx(name, 18)) || !fitsLine(textPx(dateText))) return null
+      const tag = strip ? '' : tagText
+      const options = withCategoryKind
+        ? [{ tag: !!tag, status: !tag && !!stateChip, px: chipPx(tag || stateChip) }]
+        : [{ category: true, status: true, px: chipPx(ev.category) + chipPx(stateChip) },
+            { category: false, status: true, px: chipPx(stateChip) }]
+      return options.find(option => fitsLine(textPx(dateText) + option.px))
+        || { category: false, status: false, tag: false }
     }
-    const wideCheckin = !isPoint && catInfo.kind === 'checkin' && width >= 68 && fits(true)
-    const isShort = isPoint || !fits(wideCheckin)
+    const wideCheckin = !isPoint && catInfo.kind === 'checkin' && width >= 68 && !!fit(true)
+    const shown = isPoint ? null : fit(wideCheckin)
+    const isShort = isPoint || !shown
     // Short bars carry their label beside the bar (never on top of it): after
     // the bar when it fits, otherwise before it if that side has more room.
     const need = labelPct(name, dateText)
@@ -246,7 +267,7 @@ function buildItems(events, snapshots, withCategoryKind = false) {
       occEnd = Math.min(100, right + LABEL_GAP + need)
       shortLabelStyle = { left: `${right + LABEL_GAP}%`, maxWidth: `${Math.max(0, roomAfter)}%` }
     }
-    const art = safeEventArt(ev, snapshots)
+    const art = safeEventArt(ev, snapshots, shared)
 
     visible.push({
       id: ev.id,
@@ -267,6 +288,9 @@ function buildItems(events, snapshots, withCategoryKind = false) {
       bandKind: catInfo.kind,
       bandLabel: catInfo.label,
       wideCheckin,
+      showCategory: !!shown?.category,
+      showStatus: !!shown?.status,
+      showTag: !!shown?.tag,
     })
   }
   return { visible, pending }
@@ -310,7 +334,8 @@ const multiBands = computed(() => {
       style: p.gameId ? gameVars(p.gameId) : undefined,
       title: p.title,
       shortName: p.title?.split('·')?.[0]?.trim() || p.gameId,
-      verTag: verMatch ? `V${verMatch}` : '',
+      // Numbered versions read "V3.8"; named ones (终末地「丹青渡」) stay as named.
+      verTag: !verMatch ? '' : /^\d/.test(verMatch) ? `V${verMatch}` : [...verMatch].length <= 4 ? verMatch : '',
       indexText: pad2(i + 1),
       count: visible.length,
       lanes: packLanes(visible),
@@ -457,8 +482,8 @@ const pendingList = computed(() => {
                       <strong class="ov-pcal-bar-name">{{ item.name }}</strong>
                       <div class="ov-pcal-bar-sub">
                         <span class="ov-pcal-bar-date">{{ item.dateText }}</span>
-                        <span v-if="item.bandKind === 'checkin' && !item.wideCheckin" class="ov-pcal-bar-tag">签到</span>
-                        <span v-else-if="item.status === '进行中' || item.status === '未开始' || item.isEnded" class="ov-pcal-bar-state" :class="{ 'is-live': item.status === '进行中' }">{{ item.status }}</span>
+                        <span v-if="item.showTag" class="ov-pcal-bar-tag">签到</span>
+                        <span v-else-if="item.showStatus" class="ov-pcal-bar-state" :class="{ 'is-live': item.status === '进行中' }">{{ item.status }}</span>
                       </div>
                     </div>
                   </article>
@@ -581,8 +606,8 @@ const pendingList = computed(() => {
                     <strong class="ov-pcal-bar-name">{{ item.name }}</strong>
                     <div class="ov-pcal-bar-sub">
                       <span class="ov-pcal-bar-date">{{ item.dateText }}</span>
-                      <span v-if="item.category" class="ov-pcal-bar-tag">{{ item.category }}</span>
-                      <span v-if="item.status === '进行中' || item.status === '未开始' || item.isEnded" class="ov-pcal-bar-state" :class="{ 'is-live': item.status === '进行中' }">{{ item.status }}</span>
+                      <span v-if="item.showCategory && item.category" class="ov-pcal-bar-tag">{{ item.category }}</span>
+                      <span v-if="item.showStatus" class="ov-pcal-bar-state" :class="{ 'is-live': item.status === '进行中' }">{{ item.status }}</span>
                     </div>
                   </div>
                 </article>
