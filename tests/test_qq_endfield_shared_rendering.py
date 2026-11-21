@@ -168,8 +168,9 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
                             fill_width:element.querySelector('.pull-fill').getBoundingClientRect().width,
                         })),
                         pools:[...document.querySelectorAll('.endfield-gacha .pool-detail .detail-head h3')].map(element => element.innerText),
-                        ticks:[...document.querySelectorAll('#render-content :is(h2,h3)')].filter(element => getComputedStyle(element,'::before').content.includes('counter(ef-block')).map(element => element.innerText),
-                        tick_titles:[...document.querySelectorAll('#render-content h3')].filter(element => getComputedStyle(element,'::before').content.includes('counter(ef-block')).map(element => element.innerText),
+                        ticks:[...document.querySelectorAll(':is(#render-content, .ov-ef-combat) :is(h2,h3)')].filter(element => getComputedStyle(element,'::before').content.includes('counter(ef-block')).map(element => element.innerText),
+                        tick_titles:[...document.querySelectorAll(':is(#render-content, .ov-ef-combat) h3')].filter(element => getComputedStyle(element,'::before').content.includes('counter(ef-block')).map(element => element.innerText),
+                        ov_sections:[...document.querySelectorAll('.ef-op-weapon-cap, .ov-section-title')].map(element => (element.querySelector('.ov-title-text') || element.querySelector('span:last-child'))?.innerText?.trim() || element.innerText.trim()),
                         phases:[...document.querySelectorAll('.ef-phases .stack-bar > i')].map(element => getComputedStyle(element).backgroundColor),
                         cards:[...document.querySelectorAll('.ef-roster .ef-operator')].map(element => ({card:box(element),art:box(element.querySelector('.ef-avatar')),
                             portrait:!!element.querySelector('.endfield-artwork.is-portrait'),rarity:element.querySelector('.role-rarity')?.innerText})),
@@ -214,7 +215,7 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
             low=layout['phases'][0];channels=[float(v) for v in re.findall(r'[\d.]+',low)[:3]]
             # Olive is a dark yellow: blue far below red and green. The skin's neutral is grey to slightly cool.
             assert channels[2]>=channels[0] and max(channels)-min(channels)<=(12 if low.startswith('rgb') else 12/255),layout['phases']
-            assert layout['ticks'][:3]==['全员练度','稀有度分布','精英阶段']
+            assert layout['ov_sections'][:3]==['全员练度','精英阶段','干员档案']
         # The image is an icon wall: every medal name, no per-medal category text.
         elif command=='honor':assert '奖章0' in text and '奖章33' in text and '类别16' not in text
         elif command=='gacha':
@@ -242,7 +243,7 @@ async def test_real_internal_route_queue_and_browser_reuse_shared_complete_endfi
             assert skills[0]['images']==int(command=='roles_icon')
             assert skills[0]['level_font']=='26px'
             assert skills[0]['level']['y']>=skills[0]['artwork']['bottom']+7
-            assert layout['tick_titles'][:4]==['武器与基质','装备','技能','战术道具']
+            assert layout['ov_sections'][:4]==['武器与基质','装备','技能','战术道具']
         elif command=='ship':
             assert '0%' in text and '未知' in text
             assert layout['unknown_notes'] and all(note['width']>=120 for note in layout['unknown_notes'])

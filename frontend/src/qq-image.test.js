@@ -267,10 +267,90 @@ test('我的账号 shows one card per account, tinted by its game, and flags acc
  assert.deepEqual(rows[1][0],['授权 需重新授权','is-warn'])
 })
 
-test('QQ 帮助 and 我的账号 notices use the command-card sheet; other notices keep the shared notice body',()=>{
+test('QQ 帮助 and 我的账号 notices use the command-card sheet; other notices use NoticeSheet',()=>{
  const lab=readFileSync(new URL('./qq-image/LabRoot.vue',import.meta.url),'utf8')
- assert.match(lab,/<HelpSheet v-if="helpVariant"[^>]*\/>\s*<ReuseBody v-else/)
+ assert.match(lab,/<HelpSheet v-(?:else-)?if="helpVariant"[^>]*\/>\s*<NoticeSheet v-else-if="isNotice"[^>]*\/>\s*<ReuseBody v-else/)
  assert.match(lab,/\/帮助\/\.test\(s\.display_data\?\.title\)\?'help':\/我的账号\/\.test\(s\.display_data\?\.title\)\?'account':null/)
+})
+
+test('Stage 1 overview system: all non-overview sheets use OverviewShell, min text >= 17px, and rosters/role details use dedicated sheets',async t=>{
+ const read=name=>readFileSync(new URL('./qq-image/'+name,import.meta.url),'utf8')
+ const lab=read('LabRoot.vue')
+ assert.match(lab,/<OverviewShell/)
+ assert.match(lab,/<RoleRosterSheet v-if="isRoleRoster"/)
+ assert.match(lab,/<EndfieldOperatorSheet v-else-if="isEndfieldOperatorDetail"/)
+ assert.match(lab,/<WuwaRoleDetailSheet v-else-if="isWuwaRoleDetail"/)
+ assert.match(lab,/<NteRoleDetailSheet v-else-if="isNteRoleDetail/)
+ const rawOvCss=read('overview-system.css')
+ assert.doesNotMatch(rawOvCss,/radial-gradient/)
+ const ovCss=rawOvCss.replace(/\/\*[\s\S]*?\*\//g,'')
+ const sizes=[...ovCss.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
+ assert.ok(sizes.length&&sizes.every(size=>size>=17),'overview-system.css sizes: '+sizes)
+
+ const RosterSheet=await loadVue(new URL('./qq-image/RoleRosterSheet.vue',import.meta.url))
+ const wuwaInput={command:'鸣潮 角色',origin:'',snapshot:{kind:'game_snapshot',game:'wuthering_waves',as_of:'2026-10-21T12:00:00+08:00',title:'鸣潮 · 角色',
+  display_data:{panels:[{game:'wuthering_waves',provider:'kuro',capability:'roles',snapshot:{fetched_at:'2026-10-21T12:00:00+08:00',state:'ok',complete:true,stale:false,
+   payload:[{role_id:1108,name:'绯雪',star_level:5,level:90,chain:2,attribute:'冷凝',weapon:'迅刀',extra:{total_skill_level:55}},
+            {role_id:1102,name:'散华',star_level:4,level:80,chain:6,attribute:'冷凝',weapon:'迅刀',extra:{total_skill_level:42}}]}}],notices:[]}}}
+ configure([wuwaInput],{})
+ const wuwaRoot=mount(t,RosterSheet,{input:wuwaInput})
+ const wuwaText=content(wuwaRoot)
+ for(const expected of ['练度总览','角色档案','绯雪','散华','二链','六链','LV.90','技能 55'])assert.ok(wuwaText.includes(expected),expected)
+
+ const EfOpSheet=await loadVue(new URL('./qq-image/EndfieldOperatorSheet.vue',import.meta.url))
+ const efInput={command:'终末地 干员 佩丽卡',origin:'',snapshot:{kind:'game_snapshot',game:'endfield',as_of:'2026-10-21T12:00:00+08:00',title:'终末地 · 佩丽卡',
+  display_data:{panels:[{game:'endfield',provider:'skland',capability:'operator_detail',snapshot:{fetched_at:'2026-10-21T12:00:00+08:00',state:'ok',complete:true,stale:false,
+   payload:{operator_detail:{id:'c1',name:'佩丽卡',level:90,rarity:6,potential:2,evolve_phase:4,profession:'术师',property:'电磁',
+    weapon:{name:'孤舟',level:90,refine_level:5,breakthrough_level:4,gem:{name:'无瑕基质',terms:[{name:'意志提升',cost:6}]}},
+    equipment:[{slot:'bodyEquip',name:'壤流轻甲',level:70}],
+    skills:[{id:'s1',name:'疾电法',level:12}],
+    tactical_item:{name:'优质芽针剂',rarity:'紫色品质'}}}}}],notices:[]}}}
+ configure([efInput],{})
+ const efRoot=mount(t,EfOpSheet,{input:efInput})
+ const efText=content(efRoot)
+ for(const expected of ['佩丽卡','孤舟','无瑕基质','意志提升','壤流轻甲','疾电法','LV. 12','优质芽针剂'])assert.ok(efText.includes(expected),expected)
+
+ const WuwaDetail=await loadVue(new URL('./qq-image/WuwaRoleDetailSheet.vue',import.meta.url))
+ const wuwaDetailData={
+  role:{role_id:1205,role_name:'长离',level:90,breach:6,star_level:5,attribute_name:'热熔',weapon_type_name:'迅刀'},
+  role_attribute_list:[{attribute_name:'生命',attribute_value:'15840'},{attribute_name:'暴击',attribute_value:'76.4%'}],
+  weapon_data:{level:90,breach:6,reson_level:1,weapon:{weapon_name:'赫奕流明',weapon_star_level:5},main_prop_list:[{attribute_name:'攻击',attribute_value:'587'}]},
+  skill_list:[{level:10,skill:{name:'赫羽三相',type:'常态攻击'}}],
+  chain_list:[{order:1,name:'隐我之所藏',unlocked:true},{order:2,name:'循理之所往',unlocked:false}],
+  equip_phantom_add_prop_list:[{attribute_name:'暴击',attribute_value:'43.4%'}],
+  phantom_data:{cost:12,equip_phantom_list:[{level:25,cost:4,phantom_prop:{phantom_id:6000045,name:'燎照之骑'},fetter_detail:{name:'熔山裂谷'},main_props:[{attribute_name:'暴击',attribute_value:'22.0%'}],sub_props:[{attribute_name:'暴击伤害',attribute_value:'17.4%'},{attribute_name:'防御',attribute_value:'50'}]}]},
+  assessment:{status:'scored',value:'168.16',max_value:'250',grade:'a',origin:'builtin_default',attribution:'xwuid_snapshot',item_results:[{item_id:'echo:0:6000045',status:'scored',value:'35.40',max_value:'50',grade:'ss',contributions:[{observation_id:'main_props:0',effective:true},{observation_id:'sub_props:0',effective:true},{observation_id:'sub_props:1',effective:false}]}]},
+ }
+ configure([],{})
+ const wuwaDetailRoot=mount(t,WuwaDetail,{data:wuwaDetailData})
+ const wuwaDetailText=content(wuwaDetailRoot)
+ for(const expected of ['长离','Lv.90','15840','76.4%','赫奕流明','赫羽三相','隐我之所藏','168.16','35.40分','燎照之骑','熔山裂谷'])assert.ok(wuwaDetailText.includes(expected),expected)
+ assert.equal(nodes(wuwaDetailRoot,'div').filter(n=>cls(n,'rd-stat-row')&&cls(n,'stat-effective')).length,2)
+ assert.equal(nodes(wuwaDetailRoot,'div').filter(n=>cls(n,'rd-stat-row')&&cls(n,'stat-ineffective')).length,1)
+
+ const NteDetail=await loadVue(new URL('./qq-image/NteRoleDetailSheet.vue',import.meta.url))
+ const nteDetailRole={
+  id:'1039',name:'法帝娅',quality:'S',element:'魂',level:80,awaken_level:1,mix_level:1,
+  weapon:{name:'永恒圆舞曲',quality:'S',level:80,mix_level:1,breakthrough_level:4,properties:[{name:'基础攻击力',value:'512'}]},
+  properties:[{name:'生命值',value:'28410'},{name:'暴击率',value:'46.5%'},{name:'治疗加成',value:'0%'}],
+  skills:[{id:'s1',name:'话语中断的否定',level:8}],
+  city_skills:[{id:'c1',name:'城区测试技',level:2}],
+  suit:{name:'「小小大冒险」',activation_count:4,
+   core:[{id:'core_orange_1',name:'「小小大冒险」',level:15,main_properties:[{id:'hpmaxup',name:'生命值百分比',value:'35.0%'}],properties:[{id:'critbase',name:'暴击率',value:'6.5%'},{id:'defadd',name:'防御力',value:'80'}]}],
+   pie:[{id:'cell4_style1_1_orange',name:'Ⅳ型驱动',level:15,main_properties:[{id:'atkadd',name:'攻击力',value:'112'}],properties:[{id:'hpmaxup',name:'生命值百分比',value:'8.5%'}]}]},
+  assessment:{status:'scored',value:'159.44',max_value:'310',grade:'s',origin:'builtin_default',attribution:'nte_workshop',item_results:[
+   {item_id:'core:0:core_orange_1',status:'scored',value:'71.11',max_value:'150',grade:'a',contributions:[{contribution_id:'main:hpmaxup',effective:true},{contribution_id:'sub:critbase',effective:true},{contribution_id:'sub:defadd',effective:false}]},
+   {item_id:'pie:0:cell4_style1_1_orange',status:'scored',value:'25.40',max_value:'40',grade:'ss',contributions:[{contribution_id:'sub:hpmaxup',effective:true}]}]},
+ }
+ const nteDetailRoot=mount(t,NteDetail,{role:nteDetailRole})
+ const nteDetailText=content(nteDetailRoot)
+ for(const expected of ['法帝娅','Lv80','28410','46.5%','永恒圆舞曲','话语中断的否定','159.44','71.11','25.40'])assert.ok(nteDetailText.includes(expected),expected)
+ assert.doesNotMatch(nteDetailText,/治疗加成|城区测试技/)
+ assert.equal(nodes(nteDetailRoot,'div').filter(n=>cls(n,'sheet-pieces')).length,1)
+ assert.equal(nodes(nteDetailRoot,'article').filter(n=>cls(n,'sheet-piece')).length,2)
+ assert.equal(nodes(nteDetailRoot,'div').filter(n=>cls(n,'piece-title')).length,2)
+ assert.equal(nodes(nteDetailRoot,'div').filter(n=>cls(n,'rd-stat-row')&&cls(n,'stat-effective')).length,3)
+ assert.equal(nodes(nteDetailRoot,'div').filter(n=>cls(n,'rd-stat-row')&&cls(n,'stat-ineffective')).length,1)
 })
 
 test('QQ cross-game pages: calendar, upcoming, guide and help text is never smaller than 17px',()=>{
@@ -312,4 +392,220 @@ test('the Wuwa overview reads the profile counters Kuro nests under extra.profil
  const text=content(mount(t,Sheet,{input}))
  for(const value of ['553','640','831','243','53','598','271','88','41','Lv.8','Lv.80'])assert.ok(text.includes(value),value)
  assert.doesNotMatch(text,/534/)
+})
+
+test('Stage 2 data sheets: LabRoot routes all 13 capabilities and preserves DOM/selector contracts',async t=>{
+ const read=name=>readFileSync(new URL('./qq-image/'+name,import.meta.url),'utf8')
+ const lab=read('LabRoot.vue')
+ assert.match(lab,/<WuwaDataSheet v-else-if="isWuwaData"/)
+ assert.match(lab,/<NteDataSheet v-else-if="isNteData"/)
+ assert.match(lab,/<EndfieldDataSheet v-else-if="isEndfieldData"/)
+ const rawOvCss=read('overview-system.css')
+ assert.doesNotMatch(rawOvCss,/radial-gradient/)
+ const ovCss=rawOvCss.replace(/\/\*[\s\S]*?\*\//g,'')
+ const sizes=[...ovCss.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
+ assert.ok(sizes.length&&sizes.every(size=>size>=17),'overview-system.css sizes >= 17px: '+sizes)
+
+ const wrap=(game,provider,capability,payload,command)=>({
+  command,origin:'',
+  snapshot:{kind:'game_snapshot',game,as_of:'2026-10-21T12:00:00+08:00',title:command,
+   display_data:{panels:[{game,provider,capability,snapshot:{fetched_at:'2026-10-21T12:00:00+08:00',state:'ok',complete:true,stale:false,payload}}],notices:['阶段二示例提示']}}
+ })
+
+ // WuWa 4 caps
+ const WuwaData=await loadVue(new URL('./qq-image/WuwaDataSheet.vue',import.meta.url))
+ configure([],{})
+ const wExplore=mount(t,WuwaData,{input:wrap('wuthering_waves','kuro','exploration',{
+  country_groups:[{name:'瑝珑',progress:96.5,areas:[{name:'今州城',progress:100},{name:'怨鸟泽',progress:92}]}],
+  detections:{total:240,by_level:{轻波级:90,巨浪级:80,怒涛级:50,海啸级:20}}
+ },'鸣潮 探索')})
+ for(const s of ['瑝珑','96.5%','今州城','240 只','轻波级'])assert.ok(content(wExplore).includes(s),s)
+
+ const wProgress=mount(t,WuwaData,{input:wrap('wuthering_waves','kuro','progress',[
+  {name:'活跃度',cur:100,total:100,refresh_at:'2026-10-22T04:00:00+08:00'},
+  {name:'千道门扉',cur:3200,total:6000}
+ ],'鸣潮 进度')})
+ for(const s of ['活跃度','已完成','千道门扉','3,200'])assert.ok(content(wProgress).includes(s),s)
+
+ const wRes=mount(t,WuwaData,{input:wrap('wuthering_waves','kuro','resources',{
+  current:{kind:'month',period:'202610',data:{total_star:5840,total_coin:1850000,star_inc:'+18%',coin_inc:'-6%',
+   star_list:[{type:'活动奖励',num:2600}],coin_list:[{type:'索拉里斯探索',num:900000}],copy_writing:'当期稳步增长'}},
+  periods:{month:[{period:'202610',title:'2026 年 10 月'}]}
+ },'鸣潮 资源')})
+ for(const s of ['2026 年 10 月','5,840','环比 +18%','活动奖励','当期稳步增长'])assert.ok(content(wRes).includes(s),s)
+
+ const wCombat=mount(t,WuwaData,{input:wrap('wuthering_waves','kuro','combat',{
+  tower:{data:{is_unlock:true,season_end_at:'2026-11-01T04:00:00+08:00',difficulty_list:[
+   {difficulty:3,difficulty_name:'深境区',tower_area_list:[{area_name:'残响之塔',star:12,max_star:12,floor_list:[{floor:1,star:3,max_star:3,role_list:[{role_id:1205,role_level:90}]}]}]}
+  ]}},
+  hologram:{data:{is_unlock:true,challenge_info:{b1:[{boss_name:'朔雷之鳞',difficulty:6,boss_level:100,pass_time:48,roles:[{role_id:1205}]}]}}},
+  slash:{data:{is_unlock:true,difficulty_list:[{difficulty:2,difficulty_name:'再生海域',all_score:6800,max_score:10000,challenge_list:[{challenge_name:'第一海渊',score:6800,rank:'SS',half_list:[{half_name:'上半场',score:3600,role_list:[{role_id:1205}]}]}]}]}}
+ },'鸣潮 挑战')})
+ const wcText=content(wCombat)
+ for(const s of ['深境区','残响之塔','长离','朔雷之鳞','48 秒','再生海域','6,800','SS'])assert.ok(wcText.includes(s),s)
+ assert.doesNotMatch(wcText,/角色\s*1205/)
+
+ // NTE 5 caps
+ const NteData=await loadVue(new URL('./qq-image/NteDataSheet.vue',import.meta.url))
+ const nProg=mount(t,NteData,{input:wrap('nte','tajiduo','progress',{
+  schema_version:1,completed:269,total:480,gold:53,silver:96,bronze:120,
+  categories:[{id:'1',name:'城市漫游',current:88,total:140},{id:'2',name:'引力Type IV',current:61,total:53},{id:'3',name:'未知分类',current:null,total:30}]
+ },'异环 进度')})
+ assert.equal(nodes(nProg,'div').filter(n=>cls(n,'nte-card')).length,1)
+ assert.equal(nodes(nProg,'ul').filter(n=>cls(n,'categories')).length,1)
+ assert.equal(nodes(nProg,'progress').length,2)
+ assert.equal(nodes(nProg,'span').filter(n=>cls(n,'target-met')).length,1)
+
+ const nHouse=mount(t,NteData,{input:wrap('nte','tajiduo','realestate',{
+  schema_version:1,owned_count:1,total:3,entries:[
+   {id:'bigword_house_1',name:'合成公寓',owned:true,resident_ids:['1019'],furniture:[{id:'f1',name:'椅子',owned:true}]},
+   {id:'bigword_house_2',name:'未拥有公馆',owned:false,resident_ids:[],furniture:[]},
+   {id:'bigword_house_3',name:'合成空馆',owned:null,resident_ids:[],furniture:[]}
+  ]
+ },'异环 房产')})
+ assert.equal(nodes(nHouse,'div').filter(n=>cls(n,'asset-grid')).length,1)
+ assert.equal(nodes(nHouse,'article').filter(n=>cls(n,'asset')).length,2)
+ assert.equal(nodes(nHouse,'span').filter(n=>cls(n,'asset-cover')).length,2)
+ assert.equal(nodes(nHouse,'strong').filter(n=>cls(n,'asset-name')).length,2)
+ assert.ok(!content(nHouse).includes('未拥有公馆'))
+ assert.ok(content(nHouse).includes('薄荷'))
+
+ const nVeh=mount(t,NteData,{input:wrap('nte','tajiduo','vehicles',{
+  schema_version:1,owned_count:1,total:2,show_id:'vehicle001',
+  entries:[{id:'vehicle001',name:'极光超跑',owned:true,base:[{name:'极速',value:'267 km/h'}],advanced:[{name:'耐久',value:80,maximum:100}],models:[{type:'evmt_tyre'}]}]
+ },'异环 车辆')})
+ for(const s of ['极光超跑','展示载具','267 km/h','80 / 100','轮胎'])assert.ok(content(nVeh).includes(s),s)
+
+ const nTeams=mount(t,NteData,{input:wrap('nte','public','teams',{
+  schema_version:1,entries:[
+   {name:'主角·零',description:'推荐阵容说明',image_urls:['https://webstatic.tajiduo.com/peidui-1.png']},
+   {name:'主角·零',description:'重复名称跳过',image_urls:['https://webstatic.tajiduo.com/peidui-2.png']}
+  ]
+ },'异环 队伍')})
+ assert.ok(content(nTeams).includes('推荐阵容说明'))
+ assert.ok(!content(nTeams).includes('重复名称跳过'))
+
+ // Endfield 4 caps
+ const EfData=await loadVue(new URL('./qq-image/EndfieldDataSheet.vue',import.meta.url))
+ const efExplore=mount(t,EfData,{input:wrap('endfield','skland','exploration',{report:{schema_version:1,regions:{summary:{region_count:2,settlement_count:1},items:[
+  {id:'r1',name:'四号谷地',level:12,money:{count:500,total:1000},settlements:[{name:'枢纽区据点',level:4}],areas:[{id:'a1',name:'谷地通道',collections:[
+   {key:'chests',label:'宝箱',current:10,total:20},{key:'puzzles',label:'醚质',current:0,total:8},{key:'blackboxes',label:'协议采录桩',current:null,total:null},
+   {key:'equipment_chests',label:'装备制造模板',current:4,total:4},{key:'pieces',label:'维修灵感点',current:2,total:2}]}]},
+  {id:'r2',name:'武陵',level:5,areas:[]}
+ ]}}},'终末地 探索')})
+ const regNodes=nodes(efExplore,'section').filter(n=>cls(n,'ef-region'))
+ assert.equal(regNodes.length,2)
+ assert.deepEqual(regNodes.map(r=>nodes(r,'li').length),[5,0])
+ assert.equal(nodes(efExplore,'section').filter(n=>cls(n,'ef-settlement')).length,0)
+ for(const s of ['四号谷地','武陵','地区数 2','宝箱','醚质'])assert.ok(content(efExplore).includes(s),s)
+ assert.ok(!content(efExplore).includes('枢纽区据点')&&!content(efExplore).includes('剩余'))
+
+ const efShip=mount(t,EfData,{input:wrap('endfield','skland','ship',{report:{schema_version:1,ship:{summary:{room_count:1,staffed_rooms:1,operator_slots:2},rooms:[
+  {id:'rm1',name:'制造舱',level:3,operators:[{id:'c1',name:'佩丽卡',mood_percent:0,trust_percent:120,trust_level_name:'亲近'},{id:'c2',name:'陈千语',mood_percent:null,trust_percent:null}]}
+ ]}}},'终末地 帝江号')})
+ assert.ok(content(efShip).includes('0%')&&content(efShip).includes('未知'))
+ assert.ok(nodes(efShip,'span').filter(n=>cls(n,'unknown-meter')).length>=2)
+
+ const efHonor=mount(t,EfData,{input:wrap('endfield','skland','honor',{report:{schema_version:1,honor:{available:true,summary:{declared_count:34,listed_count:34},items:
+  Array.from({length:34},(_,i)=>({id:`m${i}`,name:`奖章${i}`,category:`类别${Math.floor(i/2)}`,is_plated:i===0}))
+ }}},'终末地 光荣之路')})
+ assert.ok(content(efHonor).includes('奖章0')&&content(efHonor).includes('奖章33')&&!content(efHonor).includes('类别16'))
+
+ const efCombat=mount(t,EfData,{input:wrap('endfield','skland','combat',{reports:[
+  {schema_version:1,kind:'war',available:true,supported:true,stale:false,fetched_at:'2026-10-14T01:30:00Z',summary:{listed_count:1},records:[{id:'s1',name:'合成赛季',stars:9,weeks:[{name:'第一周',stars:9,groups:[]}]}],honors:[{name:'合成荣誉',stars:9,first_pass_at:'2026-10-14T02:00:00Z'}]},
+  {schema_version:1,kind:'monument',available:true,supported:true,stale:true,fetched_at:'2026-10-14T02:30:00Z',summary:{listed_count:1},records:[{id:'m1',name:'合成丰碑',groups:[]}]},
+  {schema_version:1,kind:'crisis',available:true,supported:true,stale:false,fetched_at:'2026-10-14T03:30:00Z',summary:{listed_count:1,highest:0,challenge_count:null},records:[{id:'c1',result:0,passed:false}]}
+ ]},'终末地 挑战')})
+ const efCombatText=content(efCombat)
+ for(const s of ['战争观测时间','丰碑观测时间','危机观测时间','2026-10-14 09:30','2026-10-14 10:30','2026-10-14 11:30','已有资料待更新','战争 · 挑战记录','合成赛季','已有荣誉'])assert.ok(efCombatText.includes(s),s)
+})
+
+test('Stage 3 overview system: gacha (3 games), events/calendar, guide and notice sheets preserve all contracts',async t=>{
+ const {shellMeta}=await import('./qq-image/shell-meta.js')
+ const read=name=>readFileSync(new URL('./qq-image/'+name,import.meta.url),'utf8')
+ const lab=read('LabRoot.vue')
+ for(const tag of ['WuwaGachaSheet','NteGachaSheet','EndfieldGachaSheet','EventCalendarSheet','GuideSheet','NoticeSheet']){
+  assert.match(lab,new RegExp(`<${tag} v-else-if=`))
+ }
+ const rawOvCss=read('overview-system.css')
+ assert.doesNotMatch(rawOvCss,/radial-gradient/)
+ const ovCss=rawOvCss.replace(/\/\*[\s\S]*?\*\//g,'')
+ const sizes=[...ovCss.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
+ assert.ok(sizes.length&&sizes.every(size=>size>=17),'overview-system.css sizes >= 17px: '+sizes)
+
+ // 1. WuWa Gacha
+ const WuwaGachaSheet=await loadVue(new URL('./qq-image/WuwaGachaSheet.vue',import.meta.url))
+ configure([],{})
+ const wuwaGachaInput={command:'鸣潮 抽卡',origin:'',snapshot:{kind:'wuwa_gacha',game:'wuthering_waves',as_of:'2026-10-21T12:00:00+08:00',title:'鸣潮 · 抽卡档案',
+  display_data:{archive:{state:'ok',total:155,gold_total:2,coverage:{complete:true,source:'official_query',earliest:'2026-09-01T10:00:00+08:00',latest:'2026-10-20T22:00:00+08:00',imported_at:'2026-10-21T11:30:00+08:00'},
+   pools:[{pool:'1',name:'角色活动唤取',total:125,pity:{count:25,status:'exact',hard_pity_remaining:55},rarity_distribution:{5:2,4:15,3:108}},{pool:'2',name:'武器活动唤取',total:30,pity:{count:30,status:'lower_bound'},rarity_distribution:{4:4,3:26}}],
+   aggregates:{total:1,items:[{name:'今汐',pool:'1',kind:'gold_period',period_count:68}]},
+   gold:[{draw_id:'d1',time:'2026-10-12T20:10:00+08:00',pool:'1',name:'长离',rarity:5,resource_type:'角色',count:1}],
+   items:[{draw_id:'d1',time:'2026-10-12T20:10:00+08:00',pool:'1',name:'长离',rarity:5,resource_type:'角色',count:1}]}}}}
+ const wuwaGachaRoot=mount(t,WuwaGachaSheet,{input:wuwaGachaInput})
+ const wgText=content(wuwaGachaRoot)
+ for(const s of ['155','角色活动唤取','当前垫抽 25','距上限 55 抽','今汐','68 抽','长离'])assert.ok(wgText.includes(s),s)
+
+ // 2. NTE Gacha (+ .cloud-gacha .bar-track / .bar-values contract + Ledger)
+ const NteGachaSheet=await loadVue(new URL('./qq-image/NteGachaSheet.vue',import.meta.url))
+ const nteGachaInput={command:'异环 抽卡',origin:'',snapshot:{kind:'nte_gacha',game:'nte',as_of:'2026-10-21T12:00:00+08:00',title:'异环 · 抽卡统计与账本',
+  display_data:{snapshot:{fetched_at:'2026-10-21T11:50:00+08:00',state:'ok',stale:false,payload:{schema_version:1,luck_title:'欧气满满',luck_type:2,pools:[{name:'限定角色',total_draws:120,s_count:2,average:60.0,guarantee:90,details:[{item_id:'9001',name:'合成角色甲',pity:32,lucky_type:1,obtained_at:'2026-10-12T20:01:00+08:00'}]}]}},
+   ledger:{total_records:12,pools:[{pool_id:'Lottery_LimitedCharacter',total_pulls:12,pity:{status:'exact',count:12,hard_pity_remaining:78,rule_basis:'user_configured'}}],records:[{uid:'u1',pool_group_id:'Lottery_LimitedCharacter',reward_name:'早雾',reward_rank:'S',quantity:1,result_type:'single_pull',timestamp:'2026-10-12T20:01:00+08:00'}]},roles:[]}}}
+ const nteGachaRoot=mount(t,NteGachaSheet,{input:nteGachaInput})
+ assert.equal(nodes(nteGachaRoot,'div').filter(n=>cls(n,'cloud-gacha')).length,1)
+ assert.equal(nodes(nteGachaRoot,'div').filter(n=>cls(n,'bar-track')).length,1)
+ assert.equal(nodes(nteGachaRoot,'div').filter(n=>cls(n,'bar-values')).length,1)
+ const ngText=content(nteGachaRoot)
+ for(const s of ['欧气满满','限定角色','合成角色甲','32','超欧','本人逐抽账本','12 抽','早雾'])assert.ok(ngText.includes(s),s)
+
+ // 3. Endfield Gacha (preserves .endfield-gacha / .pool-detail .detail-head h3 / .pull-row / .pull-value + separate kinds)
+ const EndfieldGachaSheet=await loadVue(new URL('./qq-image/EndfieldGachaSheet.vue',import.meta.url))
+ const efGachaInput={command:'终末地 寻访战报',origin:'',snapshot:{kind:'game_snapshot',game:'endfield',as_of:'2026-10-21T12:00:00+08:00',title:'终末地 · 寻访战报',
+  display_data:{panels:[{game:'endfield',provider:'hypergryph',capability:'gacha',snapshot:{fetched_at:'2026-10-21T11:45:00+08:00',state:'ok',complete:true,stale:false,
+   payload:{schema_version:1,complete:true,report:{schema_version:1,pools:[
+    {key:'pool-0',label:'合成池0',kind:'character',total:150,six_star:3,five_star:15,four_star:132,unknown_rarity:0,since_last_six:{status:'exact',count:12},
+     history:[{name:'伊冯',pulls:58,status:'exact',obtained_at:1760300000000},{name:'佩丽卡',pulls:61,status:'lower_bound',obtained_at:1760200000000},{name:'余烬',pulls:0,status:'lower_bound',obtained_at:1760100000000}]},
+    {key:'pool-w',label:'兵器库甲',kind:'weapon',total:40,six_star:1,five_star:6,four_star:33,unknown_rarity:0,since_last_six:{status:'exact',count:5},history:[{name:'熔铸剑',pulls:35,status:'exact',obtained_at:1760250000000}]}
+   ]}}}}]}}}
+ const efGachaRoot=mount(t,EndfieldGachaSheet,{input:efGachaInput})
+ assert.equal(nodes(efGachaRoot,'section').filter(n=>cls(n,'endfield-gacha')).length,1)
+ const h3Texts=nodes(efGachaRoot,'article').filter(n=>cls(n,'pool-detail')).map(card=>content(nodes(card,'h3')[0]))
+ assert.deepEqual(h3Texts,['合成池0','武器申领'])
+ const pullVals=nodes(efGachaRoot,'span').filter(n=>cls(n,'pull-value')).map(n=>content(n).replace(/\s+/g,''))
+ assert.deepEqual(pullVals,['58抽','≥61抽','抽数未知','35抽'])
+ const efMeta=shellMeta(efGachaInput,viewModel(efGachaInput))
+ // Operator headhunting (150) and weapon requisition (40) are never summed into 190.
+ assert.deepEqual(efMeta.heroStats.map(s=>[s.label,s.value]),[['干员寻访','150'],['武器申领','40'],['统计卡池','2']])
+ assert.doesNotMatch(content(efGachaRoot),/本图卡池|内容已省略/)
+
+ // 4. EventCalendarSheet (calendar + recent_events)
+ const EventCalendarSheet=await loadVue(new URL('./qq-image/EventCalendarSheet.vue',import.meta.url))
+ const calInput=calendarInput([{name:'版本大活动',category:'限时活动',start_at:'2026-10-01T10:00:00+08:00',end_at:'2026-11-20T10:00:00+08:00'}],'1.4')
+ const calModel=viewModel(calInput)
+ const calRoot=mount(t,EventCalendarSheet,{input:calInput,model:calModel})
+ assert.ok(content(calRoot).includes('异环 · 1.4 版本'))
+ assert.ok(nodes(calRoot,'section').some(n=>cls(n,'ov-cal-group')&&n.props['data-skin']==='nte'))
+ const upInput=recentInput('all',[['nte',[{name:'新版本开启',category:'版本活动',start_at:'2026-10-22T10:00:00+08:00',end_at:'2026-11-22T10:00:00+08:00'}]],['endfield',[]]])
+ const upRoot=mount(t,EventCalendarSheet,{input:upInput,model:viewModel(upInput)})
+ assert.ok(content(upRoot).includes('新版本开启')&&content(upRoot).includes('异环'))
+
+ // 5. GuideSheet (.guide-role-context > div without portrait)
+ const GuideSheet=await loadVue(new URL('./qq-image/GuideSheet.vue',import.meta.url))
+ const guideInput={command:'异环 攻略 主角·零',origin:'',snapshot:{kind:'guide',game:'nte',as_of:'2026-10-21T12:00:00+08:00',title:'异环 · 主角·零攻略',
+  display_data:{guide:{id:'1001',name:'主角·零',element:'光',role:'主C',freshness:{mark:null,lines:['攻略检查于 2026-10-21 12:00']},sections:[{key:'weapons',title:'弧盘推荐',text:'推荐弧盘示例'}],sources:[{id:'1',title:'攻略来源帖',author:'作者A',version:'1.0',url:'https://www.tajiduo.com/bbs/index.html#/post?postId=1'}]}}}}
+ const guideRoot=mount(t,GuideSheet,{input:guideInput,model:viewModel(guideInput)})
+ const roleCtx=nodes(guideRoot,'div').find(n=>cls(n,'guide-role-context'))
+ assert.ok(roleCtx&&!cls(roleCtx,'has-portrait'))
+ assert.equal(nodes(roleCtx,'img').length,0)
+ assert.ok(content(guideRoot).includes('主角·零')&&content(guideRoot).includes('攻略状态')&&content(guideRoot).includes('攻略来源帖'))
+
+ // 6. NoticeSheet (Endfield guide context + retired command + unbound notice)
+ const NoticeSheet=await loadVue(new URL('./qq-image/NoticeSheet.vue',import.meta.url))
+ const efNoticeInput={command:'终末地 攻略',origin:'',snapshot:{kind:'notice',game:'endfield',as_of:'2026-10-22T08:00:00+08:00',title:'终末地 角色攻略',display_data:{title:'终末地 角色攻略',sections:[],notices:['暂未收录可核验的终末地角色攻略；可在 B 站搜索 猫冬MT「终末地攻略合集」。']}}}
+ const efNoticeRoot=mount(t,NoticeSheet,{input:efNoticeInput,model:viewModel(efNoticeInput)})
+ assert.ok(content(efNoticeRoot).includes('猫冬MT')&&content(efNoticeRoot).includes('角色资料已收录'))
+ assert.doesNotMatch(content(efNoticeRoot),/https?:/)
+ const genNoticeInput={command:'绑定',origin:'',snapshot:{kind:'notice',game:'all',as_of:'2026-10-22T08:00:00+08:00',title:'当前群尚未绑定',display_data:{title:'当前群尚未绑定',sections:[{title:'绑定步骤',items:['登录看板：前往云端网站生成绑定码']}],notices:['请在当前群发送 绑定 你的绑定码。']}}}
+ const genNoticeRoot=mount(t,NoticeSheet,{input:genNoticeInput,model:viewModel(genNoticeInput)})
+ assert.ok(content(genNoticeRoot).includes('前往云端网站生成绑定码')&&content(genNoticeRoot).includes('绑定 你的绑定码'))
 })

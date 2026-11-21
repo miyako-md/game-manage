@@ -125,7 +125,8 @@ const chainCount = computed(() => Math.max(1, Math.min(chains.value.length, 6)))
 .lab-sheet #render-content .wuwa-role-sheet{display:grid;gap:18px;color:var(--skin-ink,var(--text))}
 .lab-sheet #render-content .wuwa-role-sheet p,.lab-sheet #render-content .wuwa-role-sheet dl,.lab-sheet #render-content .wuwa-role-sheet dd,.lab-sheet #render-content .wuwa-role-sheet figure{margin:0}
 .lab-sheet #render-content .sheet-card{min-width:0;padding:20px 22px;border-radius:var(--skin-radius-card,20px);background:var(--skin-surface,var(--card-bg));box-shadow:inset 0 0 0 1px var(--skin-line,var(--border))}
-.lab-sheet #render-content .sheet-title{display:flex;align-items:baseline;gap:12px;margin:0 0 14px}
+.lab-sheet #render-content .sheet-title{display:flex;align-items:baseline;gap:12px;margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--skin-line,var(--border));color:var(--skin-ink,var(--text));letter-spacing:.04em!important}
+.lab-sheet #render-content .sheet-title::before{content:'◇';color:var(--skin-accent);font-size:18px!important;line-height:1!important}
 .lab-sheet #render-content .sheet-meta{color:var(--skin-muted);font-size:var(--qq-min-text,17px)!important;font-weight:500}
 .lab-sheet #render-content .sheet-muted{color:var(--skin-muted)}
 

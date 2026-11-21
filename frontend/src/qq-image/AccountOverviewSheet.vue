@@ -1,11 +1,10 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { asset, display, roleIdentity, viewModel } from './models.js'
-import wuwaIcons from '../wuwa-icon-catalog.js'
-import nteIcons from '../nte-icon-catalog.js'
-import endfieldIcons from '../endfield-icon-catalog.js'
+import { display, viewModel } from './models.js'
+import { GAME_LABELS, buildEndfieldRoleCard, buildNteRoleCard, buildWuwaRoleCard } from './role-meta.js'
 import { skinOf } from '../game-themes.js'
 import { newestFirst } from '../role-order.js'
+import OverviewRoleCard from './OverviewRoleCard.vue'
 
 const props = defineProps({ input: Object })
 const model = computed(() => viewModel(props.input))
@@ -14,152 +13,6 @@ const model = computed(() => viewModel(props.input))
 const failedImages = ref(new Set())
 const shown = url => !!url && !failedImages.value.has(url)
 const imageFailed = url => { failedImages.value = new Set([...failedImages.value, url]) }
-
-const GAME_LABELS = {
-  wuthering_waves: '鸣潮',
-  nte: '异环',
-  endfield: '终末地',
-}
-
-const WUWA_CHAR_META = {
-  '散华': { star: 4, attr: '冷凝', weapon: '迅刀' },
-  '白芷': { star: 4, attr: '冷凝', weapon: '音感仪' },
-  '凌阳': { star: 5, attr: '冷凝', weapon: '臂铠' },
-  '折枝': { star: 5, attr: '冷凝', weapon: '音感仪' },
-  '釉瑚': { star: 4, attr: '冷凝', weapon: '臂铠' },
-  '珂莱塔': { star: 5, attr: '冷凝', weapon: '佩枪' },
-  '绯雪': { star: 5, attr: '冷凝', weapon: '迅刀' },
-  '洛瑟菈': { star: 5, attr: '冷凝', weapon: '音感仪' },
-  '穗穗': { star: 4, attr: '冷凝', weapon: '佩枪' },
-  '炽霞': { star: 4, attr: '热熔', weapon: '佩枪' },
-  '安可': { star: 5, attr: '热熔', weapon: '音感仪' },
-  '莫特斐': { star: 4, attr: '热熔', weapon: '佩枪' },
-  '长离': { star: 5, attr: '热熔', weapon: '迅刀' },
-  '露帕': { star: 5, attr: '热熔', weapon: '长刃' },
-  '莫宁': { star: 5, attr: '热熔', weapon: '长刃' },
-  '爱弥斯': { star: 5, attr: '热熔', weapon: '迅刀' },
-  '达妮娅': { star: 4, attr: '热熔', weapon: '音感仪' },
-  '卡卡罗': { star: 5, attr: '导电', weapon: '长刃' },
-  '渊武': { star: 4, attr: '导电', weapon: '臂铠' },
-  '今汐': { star: 5, attr: '衍射', weapon: '长刃' },
-  '相里要': { star: 5, attr: '导电', weapon: '臂铠' },
-  '吟霖': { star: 5, attr: '导电', weapon: '音感仪' },
-  '卜灵': { star: 4, attr: '导电', weapon: '音感仪' },
-  '丽贝卡': { star: 5, attr: '导电', weapon: '佩枪' },
-  '奥古斯塔': { star: 5, attr: '导电', weapon: '长刃' },
-  '秧秧': { star: 4, attr: '气动', weapon: '迅刀' },
-  '秋水': { star: 4, attr: '气动', weapon: '佩枪' },
-  '忌炎': { star: 5, attr: '气动', weapon: '长刃' },
-  '鉴心': { star: 5, attr: '气动', weapon: '臂铠' },
-  '夏空': { star: 5, attr: '气动', weapon: '佩枪' },
-  '漂泊者·气动': { star: 5, attr: '气动', weapon: '迅刀' },
-  '卡提希娅': { star: 5, attr: '气动', weapon: '迅刀' },
-  '尤诺': { star: 5, attr: '气动', weapon: '臂铠' },
-  '仇远': { star: 5, attr: '气动', weapon: '迅刀' },
-  '清宵': { star: 5, attr: '气动', weapon: '长刃' },
-  '维里奈': { star: 5, attr: '衍射', weapon: '音感仪' },
-  '灯灯': { star: 4, attr: '衍射', weapon: '长刃' },
-  '守岸人': { star: 5, attr: '衍射', weapon: '音感仪' },
-  '菲比': { star: 5, attr: '衍射', weapon: '音感仪' },
-  '赞妮': { star: 5, attr: '衍射', weapon: '臂铠' },
-  '千咲': { star: 5, attr: '湮灭', weapon: '长刃' },
-  '琳奈': { star: 5, attr: '衍射', weapon: '佩枪' },
-  '露西': { star: 5, attr: '衍射', weapon: '佩枪' },
-  '陆·赫斯': { star: 5, attr: '衍射', weapon: '臂铠' },
-  '西格莉卡': { star: 5, attr: '气动', weapon: '臂铠' },
-  '桃祈': { star: 4, attr: '湮灭', weapon: '长刃' },
-  '丹瑾': { star: 4, attr: '湮灭', weapon: '迅刀' },
-  '椿': { star: 5, attr: '湮灭', weapon: '迅刀' },
-  '洛可可': { star: 5, attr: '湮灭', weapon: '臂铠' },
-  '坎特蕾拉': { star: 5, attr: '湮灭', weapon: '音感仪' },
-  '弗洛洛': { star: 5, attr: '湮灭', weapon: '音感仪' },
-  '嘉贝莉娜': { star: 5, attr: '热熔', weapon: '佩枪' },
-  '布兰特': { star: 5, attr: '热熔', weapon: '迅刀' },
-  '秧秧·玄翎': { star: 5, attr: '湮灭', weapon: '迅刀' },
-  '漂泊者': { star: 5, attr: '衍射', weapon: '迅刀' },
-  '漂泊者·衍射': { star: 5, attr: '衍射', weapon: '迅刀' },
-  '漂泊者·湮灭': { star: 5, attr: '湮灭', weapon: '迅刀' },
-}
-
-const CHAIN_NAMES = ['零链', '一链', '二链', '三链', '四链', '五链', '六链']
-const AWAKEN_NAMES = ['零觉', '一觉', '二觉', '三觉', '四觉', '五觉', '六觉']
-
-function chainLabel(game, num) {
-  const n = Math.max(0, Math.min(6, Number(num) || 0))
-  if (game === 'wuthering_waves') return CHAIN_NAMES[n]
-  if (game === 'nte') return AWAKEN_NAMES[n]
-  return `潜能${n}`
-}
-
-function chainClass(num) {
-  const n = Number(num) || 0
-  if (n >= 6) return 'chain-max'
-  if (n >= 3) return 'chain-mid'
-  if (n >= 1) return 'chain-low'
-  return 'chain-zero'
-}
-
-function attrByCharId(id) {
-  const s = String(id || '')
-  if (s === '1304') return '衍射'
-  if (s.startsWith('11')) return '冷凝'
-  if (s.startsWith('12')) return '热熔'
-  if (s.startsWith('13')) return '导电'
-  if (s.startsWith('14')) return '气动'
-  if (s.startsWith('15')) return '衍射'
-  if (s.startsWith('16')) return '湮灭'
-  return ''
-}
-
-function resolveWuwaIcon(name, id, rawUrl) {
-  const direct = asset(rawUrl)
-  if (direct) return direct
-  const byChar = wuwaIcons.characters?.[String(id)]?.icon
-  if (asset(byChar)) return asset(byChar)
-  const clean = String(name || '').replace(/（.*?）$/, '')
-  const byRole = wuwaIcons.roles?.[clean]?.icon || wuwaIcons.roles?.[name]?.icon
-  if (asset(byRole)) return asset(byRole)
-  return ''
-}
-
-function resolveNteIcon(name, id, rawUrl) {
-  const direct = asset(rawUrl)
-  if (direct) return direct
-  const byName = nteIcons.roles?.[name]?.icon
-  if (asset(byName)) return asset(byName)
-  const found = Object.values(nteIcons.roles || {}).find(r => String(r.id) === String(id))
-  if (found && asset(found.icon)) return asset(found.icon)
-  return ''
-}
-
-function resolveEndfieldIcon(name, rawUrl) {
-  const direct = asset(rawUrl)
-  if (direct) return direct
-  const found = Object.values(endfieldIcons.roles || {}).find(r => r.name === name)
-  if (found && asset(found.icon)) return asset(found.icon)
-  return ''
-}
-
-function normalizeElementKey(attr) {
-  const s = String(attr || '')
-  if (/衍射|光/.test(s)) return 'spectro'
-  if (/湮灭|暗/.test(s)) return 'havoc'
-  if (/导电|电磁/.test(s)) return 'electro'
-  if (/热熔|灼热|咒/.test(s)) return 'fusion'
-  if (/冷凝|寒冷|魂/.test(s)) return 'glacio'
-  if (/气动|自然|灵/.test(s)) return 'aero'
-  if (/相|物理/.test(s)) return 'physical'
-  return 'spectro'
-}
-
-function normalizeWeaponKey(weaponType) {
-  const s = String(weaponType || '')
-  if (/长刃|重装|近卫/.test(s)) return 'broadblade'
-  if (/佩枪|狙击|特种/.test(s)) return 'pistols'
-  if (/臂铠|先锋/.test(s)) return 'gauntlets'
-  if (/音感仪|术师|辅助|医疗|弧盘/.test(s)) return 'rectifier'
-  return 'sword'
-}
 
 const gameBlocks = computed(() => {
   const panels = props.input?.snapshot?.display_data?.panels || []
@@ -198,36 +51,7 @@ const gameBlocks = computed(() => {
             : []
 
       // The service already sends the six newest; the same order and cut keep any other input bounded.
-      const roles = [...rawRoles].sort(newestFirst('wuthering_waves')).slice(0, 6).map(r => {
-        const ident = roleIdentity('wuthering_waves', r)
-        const name = ident.name || r.role_name || r.name || '共鸣者'
-        const cleanName = name.replace(/（.*?）$/, '')
-        const meta = WUWA_CHAR_META[name] || WUWA_CHAR_META[cleanName] || {}
-        const id = r.role_id ?? r.id
-        const star = Number(r.star_level ?? r.quality ?? meta.star ?? 5)
-        const attr = r.attribute || r.attribute_name || r.element || meta.attr || attrByCharId(id) || '衍射'
-        const weaponType = r.weapon_type_name || meta.weapon || '迅刀'
-        const chain = r.chain ?? r.chain_unlock_num ?? r.extra?.chain_unlock_num ?? 0
-        const level = r.level ?? r.role_level
-        const image = resolveWuwaIcon(name, id, r.role_icon_url || r.icon_url || ident.icon)
-        const weaponIcon = asset(r.weapon_icon || r.weapon?.weapon_icon || wuwaIcons.weapons?.[r.weapon_name]?.icon)
-        return {
-          id: String(id || name),
-          name,
-          level,
-          star,
-          isGold: star >= 5,
-          attr,
-          elemKey: normalizeElementKey(attr),
-          weaponType,
-          weaponKey: normalizeWeaponKey(weaponType),
-          weaponIcon,
-          chain,
-          chainText: chainLabel('wuthering_waves', chain),
-          chainCls: chainClass(chain),
-          image,
-        }
-      })
+      const roles = [...rawRoles].sort(newestFirst('wuthering_waves')).slice(0, 6).map(r => buildWuwaRoleCard(r))
 
       const goldCount = roles.filter(r => r.isGold).length
       const boxes = Array.isArray(acc.box_list)
@@ -300,7 +124,6 @@ const gameBlocks = computed(() => {
     if (game === 'nte') {
       const acc = findCap('account') || {}
       const stam = findCap('stamina')
-      const gacha = findCap('gacha')
       const rolesPayload = findCap('roles')
       const rawRoles = Array.isArray(rolesPayload)
         ? rolesPayload
@@ -308,34 +131,7 @@ const gameBlocks = computed(() => {
           ? rolesPayload.entries
           : []
 
-      const roles = [...rawRoles].sort(newestFirst('nte')).slice(0, 6).map(r => {
-        const ident = roleIdentity('nte', r)
-        const name = r.name || ident.name || '异能者'
-        const id = r.id ?? r.role_id
-        const quality = String(r.quality || 'S').toUpperCase()
-        const isGold = quality.includes('S') || Number(r.star_level) >= 5
-        const attr = r.element || r.attribute || '光'
-        const chain = r.awaken_level ?? r.chain ?? 0
-        const image = resolveNteIcon(name, id, r.icon_url || ident.icon)
-        const weaponName = r.weapon?.name || r.weapon_name
-        const weaponIcon = asset(r.weapon?.icon_url || nteIcons.weapons?.[weaponName]?.icon)
-        return {
-          id: String(id || name),
-          name,
-          level: r.level,
-          star: isGold ? 5 : 4,
-          isGold,
-          attr,
-          elemKey: normalizeElementKey(attr),
-          weaponType: '弧盘',
-          weaponKey: 'rectifier',
-          weaponIcon,
-          chain,
-          chainText: chainLabel('nte', chain),
-          chainCls: chainClass(chain),
-          image,
-        }
-      })
+      const roles = [...rawRoles].sort(newestFirst('nte')).slice(0, 6).map(r => buildNteRoleCard(r))
 
       const sCount = roles.filter(r => r.isGold).length
       const stats = [
@@ -431,32 +227,7 @@ const gameBlocks = computed(() => {
 
     // Endfield keeps the service's level order; six are shown, counts use the whole roster.
     const roster = Array.isArray(skAcc.operators) && skAcc.operators.length > rawOps.length ? skAcc.operators : rawOps
-    const roles = rawOps.slice(0, 6).map(r => {
-      const name = r.name || '干员'
-      const rarity = Number(r.rarity ?? 6)
-      const isGold = rarity >= 6
-      const attr = r.property || r.profession || '物理'
-      const weaponType = r.profession || '近卫'
-      const potential = r.potential ?? 0
-      const image = resolveEndfieldIcon(name, r.avatar_url || r.icon_url)
-      const weaponIcon = asset(r.weapon?.icon_url || endfieldIcons.weapons?.[r.weapon?.name]?.icon)
-      return {
-        id: String(r.id || r.char_id || name),
-        name,
-        level: r.level,
-        star: isGold ? 5 : 4,
-        isGold,
-        attr,
-        elemKey: normalizeElementKey(attr),
-        weaponType,
-        weaponKey: normalizeWeaponKey(weaponType),
-        weaponIcon,
-        chain: potential,
-        chainText: chainLabel('endfield', potential),
-        chainCls: chainClass(potential),
-        image,
-      }
-    })
+    const roles = rawOps.slice(0, 6).map(r => buildEndfieldRoleCard(r))
 
     const rCounts = training.summary?.rarity_counts || {}
     const sixCount = rCounts['6'] ?? roster.filter(r => Number(r.rarity ?? 6) >= 6).length
@@ -593,7 +364,7 @@ const notices = computed(() => props.input?.snapshot?.display_data?.notices || [
         </div>
       </div>
 
-      <!-- Section 2: 角色信息 (5-Column Character Card Grid) -->
+      <!-- Section 2: 角色信息 (5-Column / 6-Column Character Card Grid) -->
       <div v-if="block.roles.length" class="ao-section">
         <div class="ao-section-head">
           <span class="ao-head-line left"></span>
@@ -606,77 +377,7 @@ const notices = computed(() => props.input?.snapshot?.display_data?.notices || [
         </div>
 
         <div class="ao-role-grid" :class="{ 'is-six-col': block.roles.length === 6 }">
-          <div
-            v-for="role in block.roles"
-            :key="role.id"
-            class="ao-role-card"
-            :class="role.isGold ? 'is-rarity-gold' : 'is-rarity-purple'"
-          >
-            <div class="ao-role-portrait">
-              <img v-if="shown(role.image)" :src="role.image" :alt="role.name" class="ao-role-img" @error="imageFailed(role.image)" />
-              <svg v-else class="ao-role-fallback" viewBox="0 0 120 120" aria-hidden="true">
-                <circle cx="60" cy="52" r="32" fill="rgba(255,255,255,0.04)" stroke="rgba(214,188,138,0.22)" stroke-width="1.2" />
-                <text x="60" y="64" text-anchor="middle" fill="rgba(240,218,172,0.34)" font-size="34" font-weight="800">{{ role.name.slice(0, 1) }}</text>
-              </svg>
-              <div class="ao-rarity-glow"></div>
-
-              <!-- Top-Right Element Badge -->
-              <span class="ao-elem-badge" :class="'elem-' + role.elemKey" :title="role.attr">
-                <svg v-if="role.elemKey === 'spectro'" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 2L14.2 8.8L21 9.5L15.6 13.8L17.5 20.5L12 16.6L6.5 20.5L8.4 13.8L3 9.5L9.8 8.8Z" fill="#ffe17d" />
-                </svg>
-                <svg v-else-if="role.elemKey === 'havoc'" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M14.5 3.5A8.5 8.5 0 1 0 20.5 16.5A7 7 0 1 1 14.5 3.5Z" fill="#ff7aa8" />
-                  <circle cx="15" cy="9" r="2.2" fill="#ffd1e2" />
-                </svg>
-                <svg v-else-if="role.elemKey === 'electro'" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M13.5 2L5.5 13H11.5L10 22L18.5 10.5H12.5L13.5 2Z" fill="#d09bff" />
-                </svg>
-                <svg v-else-if="role.elemKey === 'fusion'" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12.5 2.5C12.5 2.5 18.5 7.5 18.5 13.5C18.5 17.6 15.4 21 11.5 21C7.6 21 5 17.6 5 13.8C5 10.5 7.2 7.8 7.2 7.8C7.2 7.8 7 10.8 9.2 11.5C8.5 8.2 12.5 2.5 12.5 2.5Z" fill="#ff8563" />
-                </svg>
-                <svg v-else-if="role.elemKey === 'glacio'" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z" fill="#7be0ff" />
-                </svg>
-                <svg v-else-if="role.elemKey === 'aero'" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 13C7.5 8 13.5 7 19.5 10C15.5 12.5 11.5 13.5 4 13ZM6 17.5C10 14.5 15 14 20 15.5C16.5 18 11.5 19 6 17.5Z" fill="#6bf2c3" />
-                </svg>
-                <svg v-else viewBox="0 0 24 24" aria-hidden="true">
-                  <polygon points="12,3 21,12 12,21 3,12" fill="#dbe3f0" />
-                </svg>
-              </span>
-
-              <!-- Bottom-Right Weapon Emblem -->
-              <span class="ao-weapon-badge" :title="role.weaponType">
-                <img v-if="role.weaponIcon" :src="role.weaponIcon" :alt="role.weaponType" class="ao-weapon-img" />
-                <svg v-else-if="role.weaponKey === 'broadblade'" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M18 3L21 6L9 18L5 19L6 15L18 3ZM4 20L7 17L9 19L6 22L4 20Z" fill="#e6cfa3" />
-                </svg>
-                <svg v-else-if="role.weaponKey === 'pistols'" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 7H19L21 10L17 12H11L9 18H5L7 12H4V7Z" fill="#e6cfa3" />
-                </svg>
-                <svg v-else-if="role.weaponKey === 'gauntlets'" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M6 8L11 4L18 7L19 15L13 20L6 16Z" fill="#e6cfa3" />
-                </svg>
-                <svg v-else-if="role.weaponKey === 'rectifier'" viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="12" cy="12" r="5" fill="none" stroke="#e6cfa3" stroke-width="2" />
-                  <path d="M12 2V6M12 18V22M2 12H6M18 12H22" stroke="#e6cfa3" stroke-width="2" />
-                </svg>
-                <svg v-else viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M19 3L21 5L8.5 17.5L6.5 15.5L19 3ZM5 17L7 19L4 22L2 20L5 17Z" fill="#e6cfa3" />
-                </svg>
-              </span>
-
-              <!-- Character Name Overlay -->
-              <span class="ao-role-name-tag">{{ role.name }}</span>
-            </div>
-
-            <!-- Card Footer: Chain/Awakening/Potential Pill + Level -->
-            <div class="ao-role-footer">
-              <span class="ao-chain-pill" :class="role.chainCls">{{ role.chainText }}</span>
-              <span class="ao-role-lv">{{ role.level != null ? `LV.${role.level}` : 'LV.—' }}</span>
-            </div>
-          </div>
+          <OverviewRoleCard v-for="role in block.roles" :key="role.id" :role="role" />
         </div>
       </div>
     </section>

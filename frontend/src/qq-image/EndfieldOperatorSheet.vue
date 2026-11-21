@@ -1,0 +1,251 @@
+<script setup>
+import { computed } from 'vue'
+import { displayValue as display, rows, sourceName as named } from '../endfield-reports.js'
+import { displayBeijing } from '../time.js'
+import endfieldIcons from '../endfield-icon-catalog.js'
+import EndfieldArtwork from '../components/EndfieldArtwork.vue'
+import OverviewSectionHead from './OverviewSectionHead.vue'
+import { asset } from './models.js'
+import { normalizeElementKey, normalizeWeaponKey } from './role-meta.js'
+
+const props = defineProps({ input: { type: Object, required: true } })
+
+const panel = computed(() => (props.input?.snapshot?.display_data?.panels || []).find(p => p.capability === 'operator_detail') || null)
+const payload = computed(() => panel.value?.snapshot?.payload || {})
+const operator = computed(() => payload.value.operator_detail || {})
+
+const slotDefinitions = [
+  ['bodyEquip', '护甲'],
+  ['armEquip', '护手'],
+  ['firstAccessory', '配件一'],
+  ['secondAccessory', '配件二'],
+]
+const equipment = computed(() => rows(operator.value.equipment))
+const slots = computed(() => slotDefinitions.map(([id, label]) => ({
+  id,
+  label,
+  item: equipment.value.find(item => item.slot === id) || null,
+})))
+const extraEquipment = computed(() => equipment.value.filter((item, index) =>
+  !slotDefinitions.some(([id]) => id === item.slot) || equipment.value.findIndex(other => other.slot === item.slot) !== index,
+))
+
+const weapon = computed(() => operator.value.weapon || null)
+const weaponIconUrl = computed(() => weapon.value?.icon_url || asset(endfieldIcons.weapons?.[named(weapon.value)]?.icon) || '')
+const gem = computed(() => weapon.value?.gem || null)
+const gemTerms = computed(() => rows(gem.value?.terms))
+const skills = computed(() => rows(operator.value.skills))
+const tactical = computed(() => operator.value.tactical_item || null)
+
+const rarity = computed(() => Number(operator.value.rarity))
+const phase = computed(() => operator.value.evolve_phase ?? operator.value.phase)
+const elemName = computed(() => named(operator.value.property))
+const profName = computed(() => named(operator.value.profession))
+const elemKey = computed(() => normalizeElementKey(elemName.value))
+const weaponKey = computed(() => normalizeWeaponKey(profName.value))
+
+const obtainedText = computed(() => {
+  const v = operator.value.obtained_at
+  return v == null || v === '' ? '未知' : displayBeijing(v)
+})
+
+const facts = computed(() => [
+  ['职业', profName.value],
+  ['属性', elemName.value],
+  ['潜能', display(operator.value.potential)],
+  ['精英阶段', display(phase.value)],
+  ['获得时间', obtainedText.value],
+].filter(([, v]) => v && v !== '未知'))
+
+const cleanEffect = value => (typeof value === 'string' && value.trim()
+  ? value.trim().replace(/<@(ba\.vup|tips\.purple|tips\.orange)>([^<>]*)<\/>/g, '$2')
+  : null)
+const tacticalActive = computed(() => cleanEffect(tactical.value?.active_effect))
+const tacticalPassive = computed(() => cleanEffect(tactical.value?.passive_effect))
+const skillCols = computed(() => Math.max(1, Math.min(skills.value.length || 1, 4)))
+</script>
+<template>
+  <div class="ov-ef-operator rd-sheet">
+    <!-- Hero Card: Left Tall Portrait Showcase + Right Industrial Facts & Embedded Weapon/Gem -->
+    <section class="rd-hero ef-op-hero" data-render-block>
+      <div class="rd-portrait-card ef-portrait-card">
+        <div class="ef-op-portrait-stage">
+          <EndfieldArtwork
+            class="ef-op-portrait"
+            role
+            portrait
+            :operator-id="operator.char_id || operator.id"
+            :src="operator.avatar_url"
+            :name="operator.name || '干员'"
+          />
+        </div>
+
+        <div class="rd-top-left">
+          <span v-if="Number.isFinite(rarity)" class="ef-op-rarity" :data-tier="rarity >= 6 ? 'top' : undefined">{{ rarity }}★</span>
+        </div>
+
+        <div class="rd-top-right">
+          <span v-if="elemName !== '未知'" class="ao-elem-badge rd-badge-circle" :class="'elem-' + elemKey" :title="elemName">
+            <svg v-if="elemKey === 'spectro'" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2L14.2 8.8L21 9.5L15.6 13.8L17.5 20.5L12 16.6L6.5 20.5L8.4 13.8L3 9.5L9.8 8.8Z" fill="#ffe17d" />
+            </svg>
+            <svg v-else-if="elemKey === 'havoc'" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14.5 3.5A8.5 8.5 0 1 0 20.5 16.5A7 7 0 1 1 14.5 3.5Z" fill="#ff7aa8" />
+              <circle cx="15" cy="9" r="2.2" fill="#ffd1e2" />
+            </svg>
+            <svg v-else-if="elemKey === 'electro'" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13.5 2L5.5 13H11.5L10 22L18.5 10.5H12.5L13.5 2Z" fill="#d09bff" />
+            </svg>
+            <svg v-else-if="elemKey === 'fusion'" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12.5 2.5C12.5 2.5 18.5 7.5 18.5 13.5C18.5 17.6 15.4 21 11.5 21C7.6 21 5 17.6 5 13.8C5 10.5 7.2 7.8 7.2 7.8C7.2 7.8 7 10.8 9.2 11.5C8.5 8.2 12.5 2.5 12.5 2.5Z" fill="#ff8563" />
+            </svg>
+            <svg v-else-if="elemKey === 'glacio'" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z" fill="#7be0ff" />
+            </svg>
+            <svg v-else-if="elemKey === 'aero'" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 13C7.5 8 13.5 7 19.5 10C15.5 12.5 11.5 13.5 4 13ZM6 17.5C10 14.5 15 14 20 15.5C16.5 18 11.5 19 6 17.5Z" fill="#6bf2c3" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="12,3 21,12 12,21 3,12" fill="#dbe3f0" />
+            </svg>
+          </span>
+
+          <span v-if="profName !== '未知'" class="rd-badge-circle rd-weapon-circle" :title="profName">
+            <svg v-if="weaponKey === 'broadblade'" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 3L21 6L9 18L5 19L6 15L18 3ZM4 20L7 17L9 19L6 22L4 20Z" fill="#ffd100" />
+            </svg>
+            <svg v-else-if="weaponKey === 'pistols'" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7H19L21 10L17 12H11L9 18H5L7 12H4V7Z" fill="#ffd100" />
+            </svg>
+            <svg v-else-if="weaponKey === 'gauntlets'" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 8L11 4L18 7L19 15L13 20L6 16Z" fill="#ffd100" />
+            </svg>
+            <svg v-else-if="weaponKey === 'rectifier'" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="5" fill="none" stroke="#ffd100" stroke-width="2" />
+              <path d="M12 2V6M12 18V22M2 12H6M18 12H22" stroke="#ffd100" stroke-width="2" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19 3L21 5L8.5 17.5L6.5 15.5L19 3ZM5 17L7 19L4 22L2 20L5 17Z" fill="#ffd100" />
+            </svg>
+          </span>
+        </div>
+
+        <div class="rd-portrait-foot">
+          <div class="rd-portrait-title">
+            <strong class="ef-op-name rd-char-name">{{ operator.name || '干员' }}</strong>
+            <b class="ef-op-lv rd-char-lv">LV.{{ display(operator.level) }}</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="rd-side-col">
+        <!-- Industrial Facts Card -->
+        <section class="rd-panel ef-op-dossier">
+          <div class="rd-mini-head is-industrial">
+            <span class="ef-op-cap-num">ID /</span>
+            <h3>干员档案</h3>
+          </div>
+          <dl v-if="facts.length" class="ef-op-facts-grid">
+            <div v-for="[k, v] in facts" :key="k" class="ef-op-fact-row" :class="{ 'is-wide': k === '获得时间' }">
+              <dt>{{ k }}</dt>
+              <dd>{{ v }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Embedded Weapon & Gem Module -->
+        <section class="ef-op-weapon">
+          <div class="ef-op-weapon-cap">
+            <span class="ef-op-cap-num">00 /</span>
+            <span>武器与基质</span>
+          </div>
+          <div v-if="weapon" class="ef-op-weapon-row">
+            <EndfieldArtwork class="ef-op-weapon-art" :src="weaponIconUrl" :name="named(weapon)" />
+            <div class="ef-op-weapon-body">
+              <strong class="ef-op-weapon-name">{{ named(weapon) }}</strong>
+              <p class="ef-op-weapon-meta">
+                <span>LV. {{ display(weapon.level) }}</span>
+                <span>精炼 {{ display(weapon.refine_level) }}</span>
+                <span>突破 {{ display(weapon.breakthrough_level) }}</span>
+              </p>
+            </div>
+          </div>
+          <p v-else class="ef-op-muted">武器资料未知</p>
+
+          <div v-if="gem" class="ef-op-gem">
+            <EndfieldArtwork class="ef-op-gem-art" :src="gem.icon_url" :name="named(gem)" />
+            <div class="ef-op-gem-body">
+              <p class="ef-op-gem-name"><span>基质</span><strong>{{ named(gem) }}</strong></p>
+              <ul v-if="gemTerms.length" class="ef-op-gem-terms">
+                <li v-for="(term, idx) in gemTerms" :key="idx">{{ named(term) }} <b>{{ display(term.cost) }}</b></li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- 01 / Equipment (4 Slots + Any Extra Legacy Slots) -->
+    <section class="ao-section">
+      <OverviewSectionHead title="装备" en="EQUIPMENT" index="01" />
+      <div class="ef-op-equip-grid">
+        <article v-for="slot in slots" :key="slot.id" class="ef-op-equip-card" :class="{ 'is-unknown': !slot.item }">
+          <EndfieldArtwork
+            class="ef-op-equip-art"
+            :src="slot.item?.icon_url"
+            :name="slot.item ? named(slot.item) : slot.label"
+          />
+          <div class="ef-op-equip-body">
+            <span class="ef-op-slot-lbl">{{ slot.label }}</span>
+            <strong class="ef-op-equip-name">{{ slot.item ? named(slot.item) : '资料未知' }}</strong>
+            <span class="ef-op-equip-lv">{{ slot.item ? `等级 LV. ${display(slot.item.level)}` : '未提供该槽位资料' }}</span>
+          </div>
+        </article>
+      </div>
+      <div v-if="extraEquipment.length" class="ef-op-extra-grid">
+        <article v-for="(item, idx) in extraEquipment" :key="item.id || idx" class="ef-op-equip-card">
+          <EndfieldArtwork class="ef-op-equip-art" :src="item.icon_url" :name="named(item)" />
+          <div class="ef-op-equip-body">
+            <span class="ef-op-slot-lbl">{{ item.slot_label || item.slot_name || item.slot || '来源未标槽位' }}</span>
+            <strong class="ef-op-equip-name">{{ named(item) }}</strong>
+            <span class="ef-op-equip-lv">等级 LV. {{ display(item.level) }}</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 02 / Skills -->
+    <section class="ao-section">
+      <OverviewSectionHead title="技能" en="SKILLS" index="02" />
+      <div v-if="skills.length" class="ef-op-skills" :style="{ '--ef-skill-cols': skillCols }">
+        <article v-for="(skill, idx) in skills" :key="skill.id || idx" class="ef-op-skill-card">
+          <div class="skill-art ef-op-skill-art">
+            <EndfieldArtwork class="ef-op-skill-icon" :src="skill.icon_url" :name="named(skill)" />
+            <span class="skill-level ef-op-skill-lv" :aria-label="`等级 ${display(skill.level)}`">LV. {{ display(skill.level) }}</span>
+          </div>
+          <strong class="ef-op-skill-name">{{ named(skill) }}</strong>
+          <span v-if="skill.mastery != null" class="ef-op-skill-mastery">专精 {{ display(skill.mastery) }}</span>
+        </article>
+      </div>
+      <p v-else class="ov-empty">技能资料未知</p>
+    </section>
+
+    <!-- 03 / Tactical Item -->
+    <section class="ao-section">
+      <OverviewSectionHead title="战术道具" en="TACTICAL" index="03" />
+      <div v-if="tactical" class="ef-op-tactical">
+        <EndfieldArtwork class="ef-op-tactical-art" :src="tactical.icon_url" :name="named(tactical)" />
+        <div class="ef-op-tactical-body">
+          <div class="ef-op-tactical-head">
+            <strong>{{ named(tactical) }}</strong>
+            <span class="ef-op-tactical-rarity">稀有度 {{ display(tactical.rarity) }}</span>
+          </div>
+          <p v-if="tacticalActive" class="ef-op-tactical-effect"><b>主动</b> {{ tacticalActive }}</p>
+          <p v-if="tacticalPassive" class="ef-op-tactical-effect"><b>被动</b> {{ tacticalPassive }}</p>
+          <p v-if="!tacticalActive && !tacticalPassive" class="ef-op-muted">来源未提供效果说明。</p>
+        </div>
+      </div>
+      <p v-else class="ov-empty">来源未提供战术道具，无法判断当前装备状态。</p>
+    </section>
+  </div>
+</template>

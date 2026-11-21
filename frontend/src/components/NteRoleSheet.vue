@@ -98,7 +98,7 @@ const tone = (item, kind, stat) => statTone(flags.value.get(item)?.get(`${kind}:
 .lab-sheet #render-content .nte-role-sheet{display:grid;gap:18px;color:var(--skin-ink,var(--text))}
 .lab-sheet #render-content .nte-role-sheet p,.lab-sheet #render-content .nte-role-sheet dl,.lab-sheet #render-content .nte-role-sheet dd{margin:0}
 .lab-sheet #render-content .sheet-card{min-width:0;padding:20px 22px;border-radius:var(--skin-radius-card,20px);background:var(--skin-surface,var(--card-bg));box-shadow:inset 0 0 0 1px var(--skin-line,var(--border))}
-.lab-sheet #render-content .sheet-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;margin:0 0 14px}
+.lab-sheet #render-content .sheet-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;margin:0 0 14px;padding-bottom:10px;background:linear-gradient(90deg,var(--skin-accent),var(--skin-accent-2)) left bottom / 160px 2px no-repeat;border-bottom:1px solid rgba(var(--skin-tint-rgb),.18)}
 .lab-sheet #render-content .sheet-meta{color:var(--skin-muted);font-size:var(--qq-min-text,17px)!important;font-weight:500}
 .lab-sheet #render-content .sheet-muted{color:var(--skin-muted)}
 
