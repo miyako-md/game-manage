@@ -609,3 +609,99 @@ test('Stage 3 overview system: gacha (3 games), events/calendar, guide and notic
  const genNoticeRoot=mount(t,NoticeSheet,{input:genNoticeInput,model:viewModel(genNoticeInput)})
  assert.ok(content(genNoticeRoot).includes('前往云端网站生成绑定码')&&content(genNoticeRoot).includes('绑定 你的绑定码'))
 })
+
+test('Polish upgrade: PosterCalendar, shellMeta deduplication, Endfield SVG fallbacks, and HelpSheet grid balance',async t=>{
+ const {shellMeta}=await import('./qq-image/shell-meta.js')
+ const HelpSheetCss=readFileSync(new URL('./qq-image/HelpSheet.vue',import.meta.url),'utf8')
+ assert.doesNotMatch(HelpSheetCss,/radial-gradient/)
+ const helpStyle=HelpSheetCss.split('<style>')[1]?.replace(/\/\*[\s\S]*?\*\//g,'')||''
+ const helpSizes=[...helpStyle.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m=>Number(m[1]))
+ assert.ok(helpSizes.length&&helpSizes.every(sz=>sz>=17),'HelpSheet sizes >= 17px: '+helpSizes)
+
+ // 1. PosterCalendar single-game categories + unified multi-game ruler
+ const EventCalendarSheet=await loadVue(new URL('./qq-image/EventCalendarSheet.vue',import.meta.url))
+ const singleCalInput={command:'异环 日历',origin:'',snapshot:{kind:'calendar',game:'nte',as_of:'2026-11-10T12:00:00+08:00',
+  display_data:{games:[{game_id:'nte',display_name:'异环'}],snapshots:{nte:{events:{version:'1.5',payload:[
+   {name:'角色卡池上半',category:'角色卡池',version:'1.5',start_at:'2026-11-05T10:00:00+08:00',end_at:'2026-11-26T04:00:00+08:00'},
+   {name:'弧盘研募上半',category:'弧盘研募',version:'1.5',start_at:'2026-11-05T10:00:00+08:00',end_at:'2026-11-26T04:00:00+08:00'},
+   {name:'七日签到补给',category:'限时活动',version:'1.5',start_at:'2026-11-05T10:00:00+08:00',end_at:'2026-12-17T04:00:00+08:00'},
+   {name:'待定预告',category:'限时活动',version:'1.5'}
+  ]}}}}}}
+ const singleCalRoot=mount(t,EventCalendarSheet,{input:singleCalInput,model:viewModel(singleCalInput)})
+ const scText=content(singleCalRoot)
+ for(const s of ['寻访与角色','01','武器与弧盘','02','限时签到','03','今天 11.10','时间待定 · 1 项','待定预告'])assert.ok(scText.includes(s),s)
+ assert.equal(nodes(singleCalRoot,'img').length,0)
+
+ const multiCalInput={command:'日历',origin:'',snapshot:{kind:'calendar',game:'all',as_of:'2026-11-10T12:00:00+08:00',
+  display_data:{games:[{game_id:'wuthering_waves',display_name:'鸣潮'},{game_id:'nte',display_name:'异环'},{game_id:'endfield',display_name:'终末地'}],
+   snapshots:{
+    wuthering_waves:{events:{version:'2.3',payload:[{name:'鸣潮活动',category:'版本活动',version:'2.3',start_at:'2026-11-01T10:00:00+08:00',end_at:'2026-11-20T04:00:00+08:00'}]}},
+    nte:{events:{version:'1.5',payload:[{name:'异环活动',category:'限时活动',version:'1.5',start_at:'2026-11-05T10:00:00+08:00',end_at:'2026-11-25T04:00:00+08:00'}]}},
+    endfield:{events:{version:'1.1',payload:[{name:'终末地活动',category:'限时活动',version:'1.1',start_at:'2026-11-08T10:00:00+08:00',end_at:'2026-11-28T04:00:00+08:00'}]}}
+   }}}}
+ const multiCalRoot=mount(t,EventCalendarSheet,{input:multiCalInput,model:viewModel(multiCalInput)})
+ assert.equal(nodes(multiCalRoot,'div').filter(n=>cls(n,'ov-pcal-ruler-row')).length,1)
+ const bandSkins=nodes(multiCalRoot,'section').filter(n=>cls(n,'ov-cal-group')).map(n=>n.props['data-skin'])
+ assert.deepEqual(bandSkins,['wuwa','nte','endfield'])
+
+ // 2. shellMeta heroRing, heroBadge, ambient element
+ const nteProgInput={command:'异环 进度',origin:'',snapshot:{kind:'game_snapshot',game:'nte',as_of:'2026-10-21T12:00:00+08:00',
+  display_data:{panels:[{game:'nte',capability:'progress',snapshot:{fetched_at:'2026-10-21T12:00:00+08:00',state:'ok',payload:{schema_version:1,completed:122,total:200,gold:40,silver:50,bronze:32,categories:[]}}}]}}}
+ const nteProgMeta=shellMeta(nteProgInput,viewModel(nteProgInput))
+ assert.deepEqual(nteProgMeta.heroRing,{pct:61,sub:'122/200',label:'总达成率'})
+ assert.equal(nteProgMeta.heroStats.length,0)
+
+ const nteGachaMeta=shellMeta({command:'异环 抽卡',origin:'',snapshot:{kind:'nte_gacha',game:'nte',as_of:'2026-10-21T12:00:00+08:00',
+  display_data:{snapshot:{payload:{luck_title:'天选之人',luck_type:1,pools:[{total_draws:90,s_count:2}]}}}}},{title:'异环 · 抽卡统计',asOf:'2026-10-21 12:00',panels:[]})
+ assert.equal(nteGachaMeta.heroBadge?.title,'天选之人')
+ assert.equal(nteGachaMeta.heroStats.length,0)
+
+ // 3. EndfieldOperatorSheet inline SVG fallbacks & 0 images inside uncached .skill-art
+ const EndfieldOperatorSheet=await loadVue(new URL('./qq-image/EndfieldOperatorSheet.vue',import.meta.url))
+ const efOpInput={command:'终末地 干员 佩丽卡',origin:'',snapshot:{kind:'game_snapshot',game:'endfield',as_of:'2026-10-21T12:00:00+08:00',
+  display_data:{panels:[{game:'endfield',capability:'operator_detail',snapshot:{state:'ok',payload:{operator_detail:{id:'c1',name:'佩丽卡',level:80,rarity:6,profession:'术师',property:'电磁',
+   weapon:{name:'武器甲',level:70,refine_level:1,breakthrough_level:3,gem:{name:'基质甲',terms:[{name:'攻击',cost:3}]}},
+   equipment:[{slot:'bodyEquip',name:'护甲甲',level:50}],skills:[{id:'s1',name:'技能一',level:8}],tactical_item:{name:'道具甲',rarity:'5'}}}}}]}}}
+ const efOpRoot=mount(t,EndfieldOperatorSheet,{input:efOpInput})
+ const skillArt=nodes(efOpRoot,'div').find(n=>cls(n,'skill-art'))
+ assert.ok(skillArt&&nodes(skillArt,'img').length===0&&nodes(skillArt,'svg').length>=1)
+ assert.ok(nodes(efOpRoot,'svg').some(n=>cls(n,'ef-op-slot-svg')))
+
+ // 4. HelpSheet balanced item grids
+ const helpBalRoot=mount(t,HelpSheet,{variant:'help',data:{title:'帮助',notices:[],sections:[
+  {title:'四项组',items:['A：cmd a','B：cmd b','C：cmd c','D：cmd d']},
+  {title:'五项组',items:['A：cmd 1','B：cmd 2','C：cmd 3','D：cmd 4','E：cmd 5']}
+ ]}})
+ const lists=nodes(helpBalRoot,'ul').filter(n=>cls(n,'hs-items'))
+ assert.ok(cls(lists[0],'cols-2')&&cls(lists[1],'cols-6-balanced')&&cls(lists[1],'tail-2'))
+})
+
+test('Poster calendar keeps short-bar labels beside their bars and rail labels whole; Endfield combat numbers cards under their section',async t=>{
+ const EventCalendarSheet=await loadVue(new URL('./qq-image/EventCalendarSheet.vue',import.meta.url))
+ const input={command:'日历',origin:'',snapshot:{kind:'calendar',game:'all',as_of:'2026-10-21T12:00:00+08:00',
+  display_data:{games:[{game_id:'wuthering_waves',display_name:'鸣潮'},{game_id:'nte',display_name:'异环'}],snapshots:{
+   wuthering_waves:{events:{version:'3.7',payload:[
+    {name:'千岛寻珍',category:'限时活动',version:'3.7',start_at:'2026-10-08T10:00:00+08:00',end_at:'2026-11-18T04:00:00+08:00'},
+    {name:'声骸双倍掉落 · 无音清剿',category:'限时活动',version:'3.7',start_at:'2026-10-21T10:00:00+08:00',end_at:'2026-10-28T04:00:00+08:00'}]}},
+   nte:{events:{version:'1.2',payload:[
+    {name:'海特洛霓虹节庆典',category:'版本主题',version:'1.2',start_at:'2026-10-10T10:00:00+08:00',end_at:'2026-11-10T04:00:00+08:00'},
+    {name:'尾声补给',category:'限时活动',version:'1.2',start_at:'2026-11-12T10:00:00+08:00',end_at:'2026-11-17T04:00:00+08:00'}]}}}}}}
+ const root=mount(t,EventCalendarSheet,{input,model:viewModel(input)})
+ const pct=v=>Number.parseFloat(String(v))
+ const bars=nodes(root,'article').filter(n=>cls(n,'ov-pcal-bar')&&cls(n,'is-short'))
+ const labels=nodes(root,'div').filter(n=>cls(n,'ov-pcal-short-lbl'))
+ assert.equal(bars.length,2);assert.equal(labels.length,2)
+ bars.forEach((bar,i)=>{
+  const {left,width}=bar.props.style,style=labels[i].props.style
+  if(style.left!=null)assert.ok(pct(style.left)>=pct(left)+pct(width),`label ${i} starts after its bar`)
+  else assert.ok(pct(style.right)>=100-pct(left),`label ${i} ends before its bar`)
+ })
+ assert.ok(labels.some(n=>n.props.style.left!=null)&&labels.some(n=>n.props.style.right!=null))
+
+ const css=readFileSync(new URL('./qq-image/overview-system.css',import.meta.url),'utf8')
+ assert.match(css,/\.ov-pcal-root \{\s*--pcal-rail: 112px;/)
+ assert.match(css,/\.ov-pcal-rail-title \{[^}]*word-break: keep-all;/)
+ assert.match(css,/\.ov-ef-combat \.ef-cb-title::before \{\s*counter-increment: ef-block;/)
+ assert.match(css,/\.ov-ef-combat :is\(\.ef-cb-rec-title, \.ef-cb-honor-title\)::before \{\s*counter-increment: ef-card;\s*content: counter\(ef-block, decimal-leading-zero\) '\.' counter\(ef-card\)/)
+ assert.doesNotMatch(css,/radial-gradient/)
+})

@@ -42,6 +42,22 @@ const show = value => (known(value) ? value : '未知')
 const average = value => (known(value) ? Number(value.toFixed(1)) : '未知')
 const scale = pool => (known(pool?.guarantee) && pool.guarantee > 0 ? pool.guarantee : null)
 
+function softPityPct(pool) {
+  const limit = scale(pool)
+  if (!limit) return null
+  if (limit === 90) return Math.round((70 / 90) * 1000) / 10
+  if (limit === 80) return Math.round((65 / 80) * 1000) / 10
+  if (limit === 70) return Math.round((55 / 70) * 1000) / 10
+  return null
+}
+
+function ledgerPityPct(pity) {
+  if (!known(pity?.count) || !known(pity?.hard_pity_remaining)) return null
+  const totalCap = Number(pity.count) + Number(pity.hard_pity_remaining)
+  if (totalCap <= 0) return null
+  return Math.max(0, Math.min(100, Math.round((Number(pity.count) / totalCap) * 100)))
+}
+
 const officialTitle = computed(() =>
   !legacy.value && typeof payload.value?.luck_title === 'string' ? payload.value.luck_title : '',
 )
@@ -170,6 +186,12 @@ const ledgerRecords = computed(() => (Array.isArray(ledger.value?.records) ? led
               </div>
               <strong class="pull-name">{{ nteItemLabel(entry.item_id, entry.name) }}</strong>
               <div class="bar-track" :aria-label="known(entry.pity) ? `本次出 S：${entry.pity} 抽` : '本次抽数未提供'">
+                <i
+                  v-if="softPityPct(group.pool)"
+                  class="nte-gc-pity-tick"
+                  :style="{ left: `${softPityPct(group.pool)}%` }"
+                  aria-hidden="true"
+                />
                 <div class="pull-bar" :class="gachaTone(entry)" :style="barStyle(entry, group.pool)" />
                 <div class="bar-values">
                   <template v-if="known(entry.pity)">
@@ -216,6 +238,9 @@ const ledgerRecords = computed(() => (Array.isArray(ledger.value?.records) ? led
                 <span>距所设 S 保底</span>
                 <strong class="num-nowrap">{{ item.pity?.hard_pity_remaining == null ? '未知' : `${item.pity.hard_pity_remaining} 抽` }}</strong>
               </div>
+            </div>
+            <div v-if="ledgerPityPct(item.pity) != null" class="ov-bar-track is-thin nte-bar nte-gc-ledger-bar">
+              <i class="ov-bar-fill" :style="{ width: `${ledgerPityPct(item.pity)}%` }" />
             </div>
             <p class="nte-gc-ledger-meta">
               已导入 <b class="num-nowrap">{{ item.total_pulls }}</b> 次计数抽取

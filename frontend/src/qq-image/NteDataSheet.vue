@@ -82,18 +82,18 @@ const progressPctNum = computed(() => pctInt(data.value.completed, data.value.to
 const progressStats = computed(() => [
   { value: `${displayVal(data.value.completed)} / ${displayVal(data.value.total)}`, label: '已达成成就', accent: true },
   { value: progressPct.value || '—', label: '总完成率', accent: true },
-  { value: `${displayVal(data.value.gold)}`, label: '金奖章' },
-  { value: `${displayVal(data.value.silver)}`, label: '银奖章' },
-  { value: `${displayVal(data.value.bronze)}`, label: '铜奖章' },
+  { value: `${displayVal(data.value.gold)}`, label: '金奖章', tone: 'gold' },
+  { value: `${displayVal(data.value.silver)}`, label: '银奖章', tone: 'silver' },
+  { value: `${displayVal(data.value.bronze)}`, label: '铜奖章', tone: 'bronze' },
 ])
 const medalTotal = computed(() => {
   const nums = [data.value.gold, data.value.silver, data.value.bronze].filter(v => typeof v === 'number' && Number.isFinite(v) && v >= 0)
   return nums.length ? nums.reduce((a, b) => a + b, 0) : 0
 })
 const medalSegments = computed(() => [
-  { key: 'gold', label: '金奖章', value: data.value.gold, color: '#f2c14e' },
-  { key: 'silver', label: '银奖章', value: data.value.silver, color: '#cfd7e6' },
-  { key: 'bronze', label: '铜奖章', value: data.value.bronze, color: '#d48c5a' },
+  { key: 'gold', label: '金奖章', value: data.value.gold, color: 'linear-gradient(90deg, #f8d46c 0%, #dca02e 100%)' },
+  { key: 'silver', label: '银奖章', value: data.value.silver, color: 'linear-gradient(90deg, #e2eaf8 0%, #9fb0c8 100%)' },
+  { key: 'bronze', label: '铜奖章', value: data.value.bronze, color: 'linear-gradient(90deg, #e59e6a 0%, #b86c3b 100%)' },
 ])
 
 // ---- 2C & 2D. Realestate / Vehicles ----

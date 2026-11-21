@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { gameVars } from '../dashboard.js'
 import { skinOf } from '../game-themes.js'
-import CloudCalendar from './CloudCalendar.vue'
+import PosterCalendar from './PosterCalendar.vue'
 import OverviewSectionHead from './OverviewSectionHead.vue'
 
 const props = defineProps({
@@ -53,27 +53,7 @@ const isRecent = computed(() => panels.value.some(p => p.type === 'upcoming'))
     </template>
 
     <template v-else>
-      <section
-        v-for="(panel, idx) in panels"
-        :key="panel.gameId || idx"
-        class="ov-cal-group"
-        :data-skin="skinOf(panel.gameId) || undefined"
-        :style="panel.gameId ? gameVars(panel.gameId) : undefined"
-      >
-        <OverviewSectionHead
-          :title="panel.title"
-          :meta="`${panel.events?.length ?? 0} 项活动`"
-        />
-        <div class="ov-cal-card">
-          <p v-if="panel.caption" class="ov-cal-caption">{{ panel.caption }}</p>
-          <CloudCalendar
-            :events="panel.events"
-            :snapshots="panel.snapshots"
-            :as-of="panel.asOf"
-            :full="panel.full"
-          />
-        </div>
-      </section>
+      <PosterCalendar :panels="panels" />
     </template>
   </div>
 </template>

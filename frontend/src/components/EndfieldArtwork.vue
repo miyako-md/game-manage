@@ -18,7 +18,7 @@ function failImage(event) {
 }
 watch(() => [props.src, props.operatorId, props.name, props.portrait], () => { failedUrls.value = new Set() })
 </script>
-<template><span class="endfield-artwork" :class="{ 'is-portrait': portrait, 'has-image': !!image }"><img v-if="image" :src="image" :alt="name" loading="lazy" referrerpolicy="no-referrer" @error="failImage" /><span v-else aria-hidden="true">{{ initial }}</span></span></template>
+<template><span class="endfield-artwork" :class="{ 'is-portrait': portrait, 'has-image': !!image }"><img v-if="image" :src="image" :alt="name" loading="lazy" referrerpolicy="no-referrer" @error="failImage" /><slot v-else name="fallback"><span aria-hidden="true">{{ initial }}</span></slot></span></template>
 <style scoped>
 /* Art is network-only and often blocked, so the fallback is a designed tile: the game's pale tone
    with the first character in its ink, sized to follow the tile. Pictures sit on the same tone. */

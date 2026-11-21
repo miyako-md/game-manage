@@ -62,6 +62,7 @@ const helpVariant=computed(()=>{const s=props.input?.snapshot;return s?.kind!=='
 const isNotice=computed(()=>snap.value.kind==='notice'&&!helpVariant.value)
 
 const meta=computed(()=>shellMeta(props.input,model.value))
+const isPosterCalendar=computed(()=>isEventCalendar.value&&!model.value.panels.some(p=>p.type==='upcoming'))
 
 const shellNotices=computed(()=>{
  const out=[]
@@ -84,7 +85,7 @@ const shellNotices=computed(()=>{
 })
 </script>
 <template>
- <article class="lab-sheet dossier reuse" :class="['page-'+input.snapshot.kind,{'is-account-overview':isAccountOverview,'is-overview-styled':!isAccountOverview,['page-'+helpVariant]:helpVariant}]" :data-game="input.snapshot.game||'all'" :data-skin="skin" :style="{width:imageWidth(input)+'px',...gameVars(input.snapshot.game)}">
+ <article class="lab-sheet dossier reuse" :class="['page-'+input.snapshot.kind,{'is-account-overview':isAccountOverview,'is-overview-styled':!isAccountOverview,['page-'+helpVariant]:helpVariant}]" :data-game="input.snapshot.game||'all'" :data-skin="skin" :data-element="meta.accentElement||undefined" :style="{width:imageWidth(input)+'px',...gameVars(input.snapshot.game)}">
   <AccountOverviewSheet v-if="isAccountOverview" :input="input" />
   <OverviewShell
    v-else
@@ -94,6 +95,11 @@ const shellNotices=computed(()=>{
    :extra-tag="meta.extraTag"
    :avatar-url="meta.avatarUrl"
    :hero-stats="meta.heroStats"
+   :hero-ring="meta.heroRing"
+   :hero-badge="meta.heroBadge"
+   :game="input.snapshot.game||'all'"
+   :skin="skin"
+   :is-calendar="isPosterCalendar"
    :notices="shellNotices"
    :as-of="model.asOf"
    :command="model.command"

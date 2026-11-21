@@ -274,6 +274,7 @@ const attrTone = name => {
             class="rd-equip-card sheet-piece"
             data-render-block
             :data-quality="driveQuality(item.id) || undefined"
+            :data-tier="badges.get(item) ? (gradeTier(badges.get(item).grade) ?? undefined) : undefined"
           >
             <header class="rd-equip-head">
               <span v-if="group === 'pie' && driveShape(item.id)" class="piece-shape" role="img" :aria-label="`${display(item.name)} 形状`">

@@ -103,7 +103,7 @@ const attrTone = name => {
 }
 </script>
 <template>
-  <div class="rd-sheet role-sheet wuwa-role-detail-sheet">
+  <div class="rd-sheet role-sheet wuwa-role-detail-sheet" :data-element="elemKey || undefined">
     <!-- 1. Showcase Split Hero: Tall Left Portrait Card + Right Attributes & Weapon -->
     <section class="rd-hero" data-render-block>
       <div class="rd-portrait-card">
@@ -352,7 +352,13 @@ const attrTone = name => {
           </div>
 
           <!-- Slots 2..N: Equipped Echoes -->
-          <article v-for="(echo, i) in echoes" :key="i" class="rd-equip-card" data-render-block>
+          <article
+            v-for="(echo, i) in echoes"
+            :key="i"
+            class="rd-equip-card"
+            data-render-block
+            :data-tier="badges.get(echo) ? (gradeTier(badges.get(echo).grade) ?? undefined) : undefined"
+          >
             <header class="rd-equip-head">
               <div class="rd-equip-icon">
                 <img
@@ -363,8 +369,8 @@ const attrTone = name => {
                   @error="markFailed(echoIconUrl(echo))"
                 />
                 <svg v-else viewBox="0 0 24 24" class="rd-equip-svg" aria-hidden="true">
-                  <polygon points="12,2 21,8 21,16 12,22 3,16 3,8" fill="none" stroke="currentColor" stroke-width="1.8" />
-                  <circle cx="12" cy="12" r="3.5" fill="currentColor" />
+                  <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 2.5" />
+                  <path d="M5 12h3l2-5 4 10 2-5h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
               <div class="rd-equip-title">

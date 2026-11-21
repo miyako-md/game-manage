@@ -350,6 +350,9 @@ const stageSummaryLabel = group => {
           <header class="ef-cb-head">
             <h2 class="ef-cb-title">{{ sec.label }} · 挑战记录</h2>
             <div class="ef-cb-status">
+              <span v-if="sec.report.available && sec.stats.length === 1" class="ef-ds-badge is-accent">
+                已记录 {{ sec.stats[0].value }}
+              </span>
               <span class="ef-cb-time">{{ sec.label }}观测时间 {{ timeText(sec.report.fetched_at) }}（北京时间）</span>
               <span v-if="sec.report.available && sec.isStale" class="ef-cb-stale">已有资料待更新</span>
             </div>
@@ -358,14 +361,15 @@ const stageSummaryLabel = group => {
           <p v-if="sec.report.supported === false" class="ov-empty">当前账号暂不支持{{ sec.label }}挑战。</p>
           <p v-else-if="!sec.report.available" class="ov-empty">尚未采集{{ sec.label }}记录。</p>
           <template v-else>
-            <OverviewStatGrid :stats="sec.stats" :columns="sec.stats.length" />
+            <OverviewStatGrid v-if="sec.stats.length > 1" :stats="sec.stats" :columns="sec.stats.length" />
 
             <p v-if="!sec.report.records.length" class="ov-empty">尚无已记录的{{ sec.label }}挑战。</p>
-            <article
-              v-for="(record, rIdx) in sec.report.records"
-              :key="record.id ?? rIdx"
-              class="ov-ds-card ef-ds-card ef-cb-record"
-            >
+            <div v-else class="ef-cb-records" :class="{ 'is-two-col': sec.kind === 'crisis' && sec.report.records.length >= 2 }">
+              <article
+                v-for="(record, rIdx) in sec.report.records"
+                :key="record.id ?? rIdx"
+                class="ov-ds-card ef-ds-card ef-cb-record"
+              >
               <header class="ef-cb-rec-head">
                 <h3 class="ef-cb-rec-title">{{ record.name || (record.id != null ? `记录 ${record.id}` : `挑战记录 ${rIdx + 1}`) }}</h3>
                 <span v-if="sec.kind === 'war'" class="ef-cb-result" :class="{ 'is-latest': rIdx === 0 }">{{ display(record.stars) }} 星</span>
@@ -452,7 +456,8 @@ const stageSummaryLabel = group => {
                   {{ passLabel(record.passed) }}
                 </strong>
               </div>
-            </article>
+              </article>
+            </div>
 
             <!-- War Honors -->
             <section v-if="sec.kind === 'war' && rows(sec.report.honors).length" class="ov-ds-card ef-ds-card ef-cb-honors-card">
