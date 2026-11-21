@@ -180,6 +180,7 @@ const recentItems = computed(() => list(archive.value?.items))
                 </span>
               </div>
               <div v-if="pityGauge(pool.pity)" class="ov-ds-track ww-gc-pity-track">
+                <i v-if="pityGauge(pool.pity).max === 80" class="ww-gc-pity-tick" style="left: 81.25%" aria-hidden="true" />
                 <i
                   class="ov-ds-fill"
                   :style="{ width: `${Math.min(100, Math.round((pityGauge(pool.pity).value / Math.max(1, pityGauge(pool.pity).max)) * 100))}%` }"

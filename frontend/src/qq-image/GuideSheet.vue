@@ -4,10 +4,17 @@ import WuwaGuideVisual from '../components/WuwaGuideVisual.vue'
 import NteGuideVisual from '../components/NteGuideVisual.vue'
 import { guideLines } from './guide-presentation.js'
 import OverviewSectionHead from './OverviewSectionHead.vue'
+import { normalizeElementKey } from './role-meta.js'
 
 const props = defineProps({
   input: { type: Object, required: true },
   model: { type: Object, required: true },
+})
+
+const elemKey = computed(() => {
+  const g = props.input?.snapshot?.display_data?.guide
+  const raw = g?.attribute || g?.element
+  return raw ? normalizeElementKey(raw) : ''
 })
 
 const portraitFailed = ref(false)
@@ -22,12 +29,12 @@ const panels = computed(() => (Array.isArray(props.model?.panels) ? props.model.
 const statusPanel = computed(() => panels.value.find(p => p.type === 'textlines' && p.title === '攻略状态') || null)
 const sourcePanel = computed(() => panels.value.find(p => p.type === 'textlines' && p.title === '攻略来源') || null)
 
-const WIDE_KEYS = new Set(['weapons', 'teams', 'echo_stats', 'stats'])
+const WIDE_KEYS = new Set(['teams'])
 const rawVisuals = computed(() => panels.value.filter(p => p.type === 'guide_visual'))
 
 const visualCards = computed(() => {
   const list = rawVisuals.value
-  const isBaseWide = p => Boolean(p.plain || WIDE_KEYS.has(p.sectionKey))
+  const isBaseWide = p => Boolean(p.plain || WIDE_KEYS.has(p.sectionKey) || (p.text || '').length > 140)
   // Determine full-width spans while preserving exact source order so no compact card leaves an orphan half-row.
   const flags = list.map(p => isBaseWide(p))
   let pendingCompact = -1
@@ -53,7 +60,7 @@ const extraTextPanels = computed(() =>
 </script>
 
 <template>
-  <div class="ov-guide-sheet">
+  <div class="ov-guide-sheet" :data-element="elemKey || undefined">
     <!-- Preserves .guide-role-context > div full-width contract when no portrait is present -->
     <div v-if="hero" class="guide-role-context ov-guide-context" :class="{ 'has-portrait': hasPortrait }">
       <img
@@ -98,7 +105,7 @@ const extraTextPanels = computed(() =>
         </header>
         <p v-if="panel.caption" class="ov-guide-card-caption">{{ panel.caption }}</p>
 
-        <div class="guide-visual">
+        <div class="guide-visual" :class="{ 'is-teams-grid': panel.sectionKey === 'teams' && guideLines(panel).length >= 2 }">
           <div v-for="(line, lIdx) in guideLines(panel)" :key="lIdx" class="guide-source-line">
             <span v-if="panel.plain" class="guide-plain">{{ line }}</span>
             <WuwaGuideVisual

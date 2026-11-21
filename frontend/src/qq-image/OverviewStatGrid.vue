@@ -11,7 +11,12 @@ const colCount = computed(() => {
 </script>
 <template>
   <div class="ao-stat-grid ov-stat-grid" :class="`ov-cols-${colCount}`">
-    <div v-for="(stat, idx) in stats" :key="`${stat.label}-${idx}`" class="ao-stat-cell" :class="{ 'is-accent': stat.accent }">
+    <div
+      v-for="(stat, idx) in stats"
+      :key="`${stat.label}-${idx}`"
+      class="ao-stat-cell"
+      :class="{ 'is-accent': stat.accent, [`is-tone-${stat.tone}`]: !!stat.tone }"
+    >
       <strong class="ao-stat-val">{{ stat.value }}</strong>
       <span class="ao-stat-lbl">{{ stat.label }}</span>
       <span v-if="stat.sub" class="ov-stat-sub">{{ stat.sub }}</span>

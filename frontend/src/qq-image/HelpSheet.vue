@@ -66,8 +66,40 @@ const groups = computed(() => (props.data.sections || []).map(section => ({
     }
   }),
 })))
-const common = computed(() => groups.value.filter(g => !g.game))
-const games = computed(() => groups.value.filter(g => g.game))
+const common = computed(() => {
+  const list = groups.value.filter(g => !g.game)
+  const flags = new Array(list.length).fill(false)
+  for (let i = 0; i < list.length - 1; i++) {
+    if (list[i].items.length <= 2 && list[i + 1].items.length <= 2) {
+      flags[i] = true
+      flags[i + 1] = true
+      i++
+    }
+  }
+  return list.map((g, idx) => ({ ...g, isHalf: flags[idx] }))
+})
+const games = computed(() => {
+  const list = groups.value.filter(g => g.game)
+  const flags = new Array(list.length).fill(false)
+  for (let i = 0; i < list.length - 1; i++) {
+    if (list[i].items.length <= 2 && list[i + 1].items.length <= 2) {
+      flags[i] = true
+      flags[i + 1] = true
+      i++
+    }
+  }
+  return list.map((g, idx) => ({ ...g, isHalf: flags[idx] }))
+})
+
+function itemsGridClass(group) {
+  const n = group.items.length
+  if (n <= 1) return 'cols-1'
+  if (n === 2) return group.isHalf ? 'cols-1' : 'cols-2'
+  if (n === 4) return 'cols-2'
+  if (n % 3 === 0) return 'cols-3'
+  if (n % 3 === 2) return 'cols-6-balanced tail-2'
+  return n >= 7 ? 'cols-6-balanced tail-4' : 'cols-3'
+}
 const slots = computed(() => [...new Set(groups.value.flatMap(g => g.items.flatMap(i => (i.tokens || []).filter(t => t.slot).map(t => t.text))))])
 const accounts = computed(() => (props.data.sections || []).map(section => {
   const cards = []; const loose = []
@@ -95,7 +127,13 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
         </span>
       </p>
 
-      <section v-for="(g, i) in common" :key="g.title + i" class="hs-group" data-render-block>
+      <section
+        v-for="(g, i) in common"
+        :key="g.title + i"
+        class="hs-group"
+        :class="g.isHalf ? 'is-half' : 'is-full'"
+        data-render-block
+      >
         <header class="hs-head hs-band-head">
           <span class="hs-square" aria-hidden="true"></span>
           <span class="hs-index number">{{ pad(i + 1) }}</span>
@@ -103,7 +141,7 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
           <span v-if="g.subtitle" class="hs-sub">{{ g.subtitle }}</span>
           <small>{{ g.items.length }} 条</small>
         </header>
-        <ul class="hs-items">
+        <ul class="hs-items" :class="itemsGridClass(g)">
           <li v-for="(item, idx) in g.items" :key="idx" class="hs-item">
             <span class="hs-icon-tile" aria-hidden="true">
               <svg viewBox="0 0 24 24" class="hs-svg">
@@ -144,14 +182,21 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
       </section>
 
       <div v-if="games.length" class="hs-games" :class="'count-' + games.length">
-        <section v-for="(g, i) in games" :key="g.title + i" class="hs-group hs-game" :data-skin="g.skin" data-render-block>
+        <section
+          v-for="(g, i) in games"
+          :key="g.title + i"
+          class="hs-group hs-game"
+          :class="g.isHalf ? 'is-half' : 'is-full'"
+          :data-skin="g.skin"
+          data-render-block
+        >
           <header class="hs-head hs-band-head">
             <span class="hs-mono">{{ GAMES[g.game][0] }}</span>
             <h2>{{ g.title }}</h2>
             <span v-if="g.subtitle" class="hs-sub">{{ g.subtitle }}</span>
             <small>{{ g.items.length }} 条</small>
           </header>
-          <ul class="hs-items">
+          <ul class="hs-items" :class="itemsGridClass(g)">
             <li v-for="(item, idx) in g.items" :key="idx" class="hs-item">
               <span class="hs-icon-tile" aria-hidden="true">
                 <svg viewBox="0 0 24 24" class="hs-svg">
@@ -217,11 +262,28 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
   </div>
 </template>
 <style>
-/* 帮助 / 我的账号: WutheringWavesUID-inspired command matrix on unified overview skins (D3 / D7 / D9). */
+/* 帮助 / 我的账号: High-craft balanced command matrix on unified overview skins (D3 / D7 / D9). */
 .help-sheet {
   display: grid;
   gap: 16px;
   margin-top: 22px;
+}
+
+.help-sheet.hs-help {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.help-sheet .hs-legend,
+.help-sheet .hs-games,
+.help-sheet .hs-notes,
+.help-sheet .hs-group.is-full {
+  grid-column: 1 / -1;
+}
+
+.help-sheet .hs-group.is-half {
+  display: flex;
+  flex-direction: column;
 }
 
 .help-sheet .hs-legend {
@@ -235,7 +297,8 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
   line-height: 1.45;
   color: var(--skin-muted);
   background: rgba(var(--skin-tint-rgb), .06);
-  border: 1px solid rgba(var(--skin-tint-rgb), .2);
+  border: 1px solid rgba(var(--skin-tint-rgb), .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
   border-radius: var(--skin-radius-tile);
 }
 
@@ -255,10 +318,12 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
 }
 
 .help-sheet .hs-group {
-  background: var(--skin-surface);
-  border: 1px solid var(--skin-line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .03) 0%, rgba(0, 0, 0, .06) 100%), var(--skin-surface);
+  border: 1px solid rgba(var(--skin-tint-rgb), .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
   border-radius: var(--skin-radius-card);
   padding: 14px 18px 16px;
+  min-width: 0;
 }
 
 .help-sheet .hs-head {
@@ -268,15 +333,15 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
   gap: 10px;
   padding-bottom: 10px;
   margin-bottom: 12px;
-  border-bottom: 1px solid rgba(var(--skin-tint-rgb), .16);
+  border-bottom: 1px solid rgba(var(--skin-tint-rgb), .14);
 }
 
 .help-sheet .hs-band-head {
   padding: 8px 14px;
   margin-bottom: 12px;
-  border: 1px solid rgba(var(--skin-tint-rgb), .22);
+  border: 1px solid rgba(var(--skin-tint-rgb), .18);
   border-radius: var(--skin-radius-tile);
-  background: rgba(var(--skin-tint-rgb), .09);
+  background: rgba(var(--skin-tint-rgb), .07);
 }
 
 .help-sheet .hs-square {
@@ -337,6 +402,31 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
   gap: 10px;
 }
 
+.help-sheet .hs-items.cols-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.help-sheet .hs-items.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.help-sheet .hs-items.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.help-sheet .hs-items.cols-6-balanced {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.help-sheet .hs-items.cols-6-balanced > .hs-item {
+  grid-column: span 2;
+}
+
+.help-sheet .hs-items.cols-6-balanced.tail-2 > .hs-item:nth-last-child(-n + 2),
+.help-sheet .hs-items.cols-6-balanced.tail-4 > .hs-item:nth-last-child(-n + 4) {
+  grid-column: span 3;
+}
+
 .help-sheet .hs-item {
   display: flex;
   align-items: center;
@@ -344,8 +434,9 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
   min-width: 0;
   padding: 10px 12px;
   border-radius: var(--skin-radius-tile);
-  background: rgba(0, 0, 0, .28);
-  border: 1px solid rgba(var(--skin-tint-rgb), .18);
+  background: rgba(8, 10, 16, .42);
+  border: 1px solid rgba(var(--skin-tint-rgb), .14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
 }
 
 .help-sheet .hs-icon-tile {
@@ -355,8 +446,8 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
   height: 44px;
   flex: none;
   border-radius: 10px;
-  background: rgba(var(--skin-tint-rgb), .12);
-  border: 1px solid rgba(var(--skin-tint-rgb), .32);
+  background: rgba(var(--skin-tint-rgb), .11);
+  border: 1px solid rgba(var(--skin-tint-rgb), .26);
   color: var(--skin-accent);
 }
 
@@ -404,11 +495,17 @@ const accounts = computed(() => (props.data.sections || []).map(section => {
 .help-sheet .hs-games {
   display: grid;
   gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.help-sheet .hs-games.count-1 {
   grid-template-columns: minmax(0, 1fr);
 }
 
 .help-sheet .hs-game {
-  border-color: rgba(var(--skin-tint-rgb), .26);
+  border-color: rgba(var(--skin-tint-rgb), .24);
+  border-top: 2px solid var(--skin-accent);
 }
 
 .help-sheet .hs-account-grid {

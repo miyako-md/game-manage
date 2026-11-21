@@ -1,8 +1,9 @@
 import { asset, display, knownRoles } from './models.js'
-import { GAME_LABELS, chainLabel, resolveEndfieldIcon, resolveNteIcon, resolveWuwaIcon } from './role-meta.js'
+import { GAME_LABELS, chainLabel, normalizeElementKey, resolveEndfieldIcon, resolveNteIcon, resolveWuwaIcon } from './role-meta.js'
 import { profileReport, rows as efRows, sourceName as efNamed, displayValue as efDisplay } from '../endfield-reports.js'
 import { scoreHero } from '../assessment-display.js'
 import { deepStars } from '../wuwa-charts.js'
+import { luckTone } from '../nte-charts.js'
 import { percentOf } from '../dashboard.js'
 import { imageTeams } from '../nte-display.js'
 import nteIcons from '../nte-icon-catalog.js'
@@ -54,6 +55,10 @@ export function shellMeta(input, model) {
   let extraTag = ''
   let avatarUrl = ''
   let heroStats = []
+  let heroRing = null
+  let heroBadge = null
+  let accentElement = ''
+  const finish = () => ({ title, gameTag, subTag, extraTag, avatarUrl, heroStats, heroRing, heroBadge, accentElement })
 
   // 1. WuWa single role detail
   if (snap.kind === 'wuwa_role') {
@@ -62,6 +67,7 @@ export function shellMeta(input, model) {
     const chains = list(detail.chain_list)
     const unlocked = chains.filter(c => c.unlocked === true).length
     const hero = scoreHero(detail.assessment)
+    accentElement = role.attribute_name ? normalizeElementKey(role.attribute_name) : ''
     title = `鸣潮 · ${role.role_name || '角色详情'}`
     subTag = [
       role.attribute_name,
@@ -80,7 +86,7 @@ export function shellMeta(input, model) {
     } else if (detail.phantom_data?.cost != null) {
       heroStats.push({ value: `COST ${detail.phantom_data.cost}`, label: '装备声骸', isAccent: true })
     }
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   // 2. NTE role detail & roster
@@ -108,7 +114,7 @@ export function shellMeta(input, model) {
       } else if (r.mix_level != null) {
         heroStats.push({ value: `Lv.${r.mix_level}`, label: '混频等级', isAccent: true })
       }
-      return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+      return finish()
     }
     const sCount = entries.filter(r => String(r.quality || '').toUpperCase() === 'S').length
     const maxLv = entries.reduce((m, r) => (Number(r.level) > m ? Number(r.level) : m), 0)
@@ -123,7 +129,7 @@ export function shellMeta(input, model) {
       { value: `${sCount}`, label: 'S级角色' },
       { value: maxLv ? `${atMax}` : fmtAvg(entries.map(r => r.level)), label: maxLv ? `Lv.${maxLv} 满级` : '平均等级', isAccent: true },
     ]
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   // 3. WuWa roster
@@ -141,7 +147,7 @@ export function shellMeta(input, model) {
       { value: `${fiveCount}`, label: '五星角色' },
       { value: `${maxLvCount}`, label: 'Lv.90 满级', isAccent: true },
     ]
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   // 4. Endfield roster & operator detail
@@ -161,7 +167,7 @@ export function shellMeta(input, model) {
       { value: display(sixCount), label: '6★ 干员' },
       { value: training.summary?.max_level != null ? `Lv.${training.summary.max_level}` : '未知', label: '最高等级', isAccent: true },
     ]
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   if (snap.kind === 'game_snapshot' && firstPanel?.game === 'endfield' && cap === 'operator_detail') {
@@ -180,12 +186,16 @@ export function shellMeta(input, model) {
       { value: op.potential != null ? `潜能 ${op.potential}` : '未知', label: '潜能阶段' },
       { value: phase != null ? `精英 ${phase}` : '未知', label: '精英阶段', isAccent: true },
     ]
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   // 5. Guides
   if (snap.kind === 'guide') {
     const g = data.guide || {}
+    const elemRaw = g.attribute || g.element
+    if (elemRaw && ['wuthering_waves', 'nte'].includes(game)) {
+      accentElement = normalizeElementKey(elemRaw)
+    }
     title = `${gameTag} · ${g.name || '角色'}攻略`
     subTag = [
       g.attribute || g.element,
@@ -199,29 +209,34 @@ export function shellMeta(input, model) {
       { value: ver ? `V${ver}` : '未标', label: '参考版本' },
       { value: `${list(g.sections).length}`, label: '攻略模块', isAccent: true },
     ]
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   // 6. Calendar / Events / Recent Events
   if (snap.kind === 'calendar' || cap === 'events' || panels.some(p => p.capability === 'events')) {
     const totalEvents = model.panels.reduce((sum, p) => sum + list(p.events).length, 0)
     const isCal = snap.kind === 'calendar'
-    title = isCal ? (game === 'all' ? '活动日历 · 版本汇总' : `${gameTag} · 版本日历`) : (game === 'all' ? '进行中的活动' : `${gameTag} · 进行中活动`)
     subTag = `北京时间 · ${isCal ? '完整版本排期' : '近 14 天排期'}`
     if (model.panels.length === 1) {
       const only = model.panels[0]
+      const singleVer = isCal ? only?.title?.match(/·\s*([^\s]+)\s*版本/)?.[1] : null
+      const singleGameName = GAME_LABELS[only?.gameId] || gameTag
+      title = isCal
+        ? (singleVer ? `${singleGameName} · ${singleVer} 版本日历` : `${singleGameName} · 版本日历`)
+        : (game === 'all' ? '进行中的活动' : `${singleGameName} · 进行中活动`)
       const span = only?.full ? '版本完整' : '近 14 天'
       heroStats = [
         { value: span, label: '排期窗口' },
         { value: `${totalEvents}`, label: '收录活动', isAccent: true },
       ]
     } else {
+      title = isCal ? '活动日历 · 版本汇总' : '进行中的活动'
       heroStats = [
         { value: `${model.panels.length}`, label: '覆盖游戏' },
         { value: `${totalEvents}`, label: '收录活动', isAccent: true },
       ]
     }
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   if (panels.some(p => p.capability === 'recent_events')) {
@@ -233,7 +248,7 @@ export function shellMeta(input, model) {
       { value: `${starting}`, label: '即将开始' },
       { value: `${ending}`, label: '即将结束', isAccent: true },
     ]
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   // 7. Gacha
@@ -243,17 +258,22 @@ export function shellMeta(input, model) {
     const pools = list(gPayload.pools)
     const total = pools.reduce((s, p) => s + (Number(p.total_draws) || 0), 0)
     const sTotal = pools.reduce((s, p) => s + (Number(p.s_count) || 0), 0)
+    const gLuck = typeof gPayload.luck_title === 'string' ? gPayload.luck_title.trim() : ''
     title = '异环 · 抽卡统计'
     subTag = gSnap?.fetched_at ? `塔吉多社区统计 · 更新于 ${displayBeijing(gSnap.fetched_at)}` : '塔吉多社区抽卡统计'
-    extraTag = typeof gPayload.luck_title === 'string' ? gPayload.luck_title : ''
-    heroStats = [
-      { value: `${total}`, label: '统计总抽' },
-      { value: `${sTotal}`, label: '出 S 总数', isAccent: true },
-    ]
-    if (data.ledger) {
-      heroStats.push({ value: `${data.ledger.total_records ?? 0}`, label: '逐抽账本', isAccent: true })
+    if (gLuck) {
+      heroBadge = { kicker: '社区综合评价', title: gLuck, tone: luckTone(gPayload.luck_type) }
+      heroStats = []
+    } else {
+      heroStats = [
+        { value: `${total}`, label: '统计总抽' },
+        { value: `${sTotal}`, label: '出 S 总数', isAccent: true },
+      ]
+      if (data.ledger) {
+        heroStats.push({ value: `${data.ledger.total_records ?? 0}`, label: '逐抽账本', isAccent: true })
+      }
     }
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   if (snap.kind === 'wuwa_gacha' || (snap.kind === 'game_snapshot' && firstPanel?.game === 'wuthering_waves' && cap === 'gacha')) {
@@ -274,7 +294,7 @@ export function shellMeta(input, model) {
       { value: display(arc.gold_total), label: '五星总数', isAccent: true },
       { value: total != null ? share : `${pools.length}`, label: total != null ? '五星占比' : '统计卡池' },
     ]
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   if (snap.kind === 'game_snapshot' && firstPanel?.game === 'endfield' && cap === 'gacha') {
@@ -304,7 +324,7 @@ export function shellMeta(input, model) {
     } else {
       heroStats = [{ value: `${efPools.length}`, label: '统计卡池', isAccent: true }]
     }
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   // 8. Help, Account Status & General Notices
@@ -319,7 +339,7 @@ export function shellMeta(input, model) {
         { value: `${sections.length}`, label: '功能分组' },
         { value: `${itemCount}`, label: '可用指令', isAccent: true },
       ]
-      return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+      return finish()
     }
     if (/我的账号/.test(data.title || '')) {
       title = '我的账号 · 授权状态'
@@ -328,7 +348,7 @@ export function shellMeta(input, model) {
       heroStats = [
         { value: `${cardCount}`, label: '授权账号', isAccent: true },
       ]
-      return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+      return finish()
     }
     const mergedText = `${data.title || ''} ${noticeList.join(' ')}`
     if (game === 'endfield' && /攻略/.test(model.command || data.title || '')) {
@@ -353,7 +373,7 @@ export function shellMeta(input, model) {
         { value: `${itemCount}`, label: '详情条目', isAccent: true },
       ]
     }
-    return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+    return finish()
   }
 
   // 9. Remaining game snapshots (exploration, combat, progress, resources, assets, ship, honor)
@@ -419,11 +439,20 @@ export function shellMeta(input, model) {
       ]
     } else if (firstPanel.game === 'nte' && cap === 'progress') {
       const pct = percentOf(payload?.completed, payload?.total)
-      heroStats = [
-        { value: `${display(payload?.completed)}/${display(payload?.total)}`, label: '成就完成', isAccent: true },
-        { value: pct != null ? `${Math.round(pct)}%` : '—', label: '总达成率', isAccent: true },
-        { value: display(payload?.gold), label: '金奖章' },
-      ]
+      if (pct != null) {
+        heroRing = {
+          pct: Math.round(pct),
+          sub: `${display(payload?.completed)}/${display(payload?.total)}`,
+          label: '总达成率',
+        }
+        heroStats = []
+      } else {
+        heroStats = [
+          { value: `${display(payload?.completed)}/${display(payload?.total)}`, label: '成就完成', isAccent: true },
+          { value: '—', label: '总达成率', isAccent: true },
+          { value: display(payload?.gold), label: '金奖章' },
+        ]
+      }
     } else if (firstPanel.game === 'nte' && ['realestate', 'vehicles'].includes(cap)) {
       const pct = percentOf(payload?.owned_count, payload?.total)
       heroStats = [
@@ -467,5 +496,5 @@ export function shellMeta(input, model) {
     }
   }
 
-  return { title, gameTag, subTag, extraTag, avatarUrl, heroStats }
+  return finish()
 }

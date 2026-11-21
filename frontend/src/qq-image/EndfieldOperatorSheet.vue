@@ -160,7 +160,15 @@ const skillCols = computed(() => Math.max(1, Math.min(skills.value.length || 1, 
             <span>武器与基质</span>
           </div>
           <div v-if="weapon" class="ef-op-weapon-row">
-            <EndfieldArtwork class="ef-op-weapon-art" :src="weaponIconUrl" :name="named(weapon)" />
+            <EndfieldArtwork class="ef-op-weapon-art" :src="weaponIconUrl" :name="named(weapon)">
+              <template #fallback>
+                <svg viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+                  <path d="M5 25L12 18M9 21L24 6L30 6L30 12L15 27Z" fill="none" stroke="#9aa4b2" stroke-width="2" stroke-linejoin="round" />
+                  <path d="M18 12L24 6L30 6L30 12L24 18" fill="none" stroke="#ffd100" stroke-width="2.2" stroke-linejoin="round" />
+                  <circle cx="11" cy="25" r="2.2" fill="#ffd100" />
+                </svg>
+              </template>
+            </EndfieldArtwork>
             <div class="ef-op-weapon-body">
               <strong class="ef-op-weapon-name">{{ named(weapon) }}</strong>
               <p class="ef-op-weapon-meta">
@@ -173,7 +181,14 @@ const skillCols = computed(() => Math.max(1, Math.min(skills.value.length || 1, 
           <p v-else class="ef-op-muted">武器资料未知</p>
 
           <div v-if="gem" class="ef-op-gem">
-            <EndfieldArtwork class="ef-op-gem-art" :src="gem.icon_url" :name="named(gem)" />
+            <EndfieldArtwork class="ef-op-gem-art" :src="gem.icon_url" :name="named(gem)">
+              <template #fallback>
+                <svg viewBox="0 0 32 32" class="ef-op-slot-svg" aria-hidden="true">
+                  <polygon points="16,3 27,10 27,22 16,29 5,22 5,10" fill="none" stroke="#9aa4b2" stroke-width="2" />
+                  <polygon points="16,7 23,12 16,25 9,12" fill="rgba(255,209,0,0.22)" stroke="#ffd100" stroke-width="1.8" />
+                </svg>
+              </template>
+            </EndfieldArtwork>
             <div class="ef-op-gem-body">
               <p class="ef-op-gem-name"><span>基质</span><strong>{{ named(gem) }}</strong></p>
               <ul v-if="gemTerms.length" class="ef-op-gem-terms">
@@ -194,7 +209,28 @@ const skillCols = computed(() => Math.max(1, Math.min(skills.value.length || 1, 
             class="ef-op-equip-art"
             :src="slot.item?.icon_url"
             :name="slot.item ? named(slot.item) : slot.label"
-          />
+          >
+            <template #fallback>
+              <svg v-if="slot.id === 'bodyEquip'" viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+                <path d="M11 6L15 9H21L25 6L30 11L27 16V30H9V16L6 11Z" fill="none" stroke="#9aa4b2" stroke-width="2" stroke-linejoin="round" />
+                <polygon points="18,12 22,16 18,22 14,16" fill="#ffd100" />
+              </svg>
+              <svg v-else-if="slot.id === 'armEquip'" viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+                <path d="M10 14L14 7H24L27 14V23L22 29H12L10 23Z" fill="none" stroke="#9aa4b2" stroke-width="2" stroke-linejoin="round" />
+                <path d="M13 15H24M14 21H22" stroke="#ffd100" stroke-width="2.2" stroke-linecap="square" />
+              </svg>
+              <svg v-else-if="slot.id === 'firstAccessory'" viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+                <circle cx="18" cy="18" r="10" fill="none" stroke="#9aa4b2" stroke-width="2" />
+                <circle cx="18" cy="18" r="4.2" fill="#ffd100" />
+                <path d="M18 4V9M18 27V32M4 18H9M27 18H32" stroke="#ffd100" stroke-width="2" />
+              </svg>
+              <svg v-else viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+                <rect x="9" y="9" width="18" height="18" fill="none" stroke="#9aa4b2" stroke-width="2" />
+                <path d="M14 4V9M22 4V9M14 27V32M22 27V32M4 14H9M4 22H9M27 14H32M27 22H32" stroke="#9aa4b2" stroke-width="1.8" />
+                <rect x="14" y="14" width="8" height="8" fill="#ffd100" />
+              </svg>
+            </template>
+          </EndfieldArtwork>
           <div class="ef-op-equip-body">
             <span class="ef-op-slot-lbl">{{ slot.label }}</span>
             <strong class="ef-op-equip-name">{{ slot.item ? named(slot.item) : '资料未知' }}</strong>
@@ -204,7 +240,14 @@ const skillCols = computed(() => Math.max(1, Math.min(skills.value.length || 1, 
       </div>
       <div v-if="extraEquipment.length" class="ef-op-extra-grid">
         <article v-for="(item, idx) in extraEquipment" :key="item.id || idx" class="ef-op-equip-card">
-          <EndfieldArtwork class="ef-op-equip-art" :src="item.icon_url" :name="named(item)" />
+          <EndfieldArtwork class="ef-op-equip-art" :src="item.icon_url" :name="named(item)">
+            <template #fallback>
+              <svg viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+                <polygon points="18,5 30,12 30,24 18,31 6,24 6,12" fill="none" stroke="#9aa4b2" stroke-width="2" />
+                <polygon points="18,11 24,18 18,25 12,18" fill="#ffd100" />
+              </svg>
+            </template>
+          </EndfieldArtwork>
           <div class="ef-op-equip-body">
             <span class="ef-op-slot-lbl">{{ item.slot_label || item.slot_name || item.slot || '来源未标槽位' }}</span>
             <strong class="ef-op-equip-name">{{ named(item) }}</strong>
@@ -220,7 +263,28 @@ const skillCols = computed(() => Math.max(1, Math.min(skills.value.length || 1, 
       <div v-if="skills.length" class="ef-op-skills" :style="{ '--ef-skill-cols': skillCols }">
         <article v-for="(skill, idx) in skills" :key="skill.id || idx" class="ef-op-skill-card">
           <div class="skill-art ef-op-skill-art">
-            <EndfieldArtwork class="ef-op-skill-icon" :src="skill.icon_url" :name="named(skill)" />
+            <EndfieldArtwork class="ef-op-skill-icon" :src="skill.icon_url" :name="named(skill)">
+              <template #fallback>
+                <svg v-if="idx % 4 === 0" viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+                  <path d="M8 28L26 10M21 9H27V15" fill="none" stroke="#ffd100" stroke-width="2.4" stroke-linecap="square" />
+                  <circle cx="14" cy="22" r="7" fill="none" stroke="#9aa4b2" stroke-width="1.8" stroke-dasharray="4 3" />
+                </svg>
+                <svg v-else-if="idx % 4 === 1" viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+                  <polygon points="18,4 22,14 32,18 22,22 18,32 14,22 4,18 14,14" fill="none" stroke="#ffd100" stroke-width="2.2" />
+                  <circle cx="18" cy="18" r="3.5" fill="#f2f2ee" />
+                </svg>
+                <svg v-else-if="idx % 4 === 2" viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+                  <circle cx="11" cy="24" r="5" fill="none" stroke="#9aa4b2" stroke-width="2" />
+                  <circle cx="25" cy="12" r="5" fill="none" stroke="#ffd100" stroke-width="2.2" />
+                  <path d="M15 20L21 16" stroke="#ffd100" stroke-width="2.2" />
+                </svg>
+                <svg v-else viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+                  <polygon points="18,4 30,11 30,25 18,32 6,25 6,11" fill="none" stroke="#9aa4b2" stroke-width="1.8" />
+                  <polygon points="18,9 26,18 18,27 10,18" fill="rgba(255,209,0,0.22)" stroke="#ffd100" stroke-width="2" />
+                  <circle cx="18" cy="18" r="2.8" fill="#ffd100" />
+                </svg>
+              </template>
+            </EndfieldArtwork>
             <span class="skill-level ef-op-skill-lv" :aria-label="`等级 ${display(skill.level)}`">LV. {{ display(skill.level) }}</span>
           </div>
           <strong class="ef-op-skill-name">{{ named(skill) }}</strong>
@@ -234,11 +298,33 @@ const skillCols = computed(() => Math.max(1, Math.min(skills.value.length || 1, 
     <section class="ao-section">
       <OverviewSectionHead title="战术道具" en="TACTICAL" index="03" />
       <div v-if="tactical" class="ef-op-tactical">
-        <EndfieldArtwork class="ef-op-tactical-art" :src="tactical.icon_url" :name="named(tactical)" />
+        <EndfieldArtwork class="ef-op-tactical-art" :src="tactical.icon_url" :name="named(tactical)">
+          <template #fallback>
+            <svg viewBox="0 0 36 36" class="ef-op-slot-svg" aria-hidden="true">
+              <rect x="8" y="9" width="20" height="21" rx="2" fill="none" stroke="#9aa4b2" stroke-width="2" />
+              <path d="M13 9V6H23V9" fill="none" stroke="#9aa4b2" stroke-width="2" />
+              <path d="M18 14V24M13 19H23" stroke="#ffd100" stroke-width="2.4" stroke-linecap="square" />
+            </svg>
+          </template>
+        </EndfieldArtwork>
         <div class="ef-op-tactical-body">
           <div class="ef-op-tactical-head">
             <strong>{{ named(tactical) }}</strong>
             <span class="ef-op-tactical-rarity">稀有度 {{ display(tactical.rarity) }}</span>
+            <svg class="ef-op-barcode" viewBox="0 0 72 16" aria-hidden="true">
+              <rect x="0" y="1" width="3" height="14" fill="currentColor" opacity="0.65" />
+              <rect x="5" y="1" width="2" height="14" fill="currentColor" opacity="0.35" />
+              <rect x="9" y="1" width="5" height="14" fill="currentColor" opacity="0.7" />
+              <rect x="17" y="1" width="2" height="14" fill="currentColor" opacity="0.4" />
+              <rect x="22" y="1" width="4" height="14" fill="#ffd100" opacity="0.85" />
+              <rect x="29" y="1" width="2" height="14" fill="currentColor" opacity="0.5" />
+              <rect x="34" y="1" width="6" height="14" fill="currentColor" opacity="0.65" />
+              <rect x="43" y="1" width="2" height="14" fill="currentColor" opacity="0.35" />
+              <rect x="48" y="1" width="3" height="14" fill="currentColor" opacity="0.7" />
+              <rect x="54" y="1" width="5" height="14" fill="#ffd100" opacity="0.75" />
+              <rect x="62" y="1" width="2" height="14" fill="currentColor" opacity="0.45" />
+              <rect x="67" y="1" width="4" height="14" fill="currentColor" opacity="0.65" />
+            </svg>
           </div>
           <p v-if="tacticalActive" class="ef-op-tactical-effect"><b>主动</b> {{ tacticalActive }}</p>
           <p v-if="tacticalPassive" class="ef-op-tactical-effect"><b>被动</b> {{ tacticalPassive }}</p>
