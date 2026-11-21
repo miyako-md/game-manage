@@ -154,12 +154,15 @@ function classifySingleKind(ev) {
   return { kind: 'activity', label: '活动日历', accent: 'activity' }
 }
 
-// Rough track width (px) for estimating how much of the ruler a short-bar label covers.
+// Rough track width (px) for estimating how much of the ruler a label covers.
 const TRACK_PX = 900
 const LABEL_GAP = 0.8
-function textPx(text) {
-  return [...String(text || '')].reduce((sum, ch) => sum + (/[⺀-￿]/.test(ch) ? 17 : 9.5), 0)
+// Width of the check-in strip drawn inside wide check-in bars.
+const CHECKIN_STRIP_PX = 278
+function textPx(text, size = 17) {
+  return [...String(text || '')].reduce((sum, ch) => sum + (/[⺀-￿]/.test(ch) ? size : size * 0.56), 0)
 }
+const chipPx = text => (text ? textPx(text) + 14 + 8 : 0)
 function labelPct(name, dateText) {
   return Math.min(60, ((22 + textPx(name) + 8 + textPx(dateText)) / TRACK_PX) * 100 + 1)
 }
@@ -207,10 +210,23 @@ function buildItems(events, snapshots, withCategoryKind = false) {
     const isPoint = geom.kind === 'point'
     const left = Math.max(0, Math.min(99, geom.left))
     const width = isPoint ? 0 : Math.max(1.2, Math.min(100 - left, geom.width))
-    const isShort = isPoint || width < 22
     const name = `${geom.clippedStart ? '‹ ' : ''}${ev.name || '未命名活动'}${geom.clippedEnd ? ' ›' : ''}`
     const dateText = dateLabel(ev, geom)
     const right = left + width
+    const catInfo = withCategoryKind ? classifySingleKind(ev) : { kind: 'activity', label: ev.category || '', accent: 'activity' }
+    const stateChip = status === '进行中' || status === '未开始' || status === '已结束' ? status : ''
+    // The QQ layout audit rejects clipped or escaping text, so a bar keeps its
+    // copy inside only when the whole name and date line fit; otherwise the
+    // label goes beside the bar like a short one.
+    const fits = strip => {
+      const chips = withCategoryKind
+        ? chipPx(catInfo.kind === 'checkin' && !strip ? '签到' : stateChip)
+        : chipPx(ev.category) + chipPx(stateChip)
+      const copyPx = (width / 100) * TRACK_PX - 24 - (strip ? CHECKIN_STRIP_PX : 0)
+      return Math.max(textPx(name, 18), textPx(dateText) + chips) * 1.08 <= copyPx
+    }
+    const wideCheckin = !isPoint && catInfo.kind === 'checkin' && width >= 68 && fits(true)
+    const isShort = isPoint || !fits(wideCheckin)
     // Short bars carry their label beside the bar (never on top of it): after
     // the bar when it fits, otherwise before it if that side has more room.
     const need = labelPct(name, dateText)
@@ -231,7 +247,6 @@ function buildItems(events, snapshots, withCategoryKind = false) {
       shortLabelStyle = { left: `${right + LABEL_GAP}%`, maxWidth: `${Math.max(0, roomAfter)}%` }
     }
     const art = safeEventArt(ev, snapshots)
-    const catInfo = withCategoryKind ? classifySingleKind(ev) : { kind: 'activity', label: ev.category || '', accent: 'activity' }
 
     visible.push({
       id: ev.id,
@@ -251,7 +266,7 @@ function buildItems(events, snapshots, withCategoryKind = false) {
       art,
       bandKind: catInfo.kind,
       bandLabel: catInfo.label,
-      wideCheckin: catInfo.kind === 'checkin' && width >= 68,
+      wideCheckin,
     })
   }
   return { visible, pending }

@@ -705,3 +705,19 @@ test('Poster calendar keeps short-bar labels beside their bars and rail labels w
  assert.match(css,/\.ov-ef-combat :is\(\.ef-cb-rec-title, \.ef-cb-honor-title\)::before \{\s*counter-increment: ef-card;\s*content: counter\(ef-block, decimal-leading-zero\) '\.' counter\(ef-card\)/)
  assert.doesNotMatch(css,/radial-gradient/)
 })
+
+test('Poster calendar moves names that do not fit their bar beside it and never truncates side labels',async t=>{
+ const EventCalendarSheet=await loadVue(new URL('./qq-image/EventCalendarSheet.vue',import.meta.url))
+ const input={command:'鸣潮 日历',origin:'',snapshot:{kind:'calendar',game:'wuthering_waves',as_of:'2026-11-22T01:00:00+08:00',
+  display_data:{games:[{game_id:'wuthering_waves',display_name:'鸣潮'}],snapshots:{wuthering_waves:{events:{version:'3.8',payload:[
+   {name:'「浮声沉兵」角色活动唤取 · 共鸣者「卡提希娅」限时登场',category:'角色卡池',version:'3.8',start_at:'2026-11-13T10:00:00+08:00',end_at:'2026-12-03T11:59:00+08:00'},
+   {name:'千岛寻珍',category:'限时活动',version:'3.8',start_at:'2026-11-13T10:00:00+08:00',end_at:'2026-12-24T03:59:00+08:00'}]}}}}}}
+ const root=mount(t,EventCalendarSheet,{input,model:viewModel(input)})
+ const inside=nodes(root,'strong').filter(n=>cls(n,'ov-pcal-bar-name')).map(n=>content(n))
+ const beside=nodes(root,'div').filter(n=>cls(n,'ov-pcal-short-lbl')).map(n=>content(n))
+ assert.deepEqual(inside,['千岛寻珍'])
+ assert.ok(beside.some(text=>text.includes('卡提希娅')),beside)
+ const css=readFileSync(new URL('./qq-image/overview-system.css',import.meta.url),'utf8')
+ const label=css.match(/\.ov-pcal-short-lbl strong \{[^}]*\}/)?.[0]||''
+ assert.ok(label&&!/text-overflow|white-space: nowrap|overflow: hidden/.test(label),label)
+})
