@@ -14,7 +14,8 @@
   border: 1px solid var(--skin-line);
   position: relative;
   overflow: hidden;
-  --qq-display-font: 'Geist Variable', 'Noto Sans SC', 'Source Han Sans SC', sans-serif;
+  /* TemplateNoto is the render font the QQ renderer serves; the server has no system CJK font. */
+  --qq-display-font: 'Geist Variable', TemplateNoto, 'Noto Sans SC', 'Source Han Sans SC', sans-serif;
   --ao-shell-bg: var(--skin-bg);
   --ao-shell-bg-grad: var(--skin-bg-grad);
   --ao-shell-surface: var(--skin-surface);

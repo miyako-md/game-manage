@@ -116,15 +116,17 @@ const rulerTicks = computed(() => {
   return out
 })
 
-// A picture reused by three or more activities of one game is a version or
-// notice image, not this activity's banner (two pools may share one banner).
+// As in RenderCalendar.vue, the one picture most activities of a game reuse is
+// the version or notice image, not an activity banner. It must be reused by at
+// least three activities, so two pools sharing one banner keep it.
 const SHARED_ART_LIMIT = 3
 function sharedArtwork(events, snapshots) {
   const counts = new Map()
   for (const ev of events || []) {
     for (const url of eventArtwork(ev, snapshots || {})) counts.set(url, (counts.get(url) || 0) + 1)
   }
-  return new Set([...counts].filter(([, count]) => count >= SHARED_ART_LIMIT).map(([url]) => url))
+  const [top] = [...counts].filter(([, count]) => count >= SHARED_ART_LIMIT).sort((a, b) => b[1] - a[1])
+  return new Set(top ? [top[0]] : [])
 }
 
 function safeEventArt(ev, snapshots, shared) {

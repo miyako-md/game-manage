@@ -745,3 +745,18 @@ test('Poster calendar keeps names inside by dropping tags, skips version art sha
  assert.ok(text.includes('丹青渡')&&!text.includes('V丹青渡')&&text.includes('V1.5'))
  configure([],{})
 })
+
+test('Poster calendar drops only the most shared version picture, and display numerals fall back to the render font',async t=>{
+ const EventCalendarSheet=await loadVue(new URL('./qq-image/EventCalendarSheet.vue',import.meta.url))
+ const version='https://prod-alicdn-community.kurobbs.com/forum/version.jpeg',notice='https://prod-alicdn-community.kurobbs.com/forum/notice.jpeg'
+ const ev=(name,images)=>({name,category:'限时活动',version:'3.8',start_at:'2026-11-12T10:00:00+08:00',end_at:'2026-12-21T04:00:00+08:00',image_urls:images})
+ const input={command:'鸣潮 日历',origin:'',snapshot:{kind:'calendar',game:'wuthering_waves',as_of:'2026-11-22T02:00:00+08:00',
+  display_data:{games:[{game_id:'wuthering_waves',display_name:'鸣潮'}],snapshots:{wuthering_waves:{events:{version:'3.8',payload:[
+   ev('第二索拉',[version,notice]),ev('梦野寻奇',[version,notice]),ev('鸣鸣企划',[version,notice]),ev('昔梦赠礼',[version])]}}}}}}
+ configure([input],{[version]:true,[notice]:true})
+ const root=mount(t,EventCalendarSheet,{input,model:viewModel(input)})
+ assert.deepEqual(nodes(root,'img').map(n=>n.props.src),[notice,notice,notice])
+ configure([],{})
+ const css=readFileSync(new URL('./qq-image/overview-system.css',import.meta.url),'utf8')
+ assert.match(css,/--qq-display-font: 'Geist Variable', TemplateNoto,/)
+})
