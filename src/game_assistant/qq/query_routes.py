@@ -286,7 +286,7 @@ class QqQueryService:
                     news=self.public.read(current,'news') if self.public is not None else QueryResult(None,None,'never',None)
                 except (AccountNotFoundError,HTTPException,ValueError,RuntimeError,OSError):news=QueryResult(None,None,'error',None)
                 self._capture_snapshot(context,None,current+':news',news)
-                snapshot=shared_view.events_with_artwork(snapshot,news)
+                snapshot=shared_view.events_with_artwork(snapshot,news,current)
             snapshots[current]=snapshot
         if context is not None:
             context['render_snapshot']=shared_view.calendar_snapshot(snapshots,self.clock(),page) if command=='calendar' else shared_view.filtered_events_snapshot(snapshots,command,self.clock(),page)

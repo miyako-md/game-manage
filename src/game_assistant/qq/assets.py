@@ -27,6 +27,7 @@ import warnings
 
 from PIL import Image, UnidentifiedImageError
 
+from .calendar_art import CALENDAR_ART, CROP_HOST, crop_tiles
 from .public_asset_catalog import CATALOG, OWNED_EMBLEMS
 
 logger = logging.getLogger(__name__)
@@ -45,11 +46,15 @@ MAX_PORTRAIT_EDGE = 512
 MAX_PORTRAIT_BYTES = 512 * 512 * 4 + 4096
 MAX_ARTWORK_EDGE = 1080
 MAX_ARTWORK_BYTES = MAX_ARTWORK_EDGE * MAX_ARTWORK_EDGE * 4 + 4096
+# A reviewed calendar crop waits for one source image of up to 6 MiB; only the
+# deferred refetch (never a reply's own budget) can use this longer bound.
+CROP_SOURCE_TIMEOUT = 15
 # A missing or invalid public image stays so; a network failure may clear up soon.
 FAILURE_SECONDS = 30
 DETERMINISTIC_FAILURE_SECONDS = 600
 DETERMINISTIC_FAILURES = frozenset(('qq_asset_http_not_found', 'qq_asset_content_type', 'qq_asset_invalid_image',
-                                    'qq_asset_pixels_or_animation', 'qq_asset_size_limit', 'qq_asset_sanitized_size_limit'))
+                                    'qq_asset_pixels_or_animation', 'qq_asset_size_limit', 'qq_asset_sanitized_size_limit',
+                                    'qq_asset_crop_source_mismatch', 'qq_asset_crop_unknown'))
 
 
 def safe_public_url(value):
@@ -60,7 +65,7 @@ def safe_public_url(value):
     try:
         url = urlsplit(value)
         decoded = unquote(url.path)
-        if (url.scheme != 'https' or url.hostname not in ALLOWED_HOSTS or url.username
+        if (url.scheme != 'https' or url.hostname not in ALLOWED_HOSTS | {CROP_HOST} or url.username
                 or url.password or url.query or url.fragment or '?' in value or '#' in value
                 or url.port not in (None, 443) or not url.path.startswith('/')
                 or not re.search(r'\.(?:png|jpe?g|webp)\Z', url.path, re.I)
@@ -68,7 +73,11 @@ def safe_public_url(value):
                 or '\\' in decoded or '%' in decoded
                 or any(part in ('.', '..') for part in decoded.split('/'))):
             return None
-        return urlunsplit(('https', url.hostname, url.path, '', ''))
+        safe = urlunsplit(('https', url.hostname, url.path, '', ''))
+        # A virtual crop URL is only as safe as its reviewed manifest entry.
+        if url.hostname == CROP_HOST and (safe != value or CALENDAR_ART.lookup(safe) is None):
+            return None
+        return safe
     except (ValueError, UnicodeError):
         return None
 
@@ -147,16 +156,19 @@ async def _read_body(reader, headers, *, artwork=False):
             raise ValueError('qq_asset_size_limit')
 
 
-async def _download(value, *, timeout_seconds=3, dns_resolver='system', artwork=False):
+async def _download(value, *, timeout_seconds=3, dns_resolver='system', artwork=False, timeout_cap=5):
     url = safe_public_url(value)
     if not url:
         raise ValueError('qq_asset_invalid_url')
+    if urlsplit(url).hostname == CROP_HOST:
+        # Crops are cut locally from their reviewed source; this host never resolves.
+        raise ValueError('qq_asset_crop_unknown')
     if dns_resolver not in ('system', 'cloudflare'):
         raise ValueError('qq_asset_dns_resolver_invalid')
     target = urlsplit(url)
     writer = None
     # timeout spans DNS, TLS, headers and entire body, including slow streaming.
-    async with asyncio.timeout(max(.001, min(timeout_seconds, 5))):
+    async with asyncio.timeout(max(.001, min(timeout_seconds, timeout_cap, CROP_SOURCE_TIMEOUT))):
         if dns_resolver == 'cloudflare':
             from .public_asset_dns import cloudflare_addresses
             addresses = await cloudflare_addresses(target.hostname, allowed_hosts=ALLOWED_HOSTS)
@@ -231,6 +243,8 @@ class PublicAssetCache:
         self._sources = OrderedDict()
         self._failures = OrderedDict()
         self._inflight = {}
+        # One source download serves every reviewed crop cut from it.
+        self._crop_locks = {}
         self._lock = threading.RLock()
         self._semaphore = asyncio.Semaphore(max(1, min(concurrency, 8)))
         self._bytes = 0
@@ -376,6 +390,9 @@ class PublicAssetCache:
                 if remaining <= 0:
                     return 'expired'
                 options = {'dns_resolver': self.dns_resolver} if self.dns_resolver != 'system' else {}
+                crop = CALENDAR_ART.lookup(self._sources[ref])
+                if crop is not None:
+                    return await self._fetch_crop(ref, crop[0], remaining, options, deferred=deferred)
                 if ref in self._artwork_refs:options['artwork']=True
                 request_timeout=self.artwork_request_timeout if ref in self._artwork_refs else self.request_timeout
                 raw = await _download(self._sources[ref], timeout_seconds=min(remaining, request_timeout), **options)
@@ -399,6 +416,32 @@ class PublicAssetCache:
         finally:
             self._inflight.pop(ref, None)
 
+    async def _fetch_crop(self, ref, source, remaining, options, *, deferred=False):
+        """Download the reviewed source once, then store every crop cut from it."""
+        lock = self._crop_locks.setdefault(source.sha256, asyncio.Lock())
+        async with lock:
+            if self.get_png(ref) is not None:
+                return 'ok'
+            if not deferred:
+                # A reply's short budget cannot cover the source image: queue the
+                # serial background refetch now instead of timing out into a failure.
+                return 'expired'
+            raw = await _download(source.image_url, timeout_seconds=min(remaining, CROP_SOURCE_TIMEOUT),
+                                  artwork=True, timeout_cap=CROP_SOURCE_TIMEOUT, **options)
+            if deferred:
+                await self._idle.wait()
+            def cut():
+                return {url: sanitize_image(png, artwork=True) for url, png in crop_tiles(raw, source).items()}
+            for url, png in (await asyncio.to_thread(cut)).items():
+                key = 'qqasset_' + hashlib.sha256(('artwork-v1:' + url).encode('ascii')).hexdigest()
+                # Crops no current image asked for go to the disk tier only, so they
+                # cannot evict mounted icons from the memory LRU.
+                if key == ref or key in self._sources:
+                    self._store(key, png)
+                elif self._disk is not None:
+                    self._disk.write(key, png)
+            return 'ok' if self.get_png(ref) is not None else 'failed'
+
     async def _drain(self):
         """Fetch deferred refs serially, each started only when no render is in progress."""
         try:
@@ -409,7 +452,8 @@ class PublicAssetCache:
                     self._expire()
                     if ref not in self._sources or ref in self._failures or ref in self._inflight or self.get_png(ref) is not None:
                         continue
-                task = asyncio.create_task(self._fetch(ref, time.monotonic() + self.artwork_request_timeout, deferred=True))
+                limit = CROP_SOURCE_TIMEOUT if CALENDAR_ART.lookup(self._sources[ref]) else self.artwork_request_timeout
+                task = asyncio.create_task(self._fetch(ref, time.monotonic() + limit, deferred=True))
                 self._inflight[ref] = task
                 if await task == 'error':
                     logger.warning('qq_asset_prefetch_failed')
