@@ -42,4 +42,4 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 game_assistant = ["character-search-catalog.json", "build-info.json", "assessment-defaults-wuwa.json", "assessment-defaults-nte.json"]
-"game_assistant.qq" = ["role_guides.json"]
+"game_assistant.qq" = ["role_guides.json", "nte_calendar_art.json"]

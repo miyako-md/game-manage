@@ -302,8 +302,12 @@ def _same_artwork_source(ref,article):
     return bool(identity and any(identifier(article.get(key))==identity for key in ('id','article_id','post_id')))
 
 
-def events_with_artwork(row,articles):
-    """Join only explicit cached source ownership; never use dates or nearby titles."""
+def events_with_artwork(row,articles,game=None):
+    """Join only explicit cached source ownership; never use dates or nearby titles.
+
+    A reviewed NTE calendar crop (calendar_art) comes first: it is the one
+    picture that belongs to that activity alone."""
+    from .calendar_art import CALENDAR_ART
     if not isinstance(row.payload,list):return row
     news=articles.payload if isinstance(articles.payload,list) else []
     versions=getattr(row,'version_metadata',None)
@@ -328,7 +332,9 @@ def events_with_artwork(row,articles):
     events=[]
     for event in row.payload:
         if not isinstance(event,dict):events.append(event);continue
-        images=_artwork_pictures(event)
+        crop=CALENDAR_ART.match_event(event,game)
+        images=[crop] if crop else []
+        images.extend(_artwork_pictures(event))
         images.extend(linked_pictures(event))
         version=str(event.get('version_id') or event.get('version') or '')
         for meta in (event.get('version_metadata'),versions):
