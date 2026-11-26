@@ -79,10 +79,14 @@ class KuroClient:
         detail = data.get("postDetail") if isinstance(data, dict) else None
         if not isinstance(detail, dict):
             raise KuroError(-3, "帖子详情响应结构异常")
-        # 2026-11-25 起详情改把 H5 全文放在 postNewH5Content，postH5Content 不再返回。
-        if not detail.get("postH5Content") and isinstance(detail.get("postNewH5Content"), str):
-            detail = {**detail, "postH5Content": detail["postNewH5Content"]}
-        return detail
+        return with_h5_body(detail)
+
+
+def with_h5_body(detail: dict) -> dict:
+    """2026-11-25 起详情只在 postNewH5Content 返回 H5 全文；读取方仍用 postH5Content。"""
+    if not detail.get("postH5Content") and isinstance(detail.get("postNewH5Content"), str):
+        return {**detail, "postH5Content": detail["postNewH5Content"]}
+    return detail
 
 
 class KuroPublicClient(KuroClient):
@@ -109,4 +113,4 @@ class KuroPublicClient(KuroClient):
         returned_id = detail.get('postId', detail.get('id'))
         if returned_id is not None and str(returned_id) != str(post_id):
             raise KuroError(-3, '帖子详情与公告来源不匹配')
-        return detail
+        return with_h5_body(detail)

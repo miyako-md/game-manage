@@ -2,7 +2,7 @@ import httpx
 import pytest
 import respx
 
-from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient, KuroError
+from game_assistant.adapters.wuthering_waves.kuro_client import KuroClient, KuroError, KuroPublicClient
 
 # 实测响应形状（2026-09-13 首次真实连接校准），见 endpoints.py 注释
 # 账号 UID 和昵称为合成测试数据；仅保留已校准的响应字段结构。
@@ -106,8 +106,10 @@ async def test_get_post_detail_reads_the_new_h5_body_field():
     detail["postNewH5Content"] = detail.pop("postH5Content")
     respx.post(POST_DETAIL_URL).mock(return_value=httpx.Response(
         200, json={"code": 200, "msg": "success", "data": {"postDetail": detail}}))
-    result = await KuroClient(token="tok").get_post_detail("1539678546104307712")
-    assert result["postH5Content"] == detail["postNewH5Content"]
+    # The anonymous public client (calendar and announcements) has its own request shape.
+    for client in (KuroClient(token="tok"), KuroPublicClient()):
+        result = await client.get_post_detail("1539678546104307712")
+        assert result["postH5Content"] == detail["postNewH5Content"]
 
 
 @respx.mock
