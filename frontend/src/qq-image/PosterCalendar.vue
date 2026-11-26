@@ -295,7 +295,40 @@ function buildItems(events, snapshots, withCategoryKind = false) {
       showTag: !!shown?.tag,
     })
   }
-  return { visible, pending }
+  return { visible: mergeSameDayPoints(visible), pending }
+}
+
+// Milestones on the same day in the same band share one marker ("归野 / 星河共我"),
+// so a version start with several one-day entries does not take a row each.
+const POINT_MAX_PCT = 48
+// Counts stay per activity even when several share one marker.
+const activityCount = items => items.reduce((sum, item) => sum + (item.names?.length || 1), 0)
+function mergeSameDayPoints(items) {
+  const merged = new Map()
+  const output = []
+  for (const item of items) {
+    if (!item.isPoint) {
+      output.push(item)
+      continue
+    }
+    const key = `${item.bandKind}|${item.dateText}`
+    const first = merged.get(key)
+    if (first) {
+      first.names.push(item.name)
+      first.isEnded = first.isEnded && item.isEnded
+      continue
+    }
+    const point = { ...item, names: [item.name] }
+    merged.set(key, point)
+    output.push(point)
+  }
+  for (const point of merged.values()) {
+    point.name = point.names.join(' / ')
+    const span = Math.min(POINT_MAX_PCT, labelPct(point.name, point.dateText) + 2)
+    point.occStart = point.anchorRight ? Math.max(0, point.left - span) : point.left
+    point.occEnd = point.anchorRight ? point.left : Math.min(100, point.left + span)
+  }
+  return output
 }
 
 const singleBands = computed(() => {
@@ -316,7 +349,7 @@ const singleBands = computed(() => {
         key: kind,
         kind,
         label,
-        count: rows.length,
+        count: activityCount(rows),
         lanes: packLanes(rows),
       })
     }
@@ -339,7 +372,7 @@ const multiBands = computed(() => {
       // Numbered versions read "V3.8"; named ones (终末地「丹青渡」) stay as named.
       verTag: !verMatch ? '' : /^\d/.test(verMatch) ? `V${verMatch}` : [...verMatch].length <= 4 ? verMatch : '',
       indexText: pad2(i + 1),
-      count: visible.length,
+      count: activityCount(visible),
       lanes: packLanes(visible),
     }
   })

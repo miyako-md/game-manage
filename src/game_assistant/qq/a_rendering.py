@@ -46,6 +46,7 @@ class AImageRenderer:
 
     async def prewarm(self):
         """Launch Chromium and load the render page before the first reply; False when not configured."""
+        self._recover_after_cleanup()
         if not self.enabled or self.template!='a' or not (self.dist/'render-a.html').is_file():return False
         self._a_images={};self._a_forbidden=[];self._a_asset_misses=[]
         try:await self._a_ready()

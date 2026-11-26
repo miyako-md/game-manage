@@ -427,15 +427,44 @@ async def test_hung_context_cleanup_recycles_browser_with_bounded_wait():
     assert renderer._browser is None and stopped.is_set() and time.monotonic()-started<.2
 
 
-async def test_unconfirmed_cleanup_disables_followup_browser_jobs():
+class _Child:
+    def __init__(self,status):self._status=status
+    def status(self):return self._status
+
+
+def _children(monkeypatch,*statuses):
+    import psutil
+    class Process:
+        def children(self,recursive=False):return [_Child(status) for status in statuses]
+    monkeypatch.setattr(psutil,'Process',Process)
+
+
+async def test_unconfirmed_cleanup_disables_followup_browser_jobs(monkeypatch):
     renderer=BrowserRenderer();renderer.cleanup_seconds=.01
     class BrokenBrowser:
         async def close(self):raise RuntimeError('fixture_close_failed')
     renderer._browser=BrokenBrowser()
     await renderer._recycle()
     assert not renderer.enabled and renderer.disabled_reason=='qq_browser_cleanup_unconfirmed'
+    # A child process that may still be the old browser keeps every later job disabled.
+    import psutil
+    _children(monkeypatch,psutil.STATUS_SLEEPING)
     with pytest.raises(RenderingUnavailable,match='cleanup_unconfirmed'):
         await renderer.render_summary_async(SCOPE,envelope(calendar()),budget_seconds=1)
+    assert not await renderer.prewarm() and not renderer.enabled
+
+
+def test_unconfirmed_cleanup_recovers_once_no_child_process_remains(monkeypatch):
+    import psutil
+    renderer=BrowserRenderer();renderer.enabled=False;renderer.disabled_reason='qq_browser_cleanup_unconfirmed'
+    _children(monkeypatch,psutil.STATUS_ZOMBIE)
+    renderer._recover_after_cleanup()
+    assert renderer.enabled and renderer.disabled_reason is None
+    # Other reasons for being disabled are never lifted here.
+    renderer.enabled=False;renderer.disabled_reason='qq_browser_runtime_unavailable'
+    _children(monkeypatch)
+    renderer._recover_after_cleanup()
+    assert not renderer.enabled and renderer.disabled_reason=='qq_browser_runtime_unavailable'
 
 
 def build_fixture(tmp_path):

@@ -760,3 +760,25 @@ test('Poster calendar drops only the most shared version picture, and display nu
  const css=readFileSync(new URL('./qq-image/overview-system.css',import.meta.url),'utf8')
  assert.match(css,/--qq-display-font: 'Geist Variable', TemplateNoto,/)
 })
+
+test('Poster calendar merges same-day milestones into one marker; display numerals keep their weight and milestone names wrap',async t=>{
+ const EventCalendarSheet=await loadVue(new URL('./qq-image/EventCalendarSheet.vue',import.meta.url))
+ const point=(name,at)=>({name,category:'版本节点',version:'丹青渡',start_at:`${at}T10:00:00+08:00`})
+ const input={command:'终末地 日历',origin:'',snapshot:{kind:'calendar',game:'endfield',as_of:'2026-11-23T01:00:00+08:00',
+  display_data:{games:[{game_id:'endfield',display_name:'终末地'}],snapshots:{endfield:{events:{version:'丹青渡',payload:[
+   point('归野','2026-11-05'),point('星河共我','2026-11-05'),point('烟火邀星河','2026-11-05'),point('篆玉申领','2026-10-15'),
+   {name:'危机合约',category:'限时活动',version:'丹青渡',start_at:'2026-11-05T10:00:00+08:00',end_at:'2026-12-02T04:00:00+08:00'}]}}}}}}
+ const root=mount(t,EventCalendarSheet,{input,model:viewModel(input)})
+ const points=nodes(root,'article').filter(n=>cls(n,'ov-pcal-point')).map(n=>content(n))
+ assert.equal(points.length,2,points)
+ assert.ok(points.some(text=>text.includes('归野 / 星河共我 / 烟火邀星河')),points)
+ const multi={...input,command:'日历',snapshot:{...input.snapshot,game:'all',display_data:{...input.snapshot.display_data,
+  games:[{game_id:'wuthering_waves',display_name:'鸣潮'},{game_id:'endfield',display_name:'终末地'}],
+  snapshots:{wuthering_waves:{events:{version:'3.8',payload:[]}},endfield:input.snapshot.display_data.snapshots.endfield}}}}
+ const multiRoot=mount(t,EventCalendarSheet,{input:multi,model:viewModel(multi)})
+ assert.ok(content(multiRoot).includes('5 项在轴活动'),content(multiRoot))
+ const css=readFileSync(new URL('./qq-image/overview-system.css',import.meta.url),'utf8')
+ assert.match(css,/\.ov-pcal-rail-idx, \.ov-pcal-tick\) \{[^}]*font-synthesis-weight: auto;/)
+ const label=css.match(/\.ov-pcal-point-copy strong \{[^}]*\}/)?.[0]||''
+ assert.ok(label&&!/text-overflow|white-space: nowrap|overflow: hidden/.test(label),label)
+})

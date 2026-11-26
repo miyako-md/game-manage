@@ -170,6 +170,25 @@ class BrowserRenderer(AImageRenderer,SummaryRenderer):
                 self.disabled_reason='qq_browser_cleanup_unconfirmed'
         if runtime is not None:await self._bounded_close(runtime.stop())
 
+    def _recover_after_cleanup(self):
+        """Re-enable after an unconfirmed cleanup once this process has no live children.
+
+        Disabling on an unconfirmed cleanup keeps orphaned Chromium from piling up on a
+        small server; once those processes are gone it must not leave every later reply
+        as text until someone restarts the service. Any live child keeps it disabled.
+        """
+        if self.enabled or self.disabled_reason!='qq_browser_cleanup_unconfirmed':return
+        import psutil
+        try:children=psutil.Process().children(recursive=True)
+        except psutil.Error:return
+        for child in children:
+            try:
+                if child.status()!=psutil.STATUS_ZOMBIE:return
+            except psutil.NoSuchProcess:continue
+            except psutil.Error:return
+        self.enabled=True
+        self.disabled_reason=None
+
     def _unchanged(self, name, paths, compute):
         """compute() again only when a file's size, mtime, inode or type (lstat) changes.
 
@@ -261,6 +280,7 @@ class BrowserRenderer(AImageRenderer,SummaryRenderer):
         deadline=time.monotonic()+min(10,budget_seconds)
         snapshot=result.payload.get('render_snapshot')
         if snapshot is None:raise RenderingUnavailable('qq_browser_shared_content_unavailable')
+        self._recover_after_cleanup()
         if not self.enabled:raise RenderingUnavailable(self.disabled_reason or 'qq_browser_disabled')
         snapshot=validate_snapshot(snapshot)
         self._check_font()
