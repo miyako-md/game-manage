@@ -169,7 +169,7 @@ def parse_post_events(post, version):
             extra = {}
             if not sub and phases > 1:
                 phase += 1
-                extra = dict(phase=phase)
+                extra = dict(phase=str(phase))  # GameEvent.phase is text
             events.append(dict(
                 name=name, category=item['category'], aliases=aliases if not sub else [name], version=version,
                 **times, **extra, source=post.get('source', 'bilibili'),

@@ -79,6 +79,9 @@ class KuroClient:
         detail = data.get("postDetail") if isinstance(data, dict) else None
         if not isinstance(detail, dict):
             raise KuroError(-3, "帖子详情响应结构异常")
+        # 2026-11-25 起详情改把 H5 全文放在 postNewH5Content，postH5Content 不再返回。
+        if not detail.get("postH5Content") and isinstance(detail.get("postNewH5Content"), str):
+            detail = {**detail, "postH5Content": detail["postNewH5Content"]}
         return detail
 
 

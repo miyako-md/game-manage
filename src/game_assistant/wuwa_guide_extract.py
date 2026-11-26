@@ -79,7 +79,8 @@ def parse_source(raw, post_id, query):
                 if text and not noise(text):
                     paragraphs.append({'position':len(paragraphs) + 1, 'text':text.lstrip('🌙 ').strip()})
     else:
-        html = detail.get('postH5Content')
+        # The H5 body moved to postNewH5Content on 2026-11-25.
+        html = detail.get('postH5Content') or detail.get('postNewH5Content')
         if not isinstance(html, str) or not html.strip() or len(html) > 200000:
             raise SourceError('原帖正文为空或不完整')
         parser = TextBlocks(); parser.feed(html)

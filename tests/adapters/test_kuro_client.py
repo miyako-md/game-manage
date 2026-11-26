@@ -100,6 +100,17 @@ async def test_get_post_detail_ok():
 
 
 @respx.mock
+async def test_get_post_detail_reads_the_new_h5_body_field():
+    # 2026-11-25 起详情只返回 postNewH5Content；日历与公告正文仍读 postH5Content。
+    detail = dict(POST_DETAIL_RAW["data"]["postDetail"])
+    detail["postNewH5Content"] = detail.pop("postH5Content")
+    respx.post(POST_DETAIL_URL).mock(return_value=httpx.Response(
+        200, json={"code": 200, "msg": "success", "data": {"postDetail": detail}}))
+    result = await KuroClient(token="tok").get_post_detail("1539678546104307712")
+    assert result["postH5Content"] == detail["postNewH5Content"]
+
+
+@respx.mock
 async def test_get_post_detail_bad_shape_raises():
     respx.post(POST_DETAIL_URL).mock(return_value=httpx.Response(
         200, json={"code": 200, "data": {"postDetail": None}}))

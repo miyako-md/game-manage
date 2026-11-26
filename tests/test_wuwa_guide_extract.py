@@ -32,6 +32,14 @@ def test_source_requires_identity_full_content_and_exact_character_form():
     with pytest.raises(SourceError): parse_source(wrong, POST_ID, QUERY)
 
 
+def test_html_body_is_read_from_the_new_h5_field():
+    # Without block content the H5 body is used; since 2026-11-25 it is postNewH5Content only.
+    source = raw(body=[]); detail = source['data']['postDetail']
+    detail['postNewH5Content'] = '<p>心武器首选玉阙玄华。</p><p>配队：心／导电漂泊者／穗穗。</p>'
+    assert [p['text'] for p in parse_source(source, POST_ID, QUERY)['paragraphs']] == [
+        '心武器首选玉阙玄华。', '配队：心／导电漂泊者／穗穗。']
+
+
 def test_five_sections_keep_modal_conditions_and_do_not_invent_skill_order():
     source = parse_source(raw(), POST_ID, QUERY)
     sections = {s['key']:s for s in extract_sections(source, [], '未安装图文识别组件')}

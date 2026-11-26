@@ -147,7 +147,7 @@ def test_version_notes_cover_banners_relative_ends_phases_and_sub_items():
     assert (story['start_precision'], story['start_date'], story['end_precision']) == ('relative', '2026-09-02', 'version_end')
     assert events[('陵水渡秋', None)]['category'] == '签到活动'
     assert events[('集成援助·泡泡出击·物资兑换处', None)]['end_at'] == '2026-10-07T04:00:00+08:00'
-    assert [events[('理智补给', n)]['start_at'] for n in (1, 2)] == ['2026-09-17T04:00:00+08:00', '2026-10-08T04:00:00+08:00']
+    assert [events[('理智补给', n)]['start_at'] for n in ('1', '2')] == ['2026-09-17T04:00:00+08:00', '2026-10-08T04:00:00+08:00']
     assert events[('战争回响·虚像赛季', None)]['category'] == '玩法更新'
     assert events[('丰碑留名·刻影', None)]['end_at'] == '2026-10-19T04:00:00+08:00'
     assert ('影拓丰碑', None) not in events  # 只有开放时刻的常驻内容不进日历
@@ -202,7 +202,10 @@ def test_phases_joined_by_ji_are_separate_events():
     body = ("「新潮起，故渊离」版本更新说明\n■ 更新维护时间\n2026/03/12 06:00 - 2026/03/12 12:00（UTC+8）\n■ 全新活动\n"
             "7.「理智减耗」减耗活动\n· 活动时间：2026/03/22 12:00 - 2026/03/29 04:00 及 2026/04/10 12:00 - 2026/04/17 04:00（服务器时间）")
     events = parse_post_events(post(body, '1', '2026-03-12T04:00:00+00:00'), 'endfield', '新潮起，故渊离')
-    assert [(e['phase'], e['end_at']) for e in events] == [(1, '2026-03-29T04:00:00+08:00'), (2, '2026-04-17T04:00:00+08:00')]
+    assert [(e['phase'], e['end_at']) for e in events] == [('1', '2026-03-29T04:00:00+08:00'), ('2', '2026-04-17T04:00:00+08:00')]
+    # The adapter stores these as shared events; one phased item must not reject the calendar.
+    from game_assistant.adapters.endfield.data_models import EndfieldEvent
+    assert [EndfieldEvent(**e).phase for e in events] == ['1', '2']
 
 
 def test_a_time_that_does_not_exist_leaves_out_only_that_time():
